@@ -6,7 +6,12 @@ import subprocess
 import time
 import wave
 import logging
-from ..config.stt_config import config
+import sys
+import os
+# Add project root to path if not already there
+if os.path.join(os.path.dirname(__file__), '..', '..') not in sys.path:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from src.config.stt_config import config
 
 logger = logging.getLogger(__name__)
 
