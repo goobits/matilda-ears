@@ -1,4 +1,4 @@
-#!/home/miko/projects/stt-hotkey/venv/bin/python3
+#!/usr/bin/env python3
 """Facebook Denoiser real-time audio processing pipeline
 GPU-accelerated noise reduction for crystal-clear audio
 """
@@ -10,16 +10,19 @@ from typing import Optional
 from denoiser import pretrained
 from denoiser.demucs import DemucsStreamer
 
+from src.config.stt_config import get_audio_config
+
 class FacebookDenoiserPipeline:
     """Real-time Facebook Denoiser for GPU-accelerated noise reduction"""
 
     def __init__(self,
-                 sample_rate: int = 44100,
-                 device: str = "cuda",
+                 sample_rate: int = None,
+                 device: str = None,
                  model_name: str = "dns64"):
 
-        self.sample_rate = sample_rate
-        self.device = device
+        audio_config = get_audio_config()
+        self.sample_rate = sample_rate or audio_config.sample_rate
+        self.device = device or audio_config.device
         self.model_name = model_name
 
         # Model and streaming components
@@ -180,12 +183,16 @@ class FacebookDenoiserPipeline:
 # Singleton instance for global access
 _denoiser_instance: Optional[FacebookDenoiserPipeline] = None
 
-def get_denoiser(sample_rate: int = 44100, device: str = "cuda") -> FacebookDenoiserPipeline:
+def get_denoiser(sample_rate: int = None, device: str = None) -> FacebookDenoiserPipeline:
     """Get global denoiser instance (singleton pattern)"""
     global _denoiser_instance
 
     if _denoiser_instance is None:
-        _denoiser_instance = FacebookDenoiserPipeline(sample_rate=sample_rate, device=device)
+        audio_config = get_audio_config()
+        _denoiser_instance = FacebookDenoiserPipeline(
+            sample_rate=sample_rate or audio_config.sample_rate,
+            device=device or audio_config.device
+        )
         _denoiser_instance.warmup()
 
     return _denoiser_instance
@@ -196,7 +203,8 @@ if __name__ == "__main__":
 
     # Create test noisy audio
     duration = 2.0  # 2 seconds
-    sample_rate = 44100
+    audio_config = get_audio_config()
+    sample_rate = audio_config.sample_rate
     t = np.linspace(0, duration, int(sample_rate * duration))
 
     # Clean signal (sine wave)

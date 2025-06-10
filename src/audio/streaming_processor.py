@@ -1,4 +1,4 @@
-#!/home/miko/projects/stt-hotkey/venv/bin/python3
+#!/usr/bin/env python3
 """Real-time audio streaming processor using PyAudio
 Replaces arecord with intelligent streaming audio capture
 """
@@ -9,16 +9,19 @@ import time
 import logging
 from typing import Optional, Callable
 
+from src.config.stt_config import get_audio_config
+
 class StreamingAudioProcessor:
     """Real-time audio streaming with intelligent buffering"""
 
     def __init__(self,
-                 sample_rate: int = 44100,
+                 sample_rate: int = None,
                  channels: int = 1,
                  chunk_size: int = 1024,
                  audio_format=pyaudio.paInt16):
 
-        self.sample_rate = sample_rate
+        audio_config = get_audio_config()
+        self.sample_rate = sample_rate or audio_config.sample_rate
         self.channels = channels
         self.chunk_size = chunk_size
         self.audio_format = audio_format
@@ -164,7 +167,9 @@ if __name__ == "__main__":
     time.sleep(5)
     audio = processor.stop_recording()
 
-    print(f"Recorded {len(audio)} samples ({len(audio)/44100:.2f}s)")
-    processor.save_audio_to_file(audio, "/tmp/streaming_test.wav")
+    print(f"Recorded {len(audio)} samples ({len(audio)/processor.sample_rate:.2f}s)")
+    from src.config.stt_config import get_temp_dir
+    temp_dir = get_temp_dir()
+    processor.save_audio_to_file(audio, f"{temp_dir}/streaming_test.wav")
 
     processor.cleanup()
