@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.config_loader import get_config
 
 
-def generate_openssl_config(cert_dir, hostname="localhost"):
+def generate_openssl_config(cert_dir: Path, hostname: str = "localhost") -> Path:
     """Generate OpenSSL configuration for certificate generation"""
     config_content = f"""[req]
 distinguished_name = req_distinguished_name
@@ -47,7 +47,7 @@ IP.2 = ::1
     return config_file
 
 
-def check_openssl_available():
+def check_openssl_available() -> bool:
     """Check if OpenSSL is available on the system"""
     try:
         result = subprocess.run(["openssl", "version"], capture_output=True, text=True, check=True)
@@ -58,7 +58,7 @@ def check_openssl_available():
         return False
 
 
-def generate_certificates_openssl(cert_dir, key_file, cert_file, validity_days=365):
+def generate_certificates_openssl(cert_dir: Path, key_file: Path, cert_file: Path, validity_days: int = 365) -> bool:
     """Generate certificates using OpenSSL command line tool"""
     print("🔐 Generating SSL certificates using OpenSSL...")
 
@@ -104,7 +104,7 @@ def generate_certificates_openssl(cert_dir, key_file, cert_file, validity_days=3
         return False
 
 
-def generate_certificates_python(cert_dir, key_file, cert_file, validity_days=365):
+def generate_certificates_python(cert_dir: Path, key_file: Path, cert_file: Path, validity_days: int = 365) -> bool:
     """Generate certificates using Python cryptography library"""
     try:
         from cryptography import x509
@@ -189,7 +189,7 @@ def generate_certificates_python(cert_dir, key_file, cert_file, validity_days=36
         return False
 
 
-def main():
+def main() -> None:
     """Main certificate generation function"""
     print("🔒 STT Hotkey System - SSL Certificate Generator")
     print("=" * 50)
