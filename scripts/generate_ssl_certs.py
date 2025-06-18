@@ -11,7 +11,7 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config_loader import get_config
+from core.config import get_config
 
 
 def generate_openssl_config(cert_dir: Path, hostname: str = "localhost") -> Path:
