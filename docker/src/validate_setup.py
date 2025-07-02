@@ -17,23 +17,23 @@ def test_imports():
     
     try:
         # Test dashboard API imports
-        from docker.dashboard.api import DashboardAPI
+        from docker.src.api import DashboardAPI
         print("✅ Dashboard API imports successful")
         
         # Test encryption imports
-        from docker.encryption import EncryptionManager, EncryptionWebSocketHandler
+        from docker.src.encryption import EncryptionManager, EncryptionWebSocketHandler
         print("✅ Encryption module imports successful")
         
         # Test token manager imports
-        from docker.token_manager import TokenManager
+        from docker.src.token_manager import TokenManager
         print("✅ Token manager imports successful")
         
         # Test WebSocket server imports
-        from docker.websocket_server import EnhancedSTTWebSocketServer
+        from docker.src.websocket_server import EnhancedSTTWebSocketServer
         print("✅ WebSocket server imports successful")
         
         # Test server launcher imports
-        from docker.server_launcher import DockerServerLauncher
+        from docker.src.server_launcher import DockerServerLauncher
         print("✅ Server launcher imports successful")
         
         return True
@@ -55,7 +55,7 @@ def test_token_manager():
         test_dir.mkdir(exist_ok=True)
         
         # Initialize token manager
-        from docker.token_manager import TokenManager
+        from docker.src.token_manager import TokenManager
         token_manager = TokenManager(data_dir=test_dir)
         
         # Test token generation
@@ -100,7 +100,7 @@ def test_encryption():
         test_dir.mkdir(exist_ok=True)
         
         # Initialize encryption manager
-        from docker.encryption import EncryptionManager
+        from docker.src.encryption import EncryptionManager
         encryption_manager = EncryptionManager(test_dir)
         
         # Test key generation
@@ -129,7 +129,7 @@ def test_dashboard_api():
         # Mock the data directory
         os.environ["STT_DOCKER_MODE"] = "1"
         
-        from docker.dashboard.api import DashboardAPI
+        from docker.src.api import DashboardAPI
         api = DashboardAPI()
         
         if api.app and api.token_manager:

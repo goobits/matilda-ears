@@ -53,7 +53,7 @@ class DockerServerLauncher:
             logger.info(f"Starting dashboard server on port {self.web_port}")
             
             # Import the dashboard API
-            from docker.dashboard.api import app
+            from docker.src.api import app
             
             # Configure uvicorn
             log_level = "debug" if self.verbose else "info"
@@ -77,7 +77,7 @@ class DockerServerLauncher:
             logger.info(f"Starting WebSocket server on port {self.websocket_port}")
             
             # Import the WebSocket server
-            from docker.websocket_server import get_websocket_server
+            from docker.src.websocket_server import get_websocket_server
             
             # Create and start server
             server = get_websocket_server()

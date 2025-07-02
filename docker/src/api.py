@@ -67,7 +67,7 @@ class DashboardAPI:
         self.transcription_server = None
         
         # Import and initialize token manager
-        from docker.token_manager import get_token_manager
+        from docker.src.token_manager import get_token_manager
         self.token_manager = get_token_manager()
         
         self.setup_routes()
@@ -88,7 +88,7 @@ class DashboardAPI:
         """Setup all API routes"""
         
         # Serve dashboard static files
-        dashboard_dir = Path(__file__).parent
+        dashboard_dir = Path(__file__).parent.parent / "dashboard"
         self.app.mount("/static", StaticFiles(directory=str(dashboard_dir)), name="static")
         
         @self.app.get("/", response_class=HTMLResponse)
