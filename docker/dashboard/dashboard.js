@@ -151,11 +151,13 @@ class STTDashboard {
             document.getElementById('qrExpiration').textContent = new Date(tokenData.expires).toLocaleDateString();
             
             // Update one-time use indicator
-            const encryptionInfo = document.querySelector('#qrDisplay .qr-info p:last-child');
-            if (tokenData.one_time_use) {
-                encryptionInfo.innerHTML = '<strong>Type:</strong> ⚠️ One-time use • <strong>Encryption:</strong> ✅ End-to-end enabled';
-            } else {
-                encryptionInfo.innerHTML = '<strong>Type:</strong> 🔄 Reusable • <strong>Encryption:</strong> ✅ End-to-end enabled';
+            const encryptionInfo = document.querySelector('#qrDisplay .qr-info p:nth-child(3)');
+            if (encryptionInfo) {
+                if (tokenData.one_time_use) {
+                    encryptionInfo.innerHTML = '<strong>Type:</strong> ⚠️ One-time use • <strong>Encryption:</strong> ✅ End-to-end enabled';
+                } else {
+                    encryptionInfo.innerHTML = '<strong>Type:</strong> 🔄 Reusable • <strong>Encryption:</strong> ✅ End-to-end enabled';
+                }
             }
             
             document.getElementById('qrDisplay').style.display = 'block';

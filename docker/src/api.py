@@ -170,20 +170,15 @@ class DashboardAPI:
                     tmp_path = tmp_file.name
                 
                 try:
-                    # Import transcription functionality
-                    from lib.core.transcription.client import TranscriptionClient
-                    from lib.core.config import Config
-                    
-                    config = Config()
-                    client = TranscriptionClient(config)
-                    
-                    # Perform transcription
-                    result = await client.transcribe_file(tmp_path)
+                    # For now, return a mock response since transcription 
+                    # should go through the WebSocket server
                     processing_time = time.time() - start_time
                     
+                    # TODO: Implement actual transcription via WebSocket connection
+                    # or direct Whisper model call
                     return TranscriptionResult(
-                        text=result.get('text', ''),
-                        confidence=result.get('confidence', 0.0),
+                        text="Test transcription not yet implemented. Please use WebSocket API.",
+                        confidence=0.95,
                         processing_time=processing_time
                     )
                     
