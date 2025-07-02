@@ -5,19 +5,32 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: stt-whisper-server
+    container_name: stt-transcription-server
     ports:
-      - "8769:8769"
+      - "8080:8080"  # Dashboard port
+      - "8769:8769"  # WebSocket port
     volumes:
-      - ../logs:/app/logs
-      - ../ssl:/app/ssl
+      - stt-data:/app/data
+      - stt-logs:/app/logs
+      - stt-ssl:/app/ssl
       - stt-models:/root/.cache/huggingface
     environment:
       - WEBSOCKET_BIND_HOST=0.0.0.0
-      - CUDA_VISIBLE_DEVICES=0  # For GPU support
+      - WEBSOCKET_PORT=8769
+      - WEB_PORT=8080
+      - WHISPER_MODEL=large-v3-turbo
+      - MAX_CLIENTS=20
+      - GPU_ENABLED=true
+      - CUDA_VISIBLE_DEVICES=0
     restart: unless-stopped
     networks:
       - stt-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     # Uncomment for GPU support
     # deploy:
     #   resources:
@@ -27,23 +40,15 @@ services:
     #           count: 1
     #           capabilities: [gpu]
 
-  # Optional: Nginx reverse proxy with SSL
-  nginx:
-    image: nginx:alpine
-    container_name: stt-nginx
-    ports:
-      - "443:443"
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - stt-server
-    networks:
-      - stt-network
-
 volumes:
+  stt-data:
+    driver: local
+  stt-logs:
+    driver: local
+  stt-ssl:
+    driver: local
   stt-models:
+    driver: local
 
 networks:
   stt-network:
