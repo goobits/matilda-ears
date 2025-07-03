@@ -45,15 +45,37 @@ class SimpleWebSocketServer:
             
         try:
             model_name = os.getenv('WHISPER_MODEL', 'large-v3-turbo')
-            device = 'cpu'  # Force CPU for Docker compatibility
-            logger.info(f"Loading Whisper model: {model_name} on {device}")
+            
+            # Auto-detect GPU or use CPU based on environment
+            gpu_enabled = os.getenv('GPU_ENABLED', 'false').lower() == 'true'
+            
+            if gpu_enabled:
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        device = 'cuda'
+                        compute_type = "float16"  # Use float16 for GPU performance
+                        logger.info(f"CUDA detected: {torch.cuda.get_device_name(0)}")
+                    else:
+                        device = 'cpu'
+                        compute_type = "int8"
+                        logger.warning("GPU enabled but CUDA not available, falling back to CPU")
+                except ImportError:
+                    device = 'cpu'
+                    compute_type = "int8"
+                    logger.warning("PyTorch not available, falling back to CPU")
+            else:
+                device = 'cpu'
+                compute_type = "int8"
+            
+            logger.info(f"Loading Whisper model: {model_name} on {device} with {compute_type}")
             
             self.whisper_model = WhisperModel(
                 model_name,
                 device=device,
-                compute_type="int8"  # Use int8 for better CPU performance
+                compute_type=compute_type
             )
-            logger.info("Whisper model loaded successfully")
+            logger.info(f"Whisper model loaded successfully on {device}")
         except Exception as e:
             logger.error(f"Failed to load Whisper model: {e}")
             self.whisper_model = None

@@ -1,4 +1,4 @@
-# Use Python slim and let NVIDIA Docker handle GPU access
+# Use Python slim base image 
 FROM python:3.12-slim
 
 # Install system dependencies including OpenSSL for certificates and curl for health checks
@@ -12,9 +12,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Install Python dependencies for the Docker server with GPU support
+# Install PyTorch with GPU support first
 RUN pip install --no-cache-dir \
-    torch torchvision torchaudio \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# Install other dependencies from PyPI
+RUN pip install --no-cache-dir \
     faster-whisper \
     fastapi[all] \
     uvicorn \
