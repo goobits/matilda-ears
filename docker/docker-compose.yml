@@ -24,7 +24,7 @@ services:
       - WEB_PORT=8080
       - WHISPER_MODEL=large-v3-turbo
       - MAX_CLIENTS=20
-      - GPU_ENABLED=true
+      - GPU_ENABLED=false
       - CUDA_VISIBLE_DEVICES=0
     restart: unless-stopped
     networks:
@@ -35,14 +35,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    # GPU support enabled
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU support disabled - uncomment below to enable
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
 volumes:
   stt-data:

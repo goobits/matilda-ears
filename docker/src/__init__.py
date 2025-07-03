@@ -1,10 +1,9 @@
-"""
-STT Docker Server Source Code
+"""STT Docker Server Source Code
 
 This package contains the core components for the STT Docker server:
 - Admin dashboard API
 - End-to-end encryption
-- JWT token management  
+- JWT token management
 - Enhanced WebSocket server
 - Server launcher and coordination
 """
