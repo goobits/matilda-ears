@@ -19,7 +19,7 @@ import sys
 
 sys.path.append("/app")
 
-from stt_hotkeys.core.transcription.text_formatter import format_transcription
+from stt_hotkeys.core.text_formatting.formatter import format_transcription
 from docker.src.encryption import EncryptionWebSocketHandler, get_encryption_manager
 from docker.src.api import dashboard_api
 
