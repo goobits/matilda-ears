@@ -41,25 +41,25 @@ class TestMeasurementConversion:
 
     def test_feet_conversion(self):
         """Test feet measurements get prime symbol."""
-        assert format_transcription("six feet") == "6′."
+        assert format_transcription("six feet") == "6′"
         assert format_transcription("the board is eight feet long") == "The board is 8′ long."
-        assert format_transcription("twelve feet") == "12′."
+        assert format_transcription("twelve feet") == "12′"
 
     def test_inches_conversion(self):
         """Test inches measurements get double prime symbol."""
-        assert format_transcription("twelve inches") == "12″."
+        assert format_transcription("twelve inches") == "12″"
         assert format_transcription("four inches wide") == "4″ wide."
 
     def test_height_measurements(self):
         """Test height format like 5'10"."""
-        assert format_transcription("five foot ten") == "5′10″."
-        assert format_transcription("six foot two") == "6′2″."
-        assert format_transcription("five foot ten inches") == "5′10″."
+        assert format_transcription("five foot ten") == "5′10″"
+        assert format_transcription("six foot two") == "6′2″"
+        assert format_transcription("five foot ten inches") == "5′10″"
 
     def test_fractional_measurements(self):
         """Test measurements with fractions."""
-        assert format_transcription("three and a half feet") == "3.5′."
-        assert format_transcription("two and a half inches") == "2.5″."
+        assert format_transcription("three and a half feet") == "3.5′"
+        assert format_transcription("two and a half inches") == "2.5″"
 
     def test_measurements_vs_possessives(self):
         """Test that measurements don't interfere with possessives."""
@@ -88,7 +88,7 @@ class TestEdgeCases:
     def test_measurements_as_standalone(self):
         """Test standalone measurements."""
         # Standalone measurements should not get extra punctuation
-        assert format_transcription("six feet") == "6′."
+        assert format_transcription("six feet") == "6′"
         # But measurements in sentences should work normally
         assert format_transcription("the height is six feet exactly") == "The height is 6′ exactly."
 
