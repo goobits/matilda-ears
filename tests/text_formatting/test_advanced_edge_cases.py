@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""
-Test advanced edge cases, entity conflicts, and untested functionality
+"""Test advanced edge cases, entity conflicts, and untested functionality
 in the text formatting system.
 """
 
-import pytest
 import sys
 import os
 
@@ -12,6 +10,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from stt_hotkeys.text_formatting.formatter import format_transcription
+
 
 class TestUntestedEntities:
     """Test entities that are implemented but not yet covered by tests."""
@@ -43,7 +42,7 @@ class TestUntestedEntities:
         """Test specialized numeric entities like temperature and metric units."""
         test_cases = {
             "it is twenty degrees celsius outside": "It is 20°C outside.",
-            "the oven is at three hundred fifty fahrenheit": "The oven is at 350°F",
+            "the oven is at three hundred fifty fahrenheit": "The oven is at 350°F.",
             "the distance is five kilometers": "The distance is 5 km.",
             "add ten kilograms of flour": "Add 10 kg of flour.",
         }
@@ -89,15 +88,14 @@ class TestComplexLogic:
         }
         for input_text, expected in test_cases.items():
             # Some get punctuation, some don't. Strip for consistency.
-            assert format_transcription(input_text).strip('. ') == expected.strip('. ')
+            assert format_transcription(input_text).strip(". ") == expected.strip(". ")
 
 
 class TestEntityConflictResolution:
     """Test how the system resolves overlapping or conflicting entities."""
 
     def test_filename_vs_url_conflict(self):
-        """
-        Test that FILENAME (high priority) wins over SPOKEN_URL (lower priority).
+        """Test that FILENAME (high priority) wins over SPOKEN_URL (lower priority).
         The input can be interpreted as both a filename and a URL.
         """
         input_text = "go to main dot py on example dot com"

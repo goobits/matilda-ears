@@ -368,10 +368,14 @@ class TestEdgeCases:
             ("the API returns JSON with status two hundred", "The API returns JSON with status 200."),
             ("CPU usage is ninety percent", "CPU usage is 90%."),
             # From test_formatter.py
-            ("i.e. this is a test e.g. this is a test ex this is a test and let me say a little list of things and talk about greek gods and people from america",
-             "i.e., this is a test, e.g., this is a test, e.g., this is a test. And let me say a little list of things and talk about Greek gods and people from America."),
-            ("testing ie this is a test ex this is a test eg this is a test",
-             "testing: i.e., this is a test. e.g., this is a test. e.g., this is a test."),
+            (
+                "i.e. this is a test e.g. this is a test ex this is a test and let me say a little list of things and talk about greek gods and people from america",
+                "i.e., this is a test, e.g., this is a test, e.g., this is a test. And let me say a little list of things and talk about Greek gods and people from America.",
+            ),
+            (
+                "testing ie this is a test ex this is a test eg this is a test",
+                "testing: i.e., this is a test. e.g., this is a test. e.g., this is a test.",
+            ),
         ]
 
         for input_text, expected in test_cases:
@@ -402,7 +406,6 @@ class TestEdgeCases:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-
     def test_casual_starters_still_capitalized(self):
         """Test that casual starters are still capitalized (no exception)"""
         test_cases = [
@@ -414,7 +417,6 @@ class TestEdgeCases:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
-
 
     def test_profanity_filtering(self):
         """Test that profanity is filtered"""
