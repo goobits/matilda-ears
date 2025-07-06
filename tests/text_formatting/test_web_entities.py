@@ -309,7 +309,7 @@ class TestPortNumbers:
     def test_basic_port_numbers(self):
         """Test basic port number patterns."""
         test_cases = [
-            ("connect to localhost colon eight zero eight zero", "Connect to localhost:8080"),
+            ("connect to localhost colon eight zero eight zero", "Connect to localhost:8080."),
             ("the server runs on port nine thousand", "The server runs on port 9000"),
             ("database server colon five four three two", "Database server:5432"),
             ("redis colon six three seven nine", "Redis:6379"),

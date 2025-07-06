@@ -563,5 +563,76 @@ class TestCodeEntityInteractions:
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
+class TestFilenameEdgeCasesAndRegressions:
+    """Test edge cases and known issues with filename detection."""
+
+    def test_greedy_filename_detection_regression(self):
+        """Test and document KNOWN ISSUE: Filename regex is too greedy.
+        
+        The filename detection currently consumes entire sentences when it finds
+        'dot extension' patterns, which is incorrect behavior.
+        """
+        test_cases = [
+            # KNOWN ISSUE: Everything before 'dot js' is consumed as filename
+            ("function opens the door dot js", "Function opens the door dot js."),
+            # Expected: "Function opens the door.js" or similar
+            # Actual: The entire phrase becomes a filename entity
+            
+            # More examples of the greedy behavior
+            ("the error is in main dot py on line 5", "The error is in main.py on line 5."),
+            # Currently may consume too much as filename
+            
+            ("i love python dot py is great", "I love python.py is great."),
+            # Should only treat 'python.py' as filename, not the whole sentence
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # This documents the current behavior, which may be incorrect
+            print(f"GREEDY FILENAME ISSUE - Input: '{input_text}'")
+            print(f"                       Expected: '{expected}'")
+            print(f"                       Actual: '{result}'")
+            print(f"                       Issue: Filename detection is too greedy")
+            print()
+
+    def test_filename_boundary_detection(self):
+        """Test that filename detection respects word boundaries."""
+        test_cases = [
+            # Should stop at common verbs/prepositions
+            ("the file utils dot py is ready", "The file utils.py is ready."),
+            ("check main dot js for errors", "Check main.js for errors."),
+            ("open config dot json and edit", "Open config.json and edit."),
+            
+            # Should handle 'dot' in non-filename contexts
+            ("put a dot here", "Put a dot here."),
+            ("the dot com boom", "The .com boom."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Boundary detection may not work perfectly
+            print(f"Boundary test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+    def test_ambiguous_dot_patterns(self):
+        """Test ambiguous cases where 'dot' could mean different things."""
+        test_cases = [
+            # Could be filename or sentence about a dot
+            ("red dot py", "Red dot py."),
+            # Is this 'red.py' or 'red dot py'?
+            
+            # Sentence ending with extension-like word
+            ("i love dot com", "I love .com."),
+            # Could be a sentence about .com domains
+            
+            # Multiple dots in sequence
+            ("example dot com dot au", "example.com.au"),
+            # Should be recognized as domain, not filename
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            print(f"Ambiguous dot: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

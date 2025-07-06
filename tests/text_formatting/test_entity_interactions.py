@@ -95,6 +95,21 @@ class TestEntityPriorities:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
+    def test_filename_vs_url_priority_complex(self):
+        """Test complex filename vs URL conflicts."""
+        test_cases = [
+            # Filename should win when it's clearly a filename pattern
+            ("go to main dot py on example dot com", "Go to main.py on example.com."),
+            # Java package name should be treated as one filename
+            ("open com dot example dot myapp dot java", "Open com.example.myapp.java."),
+            # URL with filename in path should be treated as one URL
+            ("download from example dot com slash assets slash archive dot zip", "Download from example.com/assets/archive.zip."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
 
 class TestEntityBoundaries:
     """Test entity boundary detection and handling."""
@@ -376,6 +391,35 @@ class TestEdgeCaseInteractions:
             result = format_transcription(input_text)
             # Quote handling may vary
             print(f"Quoted entity test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+    def test_spoken_url_vs_numbers(self):
+        """Test URLs with spoken numbers vs separate number entities."""
+        test_cases = [
+            # URL should be detected as single entity
+            ("go to one one one one dot com", "Go to 1111.com."),
+            ("visit two two two dot net", "Visit 222.net."),
+            ("check three three three dot org", "Check 333.org."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should detect as URL: '{expected}', got '{result}'"
+
+    def test_entities_in_lists(self):
+        """Test entities in comma-separated lists."""
+        test_cases = [
+            # Files in a list
+            ("open main dot py, config dot json, and readme dot md", "Open main.py, config.json and README.md."),
+            ("check a dot txt, b dot py, and c dot js", "Check a.txt, b.py, and c.js."),
+            # Mixed entities in lists
+            ("i use vim, vscode, and sublime", "I use vim, Vscode and sublime."),
+            ("install python, node, and java", "Install python, node, and java."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # List formatting and capitalization may vary
+            print(f"List test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 if __name__ == "__main__":

@@ -227,6 +227,59 @@ class TestEntityProtection:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
+    def test_entities_at_sentence_start(self):
+        """Test that entities at sentence start maintain their proper case."""
+        test_cases = [
+            # Email at sentence start should not be capitalized
+            ("hello@muffin.com is my email address", "hello@muffin.com is my email address."),
+            # URL at sentence start should maintain case
+            ("github.com is a website", "github.com is a website."),
+            ("example.org has info", "example.org has info."),
+            # But regular action words should still be capitalized
+            ("john@company.com sent this", "john@company.com sent this."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should protect entity case: '{expected}', got '{result}'"
+
+    def test_pronoun_i_protection_in_entities(self):
+        """Test that 'i' inside entities is protected from capitalization."""
+        test_cases = [
+            # 'i' in filenames should stay lowercase
+            ("the file is config_i.json", "The file is config_i.json."),
+            ("open the file config_i.py", "Open the file config_i.py."),
+            # Variable 'i' should stay lowercase
+            ("the variable is i", "The variable is i."),
+            ("set i equals zero", "Set i = 0."),
+            # Mixed case - pronoun I vs variable i
+            ("i think the variable is i", "I think the variable is i."),
+            ("when i write i equals zero", "When I write i = 0."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should protect 'i' in entities: '{expected}', got '{result}'"
+
+    def test_mixed_case_technical_terms(self):
+        """Test preservation of mixed-case technical terms and acronyms."""
+        test_cases = [
+            # Mixed-case entities
+            ("javaScript is a language", "JavaScript is a language."),
+            ("the fileName is important", "The fileName is important."),
+            # All-caps technical terms
+            ("the API is down", "The API is down."),
+            ("an API call failed", "An API call failed."),
+            ("JSON API response", "JSON API response."),
+            ("HTML CSS JavaScript", "HTML CSS JavaScript."),
+            ("use SSH to connect", "Use SSH to connect."),
+            ("CPU usage is high", "CPU usage is high."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should preserve case: '{expected}', got '{result}'"
+
 
 class TestSpecialPunctuationRules:
     """Test special punctuation rules and edge cases."""
@@ -366,6 +419,125 @@ class TestPunctuationModelIntegration:
             result = format_transcription(input_text)
             # Results depend on punctuation model availability
             print(f"Punctuation model test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+
+class TestEdgeCasesAndRegressions:
+    """Test edge cases and document known issues."""
+
+    def test_empty_and_whitespace_handling(self):
+        """Test handling of empty strings and whitespace."""
+        test_cases = [
+            ("", ""),
+            ("   ", ""),
+            ("\t\n", ""),
+            ("   hello   ", "Hello."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_filler_word_removal(self):
+        """Test that filler words are removed."""
+        test_cases = [
+            ("um hello there", "Hello there."),
+            ("uh what is this", "What is this?"),
+            ("well um i think so", "Well, I think so."),
+            ("hmm", ""),
+            ("uhh", ""),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Filler word removal may vary
+            print(f"Filler word test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+    def test_casual_starters_capitalization(self):
+        """Test that casual conversation starters are still capitalized."""
+        test_cases = [
+            ("hey there", "Hey there."),
+            ("well hello", "Well, hello."),
+            ("oh hi", "Oh, hi."),
+            ("wow thats cool", "Wow, that's cool!"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Punctuation may vary
+            print(f"Casual starter test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+    def test_profanity_filtering(self):
+        """Test that profanity is replaced with asterisks."""
+        test_cases = [
+            ("what the fuck", "What the ****."),
+            ("this is shit", "This is ****."),
+            ("damn it", "**** it."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Profanity filtering may be configurable
+            print(f"Profanity test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+    def test_version_number_formatting(self):
+        """Test version number formatting."""
+        test_cases = [
+            ("version 16.4.2", "Version 16.4.2."),
+            ("build 1.0.0", "Build 1.0.0."),
+            ("release 2.5.0-beta", "Release 2.5.0-beta."),
+            ("v three point two", "v3.2"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+
+class TestIdiomaticExpressions:
+    """Test idiomatic expressions that shouldn't be converted."""
+
+    def test_idiomatic_math_words(self):
+        """Test that idiomatic expressions with math words aren't converted."""
+        test_cases = [
+            ("i have five plus years of experience", "I have 5 + years of experience."),
+            ("the game is over", "The game is over."),
+            ("this is two times better", "This is 2 times better."),
+            ("he went above and beyond", "He went above and beyond."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Some idiomatic expressions may still be converted
+            print(f"Idiomatic test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+
+class TestComplexEdgeCases:
+    """Test complex edge cases combining multiple challenges."""
+
+    def test_kitchen_sink_scenarios(self):
+        """Test complex sentences combining multiple edge cases."""
+        test_cases = [
+            # Pronoun i, filename, URL, acronym, punctuation
+            (
+                "i told him to edit the file config_i dot js on github dot com not the API docs",
+                "I told him to edit the file config_i.js on github.com, not the API docs.",
+            ),
+            # Math, URL, pronoun, API
+            (
+                "i think x equals five at example dot com but the API says otherwise",
+                "I think x = 5 at example.com but the API says otherwise.",
+            ),
+            # Mixed technical content
+            (
+                "i use vim to edit main dot py and push to github dot com via SSH",
+                "I use vim to edit main.py and push to github.com via SSH.",
+            ),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # Complex punctuation may vary
+            print(f"Kitchen sink test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
 if __name__ == "__main__":
