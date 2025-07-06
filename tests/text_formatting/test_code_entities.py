@@ -14,7 +14,6 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import pytest
 
 
 class TestFilenameEntities:
