@@ -24,11 +24,11 @@ class TestFilenameEntities:
         """Test Python files get lower_snake_case formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open main dot py", "Open: main.py."),
-            ("edit my script dot py", "Edit: my_script.py."),
-            ("check config loader dot py", "Check: config_loader.py."),
-            ("run test helper dot py", "Run: test_helper.py."),
-            ("import utils dot py", "Import: utils.py."),
+            ("open main dot py", "Open main.py."),
+            ("edit my script dot py", "Edit my_script.py."),
+            ("check config loader dot py", "Check config_loader.py."),
+            ("run test helper dot py", "Run test_helper.py."),
+            ("import utils dot py", "Import utils.py."),
         ]
 
         for input_text, expected in test_cases:
@@ -39,11 +39,11 @@ class TestFilenameEntities:
         """Test JavaScript files get camelCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("edit app dot js", "Edit: app.js."),
-            ("open my component dot js", "Open: myComponent.js."),
-            ("check api client dot js", "Check: apiClient.js."),
-            ("run test utils dot js", "Run: testUtils.js."),
-            ("import user service dot js", "Import: userService.js."),
+            ("edit app dot js", "Edit app.js."),
+            ("open my component dot js", "Open myComponent.js."),
+            ("check api client dot js", "Check apiClient.js."),
+            ("run test utils dot js", "Run testUtils.js."),
+            ("import user service dot js", "Import userService.js."),
         ]
 
         for input_text, expected in test_cases:
@@ -54,11 +54,11 @@ class TestFilenameEntities:
         """Test TypeScript files get PascalCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("create user service dot ts", "Create: UserService.ts."),
-            ("edit my component dot tsx", "Edit: MyComponent.tsx."),
-            ("open api client dot ts", "Open: ApiClient.ts."),
-            ("check data service dot tsx", "Check: DataService.tsx."),
-            ("import auth helper dot ts", "Import: AuthHelper.ts."),
+            ("create user service dot ts", "Create UserService.ts."),
+            ("edit my component dot tsx", "Edit MyComponent.tsx."),
+            ("open api client dot ts", "Open ApiClient.ts."),
+            ("check data service dot tsx", "Check DataService.tsx."),
+            ("import auth helper dot ts", "Import AuthHelper.ts."),
         ]
 
         for input_text, expected in test_cases:
@@ -69,10 +69,10 @@ class TestFilenameEntities:
         """Test Java files get PascalCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open user service dot java", "Open: UserService.java."),
-            ("edit my component dot java", "Edit: MyComponent.java."),
-            ("check api client dot java", "Check: ApiClient.java."),
-            ("run test helper dot java", "Run: TestHelper.java."),
+            ("open user service dot java", "Open UserService.java."),
+            ("edit my component dot java", "Edit MyComponent.java."),
+            ("check api client dot java", "Check ApiClient.java."),
+            ("run test helper dot java", "Run TestHelper.java."),
         ]
 
         for input_text, expected in test_cases:
@@ -83,9 +83,9 @@ class TestFilenameEntities:
         """Test C# files get PascalCase formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open user service dot cs", "Open: UserService.cs."),
-            ("edit my component dot cs", "Edit: MyComponent.cs."),
-            ("check api client dot cs", "Check: ApiClient.cs."),
+            ("open user service dot cs", "Open UserService.cs."),
+            ("edit my component dot cs", "Edit MyComponent.cs."),
+            ("check api client dot cs", "Check ApiClient.cs."),
         ]
 
         for input_text, expected in test_cases:
@@ -96,8 +96,8 @@ class TestFilenameEntities:
         """Test CSS files get kebab-case formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("edit main styles dot css", "Edit: main-styles.css."),
-            ("open my stylesheet dot css", "Open: my-stylesheet.css."),
+            ("edit main styles dot css", "Edit main-styles.css."),
+            ("open my stylesheet dot css", "Open my-stylesheet.css."),
             ("check component styles dot scss", "Check component-styles.scss."),
             ("import base theme dot css", "Import base-theme.css."),
         ]
@@ -110,10 +110,10 @@ class TestFilenameEntities:
         """Test Markdown files get UPPER_SNAKE_CASE formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("open readme dot md", "Open: README.md."),
-            ("edit change log dot md", "Edit: CHANGE_LOG.md."),
-            ("check api docs dot md", "Check: API_DOCS.md."),
-            ("view user guide dot md", "View: USER_GUIDE.md."),
+            ("open readme dot md", "Open README.md."),
+            ("edit change log dot md", "Edit CHANGE_LOG.md."),
+            ("check api docs dot md", "Check API_DOCS.md."),
+            ("view user guide dot md", "View USER_GUIDE.md."),
         ]
 
         for input_text, expected in test_cases:

@@ -7,7 +7,6 @@ after transcription, which is critical for user experience.
 
 import pytest
 from stt_hotkeys.text_formatting.formatter import TextFormatter
-from stt_hotkeys.core.config import get_config
 
 
 class TestSuffixHandling:
@@ -23,10 +22,10 @@ class TestSuffixHandling:
         suffix = config.get("text_insertion.suffix", None)
         assert suffix is not None
 
-    def test_space_suffix_in_config(self, preloaded_formatter):
+    def test_space_suffix_in_config(self, preloaded_formatter, preloaded_config):
         """Test that default suffix is space"""
         format_transcription = preloaded_formatter
-        config = get_config()
+        config = preloaded_config
         suffix = config.get("text_insertion.suffix", "")
         assert suffix == " ", f"Expected space suffix, got '{suffix}'"
 

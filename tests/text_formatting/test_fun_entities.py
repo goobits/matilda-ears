@@ -2,7 +2,7 @@
 """Comprehensive tests for entertainment and fun entities.
 
 This module tests the detection and formatting of:
-- MUSIC_NOTATION: "C sharp", "B flat" → "C#", "B♭"
+- MUSIC_NOTATION: "C sharp", "B flat" → "C♯", "B♭"
 - SPOKEN_EMOJI: "smiley face" → "😊"
 - ASCII_EMOJI: ":)" → "😊"
 - Entertainment-related expressions
@@ -19,11 +19,11 @@ class TestMusicNotation:
         """Test musical sharp note patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("C sharp", "C#"),
-            ("F sharp major", "F# major"),
-            ("G sharp minor", "G# minor"),
-            ("play D sharp", "Play D#"),
-            ("A sharp chord", "A# chord"),
+            ("C sharp", "C♯"),
+            ("F sharp major", "F♯ major"),
+            ("G sharp minor", "G♯ minor"),
+            ("play D sharp", "Play D♯"),
+            ("A sharp chord", "A♯ chord"),
         ]
 
         for input_text, expected in test_cases:
@@ -65,7 +65,7 @@ class TestMusicNotation:
         test_cases = [
             ("C major scale", "C major scale"),
             ("A minor scale", "A minor scale"),
-            ("G sharp major scale", "G# major scale"),
+            ("G sharp major scale", "G♯ major scale"),
             ("B flat minor scale", "B♭ minor scale"),
         ]
 
@@ -79,7 +79,7 @@ class TestMusicNotation:
         test_cases = [
             ("C to F to G", "C to F to G"),
             ("A minor to D minor to E", "A minor to D minor to E"),
-            ("F sharp to B to C sharp", "F# to B to C#"),
+            ("F sharp to B to C sharp", "F♯ to B to C♯"),
         ]
 
         for input_text, expected in test_cases:
@@ -90,9 +90,9 @@ class TestMusicNotation:
         """Test music notation in sentences."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("the key is C sharp major", "The key is C# major."),
+            ("the key is C sharp major", "The key is C♯ major."),
             ("modulate to B flat", "Modulate to B♭."),
-            ("it starts in D sharp minor", "It starts in D# minor."),
+            ("it starts in D sharp minor", "It starts in D♯ minor."),
             ("transpose to E flat", "Transpose to E♭."),
         ]
 
@@ -275,8 +275,8 @@ class TestFunEntityInteractions:
         """Test music notation with numeric entities."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("play C sharp for three seconds", "Play C# for 3s."),
-            ("F sharp at one twenty BPM", "F# at 120 BPM."),
+            ("play C sharp for three seconds", "Play C♯ for 3s."),
+            ("F sharp at one twenty BPM", "F♯ at 120 BPM."),
             ("B flat major seventh chord", "B♭ major 7th chord."),
         ]
 
@@ -303,9 +303,9 @@ class TestFunEntityInteractions:
         """Test mixed entertainment content."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("play C sharp and send a smiley face", "Play C# and send a 😊."),
+            ("play C sharp and send a smiley face", "Play C♯ and send a 😊."),
             ("the chord is B flat thumbs up", "The chord is B♭ 👍."),
-            ("hashtag music in C sharp major", "#music in C# major."),
+            ("hashtag music in C sharp major", "#music in C♯ major."),
         ]
 
         for input_text, expected in test_cases:
@@ -322,7 +322,7 @@ class TestFunEdgeCases:
         format_transcription = preloaded_formatter
         test_cases = [
             # Musical context
-            ("the note C sharp", "The note C#."),
+            ("the note C sharp", "The note C♯."),
             ("key of B flat", "Key of B♭."),
             # Non-musical context
             ("turn sharp left", "Turn sharp left."),
@@ -356,7 +356,7 @@ class TestFunEdgeCases:
         format_transcription = preloaded_formatter
         test_cases = [
             # Should convert
-            ("C sharp note", "C# note"),
+            ("C sharp note", "C♯ note"),
             ("B flat scale", "B♭ scale"),
             # Should NOT convert
             ("sharpen the image", "Sharpen the image."),
