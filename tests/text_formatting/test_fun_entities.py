@@ -9,20 +9,15 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import sys
-import os
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-from stt_hotkeys.text_formatting.formatter import format_transcription
+import pytest
 
 
 class TestMusicNotation:
     """Test MUSIC_NOTATION entity detection and formatting."""
 
-    def test_sharp_notes(self):
+    def test_sharp_notes(self, preloaded_formatter):
         """Test musical sharp note patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("C sharp", "C#"),
             ("F sharp major", "F# major"),
@@ -35,8 +30,9 @@ class TestMusicNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_flat_notes(self):
+    def test_flat_notes(self, preloaded_formatter):
         """Test musical flat note patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("B flat", "B♭"),
             ("E flat major", "E♭ major"),
@@ -49,8 +45,9 @@ class TestMusicNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_natural_notes(self):
+    def test_natural_notes(self, preloaded_formatter):
         """Test natural note patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("C natural", "C♮"),
             ("F natural", "F♮"),
@@ -62,8 +59,9 @@ class TestMusicNotation:
             # Natural symbol may not be implemented
             print(f"Natural note test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_musical_scales(self):
+    def test_musical_scales(self, preloaded_formatter):
         """Test musical scale patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("C major scale", "C major scale"),
             ("A minor scale", "A minor scale"),
@@ -75,8 +73,9 @@ class TestMusicNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_chord_progressions(self):
+    def test_chord_progressions(self, preloaded_formatter):
         """Test chord progression patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("C to F to G", "C to F to G"),
             ("A minor to D minor to E", "A minor to D minor to E"),
@@ -87,8 +86,9 @@ class TestMusicNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_music_in_context(self):
+    def test_music_in_context(self, preloaded_formatter):
         """Test music notation in sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the key is C sharp major", "The key is C# major."),
             ("modulate to B flat", "Modulate to B♭."),
@@ -104,8 +104,9 @@ class TestMusicNotation:
 class TestSpokenEmojis:
     """Test SPOKEN_EMOJI entity detection and formatting."""
 
-    def test_basic_face_emojis(self):
+    def test_basic_face_emojis(self, preloaded_formatter):
         """Test basic face emoji patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("smiley face", "😊"),
             ("sad face", "😢"),
@@ -120,8 +121,9 @@ class TestSpokenEmojis:
             # Emoji conversion may vary
             print(f"Face emoji test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_gesture_emojis(self):
+    def test_gesture_emojis(self, preloaded_formatter):
         """Test gesture emoji patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("thumbs up", "👍"),
             ("thumbs down", "👎"),
@@ -136,8 +138,9 @@ class TestSpokenEmojis:
             # Gesture emoji conversion
             print(f"Gesture emoji test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_heart_emojis(self):
+    def test_heart_emojis(self, preloaded_formatter):
         """Test heart emoji patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("red heart", "❤️"),
             ("heart emoji", "❤️"),
@@ -150,8 +153,9 @@ class TestSpokenEmojis:
             # Heart emoji conversion
             print(f"Heart emoji test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_object_emojis(self):
+    def test_object_emojis(self, preloaded_formatter):
         """Test object emoji patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("fire emoji", "🔥"),
             ("star emoji", "⭐"),
@@ -165,8 +169,9 @@ class TestSpokenEmojis:
             # Object emoji conversion
             print(f"Object emoji test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_emoji_in_sentences(self):
+    def test_emoji_in_sentences(self, preloaded_formatter):
         """Test emojis in natural sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("great job thumbs up", "Great job 👍"),
             ("i love it heart emoji", "I love it ❤️"),
@@ -183,8 +188,9 @@ class TestSpokenEmojis:
 class TestASCIIEmojis:
     """Test ASCII_EMOJI entity detection and formatting."""
 
-    def test_basic_ascii_emojis(self):
+    def test_basic_ascii_emojis(self, preloaded_formatter):
         """Test basic ASCII emoticon patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("colon parenthesis", ":)"),
             ("colon dash parenthesis", ":-)"),
@@ -197,8 +203,9 @@ class TestASCIIEmojis:
             # ASCII emoji patterns
             print(f"ASCII emoji test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_ascii_to_unicode_conversion(self):
+    def test_ascii_to_unicode_conversion(self, preloaded_formatter):
         """Test ASCII emoticon to Unicode emoji conversion."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (":)", "😊"),
             (":(", "😞"),
@@ -216,8 +223,9 @@ class TestASCIIEmojis:
 class TestEntertainmentExpressions:
     """Test entertainment-related expressions and contexts."""
 
-    def test_gaming_expressions(self):
+    def test_gaming_expressions(self, preloaded_formatter):
         """Test gaming-related expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("GG", "GG"),
             ("press F to pay respects", "Press F to pay respects."),
@@ -229,8 +237,9 @@ class TestEntertainmentExpressions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_social_media_expressions(self):
+    def test_social_media_expressions(self, preloaded_formatter):
         """Test social media expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("hashtag winning", "#winning"),
             ("at mention john", "@john"),
@@ -243,8 +252,9 @@ class TestEntertainmentExpressions:
             # Social media formatting
             print(f"Social media test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_internet_slang(self):
+    def test_internet_slang(self, preloaded_formatter):
         """Test internet slang and abbreviations."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("LOL", "LOL"),
             ("ROFL", "ROFL"),
@@ -261,8 +271,9 @@ class TestEntertainmentExpressions:
 class TestFunEntityInteractions:
     """Test interactions between fun entities and other entities."""
 
-    def test_music_with_numbers(self):
+    def test_music_with_numbers(self, preloaded_formatter):
         """Test music notation with numeric entities."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("play C sharp for three seconds", "Play C# for 3s."),
             ("F sharp at one twenty BPM", "F# at 120 BPM."),
@@ -274,8 +285,9 @@ class TestFunEntityInteractions:
             # Music with numbers
             print(f"Music with numbers: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_emojis_with_punctuation(self):
+    def test_emojis_with_punctuation(self, preloaded_formatter):
         """Test emojis with punctuation."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("wow smiley face", "Wow 😊"),
             ("thanks thumbs up", "Thanks 👍"),
@@ -287,8 +299,9 @@ class TestFunEntityInteractions:
             # Emoji with punctuation
             print(f"Emoji with punctuation: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_mixed_fun_content(self):
+    def test_mixed_fun_content(self, preloaded_formatter):
         """Test mixed entertainment content."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("play C sharp and send a smiley face", "Play C# and send a 😊."),
             ("the chord is B flat thumbs up", "The chord is B♭ 👍."),
@@ -304,8 +317,9 @@ class TestFunEntityInteractions:
 class TestFunEdgeCases:
     """Test edge cases for fun entities."""
 
-    def test_ambiguous_sharp_flat(self):
+    def test_ambiguous_sharp_flat(self, preloaded_formatter):
         """Test ambiguous sharp/flat contexts."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Musical context
             ("the note C sharp", "The note C#."),
@@ -319,8 +333,9 @@ class TestFunEdgeCases:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_emoji_word_conflicts(self):
+    def test_emoji_word_conflicts(self, preloaded_formatter):
         """Test words that could be emojis in wrong context."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Should NOT convert to emoji
             ("the fire alarm", "The fire alarm."),
@@ -336,8 +351,9 @@ class TestFunEdgeCases:
             # Context-dependent emoji conversion
             print(f"Emoji context test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_music_notation_boundaries(self):
+    def test_music_notation_boundaries(self, preloaded_formatter):
         """Test music notation word boundaries."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Should convert
             ("C sharp note", "C# note"),

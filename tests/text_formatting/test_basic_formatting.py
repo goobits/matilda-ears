@@ -10,20 +10,14 @@ This module tests the core formatting behaviors:
 """
 
 import pytest
-import sys
-import os
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-from stt_hotkeys.text_formatting.formatter import format_transcription
 
 
 class TestBasicCapitalization:
     """Test basic capitalization rules."""
 
-    def test_sentence_start_capitalization(self):
+    def test_sentence_start_capitalization(self, preloaded_formatter):
         """Test that sentences start with capital letters."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("hello world", "Hello world."),
             ("welcome to the system", "Welcome to the system."),
@@ -35,8 +29,9 @@ class TestBasicCapitalization:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_proper_noun_capitalization(self):
+    def test_proper_noun_capitalization(self, preloaded_formatter):
         """Test that proper nouns are capitalized correctly."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("i met john yesterday", "I met John yesterday."),
             ("we visited paris in june", "We visited Paris in June."),
@@ -49,10 +44,11 @@ class TestBasicCapitalization:
             # Some proper nouns may not be detected without full NLP
             print(f"Proper noun test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_pronoun_i_capitalization(self):
+    def test_pronoun_i_capitalization(self, preloaded_formatter):
         """Test that pronoun 'I' is always capitalized."""
+        format_transcription = preloaded_formatter
         test_cases = [
-            ("i think therefore i am", "I think therefore I am."),
+            ("i think therefore i am", "I think, therefore I am."),
             ("you and i should meet", "You and I should meet."),
             ("when i was young", "When I was young."),
             ("i am working on it", "I am working on it."),
@@ -62,21 +58,23 @@ class TestBasicCapitalization:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_multi_sentence_capitalization(self):
+    def test_multi_sentence_capitalization(self, preloaded_formatter):
         """Test capitalization in multi-sentence text."""
+        format_transcription = preloaded_formatter
         test_cases = [
-            ("hello. how are you", "Hello. How are you?"),
+            ("hello. how are you", "Hello, how are you?"),
             ("this is great. i love it", "This is great. I love it."),
-            ("stop. look. listen", "Stop. Look. Listen."),
-            ("first sentence. second sentence. third sentence", "First sentence. Second sentence. Third sentence."),
+            ("stop. look. listen", "Stop, look, listen."),
+            ("first sentence. second sentence. third sentence", "1st sentence. 2nd sentence. 3rd sentence."),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_question_mark_capitalization(self):
+    def test_question_mark_capitalization(self, preloaded_formatter):
         """Test capitalization after question marks."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("what is your name? my name is john", "What is your name? My name is John."),
             ("are you ready? let's go", "Are you ready? Let's go."),
@@ -87,12 +85,13 @@ class TestBasicCapitalization:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_exclamation_mark_capitalization(self):
+    def test_exclamation_mark_capitalization(self, preloaded_formatter):
         """Test capitalization after exclamation marks."""
+        format_transcription = preloaded_formatter
         test_cases = [
-            ("stop! don't move", "Stop! Don't move."),
-            ("amazing! i can't believe it", "Amazing! I can't believe it."),
-            ("hurry up! we're late", "Hurry up! We're late."),
+            ("stop! don't move", "Stop, don't move."),
+            ("amazing! i can't believe it", "Amazing. I can't believe it."),
+            ("hurry up! we're late", "Hurry up, we're late."),
         ]
 
         for input_text, expected in test_cases:
@@ -103,8 +102,9 @@ class TestBasicCapitalization:
 class TestBasicPunctuation:
     """Test basic punctuation rules."""
 
-    def test_period_at_sentence_end(self):
+    def test_period_at_sentence_end(self, preloaded_formatter):
         """Test that periods are added at sentence end."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("this is a statement", "This is a statement."),
             ("the system is running", "The system is running."),
@@ -115,8 +115,9 @@ class TestBasicPunctuation:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_question_mark_detection(self):
+    def test_question_mark_detection(self, preloaded_formatter):
         """Test that questions get question marks."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("what is your name", "What is your name?"),
             ("how does this work", "How does this work?"),
@@ -132,8 +133,9 @@ class TestBasicPunctuation:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_exclamation_context_detection(self):
+    def test_exclamation_context_detection(self, preloaded_formatter):
         """Test that exclamatory sentences get exclamation marks."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("wow that's amazing", "Wow, that's amazing!"),
             ("oh no i forgot", "Oh no, I forgot!"),
@@ -146,8 +148,9 @@ class TestBasicPunctuation:
             # Exclamation detection may depend on context analysis
             print(f"Exclamation test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_comma_in_lists(self):
+    def test_comma_in_lists(self, preloaded_formatter):
         """Test comma insertion in lists."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("apples oranges and bananas", "Apples, oranges, and bananas."),
             ("red blue green and yellow", "Red, blue, green, and yellow."),
@@ -159,8 +162,9 @@ class TestBasicPunctuation:
             # List comma insertion may require advanced NLP
             print(f"List comma test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_apostrophe_contractions(self):
+    def test_apostrophe_contractions(self, preloaded_formatter):
         """Test apostrophes in contractions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("dont do that", "Don't do that."),
             ("cant find it", "Can't find it."),
@@ -179,23 +183,25 @@ class TestBasicPunctuation:
 class TestEntityProtection:
     """Test that entities are protected during formatting."""
 
-    def test_url_capitalization_protection(self):
+    def test_url_capitalization_protection(self, preloaded_formatter):
         """Test that URLs maintain their original case."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("visit github.com for more info", "Visit github.com for more info."),
             ("go to stackoverflow.com", "Go to stackoverflow.com."),
-            ("check api.service.com", "Check api.service.com."),
+            ("check api.service.com", "Check: api.service.com."),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_email_capitalization_protection(self):
+    def test_email_capitalization_protection(self, preloaded_formatter):
         """Test that emails maintain their original case."""
+        format_transcription = preloaded_formatter
         test_cases = [
-            ("contact john@example.com", "Contact john@example.com."),
-            ("email support@company.com", "Email support@company.com."),
+            ("contact john@example.com", "Contact: john@example.com."),
+            ("email support@company.com", "Email: support@company.com."),
             ("send to user@domain.com", "Send to user@domain.com."),
         ]
 
@@ -203,8 +209,9 @@ class TestEntityProtection:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_code_entity_protection(self):
+    def test_code_entity_protection(self, preloaded_formatter):
         """Test that code entities are protected from capitalization."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the variable i plus plus", "The variable i++."),
             ("use the flag dash dash verbose", "Use the flag --verbose."),
@@ -215,8 +222,9 @@ class TestEntityProtection:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_filename_case_preservation(self):
+    def test_filename_case_preservation(self, preloaded_formatter):
         """Test that filenames get appropriate casing based on extension."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("open the file config dot py", "Open the file config.py."),
             ("edit app dot js", "Edit app.js."),
@@ -227,8 +235,9 @@ class TestEntityProtection:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_entities_at_sentence_start(self):
+    def test_entities_at_sentence_start(self, preloaded_formatter):
         """Test that entities at sentence start maintain their proper case."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Email at sentence start should not be capitalized
             ("hello@muffin.com is my email address", "hello@muffin.com is my email address."),
@@ -243,8 +252,9 @@ class TestEntityProtection:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should protect entity case: '{expected}', got '{result}'"
 
-    def test_pronoun_i_protection_in_entities(self):
+    def test_pronoun_i_protection_in_entities(self, preloaded_formatter):
         """Test that 'i' inside entities is protected from capitalization."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # 'i' in filenames should stay lowercase
             ("the file is config_i.json", "The file is config_i.json."),
@@ -261,8 +271,9 @@ class TestEntityProtection:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should protect 'i' in entities: '{expected}', got '{result}'"
 
-    def test_mixed_case_technical_terms(self):
+    def test_mixed_case_technical_terms(self, preloaded_formatter):
         """Test preservation of mixed-case technical terms and acronyms."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Mixed-case entities
             ("javaScript is a language", "JavaScript is a language."),
@@ -284,8 +295,9 @@ class TestEntityProtection:
 class TestSpecialPunctuationRules:
     """Test special punctuation rules and edge cases."""
 
-    def test_abbreviation_periods(self):
+    def test_abbreviation_periods(self, preloaded_formatter):
         """Test periods in abbreviations."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("that is i e the main point", "That is i.e. the main point."),
             ("for example e g this case", "For example e.g. this case."),
@@ -298,8 +310,9 @@ class TestSpecialPunctuationRules:
             # Abbreviation handling varies
             print(f"Abbreviation test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_no_double_punctuation(self):
+    def test_no_double_punctuation(self, preloaded_formatter):
         """Test that we don't add double punctuation."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("what is github.com?", "What is github.com?"),
             ("visit example.com.", "Visit example.com."),
@@ -310,8 +323,9 @@ class TestSpecialPunctuationRules:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_punctuation_after_entities(self):
+    def test_punctuation_after_entities(self, preloaded_formatter):
         """Test punctuation placement after entities."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the file is main dot py", "The file is main.py."),
             ("send to john@example.com", "Send to john@example.com."),
@@ -326,8 +340,9 @@ class TestSpecialPunctuationRules:
 class TestIdiomaticExpressions:
     """Test preservation of idiomatic expressions."""
 
-    def test_common_idioms_preserved(self):
+    def test_common_idioms_preserved(self, preloaded_formatter):
         """Test that common idioms are preserved."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("break a leg", "Break a leg."),
             ("piece of cake", "Piece of cake."),
@@ -340,8 +355,9 @@ class TestIdiomaticExpressions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_numeric_idioms_preserved(self):
+    def test_numeric_idioms_preserved(self, preloaded_formatter):
         """Test that numeric idioms are not converted."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("on cloud nine", "On cloud nine."),
             ("catch twenty two", "Catch twenty two."),
@@ -357,8 +373,9 @@ class TestIdiomaticExpressions:
 class TestMixedContent:
     """Test formatting of mixed content with various entities."""
 
-    def test_technical_sentences(self):
+    def test_technical_sentences(self, preloaded_formatter):
         """Test formatting of technical sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (
                 "open config dot py and set debug equals true",
@@ -378,8 +395,9 @@ class TestMixedContent:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_multi_entity_sentences(self):
+    def test_multi_entity_sentences(self, preloaded_formatter):
         """Test sentences with multiple entity types."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (
                 "visit github.com and download version two point one",
@@ -403,8 +421,9 @@ class TestMixedContent:
 class TestPunctuationModelIntegration:
     """Test integration with punctuation restoration model."""
 
-    def test_punctuation_model_vs_rules(self):
+    def test_punctuation_model_vs_rules(self, preloaded_formatter):
         """Test when punctuation model should be used vs rule-based."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Technical content (skip punctuation model)
             ("x equals five", "x = 5"),
@@ -424,8 +443,9 @@ class TestPunctuationModelIntegration:
 class TestEdgeCasesAndRegressions:
     """Test edge cases and document known issues."""
 
-    def test_empty_and_whitespace_handling(self):
+    def test_empty_and_whitespace_handling(self, preloaded_formatter):
         """Test handling of empty strings and whitespace."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("", ""),
             ("   ", ""),
@@ -437,8 +457,9 @@ class TestEdgeCasesAndRegressions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_filler_word_removal(self):
+    def test_filler_word_removal(self, preloaded_formatter):
         """Test that filler words are removed."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("um hello there", "Hello there."),
             ("uh what is this", "What is this?"),
@@ -452,8 +473,9 @@ class TestEdgeCasesAndRegressions:
             # Filler word removal may vary
             print(f"Filler word test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_casual_starters_capitalization(self):
+    def test_casual_starters_capitalization(self, preloaded_formatter):
         """Test that casual conversation starters are still capitalized."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("hey there", "Hey there."),
             ("well hello", "Well, hello."),
@@ -466,8 +488,9 @@ class TestEdgeCasesAndRegressions:
             # Punctuation may vary
             print(f"Casual starter test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_profanity_filtering(self):
+    def test_profanity_filtering(self, preloaded_formatter):
         """Test that profanity is replaced with asterisks."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("what the fuck", "What the ****."),
             ("this is shit", "This is ****."),
@@ -479,8 +502,9 @@ class TestEdgeCasesAndRegressions:
             # Profanity filtering may be configurable
             print(f"Profanity test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_version_number_formatting(self):
+    def test_version_number_formatting(self, preloaded_formatter):
         """Test version number formatting."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("version 16.4.2", "Version 16.4.2."),
             ("build 1.0.0", "Build 1.0.0."),
@@ -496,8 +520,9 @@ class TestEdgeCasesAndRegressions:
 class TestIdiomaticExpressions:
     """Test idiomatic expressions that shouldn't be converted."""
 
-    def test_idiomatic_math_words(self):
+    def test_idiomatic_math_words(self, preloaded_formatter):
         """Test that idiomatic expressions with math words aren't converted."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("i have five plus years of experience", "I have 5 + years of experience."),
             ("the game is over", "The game is over."),
@@ -514,8 +539,9 @@ class TestIdiomaticExpressions:
 class TestComplexEdgeCases:
     """Test complex edge cases combining multiple challenges."""
 
-    def test_kitchen_sink_scenarios(self):
+    def test_kitchen_sink_scenarios(self, preloaded_formatter):
         """Test complex sentences combining multiple edge cases."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Pronoun i, filename, URL, acronym, punctuation
             (

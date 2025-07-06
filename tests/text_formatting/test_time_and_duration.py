@@ -11,20 +11,15 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import sys
-import os
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-from stt_hotkeys.text_formatting.formatter import format_transcription
+import pytest
 
 
 class TestTimeEntities:
     """Test TIME entity detection and formatting."""
 
-    def test_spoken_times(self):
+    def test_spoken_times(self, preloaded_formatter):
         """Test spoken time patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("three thirty PM", "3:30 PM"),
             ("nine fifteen AM", "9:15 AM"),
@@ -40,8 +35,9 @@ class TestTimeEntities:
             # Time formatting may vary
             print(f"Spoken time test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_numeric_times(self):
+    def test_numeric_times(self, preloaded_formatter):
         """Test numeric time patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("at three PM", "At 3 PM."),
             ("by five o'clock", "By 5 o'clock."),
@@ -53,8 +49,9 @@ class TestTimeEntities:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_military_time(self):
+    def test_military_time(self, preloaded_formatter):
         """Test 24-hour time format."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("fifteen hundred hours", "1500 hours"),
             ("zero eight hundred", "0800"),
@@ -66,8 +63,9 @@ class TestTimeEntities:
             # Military time may not be fully implemented
             print(f"Military time test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_time_with_seconds(self):
+    def test_time_with_seconds(self, preloaded_formatter):
         """Test times with seconds."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("three thirty and twenty seconds PM", "3:30:20 PM"),
             ("ten fifteen and forty five seconds", "10:15:45"),
@@ -83,8 +81,9 @@ class TestTimeEntities:
 class TestDateEntities:
     """Test DATE entity detection and formatting."""
 
-    def test_spoken_dates(self):
+    def test_spoken_dates(self, preloaded_formatter):
         """Test spoken date patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("january first", "January 1st"),
             ("december twenty fifth", "December 25th"),
@@ -97,8 +96,9 @@ class TestDateEntities:
             # Date formatting may vary
             print(f"Spoken date test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_numeric_dates(self):
+    def test_numeric_dates(self, preloaded_formatter):
         """Test numeric date patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("zero one slash fifteen slash twenty twenty four", "01/15/2024"),
             ("twelve dash thirty one dash twenty twenty three", "12-31-2023"),
@@ -110,8 +110,9 @@ class TestDateEntities:
             # Numeric date formatting
             print(f"Numeric date test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_relative_dates(self):
+    def test_relative_dates(self, preloaded_formatter):
         """Test relative date expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("today", "Today"),
             ("tomorrow", "Tomorrow"),
@@ -125,8 +126,9 @@ class TestDateEntities:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_date_in_context(self):
+    def test_date_in_context(self, preloaded_formatter):
         """Test dates in natural sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the meeting is on january first", "The meeting is on January 1st."),
             ("due by december thirty first", "Due by December 31st."),
@@ -142,8 +144,9 @@ class TestDateEntities:
 class TestDurationEntities:
     """Test DURATION entity detection and formatting."""
 
-    def test_basic_durations(self):
+    def test_basic_durations(self, preloaded_formatter):
         """Test basic duration patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("two hours", "2h"),
             ("thirty minutes", "30min"),
@@ -156,8 +159,9 @@ class TestDurationEntities:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_compound_durations(self):
+    def test_compound_durations(self, preloaded_formatter):
         """Test compound duration patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("two hours and thirty minutes", "2h 30min"),
             ("one hour and fifteen minutes", "1h 15min"),
@@ -170,8 +174,9 @@ class TestDurationEntities:
             # Compound duration formatting
             print(f"Compound duration: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_duration_in_context(self):
+    def test_duration_in_context(self, preloaded_formatter):
         """Test durations in natural sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the process takes two hours", "The process takes 2h."),
             ("wait for thirty minutes", "Wait for 30min."),
@@ -183,8 +188,9 @@ class TestDurationEntities:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_informal_durations(self):
+    def test_informal_durations(self, preloaded_formatter):
         """Test informal duration expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("a couple of hours", "A couple of hours."),
             ("a few minutes", "A few minutes."),
@@ -201,8 +207,9 @@ class TestDurationEntities:
 class TestTimeRanges:
     """Test TIME_RANGE entity detection and formatting."""
 
-    def test_basic_time_ranges(self):
+    def test_basic_time_ranges(self, preloaded_formatter):
         """Test basic time range patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("from nine to five", "From 9 to 5"),
             ("between two and four PM", "Between 2 and 4 PM"),
@@ -215,8 +222,9 @@ class TestTimeRanges:
             # Time range formatting may vary
             print(f"Time range test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_date_ranges(self):
+    def test_date_ranges(self, preloaded_formatter):
         """Test date range patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("from january to march", "From January to March"),
             ("between monday and friday", "Between Monday and Friday"),
@@ -228,8 +236,9 @@ class TestTimeRanges:
             # Date range formatting
             print(f"Date range test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_duration_ranges(self):
+    def test_duration_ranges(self, preloaded_formatter):
         """Test duration range patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("two to three hours", "2-3h"),
             ("five to ten minutes", "5-10min"),
@@ -245,8 +254,9 @@ class TestTimeRanges:
 class TestTimeZones:
     """Test time zone detection and formatting."""
 
-    def test_timezone_abbreviations(self):
+    def test_timezone_abbreviations(self, preloaded_formatter):
         """Test time zone abbreviations."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("three PM PST", "3 PM PST"),
             ("nine AM EST", "9 AM EST"),
@@ -259,8 +269,9 @@ class TestTimeZones:
             # Timezone formatting
             print(f"Timezone test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_timezone_offsets(self):
+    def test_timezone_offsets(self, preloaded_formatter):
         """Test time zone offset patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("UTC plus eight", "UTC+8"),
             ("GMT minus five", "GMT-5"),
@@ -276,8 +287,9 @@ class TestTimeZones:
 class TestTimeExpressions:
     """Test complex time expressions and contexts."""
 
-    def test_scheduling_expressions(self):
+    def test_scheduling_expressions(self, preloaded_formatter):
         """Test scheduling-related expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("every monday at three PM", "Every Monday at 3 PM."),
             ("daily at nine AM", "Daily at 9 AM."),
@@ -289,8 +301,9 @@ class TestTimeExpressions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_deadline_expressions(self):
+    def test_deadline_expressions(self, preloaded_formatter):
         """Test deadline and due date expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("due by five PM", "Due by 5 PM."),
             ("deadline is friday", "Deadline is Friday."),
@@ -302,8 +315,9 @@ class TestTimeExpressions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_relative_time_expressions(self):
+    def test_relative_time_expressions(self, preloaded_formatter):
         """Test relative time expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("in five minutes", "In 5min"),
             ("two hours ago", "2h ago"),
@@ -321,8 +335,9 @@ class TestTimeExpressions:
 class TestTimeEntityInteractions:
     """Test interactions between time-related entities."""
 
-    def test_date_and_time_together(self):
+    def test_date_and_time_together(self, preloaded_formatter):
         """Test date and time in same expression."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("january first at three PM", "January 1st at 3 PM"),
             ("tomorrow at nine thirty AM", "Tomorrow at 9:30 AM"),
@@ -334,8 +349,9 @@ class TestTimeEntityInteractions:
             # Combined date/time formatting
             print(f"Date and time: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_multiple_times_in_sentence(self):
+    def test_multiple_times_in_sentence(self, preloaded_formatter):
         """Test multiple time entities in one sentence."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("meeting from two to three on friday", "Meeting from 2 to 3 on Friday."),
             ("open nine AM to five PM daily", "Open 9 AM to 5 PM daily."),
@@ -347,8 +363,9 @@ class TestTimeEntityInteractions:
             # Multiple time entities
             print(f"Multiple times: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_time_with_other_entities(self):
+    def test_time_with_other_entities(self, preloaded_formatter):
         """Test time entities mixed with other entity types."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("call john@example.com at three PM", "Call john@example.com at 3 PM."),
             ("the server runs twenty four seven", "The server runs 24/7."),

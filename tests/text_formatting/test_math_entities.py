@@ -11,20 +11,15 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import sys
-import os
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-from stt_hotkeys.text_formatting.formatter import format_transcription
+import pytest
 
 
 class TestMathExpressions:
     """Test MATH_EXPRESSION entity detection and formatting."""
 
-    def test_basic_arithmetic_operations(self):
+    def test_basic_arithmetic_operations(self, preloaded_formatter):
         """Test basic arithmetic operation patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("two plus three equals five", "2 + 3 = 5"),
             ("ten minus four equals six", "10 - 4 = 6"),
@@ -37,8 +32,9 @@ class TestMathExpressions:
             # Math expressions might not get punctuation
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_mathematical_expressions_with_variables(self):
+    def test_mathematical_expressions_with_variables(self, preloaded_formatter):
         """Test mathematical expressions with variables."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("solve for x plus five equals ten", "Solve for x + 5 = 10"),
             ("calculate y minus three equals seven", "Calculate y - 3 = 7"),
@@ -50,8 +46,9 @@ class TestMathExpressions:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_complex_mathematical_expressions(self):
+    def test_complex_mathematical_expressions(self, preloaded_formatter):
         """Test more complex mathematical expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("x squared plus y squared equals z squared", "x² + y² = z²"),
             ("a to the power of b equals c", "a^b = c"),
@@ -64,8 +61,9 @@ class TestMathExpressions:
             # Complex expressions may not all be implemented yet
             print(f"Complex math test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_mathematical_vs_idiomatic_context(self):
+    def test_mathematical_vs_idiomatic_context(self, preloaded_formatter):
         """Test that mathematical expressions are distinguished from idiomatic phrases."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Mathematical (should be converted)
             ("what is five times ten", "What is 5 × 10"),
@@ -86,8 +84,9 @@ class TestMathExpressions:
 class TestPhysicsEquations:
     """Test physics equation entity detection and formatting."""
 
-    def test_physics_squared_equations(self):
+    def test_physics_squared_equations(self, preloaded_formatter):
         """Test PHYSICS_SQUARED entity patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("E equals MC squared", "E = MC²"),
             ("energy equals mass times c squared", "E = mc²"),
@@ -99,8 +98,9 @@ class TestPhysicsEquations:
             # Physics equations typically don't get periods after superscripts
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_physics_multiplication_equations(self):
+    def test_physics_multiplication_equations(self, preloaded_formatter):
         """Test PHYSICS_TIMES entity patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("F equals M times A", "F = M × A"),
             ("force equals mass times acceleration", "F = m × a"),
@@ -112,8 +112,9 @@ class TestPhysicsEquations:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_physics_equations_in_context(self):
+    def test_physics_equations_in_context(self, preloaded_formatter):
         """Test physics equations in natural sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("according to Einstein E equals MC squared", "According to Einstein E = MC²"),
             ("Newton's second law states F equals M times A", "Newton's second law states F = M × A"),
@@ -128,8 +129,9 @@ class TestPhysicsEquations:
 class TestRootExpressions:
     """Test ROOT_EXPRESSION entity detection and formatting."""
 
-    def test_square_roots(self):
+    def test_square_roots(self, preloaded_formatter):
         """Test square root expression patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the square root of sixteen", "√16"),
             ("square root of two", "√2"),
@@ -141,8 +143,9 @@ class TestRootExpressions:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_cube_roots(self):
+    def test_cube_roots(self, preloaded_formatter):
         """Test cube root expression patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the cube root of eight", "∛8"),
             ("cube root of twenty seven", "∛27"),
@@ -154,8 +157,9 @@ class TestRootExpressions:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_roots_with_expressions(self):
+    def test_roots_with_expressions(self, preloaded_formatter):
         """Test root expressions with more complex arguments."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the square root of x plus one", "√(x + 1)"),
             ("cube root of a squared plus b squared", "∛(a² + b²)"),
@@ -167,8 +171,9 @@ class TestRootExpressions:
             # Complex root expressions may not be fully implemented
             print(f"Complex root test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_nth_roots(self):
+    def test_nth_roots(self, preloaded_formatter):
         """Test nth root expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the fourth root of sixteen", "⁴√16"),
             ("fifth root of thirty two", "⁵√32"),
@@ -184,8 +189,9 @@ class TestRootExpressions:
 class TestScientificNotation:
     """Test SCIENTIFIC_NOTATION entity detection and formatting."""
 
-    def test_positive_exponents(self):
+    def test_positive_exponents(self, preloaded_formatter):
         """Test scientific notation with positive exponents."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("two point five times ten to the sixth", "2.5 × 10⁶"),
             ("three times ten to the eighth", "3 × 10⁸"),
@@ -197,8 +203,9 @@ class TestScientificNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_negative_exponents(self):
+    def test_negative_exponents(self, preloaded_formatter):
         """Test scientific notation with negative exponents."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("three times ten to the negative four", "3 × 10⁻⁴"),
             ("five point five times ten to the negative two", "5.5 × 10⁻²"),
@@ -210,8 +217,9 @@ class TestScientificNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_scientific_constants(self):
+    def test_scientific_constants(self, preloaded_formatter):
         """Test scientific notation for well-known constants."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("six point zero two times ten to the twenty third", "6.02 × 10²³"),  # Avogadro's number
             ("nine point one zero nine times ten to the negative thirty first", "9.109 × 10⁻³¹"),  # Electron mass
@@ -222,8 +230,9 @@ class TestScientificNotation:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_scientific_notation_in_context(self):
+    def test_scientific_notation_in_context(self, preloaded_formatter):
         """Test scientific notation in scientific contexts."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the concentration is two point five times ten to the negative six molar", "The concentration is 2.5 × 10⁻⁶ M"),
             ("avogadro's number is six point zero two times ten to the twenty third", "Avogadro's number is 6.02 × 10²³"),
@@ -238,8 +247,9 @@ class TestScientificNotation:
 class TestMathematicalConstants:
     """Test MATH_CONSTANT entity detection and formatting."""
 
-    def test_pi_constant(self):
+    def test_pi_constant(self, preloaded_formatter):
         """Test pi constant detection and formatting."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("pi is approximately three point one four", "π is approximately 3.14"),
             ("calculate with pi", "Calculate with π"),
@@ -251,8 +261,9 @@ class TestMathematicalConstants:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_infinity_constant(self):
+    def test_infinity_constant(self, preloaded_formatter):
         """Test infinity constant detection and formatting."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the value approaches infinity", "The value approaches ∞"),
             ("to infinity and beyond", "To ∞ and beyond"),
@@ -264,8 +275,9 @@ class TestMathematicalConstants:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_e_constant(self):
+    def test_e_constant(self, preloaded_formatter):
         """Test Euler's number constant detection and formatting."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("e to the power of x", "e^x"),
             ("the natural logarithm of e", "ln(e)"),
@@ -278,8 +290,9 @@ class TestMathematicalConstants:
             # Some complex e expressions may not be implemented
             print(f"E constant test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_other_mathematical_constants(self):
+    def test_other_mathematical_constants(self, preloaded_formatter):
         """Test other mathematical constant detection and formatting."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the golden ratio phi", "The golden ratio φ"),
             ("euler's constant gamma", "Euler's constant γ"),
@@ -295,8 +308,9 @@ class TestMathematicalConstants:
 class TestAdvancedMathematicalNotation:
     """Test advanced mathematical notation and symbols."""
 
-    def test_calculus_notation(self):
+    def test_calculus_notation(self, preloaded_formatter):
         """Test calculus notation patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the derivative of x squared", "d/dx(x²)"),
             ("integral from zero to pi", "∫₀^π"),
@@ -309,8 +323,9 @@ class TestAdvancedMathematicalNotation:
             # Advanced calculus notation may not be implemented
             print(f"Calculus test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_summation_notation(self):
+    def test_summation_notation(self, preloaded_formatter):
         """Test summation and product notation."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("sigma from i equals one to n", "Σᵢ₌₁ⁿ"),
             ("product from k equals one to ten", "∏ₖ₌₁¹⁰"),
@@ -322,8 +337,9 @@ class TestAdvancedMathematicalNotation:
             # Summation notation may not be implemented
             print(f"Summation test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_set_theory_notation(self):
+    def test_set_theory_notation(self, preloaded_formatter):
         """Test set theory notation patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("a is an element of b", "a ∈ B"),
             ("x is not in y", "x ∉ Y"),
@@ -337,8 +353,9 @@ class TestAdvancedMathematicalNotation:
             # Set theory notation may not be implemented
             print(f"Set theory test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_logic_notation(self):
+    def test_logic_notation(self, preloaded_formatter):
         """Test logic notation patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("a and b", "A ∧ B"),  # In logical context
             ("x or y", "X ∨ Y"),   # In logical context
@@ -356,8 +373,9 @@ class TestAdvancedMathematicalNotation:
 class TestMathematicalEntityInteractions:
     """Test interactions between different mathematical entities."""
 
-    def test_constants_in_expressions(self):
+    def test_constants_in_expressions(self, preloaded_formatter):
         """Test mathematical constants within expressions."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("two pi r", "2πr"),
             ("e to the i pi", "e^(iπ)"),
@@ -370,8 +388,9 @@ class TestMathematicalEntityInteractions:
             # Complex expressions with constants may not be fully implemented
             print(f"Constants in expressions: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_scientific_notation_with_units(self):
+    def test_scientific_notation_with_units(self, preloaded_formatter):
         """Test scientific notation combined with units."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("six point zero two times ten to the twenty third per mole", "6.02 × 10²³/mol"),
             ("three times ten to the eighth meters per second", "3 × 10⁸ m/s"),
@@ -383,8 +402,9 @@ class TestMathematicalEntityInteractions:
             # Scientific notation with units may not be fully implemented
             print(f"Scientific notation with units: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_mixed_mathematical_content(self):
+    def test_mixed_mathematical_content(self, preloaded_formatter):
         """Test sentences with multiple types of mathematical entities."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (
                 "solve x squared plus two x plus one equals zero using the quadratic formula",
@@ -408,8 +428,9 @@ class TestMathematicalEntityInteractions:
 class TestMathematicalContextDetection:
     """Test that mathematical context is detected correctly."""
 
-    def test_mathematical_vs_casual_context(self):
+    def test_mathematical_vs_casual_context(self, preloaded_formatter):
         """Test distinguishing mathematical from casual contexts."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Mathematical context (should convert)
             ("solve for x plus y equals ten", "Solve for x + y = 10"),
@@ -426,8 +447,9 @@ class TestMathematicalContextDetection:
             # Note: Context detection may not be perfect in current implementation
             print(f"Context detection: '{input_text}' -> '{result}' (expected: '{expected}')")
 
-    def test_physics_vs_general_context(self):
+    def test_physics_vs_general_context(self, preloaded_formatter):
         """Test distinguishing physics from general contexts."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Physics context (should convert to formulas)
             ("according to newton F equals M times A", "According to Newton F = M × A"),

@@ -11,20 +11,14 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-import sys
-import os
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-from stt_hotkeys.text_formatting.formatter import format_transcription
 
 
 class TestSpokenUrls:
     """Test SPOKEN_URL entity detection and formatting."""
 
-    def test_basic_spoken_urls(self):
+    def test_basic_spoken_urls(self, preloaded_formatter):
         """Test basic spoken URL patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("visit google dot com", "Visit google.com."),
             ("go to example dot org", "Go to example.org."),
@@ -37,8 +31,9 @@ class TestSpokenUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_paths(self):
+    def test_spoken_urls_with_paths(self, preloaded_formatter):
         """Test spoken URLs with path segments."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("go to example dot com slash page", "Go to example.com/page."),
             ("visit github dot com slash user slash repo", "Visit github.com/user/repo."),
@@ -50,8 +45,9 @@ class TestSpokenUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_numbers(self):
+    def test_spoken_urls_with_numbers(self, preloaded_formatter):
         """Test spoken URLs containing numbers."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("visit server one dot example dot com", "Visit server1.example.com."),
             ("go to api dot v two dot service dot org", "Go to api.v2.service.org."),
@@ -63,8 +59,9 @@ class TestSpokenUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_query_parameters(self):
+    def test_spoken_urls_with_query_parameters(self, preloaded_formatter):
         """Test spoken URLs with query parameters."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (
                 "go to search dot com question mark query equals python",
@@ -88,8 +85,9 @@ class TestSpokenUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_with_subdomains(self):
+    def test_spoken_urls_with_subdomains(self, preloaded_formatter):
         """Test spoken URLs with subdomains."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("visit mail dot google dot com", "Visit mail.google.com."),
             ("go to api dot my-service dot example dot org", "Go to api.my-service.example.org."),
@@ -101,8 +99,9 @@ class TestSpokenUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_domain_rescue_mangled_urls(self):
+    def test_domain_rescue_mangled_urls(self, preloaded_formatter):
         """Test rescue of mangled domain names."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("visit googlecom", "Visit google.com."),
             ("go to githubcom", "Go to github.com."),
@@ -114,8 +113,9 @@ class TestSpokenUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_urls_in_sentences(self):
+    def test_spoken_urls_in_sentences(self, preloaded_formatter):
         """Test spoken URLs embedded in natural sentences."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("you can find the docs at python dot org", "You can find the docs at python.org."),
             ("the source code is hosted on github dot com", "The source code is hosted on github.com."),
@@ -131,8 +131,9 @@ class TestSpokenUrls:
 class TestSpokenProtocolUrls:
     """Test SPOKEN_PROTOCOL_URL entity detection and formatting."""
 
-    def test_basic_protocol_urls(self):
+    def test_basic_protocol_urls(self, preloaded_formatter):
         """Test basic protocol URL patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("http colon slash slash example dot com", "http://example.com"),
             ("https colon slash slash secure dot site dot org", "https://secure.site.org"),
@@ -144,8 +145,9 @@ class TestSpokenProtocolUrls:
             # Protocol URLs are technical content so might not get punctuation
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_protocol_urls_with_paths(self):
+    def test_protocol_urls_with_paths(self, preloaded_formatter):
         """Test protocol URLs with path segments."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("https colon slash slash my app dot com slash login", "https://myapp.com/login"),
             ("http colon slash slash api dot service dot com slash v one", "http://api.service.com/v1"),
@@ -156,8 +158,9 @@ class TestSpokenProtocolUrls:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_protocol_urls_with_ports(self):
+    def test_protocol_urls_with_ports(self, preloaded_formatter):
         """Test protocol URLs with port numbers."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("http colon slash slash test dot local colon eight zero eight zero", "http://test.local:8080"),
             ("https colon slash slash secure dot example dot com colon four four three", "https://secure.example.com:443"),
@@ -168,8 +171,9 @@ class TestSpokenProtocolUrls:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_protocol_urls_with_query_parameters(self):
+    def test_protocol_urls_with_query_parameters(self, preloaded_formatter):
         """Test protocol URLs with query parameters."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (
                 "https colon slash slash api dot service dot com slash v one question mark key equals value",
@@ -185,8 +189,9 @@ class TestSpokenProtocolUrls:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_protocol_urls_with_authentication(self):
+    def test_protocol_urls_with_authentication(self, preloaded_formatter):
         """Test protocol URLs with authentication."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("https colon slash slash user at secure dot site dot org", "https://user@secure.site.org"),
             ("ftp colon slash slash admin at files dot server dot com", "ftp://admin@files.server.com"),
@@ -200,12 +205,13 @@ class TestSpokenProtocolUrls:
 class TestSpokenEmails:
     """Test SPOKEN_EMAIL entity detection and formatting."""
 
-    def test_basic_spoken_emails(self):
+    def test_basic_spoken_emails(self, preloaded_formatter):
         """Test basic spoken email patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("email john at example dot com", "Email john@example.com."),
             ("send to user at company dot org", "Send to user@company.org."),
-            ("contact support at help dot io", "Contact support@help.io."),
+            ("contact support at help dot io", "Contact: support@help.io."),
             ("reach me at admin at server dot net", "Reach me at admin@server.net."),
         ]
 
@@ -213,10 +219,11 @@ class TestSpokenEmails:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_emails_with_numbers(self):
+    def test_spoken_emails_with_numbers(self, preloaded_formatter):
         """Test spoken emails containing numbers."""
+        format_transcription = preloaded_formatter
         test_cases = [
-            ("contact user one two three at test-domain dot co dot uk", "Contact user123@test-domain.co.uk."),
+            ("contact user one two three at test-domain dot co dot uk", "Contact: user123@test-domain.co.uk."),
             ("send to admin at server two dot example dot com", "Send to admin@server2.example.com."),
             ("email support at help one dot service dot org", "Email support@help1.service.org."),
         ]
@@ -225,11 +232,12 @@ class TestSpokenEmails:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_emails_with_special_characters(self):
+    def test_spoken_emails_with_special_characters(self, preloaded_formatter):
         """Test spoken emails with underscores and hyphens."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("email first underscore last at my-company dot org", "Email first_last@my-company.org."),
-            ("contact support dash team at help dot io", "Contact support-team@help.io."),
+            ("contact support dash team at help dot io", "Contact: support-team@help.io."),
             ("send to user underscore admin at test dot com", "Send to user_admin@test.com."),
         ]
 
@@ -237,8 +245,9 @@ class TestSpokenEmails:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_emails_with_subdomains(self):
+    def test_spoken_emails_with_subdomains(self, preloaded_formatter):
         """Test spoken emails with subdomains."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("reach out to sales at mail dot big-corp dot com", "Reach out to sales@mail.big-corp.com."),
             ("notify admin at db dot prod dot company dot net", "Notify admin@db.prod.company.net."),
@@ -249,8 +258,9 @@ class TestSpokenEmails:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_emails_with_action_verbs(self):
+    def test_spoken_emails_with_action_verbs(self, preloaded_formatter):
         """Test spoken emails with action verbs."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("email john doe at example dot com about the meeting", "Email johndoe@example.com about the meeting."),
             ("send the report to data at analytics dot company dot com", "Send the report to data@analytics.company.com."),
@@ -261,8 +271,9 @@ class TestSpokenEmails:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_spoken_emails_entity_protection(self):
+    def test_spoken_emails_entity_protection(self, preloaded_formatter):
         """Test that email entities are protected from capitalization."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Email at start of sentence - should not be capitalized
             ("hello at muffin dot com is my email address", "hello@muffin.com is my email address."),
@@ -278,8 +289,9 @@ class TestSpokenEmails:
 class TestStandardEmails:
     """Test standard EMAIL entity detection and formatting."""
 
-    def test_standard_email_addresses(self):
+    def test_standard_email_addresses(self, preloaded_formatter):
         """Test standard email addresses that are already formatted."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("My email is user@example.com", "My email is user@example.com."),
             ("Contact support@company.org for help", "Contact support@company.org for help."),
@@ -290,8 +302,9 @@ class TestStandardEmails:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_standard_emails_with_punctuation(self):
+    def test_standard_emails_with_punctuation(self, preloaded_formatter):
         """Test standard emails with existing punctuation."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("Email me at user@example.com!", "Email me at user@example.com!"),
             ("Is admin@server.org working?", "Is admin@server.org working?"),
@@ -306,8 +319,9 @@ class TestStandardEmails:
 class TestPortNumbers:
     """Test PORT_NUMBER entity detection and formatting."""
 
-    def test_basic_port_numbers(self):
+    def test_basic_port_numbers(self, preloaded_formatter):
         """Test basic port number patterns."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("connect to localhost colon eight zero eight zero", "Connect to localhost:8080."),
             ("the server runs on port nine thousand", "The server runs on port 9000"),
@@ -320,8 +334,9 @@ class TestPortNumbers:
             # Port numbers are technical content so might not get punctuation
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_port_numbers_with_ips(self):
+    def test_port_numbers_with_ips(self, preloaded_formatter):
         """Test port numbers with IP addresses."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("connect to one two seven dot zero dot zero dot one colon two two", "Connect to 127.0.0.1:22"),
             ("the API is at one nine two dot one six eight dot one dot one colon three thousand", "The API is at 192.168.1.1:3000"),
@@ -332,8 +347,9 @@ class TestPortNumbers:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_port_numbers_with_domains(self):
+    def test_port_numbers_with_domains(self, preloaded_formatter):
         """Test port numbers with domain names."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("the API is at api dot service dot com colon three thousand", "The API is at api.service.com:3000"),
             ("database at db dot example dot org colon five four three two", "Database at db.example.org:5432"),
@@ -344,8 +360,9 @@ class TestPortNumbers:
             result = format_transcription(input_text)
             assert result in [expected, expected + "."], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_common_service_ports(self):
+    def test_common_service_ports(self, preloaded_formatter):
         """Test common service port numbers."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("HTTP server colon eight zero", "HTTP server:80"),
             ("HTTPS server colon four four three", "HTTPS server:443"),
@@ -363,8 +380,9 @@ class TestPortNumbers:
 class TestStandardUrls:
     """Test standard URL entity detection and formatting."""
 
-    def test_standard_urls(self):
+    def test_standard_urls(self, preloaded_formatter):
         """Test standard URLs that are already formatted."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("Visit https://example.com", "Visit https://example.com."),
             ("Check the documentation at https://docs.python.org", "Check the documentation at https://docs.python.org."),
@@ -375,8 +393,9 @@ class TestStandardUrls:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_standard_urls_with_punctuation(self):
+    def test_standard_urls_with_punctuation(self, preloaded_formatter):
         """Test standard URLs with existing punctuation."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("Go to https://example.com!", "Go to https://example.com!"),
             ("Is https://api.service.com working?", "Is https://api.service.com working?"),
@@ -391,8 +410,9 @@ class TestStandardUrls:
 class TestWebEntityInteractions:
     """Test interactions between different web entities."""
 
-    def test_url_vs_email_priority(self):
+    def test_url_vs_email_priority(self, preloaded_formatter):
         """Test that URLs and emails are detected correctly when both patterns could match."""
+        format_transcription = preloaded_formatter
         test_cases = [
             # Should be detected as URL, not email
             ("visit user at example dot com", "Visit user@example.com."),  # This is actually an email pattern
@@ -405,8 +425,9 @@ class TestWebEntityInteractions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_url_with_email_in_path(self):
+    def test_url_with_email_in_path(self, preloaded_formatter):
         """Test URLs that contain email-like patterns in their paths."""
+        format_transcription = preloaded_formatter
         test_cases = [
             ("visit site dot com slash user at admin", "Visit site.com/user@admin."),
             ("go to example dot org slash contact at info", "Go to example.org/contact@info."),
@@ -416,8 +437,9 @@ class TestWebEntityInteractions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_complex_web_entities_in_sentences(self):
+    def test_complex_web_entities_in_sentences(self, preloaded_formatter):
         """Test complex sentences with multiple web entities."""
+        format_transcription = preloaded_formatter
         test_cases = [
             (
                 "email admin at server dot com or visit the site at example dot org",
@@ -429,7 +451,7 @@ class TestWebEntityInteractions:
             ),
             (
                 "contact support at help dot company dot org or check https colon slash slash docs dot company dot org",
-                "Contact support@help.company.org or check https://docs.company.org.",
+                "Contact: support@help.company.org or check https://docs.company.org.",
             ),
         ]
 
