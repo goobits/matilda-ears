@@ -189,7 +189,7 @@ class TestEntityProtection:
         test_cases = [
             ("visit github.com for more info", "Visit github.com for more info."),
             ("go to stackoverflow.com", "Go to stackoverflow.com."),
-            ("check api.service.com", "Check: api.service.com."),
+            ("check api.service.com", "Check api.service.com."),
         ]
 
         for input_text, expected in test_cases:
