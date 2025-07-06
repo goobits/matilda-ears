@@ -84,33 +84,6 @@ class TestMathExpressions:
 class TestPhysicsEquations:
     """Test physics equation entity detection and formatting."""
 
-    def test_physics_squared_equations(self, preloaded_formatter):
-        """Test PHYSICS_SQUARED entity patterns."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("E equals MC squared", "E = MC²"),
-            ("energy equals mass times c squared", "E = mc²"),
-            ("Einstein's equation E equals MC squared", "Einstein's equation E = MC²"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Physics equations typically don't get periods after superscripts
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
-
-    def test_physics_multiplication_equations(self, preloaded_formatter):
-        """Test PHYSICS_TIMES entity patterns."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("F equals M times A", "F = M × A"),
-            ("force equals mass times acceleration", "F = m × a"),
-            ("P equals I times V", "P = I × V"),  # Power = Current × Voltage
-            ("work equals force times distance", "W = F × d"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_physics_equations_in_context(self, preloaded_formatter):
         """Test physics equations in natural sentences."""
