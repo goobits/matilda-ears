@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 import re
 from collections import defaultdict
+import os
+import glob
 
 # --- Constants ---
 # Use the same history file as the old script to ensure compatibility.
@@ -229,40 +231,68 @@ class DiffTracker:
         return diff
 
     def _print_diff(self, diff: Dict, run_summary: Dict, session=None):
-        """Print a human-readable diff matching the proposal format."""
+        """Print a human-readable diff focusing on regressions."""
         if "error" in diff:
             self._write_line(f"\n❌ {diff['error']}", session)
             return
-        
-        # Changes summary
+
+        # --- Calculate the Regression Score ---
         newly_failing_count = len(diff["newly_failing"])
         newly_passing_count = len(diff["newly_passing"])
+        regression_score = newly_passing_count - newly_failing_count
+
+        # --- Print the Summary Header ---
+        summary_parts = []
+        if regression_score > 0:
+            score_color = "✅"
+            summary_parts.append(f"[bold green]Regression Score: +{regression_score}[/bold green]")
+        elif regression_score < 0:
+            score_color = "❌"
+            summary_parts.append(f"[bold red]Regression Score: {regression_score}[/bold red]")
+        else:
+            score_color = "✅"
+            summary_parts.append("[bold]Regression Score: 0[/bold]")
+
+        summary_parts.append(f"({newly_passing_count} fixed, {newly_failing_count} broke)")
         
-        self._write_line(f"\n📊 CHANGES SINCE LAST RUN: {newly_failing_count} newly failing, {newly_passing_count} newly passing", session)
-        
-        # Newly failing tests
+        # Also report on new/removed tests, which don't affect the score.
+        new_tests_count = len(diff.get("new_tests", []))
+        removed_tests_count = len(diff.get("removed_tests", []))
+        if new_tests_count > 0:
+            summary_parts.append(f"| {new_tests_count} new")
+        if removed_tests_count > 0:
+            summary_parts.append(f"| {removed_tests_count} removed")
+
+        self._write_line(f"\n{score_color} {' '.join(summary_parts)}", session)
+        self._write_line("="*70, session)
+
+        # --- Print Detailed Changes ---
         if diff["newly_failing"]:
-            self._write_line("\nNEWLY_FAILING:", session)
+            self._write_line("\n[bold red]NEWLY FAILING (Regressions):[/bold red]", session)
             for test in diff["newly_failing"]:
                 self._write_line(f"- {test['name']}", session)
                 if test['details']:
-                    self._write_line(f"  Expected: \"{test['details'].get('expected', 'N/A')}\"", session)
-                    self._write_line(f"  Actual: \"{test['details'].get('actual', 'N/A')}\"", session)
-        
-        # Newly passing tests
+                    self._write_line(f"  [yellow]Expected:[/yellow] \"{test['details'].get('expected', 'N/A')}\"", session)
+                    self._write_line(f"  [yellow]Actual:[/yellow]   \"{test['details'].get('actual', 'N/A')}\"", session)
+
         if diff["newly_passing"]:
-            self._write_line("\nNEWLY_PASSING:", session)
+            self._write_line("\n[bold green]NEWLY PASSING (Fixes):[/bold green]", session)
             for test in diff["newly_passing"]:
                 self._write_line(f"+ {test}", session)
-        
-        # Still failing tests (show count and a few examples)
-        if diff["still_failing"]:
-            still_failing_count = len(diff["still_failing"])
-            self._write_line(f"\nSTILL_FAILING:", session)
-            for test in diff["still_failing"][:3]:  # Show first 3
-                self._write_line(f"- {test['name']} (continuing)", session)
-            if still_failing_count > 3:
-                self._write_line(f"  ... and {still_failing_count - 3} more", session)
+
+        if diff.get("new_tests"):
+            failing_new_tests = [
+                t for t in diff["new_tests"]
+                if self.current_run_results.get(t, {}).get("status") == "FAILED"
+            ]
+            if failing_new_tests:
+                self._write_line("\n[bold yellow]NEW TESTS (Currently Failing):[/bold yellow]", session)
+                for test_name in failing_new_tests:
+                    self._write_line(f"• {test_name}", session)
+
+        still_failing_count = len(diff["still_failing"])
+        if still_failing_count > 0:
+            self._write_line(f"\n[dim]({still_failing_count} tests are still failing)[/dim]", session)
 
     def _print_history(self, history: Dict, limit: int = 10):
         """Print test run history in the proposal format."""
@@ -316,50 +346,76 @@ class DiffTracker:
             raise ValueError(f"Invalid diff range: {diff_range}. Expected 1 or 2 indices.")
 
     def pytest_sessionfinish(self, session):
-        """Called after the entire test session finishes."""
+        """Called after the entire test session finishes. Handles xdist."""
         # Only run if one of our flags is active
         if not (self.config.getoption("--track-diff") or self.config.getoption("--history") or self.config.getoption("diff_range")):
             return
-        
-        # Load existing history
-        history = self._load_history()
-        
-        if self.config.getoption("--track-diff"):
-            # Create new run record
-            run_record = self._create_run_record()
-            
-            # Add to history
-            history["runs"].append(run_record)
-            
-            # Save updated history
-            self._save_history(history)
-            
-            # Calculate and print diff if there's a previous run
-            if len(history["runs"]) >= 2:
-                diff = self._get_diff(history)
-                self._print_diff(diff, run_record["summary"], session)
-            else:
-                self._write_line("\n📊 First run recorded. No diff to show.", session)
-        
-        elif self.config.getoption("--history"):
-            self._print_history(history)
-        
-        elif self.config.getoption("diff_range"):
-            diff_range = self.config.getoption("diff_range")
-            try:
-                from_idx, to_idx = self._parse_diff_range(diff_range)
-                # Convert to negative indices for easier handling
-                if from_idx >= 0:
-                    from_idx = from_idx - len(history["runs"])
-                if to_idx >= 0:
-                    to_idx = to_idx - len(history["runs"])
+
+        # Distinguish between xdist master and worker nodes
+        # 'workerinput' is a dictionary provided by xdist to workers. It's None on the master.
+        is_worker = hasattr(self.config, 'workerinput')
+
+        if is_worker:
+            # --- WORKER NODE LOGIC ---
+            # Each worker saves its partial results to a temporary file.
+            worker_id = self.config.workerinput['workerid']
+            temp_file = HISTORY_DIR / f"partial_results_{worker_id}.json"
+            with open(temp_file, 'w') as f:
+                json.dump(self.current_run_results, f)
+            return # Worker's job is done.
+
+        # --- MASTER NODE / SEQUENTIAL RUN LOGIC ---
+        if not is_worker:
+            # Aggregate results from workers if they exist
+            partial_files = glob.glob(str(HISTORY_DIR / "partial_results_*.json"))
+            if partial_files:
+                aggregated_results = {}
+                for f in partial_files:
+                    with open(f, 'r') as partial_f:
+                        aggregated_results.update(json.load(partial_f))
+                    os.remove(f) # Clean up temp file
+                self.current_run_results = aggregated_results
+
+            # Now proceed with the original logic, using complete results.
+            history = self._load_history()
+
+            if self.config.getoption("--track-diff"):
+                if not self.current_run_results:
+                    self._write_line("\n⚠️ No test results were collected. Skipping diff tracking.", session)
+                    return
+                    
+                run_record = self._create_run_record()
+                history["runs"].append(run_record)
+                self._save_history(history)
                 
-                diff = self._get_diff(history, from_idx, to_idx)
-                if "error" not in diff:
-                    # For diff-only mode, create a summary from the target run
-                    target_run = history["runs"][to_idx]
-                    self._print_diff(diff, target_run["summary"], session)
+                if len(history["runs"]) >= 2:
+                    diff = self._get_diff(history)
+                    self._print_diff(diff, run_record["summary"], session)
                 else:
-                    self._write_line(f"\n❌ {diff['error']}", session)
-            except (ValueError, IndexError) as e:
-                self._write_line(f"\n❌ Error parsing diff range '{diff_range}': {e}", session)
+                    self._write_line("\n📊 First run recorded. No diff to show.", session)
+            
+            elif self.config.getoption("--history"):
+                self._print_history(history)
+            
+            elif self.config.getoption("diff_range"):
+                diff_range = self.config.getoption("diff_range")
+                try:
+                    from_idx, to_idx = self._parse_diff_range(diff_range)
+                    
+                    # Adjust indices to be negative for consistency if they are positive
+                    num_runs = len(history["runs"])
+                    if from_idx >= 0: from_idx -= num_runs
+                    if to_idx >= 0: to_idx -= num_runs
+                    
+                    if abs(from_idx) > num_runs or abs(to_idx) > num_runs:
+                        raise IndexError("Index out of range for historical runs.")
+
+                    diff = self._get_diff(history, from_idx, to_idx)
+                    if "error" not in diff:
+                        target_run = history["runs"][to_idx]
+                        self._print_diff(diff, target_run["summary"], session)
+                    else:
+                        self._write_line(f"\n❌ {diff['error']}", session)
+
+                except (ValueError, IndexError) as e:
+                    self._write_line(f"\n❌ Error with diff range '{diff_range}': {e}", session)
