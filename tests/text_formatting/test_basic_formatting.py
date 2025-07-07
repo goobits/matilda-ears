@@ -200,8 +200,8 @@ class TestEntityProtection:
         """Test that emails maintain their original case."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("contact john@example.com", "Contact: john@example.com."),
-            ("email support@company.com", "Email: support@company.com."),
+            ("contact john@example.com", "Contact john@example.com."),
+            ("email support@company.com", "Email support@company.com."),
             ("send to user@domain.com", "Send to user@domain.com."),
         ]
 

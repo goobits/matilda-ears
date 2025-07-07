@@ -211,7 +211,7 @@ class TestSpokenEmails:
         test_cases = [
             ("email john at example dot com", "Email john@example.com."),
             ("send to user at company dot org", "Send to user@company.org."),
-            ("contact support at help dot io", "Contact: support@help.io."),
+            ("contact support at help dot io", "Contact support@help.io."),
             ("reach me at admin at server dot net", "Reach me at admin@server.net."),
         ]
 
@@ -223,7 +223,7 @@ class TestSpokenEmails:
         """Test spoken emails containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("contact user one two three at test-domain dot co dot uk", "Contact: user123@test-domain.co.uk."),
+            ("contact user one two three at test-domain dot co dot uk", "Contact user123@test-domain.co.uk."),
             ("send to admin at server two dot example dot com", "Send to admin@server2.example.com."),
             ("email support at help one dot service dot org", "Email support@help1.service.org."),
         ]
@@ -237,7 +237,7 @@ class TestSpokenEmails:
         format_transcription = preloaded_formatter
         test_cases = [
             ("email first underscore last at my-company dot org", "Email first_last@my-company.org."),
-            ("contact support dash team at help dot io", "Contact: support-team@help.io."),
+            ("contact support dash team at help dot io", "Contact support-team@help.io."),
             ("send to user underscore admin at test dot com", "Send to user_admin@test.com."),
         ]
 
