@@ -116,7 +116,49 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+            # Add debugging to the formatter
+            if input_text == "open readme dot md":
+                # Get the actual formatter
+                from stt_hotkeys.text_formatting.formatter import TextFormatter
+                formatter = TextFormatter()
+                
+                # Hook into the SmartCapitalizer
+                original_capitalize = formatter.smart_capitalizer.capitalize
+                
+                def debug_capitalize(text, entities=None, doc=None):
+                    print(f"\n=== SmartCapitalizer Input ===")
+                    print(f"Text: '{text}'")
+                    print(f"Entities: {[(e.type.name, e.text, e.start, e.end) for e in (entities or [])]}")
+                    
+                    result = original_capitalize(text, entities, doc)
+                    
+                    print(f"Output: '{result}'")
+                    return result
+                
+                formatter.smart_capitalizer.capitalize = debug_capitalize
+                
+                # Also hook into entity conversion
+                original_convert = formatter.pattern_converter.convert
+                
+                def debug_convert(entity, full_text):
+                    result = original_convert(entity, full_text)
+                    print(f"\n=== Entity Conversion ===")
+                    print(f"Entity: {entity.type.name}:'{entity.text}' [{entity.start}:{entity.end}]")
+                    print(f"Converted: '{result}'")
+                    return result
+                
+                formatter.pattern_converter.convert = debug_convert
+                
+                # Run with debug formatter
+                result = formatter.format_transcription(input_text)
+            else:
+                result = format_transcription(input_text)
+                
+            # Debug first case only
+            if input_text == "open readme dot md":
+                print(f"\nDEBUG: Input='{input_text}' Expected='{expected}' Actual='{result}'")
+                print(f"Actual chars: {[c for c in result]}")
+                print(f"Expected chars: {[c for c in expected]}")
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_filenames_with_numbers(self, preloaded_formatter):
