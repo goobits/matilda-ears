@@ -474,5 +474,20 @@ class TestMathematicalContextDetection:
             print(f"Physics context: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
+class TestNestedMathEntityPatterns:
+    """Test nested and compound math entity patterns."""
+
+    def test_assignment_with_math_expression(self, preloaded_formatter):
+        """Test ASSIGNMENT entity whose value is a MATH_EXPRESSION."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("let result equals five times ten", "let result = 5 × 10"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should handle assignment with math: '{expected}', got '{result}'"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

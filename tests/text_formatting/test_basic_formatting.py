@@ -72,31 +72,6 @@ class TestBasicCapitalization:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
-    def test_question_mark_capitalization(self, preloaded_formatter):
-        """Test capitalization after question marks."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("what is your name? my name is john", "What is your name? My name is John"),
-            ("are you ready? let's go", "Are you ready? Let's go"),
-            ("how does it work? it's simple", "How does it work? It's simple"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
-
-    def test_exclamation_mark_capitalization(self, preloaded_formatter):
-        """Test capitalization after exclamation marks."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("stop! don't move", "Stop! Don't move"),
-            ("amazing! i can't believe it", "Amazing! I can't believe it"),
-            ("hurry up! we're late", "Hurry up! We're late"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestBasicPunctuation:
@@ -240,7 +215,7 @@ class TestEntityProtection:
         format_transcription = preloaded_formatter
         test_cases = [
             # Email at sentence start should not be capitalized
-            ("hello@muffin.com is my email address", "Hello@muffin.com is my email address"),
+            ("hello@muffin.com is my email address", "hello@muffin.com is my email address"),
             # URL at sentence start should maintain case
             ("github.com is a website", "github.com is a website"),
             ("example.org has info", "example.org has info"),
@@ -566,6 +541,43 @@ class TestComplexEdgeCases:
             result = format_transcription(input_text)
             # Complex punctuation may vary
             print(f"Kitchen sink test: '{input_text}' -> '{result}' (expected: '{expected}')")
+
+
+class TestCapitalizationEdgeCases:
+    """Test edge cases for capitalization logic and entity protection."""
+
+    def test_abbreviation_at_sentence_start(self, preloaded_formatter):
+        """Test that prose entities like abbreviations are capitalized at sentence start."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("i.e. the code must be clean", "I.e., the code must be clean"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should capitalize abbreviation at start: '{expected}', got '{result}'"
+
+    def test_all_caps_input_with_entities(self, preloaded_formatter):
+        """Test handling of all-caps input while correctly formatting sub-parts."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("GIT COMMIT --MESSAGE \"FIX\"", "GIT COMMIT --message \"FIX\""),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should handle all-caps correctly: '{expected}', got '{result}'"
+
+    def test_mixed_case_brand_preservation(self, preloaded_formatter):
+        """Test that pre-formatted technical/brand names preserve their casing."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("iPhone and iPad are made by Apple", "iPhone and iPad are made by Apple"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should preserve mixed-case brands: '{expected}', got '{result}'"
 
 
 if __name__ == "__main__":

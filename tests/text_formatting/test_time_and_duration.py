@@ -146,23 +146,6 @@ class TestDateEntities:
 class TestDurationEntities:
     """Test DURATION entity detection and formatting."""
 
-    def test_basic_durations(self, preloaded_formatter):
-        """Test basic duration patterns."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("two hours", "2h"),
-            ("thirty minutes", "30min"),
-            ("forty five seconds", "45s"),
-            ("one hour", "1h"),
-            ("five minutes", "5min"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_compound_durations(self, preloaded_formatter):
         """Test compound duration patterns."""

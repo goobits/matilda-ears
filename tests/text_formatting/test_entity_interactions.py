@@ -462,5 +462,43 @@ class TestEdgeCaseInteractions:
             print(f"List test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
+
+class TestMultipleAdjacentEntities:
+    """Test multiple adjacent and interacting entities."""
+
+    def test_slash_command_with_flag_and_filename(self, preloaded_formatter):
+        """Test SLASH_COMMAND, COMMAND_FLAG, and FILENAME in sequence."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("slash deploy --verbose to main.py", "/deploy --verbose to main.py"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should handle multiple entities: '{expected}', got '{result}'"
+
+    def test_currency_abbreviation_sequence(self, preloaded_formatter):
+        """Test CURRENCY, ABBREVIATION, and another currency entity in sequence."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("the price is ten dollars i.e. 10 USD", "The price is $10 i.e. 10 USD"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should handle currency and abbreviation: '{expected}', got '{result}'"
+
+    def test_assignment_then_increment(self, preloaded_formatter):
+        """Test ASSIGNMENT followed by INCREMENT_OPERATOR."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("let i equals ten then i plus plus", "let i = 10 then i++"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should handle assignment and increment: '{expected}', got '{result}'"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

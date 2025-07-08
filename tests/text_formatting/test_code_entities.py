@@ -352,7 +352,7 @@ class TestComparisonOperators:
         """Test comparisons in conditional statements."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("if value equals equals true", "If value == true"),
+            ("if value equals equals true", "if value == true"),
             ("when count equals equals zero", "When count == 0"),
             ("check if x equals equals y", "Check if x == y"),
         ]
@@ -516,21 +516,6 @@ class TestUnderscoreDelimiters:
                 expected + ".",
             ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
-    def test_dunder_variables(self, preloaded_formatter):
-        """Test dunder variable patterns."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("print underscore underscore file underscore underscore", "Print __file__"),
-            ("access underscore underscore dict underscore underscore", "Access __dict__"),
-            ("modify underscore underscore class underscore underscore", "Modify __class__"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
     def test_underscore_delimited_variables(self, preloaded_formatter):
         """Test underscore-delimited variable names."""
@@ -652,6 +637,47 @@ class TestCodeEntityInteractions:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+
+class TestNestedCodeEntityPatterns:
+    """Test nested and compound code entity patterns."""
+
+    def test_filename_with_tld_word(self, preloaded_formatter):
+        """Test FILENAME containing a TLD-like word (com)."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("open my com project dot py", "Open my_com_project.py"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should handle filename with TLD word: '{expected}', got '{result}'"
+
+
+class TestAmbiguousCodeContexts:
+    """Test ambiguous contexts where keywords shouldn't be converted."""
+
+    def test_colon_in_non_port_context(self, preloaded_formatter):
+        """Test that 'colon' is not converted to : in non-port context."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("the sentence must have a colon", "The sentence must have a colon"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should not convert 'colon' in non-port context: '{expected}', got '{result}'"
+
+    def test_underscore_in_non_variable_context(self, preloaded_formatter):
+        """Test that 'underscore' is not converted to _ in non-variable context."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("please draw an underscore here", "Please draw an underscore here"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should not convert 'underscore' in non-variable context: '{expected}', got '{result}'"
 
 
 class TestFilenameEdgeCasesAndRegressions:

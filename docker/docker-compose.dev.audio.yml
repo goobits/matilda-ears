@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  stt-server-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: stt-whisper-server-dev
+    ports:
+      - "8769:8769"
+    volumes:
+      # Mount source code for hot reloading
+      - ../:/app
+      - stt-models-dev:/root/.cache/huggingface
+      # Audio support - PulseAudio socket
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - ~/.config/pulse/cookie:/root/.config/pulse/cookie:ro
+    devices:
+      # Audio devices
+      - /dev/snd:/dev/snd
+    environment:
+      - WEBSOCKET_BIND_HOST=0.0.0.0
+      - DEBUG=1
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+    group_add:
+      - audio
+    command: ["python", "server.py", "start", "--debug", "--verbose"]
+    networks:
+      - stt-network-dev
+
+volumes:
+  stt-models-dev:
+
+networks:
+  stt-network-dev:
+    driver: bridge
