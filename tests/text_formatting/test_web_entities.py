@@ -527,6 +527,20 @@ class TestAmbiguousWebContexts:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should not convert 'at' in non-email context: '{expected}', got '{result}'"
 
+    def test_false_email_patterns_in_conversation(self, preloaded_formatter):
+        """Test that conversational patterns with 'at' are not misinterpreted as emails."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("Please compare this branch to the main branch and tell me all the differences. I think that if you look at the proposal.md", "Please compare this branch to the main branch and tell me all the differences. I think that if you look at the proposal.md"),
+            ("you look at the file and tell me", "You look at the file and tell me"),
+            ("when you go at the store", "When you go at the store"),
+            ("if you think at the problem differently", "If you think at the problem differently"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should not be interpreted as email: '{expected}', got '{result}'"
+
 
 class TestWebEntityProtection:
     """Test protection of technical web entities from capitalization."""

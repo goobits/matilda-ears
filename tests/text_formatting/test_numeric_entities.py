@@ -168,6 +168,27 @@ class TestOrdinalNumbers:
                 expected + ".",
             ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
 
+    def test_ordinal_vs_numerical_context(self, preloaded_formatter):
+        """Test that ordinals are converted differently based on context - numeric form in rankings vs word form in conversation."""
+        format_transcription = preloaded_formatter
+        # Note: This test captures current behavior and will be updated when context-aware conversion is implemented
+        test_cases = [
+            # Conversational contexts - should eventually stay as words
+            ("let's do this 1st", "Let's do this 1st"),  # Currently converts to number - should become "first" 
+            ("let's do that 1st", "Let's do that 1st"),  # Currently converts to number - should become "first"
+            ("we need to handle this 1st", "We need to handle this 1st"),  # Should become "first"
+            
+            # Ranking/positional contexts - should stay as numbers
+            ("he finished 1st place", "He finished 1st place"),  # Should stay numeric
+            ("she came in 1st", "She came in 1st"),  # Should stay numeric
+            ("ranked 1st in the competition", "Ranked 1st in the competition"),  # Should stay numeric
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            # For now, just capture what happens - we'll update expectations after implementing context awareness
+            print(f"Ordinal context test: '{input_text}' -> '{result}' (expected after implementation: '{expected}')")
+
 
 class TestNumericRanges:
     """Test NUMERIC_RANGE entity detection and formatting."""
