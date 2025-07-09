@@ -486,7 +486,9 @@ class TestNestedMathEntityPatterns:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle assignment with math: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle assignment with math: '{expected}', got '{result}'"
 
 
 if __name__ == "__main__":

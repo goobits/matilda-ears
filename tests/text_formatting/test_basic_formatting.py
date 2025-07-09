@@ -73,7 +73,6 @@ class TestBasicCapitalization:
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
-
 class TestBasicPunctuation:
     """Test basic punctuation rules."""
 
@@ -555,18 +554,22 @@ class TestCapitalizationEdgeCases:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should capitalize abbreviation at start: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should capitalize abbreviation at start: '{expected}', got '{result}'"
 
     def test_all_caps_input_with_entities(self, preloaded_formatter):
         """Test handling of all-caps input while correctly formatting sub-parts."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("GIT COMMIT --MESSAGE \"FIX\"", "GIT COMMIT --message \"FIX\""),
+            ('GIT COMMIT --MESSAGE "FIX"', 'GIT COMMIT --message "FIX"'),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle all-caps correctly: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle all-caps correctly: '{expected}', got '{result}'"
 
     def test_mixed_case_brand_preservation(self, preloaded_formatter):
         """Test that pre-formatted technical/brand names preserve their casing."""
@@ -577,7 +580,9 @@ class TestCapitalizationEdgeCases:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should preserve mixed-case brands: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should preserve mixed-case brands: '{expected}', got '{result}'"
 
 
 if __name__ == "__main__":

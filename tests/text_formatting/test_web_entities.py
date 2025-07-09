@@ -223,7 +223,6 @@ class TestSpokenProtocolUrls:
 class TestSpokenEmails:
     """Test SPOKEN_EMAIL entity detection and formatting."""
 
-
     def test_spoken_emails_with_numbers(self, preloaded_formatter):
         """Test spoken emails containing numbers."""
         format_transcription = preloaded_formatter
@@ -486,7 +485,6 @@ class TestWebEntityInteractions:
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
-
 class TestNestedWebEntityPatterns:
     """Test nested and compound web entity patterns."""
 
@@ -499,7 +497,9 @@ class TestNestedWebEntityPatterns:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle URL with numbers: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle URL with numbers: '{expected}', got '{result}'"
 
     def test_email_with_underscore_and_number(self, preloaded_formatter):
         """Test SPOKEN_EMAIL containing SIMPLE_UNDERSCORE_VARIABLE and CARDINAL."""
@@ -525,13 +525,18 @@ class TestAmbiguousWebContexts:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should not convert 'at' in non-email context: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should not convert 'at' in non-email context: '{expected}', got '{result}'"
 
     def test_false_email_patterns_in_conversation(self, preloaded_formatter):
         """Test that conversational patterns with 'at' are not misinterpreted as emails."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("Please compare this branch to the main branch and tell me all the differences. I think that if you look at the proposal.md", "Please compare this branch to the main branch and tell me all the differences. I think that if you look at the proposal.md"),
+            (
+                "Please compare this branch to the main branch and tell me all the differences. I think that if you look at the proposal.md",
+                "Please compare this branch to the main branch and tell me all the differences. I think that if you look at the proposal.md",
+            ),
             ("you look at the file and tell me", "You look at the file and tell me"),
             ("when you go at the store", "When you go at the store"),
             ("if you think at the problem differently", "If you think at the problem differently"),
@@ -539,7 +544,9 @@ class TestAmbiguousWebContexts:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should not be interpreted as email: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should not be interpreted as email: '{expected}', got '{result}'"
 
 
 class TestWebEntityProtection:
@@ -554,18 +561,25 @@ class TestWebEntityProtection:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should protect URL from capitalization: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should protect URL from capitalization: '{expected}', got '{result}'"
 
     def test_email_and_phone_sequence(self, preloaded_formatter):
         """Test SPOKEN_EMAIL followed by PHONE_LONG number."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("contact support at example dot com or call 555-123-4567", "Contact support@example.com or call 555-123-4567"),
+            (
+                "contact support at example dot com or call 555-123-4567",
+                "Contact support@example.com or call 555-123-4567",
+            ),
         ]
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle email and phone: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle email and phone: '{expected}', got '{result}'"
 
 
 if __name__ == "__main__":

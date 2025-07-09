@@ -462,7 +462,6 @@ class TestEdgeCaseInteractions:
             print(f"List test: '{input_text}' -> '{result}' (expected: '{expected}')")
 
 
-
 class TestMultipleAdjacentEntities:
     """Test multiple adjacent and interacting entities."""
 
@@ -475,7 +474,9 @@ class TestMultipleAdjacentEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle multiple entities: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle multiple entities: '{expected}', got '{result}'"
 
     def test_currency_abbreviation_sequence(self, preloaded_formatter):
         """Test CURRENCY, ABBREVIATION, and another currency entity in sequence."""
@@ -486,7 +487,9 @@ class TestMultipleAdjacentEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle currency and abbreviation: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle currency and abbreviation: '{expected}', got '{result}'"
 
     def test_assignment_then_increment(self, preloaded_formatter):
         """Test ASSIGNMENT followed by INCREMENT_OPERATOR."""
@@ -497,7 +500,9 @@ class TestMultipleAdjacentEntities:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle assignment and increment: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle assignment and increment: '{expected}', got '{result}'"
 
 
 if __name__ == "__main__":

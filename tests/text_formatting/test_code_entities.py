@@ -485,7 +485,10 @@ class TestSlashCommands:
             ("slash help me", "/help me"),
             ("slash status check", "/status check"),
             ("slash anything goes", "/anything goes"),
-            ("test it out in the slash temp directory see if it works", "Test it out in the /temp directory see if it works"),
+            (
+                "test it out in the slash temp directory see if it works",
+                "Test it out in the /temp directory see if it works",
+            ),
         ]
 
         for input_text, expected in test_cases:
@@ -515,7 +518,6 @@ class TestUnderscoreDelimiters:
                 expected,
                 expected + ".",
             ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
-
 
     def test_underscore_delimited_variables(self, preloaded_formatter):
         """Test underscore-delimited variable names."""
@@ -651,7 +653,9 @@ class TestNestedCodeEntityPatterns:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle filename with TLD word: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should handle filename with TLD word: '{expected}', got '{result}'"
 
 
 class TestAmbiguousCodeContexts:
@@ -666,7 +670,9 @@ class TestAmbiguousCodeContexts:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should not convert 'colon' in non-port context: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should not convert 'colon' in non-port context: '{expected}', got '{result}'"
 
     def test_underscore_in_non_variable_context(self, preloaded_formatter):
         """Test that 'underscore' is not converted to _ in non-variable context."""
@@ -677,7 +683,9 @@ class TestAmbiguousCodeContexts:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should not convert 'underscore' in non-variable context: '{expected}', got '{result}'"
+            assert (
+                result == expected
+            ), f"Input '{input_text}' should not convert 'underscore' in non-variable context: '{expected}', got '{result}'"
 
 
 class TestFilenameEdgeCasesAndRegressions:

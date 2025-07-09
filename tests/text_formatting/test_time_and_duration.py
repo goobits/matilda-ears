@@ -146,7 +146,6 @@ class TestDateEntities:
 class TestDurationEntities:
     """Test DURATION entity detection and formatting."""
 
-
     def test_compound_durations(self, preloaded_formatter):
         """Test compound duration patterns."""
         format_transcription = preloaded_formatter

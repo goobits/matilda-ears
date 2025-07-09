@@ -174,10 +174,9 @@ class TestOrdinalNumbers:
         # Note: This test captures current behavior and will be updated when context-aware conversion is implemented
         test_cases = [
             # Conversational contexts - should eventually stay as words
-            ("let's do this 1st", "Let's do this 1st"),  # Currently converts to number - should become "first" 
+            ("let's do this 1st", "Let's do this 1st"),  # Currently converts to number - should become "first"
             ("let's do that 1st", "Let's do that 1st"),  # Currently converts to number - should become "first"
             ("we need to handle this 1st", "We need to handle this 1st"),  # Should become "first"
-            
             # Ranking/positional contexts - should stay as numbers
             ("he finished 1st place", "He finished 1st place"),  # Should stay numeric
             ("she came in 1st", "She came in 1st"),  # Should stay numeric
