@@ -191,7 +191,7 @@ async def main():
 
 if __name__ == "__main__":
     # For Docker environment, default to host.docker.internal
-    if os.getenv("STT_DOCKER_MODE") == "1" and not os.getenv("WEBSOCKET_HOST"):
+    if os.getenv("MATILDA_DOCKER_MODE") == "1" and not os.getenv("WEBSOCKET_HOST"):
         os.environ["WEBSOCKET_HOST"] = "host.docker.internal"
 
     success = asyncio.run(main())

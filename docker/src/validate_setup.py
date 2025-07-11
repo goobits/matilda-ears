@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validation script for Docker STT Server setup
+"""Validation script for Docker Matilda Server setup
 Tests imports and basic functionality without actually starting servers
 """
 
@@ -32,7 +32,7 @@ def test_imports():
         print("✅ Token manager imports successful")
 
         # Test WebSocket server imports
-        from docker.src.websocket_server import EnhancedSTTWebSocketServer
+        from docker.src.websocket_server import EnhancedMatildaWebSocketServer
 
         print("✅ WebSocket server imports successful")
 
@@ -57,7 +57,7 @@ def test_token_manager():
 
     try:
         # Create temporary test directory
-        test_dir = Path("/tmp/stt_test")
+        test_dir = Path("/tmp/matilda_test")
         test_dir.mkdir(exist_ok=True)
 
         # Initialize token manager
@@ -105,7 +105,7 @@ def test_encryption():
 
     try:
         # Create temporary test directory
-        test_dir = Path("/tmp/stt_encryption_test")
+        test_dir = Path("/tmp/matilda_encryption_test")
         test_dir.mkdir(exist_ok=True)
 
         # Initialize encryption manager
@@ -139,7 +139,7 @@ def test_dashboard_api():
 
     try:
         # Mock the data directory
-        os.environ["STT_DOCKER_MODE"] = "1"
+        os.environ["MATILDA_DOCKER_MODE"] = "1"
 
         from docker.src.api import DashboardAPI
 
@@ -158,7 +158,7 @@ def test_dashboard_api():
 
 def main():
     """Run all validation tests"""
-    print("🐳 STT Docker Server Validation\n")
+    print("🐳 Matilda Docker Server Validation\n")
 
     tests = [
         ("Import Tests", test_imports),

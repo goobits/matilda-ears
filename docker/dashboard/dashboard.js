@@ -1,4 +1,4 @@
-class STTDashboard {
+class MatildaDashboard {
     constructor() {
         this.apiBaseUrl = window.location.origin;
         // Use ws:// for non-SSL WebSocket in development
@@ -20,8 +20,8 @@ class STTDashboard {
         this.startClientPolling();
         
         // Load test token from localStorage if available
-        const storedTestToken = localStorage.getItem('stt_test_token');
-        const storedTestTokenId = localStorage.getItem('stt_test_token_id');
+        const storedTestToken = localStorage.getItem('matilda_test_token');
+        const storedTestTokenId = localStorage.getItem('matilda_test_token_id');
         if (storedTestToken && storedTestTokenId) {
             this.testToken = storedTestToken;
             this.testTokenId = storedTestTokenId;
@@ -137,7 +137,7 @@ class STTDashboard {
             const qrData = {
                 server_url: `ws://${window.location.hostname}:8773/ws`,
                 token: tokenData.token,
-                name: `${window.location.hostname} STT Server`,
+                name: `${window.location.hostname} Matilda Server`,
                 expires: tokenData.expires,
                 encryption_enabled: false,  // SSL disabled for development
                 client_name: clientName
@@ -203,7 +203,7 @@ class STTDashboard {
         const canvas = document.querySelector('#qrCode canvas');
         if (canvas) {
             const link = document.createElement('a');
-            link.download = `stt-qr-${document.getElementById('qrClientName').textContent}.png`;
+            link.download = `matilda-qr-${document.getElementById('qrClientName').textContent}.png`;
             link.href = canvas.toDataURL();
             link.click();
         }
@@ -273,8 +273,8 @@ class STTDashboard {
                 if (tokenId === this.testTokenId) {
                     this.testToken = null;
                     this.testTokenId = null;
-                    localStorage.removeItem('stt_test_token');
-                    localStorage.removeItem('stt_test_token_id');
+                    localStorage.removeItem('matilda_test_token');
+                    localStorage.removeItem('matilda_test_token_id');
                 }
                 await this.loadActiveClients();
             } else {
@@ -370,8 +370,8 @@ class STTDashboard {
                     // Token was revoked or expired, clear it
                     this.testToken = null;
                     this.testTokenId = null;
-                    localStorage.removeItem('stt_test_token');
-                    localStorage.removeItem('stt_test_token_id');
+                    localStorage.removeItem('matilda_test_token');
+                    localStorage.removeItem('matilda_test_token_id');
                     token = null;
                 }
             }
@@ -407,8 +407,8 @@ class STTDashboard {
                 this.testTokenId = tokenId = tokenData.token_id;
                 
                 // Store in localStorage for persistence
-                localStorage.setItem('stt_test_token', token);
-                localStorage.setItem('stt_test_token_id', tokenId);
+                localStorage.setItem('matilda_test_token', token);
+                localStorage.setItem('matilda_test_token_id', tokenId);
             }
 
             // Connect to WebSocket for transcription
@@ -541,7 +541,7 @@ class STTDashboard {
 // Initialize dashboard when page loads
 let dashboard;
 document.addEventListener('DOMContentLoaded', () => {
-    dashboard = new STTDashboard();
+    dashboard = new MatildaDashboard();
 });
 
 // Make dashboard globally available for inline event handlers

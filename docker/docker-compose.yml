@@ -1,19 +1,19 @@
 version: '3.8'
 
 services:
-  stt-server:
+  matilda-server:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: stt-transcription-server
+    container_name: matilda-transcription-server
     ports:
       - "8081:8080"  # Dashboard port
       - "8773:8773"  # WebSocket port
     volumes:
-      - stt-data:/app/data
-      - stt-logs:/app/logs
-      - stt-ssl:/app/ssl
-      - stt-models:/root/.cache/huggingface
+      - matilda-data:/app/data
+      - matilda-logs:/app/logs
+      - matilda-ssl:/app/ssl
+      - matilda-models:/root/.cache/huggingface
       # Mount source code for development - changes reflect immediately
       - ./src:/app/docker/src
       - ./dashboard:/app/docker/dashboard
@@ -28,7 +28,7 @@ services:
       - CUDA_VISIBLE_DEVICES=0
     restart: unless-stopped
     networks:
-      - stt-network
+      - matilda-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
       interval: 30s
@@ -45,15 +45,15 @@ services:
     #           capabilities: [gpu]
 
 volumes:
-  stt-data:
+  matilda-data:
     driver: local
-  stt-logs:
+  matilda-logs:
     driver: local
-  stt-ssl:
+  matilda-ssl:
     driver: local
-  stt-models:
+  matilda-models:
     driver: local
 
 networks:
-  stt-network:
+  matilda-network:
     driver: bridge

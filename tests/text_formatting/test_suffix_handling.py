@@ -6,7 +6,7 @@ after transcription, which is critical for user experience.
 """
 
 import pytest
-from stt_hotkeys.text_formatting.formatter import TextFormatter
+from src.text_formatting.formatter import TextFormatter
 
 
 class TestSuffixHandling:

@@ -1,4 +1,4 @@
-"""Docker Server Launcher for STT Transcription Server
+"""Docker Server Launcher for MATILDA Transcription Server
 Launches both the dashboard web interface and WebSocket transcription server
 """
 
@@ -81,7 +81,7 @@ class DockerServerLauncher:
     def start_all_services(self):
         """Start both dashboard and WebSocket servers"""
         try:
-            logger.info("Starting all STT Docker services...")
+            logger.info("Starting all MATILDA Docker services...")
 
             # Create required directories
             os.makedirs("/app/logs", exist_ok=True)
@@ -92,7 +92,7 @@ class DockerServerLauncher:
 
             # Start dashboard in separate process
             logger.info("Launching dashboard process...")
-            self.dashboard_process = Process(target=self.start_dashboard, name="STT-Dashboard")
+            self.dashboard_process = Process(target=self.start_dashboard, name="MATILDA-Dashboard")
             self.dashboard_process.start()
 
             # Give dashboard time to start
@@ -100,7 +100,7 @@ class DockerServerLauncher:
 
             # Start WebSocket server in separate process
             logger.info("Launching WebSocket process...")
-            self.websocket_process = Process(target=self.start_websocket_server, name="STT-WebSocket")
+            self.websocket_process = Process(target=self.start_websocket_server, name="MATILDA-WebSocket")
             self.websocket_process.start()
 
             # Monitor processes
@@ -123,13 +123,13 @@ class DockerServerLauncher:
                 # Check dashboard process
                 if self.dashboard_process and not self.dashboard_process.is_alive():
                     logger.error("Dashboard process died, restarting...")
-                    self.dashboard_process = Process(target=self.start_dashboard, name="STT-Dashboard")
+                    self.dashboard_process = Process(target=self.start_dashboard, name="MATILDA-Dashboard")
                     self.dashboard_process.start()
 
                 # Check WebSocket process
                 if self.websocket_process and not self.websocket_process.is_alive():
                     logger.error("WebSocket process died, restarting...")
-                    self.websocket_process = Process(target=self.start_websocket_server, name="STT-WebSocket")
+                    self.websocket_process = Process(target=self.start_websocket_server, name="MATILDA-WebSocket")
                     self.websocket_process.start()
 
                 # Sleep before next check
@@ -144,7 +144,7 @@ class DockerServerLauncher:
 
     def shutdown(self):
         """Gracefully shutdown all services"""
-        logger.info("Shutting down STT Docker services...")
+        logger.info("Shutting down MATILDA Docker services...")
         self.running = False
 
         # Terminate dashboard process
@@ -183,9 +183,9 @@ def main():
     """Main entry point"""
     try:
         # Check if we're in Docker mode
-        if not os.getenv("STT_DOCKER_MODE"):
+        if not os.getenv("MATILDA_DOCKER_MODE"):
             logger.error("This launcher is designed for Docker mode only")
-            logger.error("Set STT_DOCKER_MODE=1 environment variable")
+            logger.error("Set MATILDA_DOCKER_MODE=1 environment variable")
             sys.exit(1)
 
         # Create launcher

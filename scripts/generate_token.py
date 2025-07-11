@@ -18,8 +18,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stt_hotkeys.core.config import get_config
-from stt_hotkeys.core.token_manager import TokenManager
+from src.core.config import get_config
+from src.core.token_manager import TokenManager
 
 
 def main():
@@ -56,11 +56,11 @@ def main():
         print("\n💡 Use --show-full-token to display the complete token (security risk)")
 
         # Save to secure location instead
-        print(f"\n💾 Full token saved to: /tmp/stt_token_{args.client_name.replace(' ', '_').lower()}.txt")
+        print(f"\n💾 Full token saved to: /tmp/matilda_token_{args.client_name.replace(' ', '_').lower()}.txt")
         try:
             import os
 
-            token_file = f"/tmp/stt_token_{args.client_name.replace(' ', '_').lower()}.txt"
+            token_file = f"/tmp/matilda_token_{args.client_name.replace(' ', '_').lower()}.txt"
             with open(token_file, "w") as f:
                 f.write(token)
             os.chmod(token_file, 0o600)  # Only readable by owner
