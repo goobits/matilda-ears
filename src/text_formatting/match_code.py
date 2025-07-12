@@ -176,19 +176,21 @@ class CodeEntityDetector:
             return
         logger.debug(f"Processing text for operators: '{text}'")
 
+        # Get operator keywords for the current language
+        operators = get_resources(self.language)["spoken_keywords"]["operators"]
+        
+        # Build a map of operator patterns to their symbols
+        operator_patterns = {}
+        for pattern, symbol in operators.items():
+            operator_patterns[pattern.lower()] = symbol
+        
         # Iterate through tokens to find operator patterns
         for i, token in enumerate(doc):
-            # Check for operator patterns using centralized keywords
-            token_lower = token.text.lower()
-
-            # Check for "plus plus" pattern (increment operator)
-            if (
-                token_lower == "plus"
-                and i + 1 < len(doc)
-                and doc[i + 1].text.lower() == "plus"
-                and "plus plus" in get_resources(self.language)["spoken_keywords"]["operators"]
-            ):
-                logger.debug(f"Found 'plus plus' pattern at token {i}")
+            # Check for multi-word operators
+            if i + 1 < len(doc):
+                two_word_pattern = f"{token.text.lower()} {doc[i + 1].text.lower()}"
+                if two_word_pattern in operator_patterns:
+                logger.debug(f"Found '{two_word_pattern}' pattern at token {i}")
 
                 # Check if there's a preceding token that could be a variable
                 if i > 0:
@@ -216,85 +218,51 @@ class CodeEntityDetector:
                                     start=start_pos,
                                     end=end_pos,
                                     text=entity_text,
-                                    type=EntityType.INCREMENT_OPERATOR,
-                                    metadata={"variable": prev_token.text},
+                                    type=EntityType.INCREMENT_OPERATOR if operator_patterns[two_word_pattern] == "++" else EntityType.DECREMENT_OPERATOR if operator_patterns[two_word_pattern] == "--" else EntityType.SPOKEN_OPERATOR,
+                                    metadata={"variable": prev_token.text, "operator": operator_patterns[two_word_pattern]},
                                 )
                             )
-
-            # Check for "minus minus" pattern (decrement operator)
-            elif (
-                token_lower == "minus"
-                and i + 1 < len(doc)
-                and doc[i + 1].text.lower() == "minus"
-                and "minus minus" in get_resources(self.language)["spoken_keywords"]["operators"]
-            ):
-                if i > 0:
-                    prev_token = doc[i - 1]
-                    if (
-                        (
-                            prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB"]
-                            or (prev_token.pos_ == "PRON" and len(prev_token.text) == 1)
-                        )
-                        and prev_token.text.isalpha()
-                        and prev_token.text.lower() not in {"the", "a", "an", "this", "that"}
-                    ):
-                        start_pos = prev_token.idx
-                        end_pos = doc[i + 1].idx + len(doc[i + 1].text)
-                        entity_text = text[start_pos:end_pos]
-                        check_entities = all_entities if all_entities else entities
-                        if not is_inside_entity(start_pos, end_pos, check_entities):
-                            entities.append(
-                                Entity(
-                                    start=start_pos,
-                                    end=end_pos,
-                                    text=entity_text,
-                                    type=EntityType.DECREMENT_OPERATOR,
-                                    metadata={"variable": prev_token.text},
-                                )
+                
+                # Also check for three-word operators if present
+                elif i + 2 < len(doc):
+                    three_word_pattern = f"{token.text.lower()} {doc[i + 1].text.lower()} {doc[i + 2].text.lower()}"
+                    if three_word_pattern in operator_patterns:
+                        # Handle comparison operators like "equals equals"
+                        if i > 0 and i + 3 < len(doc):
+                            prev_token = doc[i - 1]
+                            next_token = doc[i + 3]
+                            
+                            # Check for variable on left and value/variable on right
+                            is_left_var = prev_token.is_alpha and not prev_token.is_stop
+                            is_right_var = (
+                                (next_token.is_alpha and not next_token.is_stop)
+                                or next_token.like_num
+                                or next_token.text.lower() in ["true", "false", "null"]
                             )
-
-            # Check for "equals equals" pattern (comparison operator)
-            elif (
-                token_lower == "equals"
-                and i + 1 < len(doc)
-                and doc[i + 1].text.lower() == "equals"
-                and "equals equals" in get_resources(self.language)["spoken_keywords"]["operators"]
-            ):
-                if i > 0 and i + 2 < len(doc):
-                    prev_token = doc[i - 1]
-                    next_next_token = doc[i + 2]
-                    # Check for variable on left and value/variable on right
-                    # The original POS check was too strict. Let's broaden it to accept any token
-                    # that isn't a clear stopword or punctuation, which is more typical for variable names.
-                    is_left_var = prev_token.is_alpha and not prev_token.is_stop
-                    is_right_var = (
-                        (next_next_token.is_alpha and not next_next_token.is_stop)
-                        or next_next_token.like_num
-                        or next_next_token.text.lower() in ["true", "false", "null"]
-                    )
-
-                    if is_left_var and is_right_var:
-                        # Check if there's an "if" before the comparison
-                        start_pos = prev_token.idx
-                        if i > 1 and doc[i - 2].text.lower() == "if":
-                            start_pos = doc[i - 2].idx
-
-                        end_pos = next_next_token.idx + len(next_next_token.text)
-                        entity_text = text[start_pos:end_pos]
-                        check_entities = all_entities if all_entities else entities
-                        if not is_inside_entity(start_pos, end_pos, check_entities):
-                            entities.append(
-                                Entity(
-                                    start=start_pos,
-                                    end=end_pos,
-                                    text=entity_text,
-                                    type=EntityType.COMPARISON,
-                                    metadata={
-                                        "left": prev_token.text,
-                                        "right": next_next_token.text,
-                                    },
-                                )
-                            )
+                            
+                            if is_left_var and is_right_var:
+                                # Check if there's an "if" before the comparison
+                                start_pos = prev_token.idx
+                                if i > 1 and doc[i - 2].text.lower() == "if":
+                                    start_pos = doc[i - 2].idx
+                                
+                                end_pos = next_token.idx + len(next_token.text)
+                                entity_text = text[start_pos:end_pos]
+                                check_entities = all_entities if all_entities else entities
+                                if not is_inside_entity(start_pos, end_pos, check_entities):
+                                    entities.append(
+                                        Entity(
+                                            start=start_pos,
+                                            end=end_pos,
+                                            text=entity_text,
+                                            type=EntityType.COMPARISON,
+                                            metadata={
+                                                "left": prev_token.text,
+                                                "right": next_token.text,
+                                                "operator": operator_patterns[three_word_pattern],
+                                            },
+                                        )
+                                    )
 
     def _detect_assignment_operators(
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None

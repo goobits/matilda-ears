@@ -450,8 +450,116 @@ def get_spoken_url_pattern(language: str = "en") -> Pattern:
 # Backward compatibility: default English pattern
 SPOKEN_URL_PATTERN = build_spoken_url_pattern("en")
 
+
+def build_spoken_email_pattern(language: str = "en") -> Pattern:
+    """Builds the spoken email pattern dynamically for the specified language."""
+    resources = get_resources(language)
+    url_keywords = resources["spoken_keywords"]["url"]
+    
+    # Get keywords for email patterns
+    at_keywords = [k for k, v in url_keywords.items() if v == "@"]
+    dot_keywords = [k for k, v in url_keywords.items() if v == "."]
+    
+    # Create pattern strings
+    at_pattern = "|".join(re.escape(k) for k in at_keywords)
+    dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
+    
+    # Email action words from resources or defaults
+    email_actions = resources.get("context_words", {}).get("email_actions", ["email", "contact", "write to", "send to"])
+    action_pattern = "|".join(re.escape(action) for action in email_actions)
+    
+    pattern_str = rf"""
+    (?:^|(?<=\s))                       # Start of string or preceded by space
+    (?:                                 # Non-capturing group for email action prefix
+        (?:{action_pattern})\s+         # Action prefixes we want to capture and handle
+    )?
+    (?!(?:to|for|from|with|by|in|on|at|the|a|an|this|that|these|those|reach|call|find|locate|get|contact|tell|ask|see|talk|speak|say|me|you|us|him|her|them|it|i|we|he|she|they|look|go|come|think|if|when|where|what|how|why|please|can|could|would|should|will|shall|may|might)\s+)  # Negative lookahead
+    (                                   # Username part (capture group 1)
+        [a-zA-Z]+                       # Must start with letters
+        (?:                             # Optional additional parts
+            \s+                         # Space separator
+            [a-zA-Z0-9._-]+             # Regular alphanumeric parts
+        )*                              # Zero or more additional parts
+    )
+    \s+(?:{at_pattern})\s+              # Language-specific "at" keyword
+    (                                   # Domain part (capture group 2)
+        [a-zA-Z0-9][a-zA-Z0-9.-]*       # Domain starting with alphanumeric
+        (?:                             # Non-capturing group for dots
+            \s+(?:{dot_pattern})\s+     # Language-specific "dot" keyword
+            [a-zA-Z0-9.-]+              # Domain part after dot
+        |                               # OR
+            \.                          # Regular dot
+            [a-zA-Z0-9.-]+              # Domain part after dot
+        )+                              # One or more dots
+    )
+    (?=\s|$|[.!?])                      # Followed by space, end, or punctuation
+    """
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
+
+
+def get_spoken_email_pattern(language: str = "en") -> Pattern:
+    """Get the spoken email pattern for the specified language."""
+    return build_spoken_email_pattern(language)
+
+def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
+    """Builds the spoken protocol pattern dynamically for the specified language."""
+    resources = get_resources(language)
+    url_keywords = resources["spoken_keywords"]["url"]
+    
+    # Get keywords
+    colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
+    slash_keywords = [k for k, v in url_keywords.items() if v == "/"]
+    dot_keywords = [k for k, v in url_keywords.items() if v == "."]
+    question_keywords = [k for k, v in url_keywords.items() if v == "?"]
+    
+    # Create pattern strings
+    colon_pattern = "|".join(re.escape(k) for k in colon_keywords)
+    slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
+    dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
+    question_pattern = "|".join(re.escape(k) for k in question_keywords) if question_keywords else "question\\s+mark"
+    
+    pattern_str = rf"""
+    \b                                  # Word boundary
+    (https?|ftp)                        # Protocol
+    \s+(?:{colon_pattern})\s+(?:{slash_pattern})\s+(?:{slash_pattern})\s+  # Language-specific " colon slash slash "
+    (                                   # Capture group: domain (supports both spoken and normal formats)
+        (?:                             # Non-capturing group for spoken domain
+            [a-zA-Z0-9-]+               # Domain name part
+            (?:                         # Optional spoken dots
+                \s+(?:{dot_pattern})\s+ # Language-specific " dot "
+                [a-zA-Z0-9-]+           # Domain part after dot
+            )+                          # One or more spoken dots
+        )
+        |                               # OR
+        (?:                             # Non-capturing group for normal domain
+            [a-zA-Z0-9.-]+              # Domain characters
+            (?:\.[a-zA-Z]{{2,}})?       # Optional TLD
+        )
+    )
+    (                                   # Capture group: path and query
+        (?:                             # Optional path segments
+            \s+(?:{slash_pattern})\s+   # Language-specific " slash "
+            [^?\s]+                     # Path content (not ? or space)
+        )*                              # Zero or more path segments
+        (?:                             # Optional query string
+            \s+(?:{question_pattern})\s+  # Language-specific " question mark "
+            .+                          # Query content
+        )?                              # Optional query
+    )
+    """
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
+
+
+def get_spoken_protocol_pattern(language: str = "en") -> Pattern:
+    """Get the spoken protocol pattern for the specified language."""
+    return build_spoken_protocol_pattern(language)
+
+
 # Spoken protocol pattern: "http colon slash slash example.com" or "http colon slash slash example dot com"
-SPOKEN_PROTOCOL_PATTERN = re.compile(
+SPOKEN_PROTOCOL_PATTERN = build_spoken_protocol_pattern("en")
+
+# Legacy pattern definition for backward compatibility
+_LEGACY_SPOKEN_PROTOCOL_PATTERN = re.compile(
     r"""
     \b                                  # Word boundary
     (https?|ftp)                        # Protocol
@@ -1319,5 +1427,5 @@ SPOKEN_EMAIL_PATTERN_ORIGINAL = re.compile(
 )
 
 
-# Use the original working pattern for now
-SPOKEN_EMAIL_PATTERN = SPOKEN_EMAIL_PATTERN_ORIGINAL
+# Use the language-aware pattern
+SPOKEN_EMAIL_PATTERN = build_spoken_email_pattern("en")
