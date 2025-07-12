@@ -53,10 +53,6 @@ class QuantityEntityDetector:
 
 
 
-        # Frequency pattern
-        self.frequency_pattern = re.compile(
-            r"\b\d+(?:\.\d+)?\s*(?:hz|khz|mhz|ghz|hertz|kilohertz|megahertz|gigahertz)\b", re.IGNORECASE
-        )
 
         # Phone number pattern (10-11 digits)
         self.phone_pattern = re.compile(r"\b(?:\d{3}[-.\s]?\d{3}[-.\s]?\d{4}|\d{10,11})\b")
@@ -132,8 +128,6 @@ class QuantityEntityDetector:
 
 
 
-        # Detect frequencies
-        entities.extend(self._detect_frequencies(text, existing_entities))
 
         # Detect phone numbers
         entities.extend(self._detect_phone_numbers(text, existing_entities))
@@ -179,17 +173,6 @@ class QuantityEntityDetector:
 
 
 
-    def _detect_frequencies(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
-        """Detect frequency entities."""
-        entities = []
-
-        for match in self.frequency_pattern.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.FREQUENCY)
-                )
-
-        return entities
 
     def _detect_phone_numbers(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
         """Detect phone number entities."""
