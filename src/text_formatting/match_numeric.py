@@ -795,7 +795,7 @@ class NumericalEntityDetector:
 
         # Pattern for version numbers with "version" prefix
         version_pattern = re.compile(
-            r"\b(?:version|Version|python|Python|java|Java|node|Node|ruby|Ruby|php|PHP|go|Go|rust|Rust|dotnet|DotNet|gcc|GCC)\s+"
+            r"\b(?:v|V|version|Version|python|Python|java|Java|node|Node|ruby|Ruby|php|PHP|go|Go|rust|Rust|dotnet|DotNet|gcc|GCC)\s+"
             r"(" + "|".join(self.number_parser.all_number_words) + r")"
             r"(?:\s+(?:point|dot)\s+"
             r"(" + "|".join(self.number_parser.all_number_words) + r"))?"
@@ -2438,9 +2438,9 @@ class NumericalPatternConverter:
         if prefix_match:
             prefix = prefix_match.group(1)
             # Capitalize the prefix appropriately
-            if prefix.lower() in ["version", "python", "java", "node", "ruby", "php", "go", "rust", "dotnet", "gcc"]:
-                if prefix.lower() == "version":
-                    prefix = "version"  # Keep lowercase for test compatibility
+            if prefix.lower() in ["v", "version", "python", "java", "node", "ruby", "php", "go", "rust", "dotnet", "gcc"]:
+                if prefix.lower() in ["v", "version"]:
+                    prefix = prefix.lower()  # Keep lowercase for version and v
                 elif prefix.lower() in ["php", "gcc"]:
                     prefix = prefix.upper()
                 else:
@@ -2481,7 +2481,12 @@ class NumericalPatternConverter:
             # Join with dots
             if parts:
                 version_str = ".".join(parts)
-                return f"{prefix} {version_str}".strip() if prefix else version_str
+                if prefix:
+                    # No space for "v" prefix, space for others
+                    separator = "" if prefix.lower() == "v" else " "
+                    return f"{prefix}{separator}{version_str}"
+                else:
+                    return version_str
 
         # Fallback
         return entity.text

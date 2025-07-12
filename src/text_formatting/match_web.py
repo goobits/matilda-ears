@@ -513,12 +513,14 @@ class WebPatternConverter:
 
             port_words = port_part.split()
 
-            # Check if all words are single digits (for sequences like "eight zero eight zero")
-            all_single_digits = all(word in DIGIT_WORDS for word in port_words)
+            # Check if all words are single digits (for sequences like "eight zero eight zero" or "ocho cero ocho cero")
+            # Use language-specific number words from the NumberParser
+            digit_words = {word: str(num) for word, num in self.number_parser.ones.items() if 0 <= num <= 9}
+            all_single_digits = all(word in digit_words for word in port_words)
 
             if all_single_digits and port_words:
-                # Use digit sequence logic
-                port_digits = [DIGIT_WORDS[word] for word in port_words]
+                # Use digit sequence logic with language-specific digit words
+                port_digits = [digit_words[word] for word in port_words]
                 port_number = "".join(port_digits)
                 return f"{host_part}:{port_number}"
 

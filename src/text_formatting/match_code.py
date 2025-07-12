@@ -132,13 +132,14 @@ class CodeEntityDetector:
                 from .constants import FILENAME_ACTION_VERBS, FILENAME_LINKING_VERBS
 
                 is_context_separator = token.lemma_ in FILENAME_ACTION_VERBS or token.lemma_ in FILENAME_LINKING_VERBS
+                
+                # Additional common separators that indicate we should stop
+                filename_separators = {"file", "document", "script", "program", "application", "the"}
+                is_filename_separator = token.text.lower() in filename_separators
 
-                if is_context_separator or is_preposition or is_conjunction or is_punctuation:
-                    # If we've already collected some tokens, we stop.
-                    # If not, it means the separator is RIGHT before the filename (e.g., "in file.py"),
-                    # so we don't include the separator and stop.
-                    if filename_tokens:
-                        break
+                if is_context_separator or is_preposition or is_conjunction or is_punctuation or is_filename_separator:
+                    # Always stop at context separators - don't include them in the filename
+                    break
 
                 # If we've walked back more than ~5 words, it's probably not a filename.
                 if len(filename_tokens) >= 5:

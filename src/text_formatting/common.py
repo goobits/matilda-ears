@@ -207,7 +207,21 @@ class NumberParser:
                 # Handle cases where part of the number is already a digit
                 current_val += int(word)
             elif word == "and":
-                # Skip "and" in numbers like "one hundred and twenty"
+                # Handle "and" in compound numbers
+                # If we have accumulated a value and "and" is not at the end,
+                # this might be the end of a number part (like "one and" in "one and one half")
+                if current_val > 0 and len(words) > 1:
+                    # Check if this is likely the end of a number sequence
+                    word_index = words.index(word) if word in words else -1
+                    if word_index >= 0 and word_index < len(words) - 1:
+                        # Look ahead to see if next word starts a fraction or other construct
+                        next_word = words[word_index + 1]
+                        # If next word is a number that could start a fraction, 
+                        # treat this "and" as a separator
+                        if next_word in self.ones and self.ones[next_word] <= 10:
+                            # This could be "one and one half" - end number here
+                            break
+                # Otherwise, skip "and" in numbers like "one hundred and twenty"
                 continue
             else:
                 # If a word is not a number word, return None
@@ -312,8 +326,8 @@ class NumberParser:
     def parse_as_digits(self, text: str) -> Optional[str]:
         """Parse text as a sequence of spoken digits, returning concatenated string.
 
-        For example: "one two three" -> "123"
-        This is useful for URLs, filenames, and other contexts where we want
+        For example: "one two three" -> "123", "ocho cero ocho cero" -> "8080"
+        This is useful for URLs, port numbers, and other contexts where we want
         digit concatenation rather than arithmetic sum.
         """
         if not text:
@@ -325,10 +339,14 @@ class NumberParser:
         # Check if every word is a single digit word (0-9)
         digit_sequence = []
         for word in words:
-            if word in self.ones and self.ones[word] <= 9:
+            # Check if word is a number word that represents a single digit (0-9)
+            if word in self.ones and 0 <= self.ones[word] <= 9:
                 digit_sequence.append(str(self.ones[word]))
+            elif word.isdigit() and len(word) == 1:
+                # Also handle already-converted digits
+                digit_sequence.append(word)
             else:
-                # If any word is not a single digit, fall back to regular parsing
+                # If any word is not a single digit, this isn't a digit sequence
                 return None
 
         if digit_sequence:
