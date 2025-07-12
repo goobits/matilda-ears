@@ -43,6 +43,8 @@ class CodeEntityDetector:
         # Add the new detector call here
         all_entities = entities + code_entities
         self._detect_cli_commands(text, code_entities, all_entities)
+        all_entities = entities + code_entities
+        self._detect_programming_keywords(text, code_entities, all_entities)
         # ... (rest of the existing detector calls)
         all_entities = entities + code_entities
         self._detect_filenames(text, code_entities, all_entities)
@@ -527,6 +529,28 @@ class CodeEntityDetector:
                         )
                     )
 
+    def _detect_programming_keywords(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+        """Detects standalone programming keywords like 'let', 'const', 'if'."""
+        if all_entities is None:
+            all_entities = entities
+
+        from .constants import PROGRAMMING_KEYWORD_STARTERS
+
+        for keyword in PROGRAMMING_KEYWORD_STARTERS:
+            # Use regex to find whole-word matches, ensuring it's not part of another word
+            pattern = rf"\b{re.escape(keyword)}\b"
+            for match in re.finditer(pattern, text, re.IGNORECASE):
+                if not is_inside_entity(match.start(), match.end(), all_entities):
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.PROGRAMMING_KEYWORD,
+                            metadata={'keyword': match.group(0)}
+                        )
+                    )
+
 
 class CodePatternConverter:
     def __init__(self, number_parser: NumberParser, language: str = "en"):
@@ -536,6 +560,7 @@ class CodePatternConverter:
 
         self.converters = {
             EntityType.CLI_COMMAND: self.convert_cli_command,
+            EntityType.PROGRAMMING_KEYWORD: self.convert_programming_keyword,
             EntityType.FILENAME: self.convert_filename,
             EntityType.INCREMENT_OPERATOR: self.convert_increment_operator,
             EntityType.DECREMENT_OPERATOR: self.convert_decrement_operator,
@@ -550,6 +575,10 @@ class CodePatternConverter:
 
     def convert_cli_command(self, entity: Entity) -> str:
         """Preserve the original text of a CLI command."""
+        return entity.text
+
+    def convert_programming_keyword(self, entity: Entity) -> str:
+        """Preserve the original text of a programming keyword."""
         return entity.text
 
     def convert_filename(self, entity: Entity, full_text: str = None) -> str:

@@ -745,6 +745,13 @@ MULTI_WORD_TECHNICAL_TERMS = {
     "git add",
 }
 
+# Keywords that often start a line of code and should not be capitalized
+PROGRAMMING_KEYWORD_STARTERS = {
+    "let", "const", "var", "if", "for", "while", "switch", "case", "return",
+    "import", "export", "from", "class", "def", "function", "public", "private",
+    "protected", "static", "new", "try", "catch", "finally", "throw"
+}
+
 # Technical context words
 TECHNICAL_CONTEXT_WORDS = {
     "set",

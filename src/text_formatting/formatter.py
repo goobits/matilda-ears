@@ -557,6 +557,7 @@ class SmartCapitalizer:
         # Entity types that must have their casing preserved under all circumstances
         self.STRICTLY_PROTECTED_TYPES = {
             EntityType.CLI_COMMAND,
+            EntityType.PROGRAMMING_KEYWORD,
             EntityType.URL,
             EntityType.SPOKEN_URL,
             EntityType.SPOKEN_PROTOCOL_URL,
