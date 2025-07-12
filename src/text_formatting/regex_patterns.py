@@ -11,7 +11,7 @@ explaining each component.
 
 import re
 from typing import List, Pattern, Optional
-from .constants import URL_KEYWORDS, CODE_KEYWORDS
+from .constants import get_resources
 
 
 # ==============================================================================
@@ -375,12 +375,16 @@ TECHNICAL_CONTENT_PATTERNS = [
 # ==============================================================================
 
 
-def build_spoken_url_pattern() -> Pattern:
+def build_spoken_url_pattern(language: str = "en") -> Pattern:
     """Builds the spoken URL pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    url_keywords = resources["spoken_keywords"]["url"]
+    
     # Get keyword patterns from URL_KEYWORDS
-    dot_keywords = [k for k, v in URL_KEYWORDS.items() if v == "."]
-    slash_keywords = [k for k, v in URL_KEYWORDS.items() if v == "/"]
-    question_mark_keywords = [k for k, v in URL_KEYWORDS.items() if v == "?"]
+    dot_keywords = [k for k, v in url_keywords.items() if v == "."]
+    slash_keywords = [k for k, v in url_keywords.items() if v == "/"]
+    question_mark_keywords = [k for k, v in url_keywords.items() if v == "?"]
 
     # Create alternation patterns for each keyword type (inline implementation)
     dot_escaped = [re.escape(k) for k in dot_keywords] + [r"\."]
@@ -438,8 +442,13 @@ def build_spoken_url_pattern() -> Pattern:
     return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
-# Create the pattern instance for immediate use
-SPOKEN_URL_PATTERN = build_spoken_url_pattern()
+# Function to get pattern for specific language
+def get_spoken_url_pattern(language: str = "en") -> Pattern:
+    """Get the spoken URL pattern for the specified language."""
+    return build_spoken_url_pattern(language)
+
+# Backward compatibility: default English pattern
+SPOKEN_URL_PATTERN = build_spoken_url_pattern("en")
 
 # Spoken protocol pattern: "http colon slash slash example.com" or "http colon slash slash example dot com"
 SPOKEN_PROTOCOL_PATTERN = re.compile(
@@ -480,10 +489,14 @@ SPOKEN_PROTOCOL_PATTERN = re.compile(
 # Pattern will be built dynamically after create_alternation_pattern is defined
 
 
-def build_port_number_pattern() -> Pattern:
+def build_port_number_pattern(language: str = "en") -> Pattern:
     """Builds the port number pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    url_keywords = resources["spoken_keywords"]["url"]
+    
     # Get colon keywords from URL_KEYWORDS
-    colon_keywords = [k for k, v in URL_KEYWORDS.items() if v == ":"]
+    colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
 
     # Create alternation pattern for colon
     colon_escaped = [re.escape(k) for k in colon_keywords] + ["colon"]  # Include both URL_KEYWORDS and "colon"
@@ -515,7 +528,12 @@ def build_port_number_pattern() -> Pattern:
 
 
 # Create the pattern instance for immediate use
-PORT_NUMBER_PATTERN = build_port_number_pattern()
+def get_port_number_pattern(language: str = "en") -> Pattern:
+    """Get the port number pattern for the specified language."""
+    return build_port_number_pattern(language)
+
+# Backward compatibility: default English pattern
+PORT_NUMBER_PATTERN = build_port_number_pattern("en")
 
 # WWW domain rescue pattern: "wwwgooglecom" -> "www.google.com"
 WWW_DOMAIN_RESCUE_PATTERN = re.compile(
@@ -1069,10 +1087,14 @@ def create_alternation_pattern(items: List[str], word_boundaries: bool = True) -
     return pattern
 
 
-def build_slash_command_pattern() -> Pattern:
+def build_slash_command_pattern(language: str = "en") -> Pattern:
     """Builds the slash command pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    code_keywords = resources["spoken_keywords"]["code"]
+    
     # Get slash keywords from CODE_KEYWORDS
-    slash_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "/"]
+    slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
     slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
     slash_escaped = [re.escape(k) for k in slash_keywords_sorted]
     slash_pattern = f"(?:{'|'.join(slash_escaped)})"
@@ -1089,13 +1111,22 @@ def build_slash_command_pattern() -> Pattern:
 
 
 # Build slash command pattern dynamically from centralized keywords
-SLASH_COMMAND_PATTERN = build_slash_command_pattern()
+def get_slash_command_pattern(language: str = "en") -> Pattern:
+    """Get the slash command pattern for the specified language."""
+    return build_slash_command_pattern(language)
+
+# Backward compatibility: default English pattern
+SLASH_COMMAND_PATTERN = build_slash_command_pattern("en")
 
 
-def build_underscore_delimiter_pattern() -> Pattern:
+def build_underscore_delimiter_pattern(language: str = "en") -> Pattern:
     """Builds the underscore delimiter pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    code_keywords = resources["spoken_keywords"]["code"]
+    
     # Get underscore keywords from CODE_KEYWORDS
-    underscore_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "_"]
+    underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
     underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
     underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
     underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
@@ -1112,10 +1143,14 @@ def build_underscore_delimiter_pattern() -> Pattern:
     )
 
 
-def build_simple_underscore_pattern() -> Pattern:
+def build_simple_underscore_pattern(language: str = "en") -> Pattern:
     """Builds the simple underscore pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    code_keywords = resources["spoken_keywords"]["code"]
+    
     # Get underscore keywords from CODE_KEYWORDS
-    underscore_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "_"]
+    underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
     underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
     underscore_escaped = [re.escape(k) for k in underscore_keywords_sorted]
     underscore_pattern = f"(?:{'|'.join(underscore_escaped)})"
@@ -1133,14 +1168,27 @@ def build_simple_underscore_pattern() -> Pattern:
 
 
 # Build underscore patterns dynamically from centralized keywords
-UNDERSCORE_DELIMITER_PATTERN = build_underscore_delimiter_pattern()
-SIMPLE_UNDERSCORE_PATTERN = build_simple_underscore_pattern()
+def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
+    """Get the underscore delimiter pattern for the specified language."""
+    return build_underscore_delimiter_pattern(language)
+
+def get_simple_underscore_pattern(language: str = "en") -> Pattern:
+    """Get the simple underscore pattern for the specified language."""
+    return build_simple_underscore_pattern(language)
+
+# Backward compatibility: default English patterns
+UNDERSCORE_DELIMITER_PATTERN = build_underscore_delimiter_pattern("en")
+SIMPLE_UNDERSCORE_PATTERN = build_simple_underscore_pattern("en")
 
 
-def build_long_flag_pattern() -> Pattern:
+def build_long_flag_pattern(language: str = "en") -> Pattern:
     """Builds the long flag pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    code_keywords = resources["spoken_keywords"]["code"]
+    
     # Get dash keywords from CODE_KEYWORDS
-    dash_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "-"]
+    dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
     dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
     dash_pattern = f"(?:{'|'.join(dash_escaped)})"
@@ -1151,10 +1199,14 @@ def build_long_flag_pattern() -> Pattern:
     )
 
 
-def build_short_flag_pattern() -> Pattern:
+def build_short_flag_pattern(language: str = "en") -> Pattern:
     """Builds the short flag pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    code_keywords = resources["spoken_keywords"]["code"]
+    
     # Get dash keywords from CODE_KEYWORDS
-    dash_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "-"]
+    dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
     dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
     dash_pattern = f"(?:{'|'.join(dash_escaped)})"
@@ -1163,14 +1215,27 @@ def build_short_flag_pattern() -> Pattern:
 
 
 # Build flag patterns dynamically from centralized keywords
-LONG_FLAG_PATTERN = build_long_flag_pattern()
-SHORT_FLAG_PATTERN = build_short_flag_pattern()
+def get_long_flag_pattern(language: str = "en") -> Pattern:
+    """Get the long flag pattern for the specified language."""
+    return build_long_flag_pattern(language)
+
+def get_short_flag_pattern(language: str = "en") -> Pattern:
+    """Get the short flag pattern for the specified language."""
+    return build_short_flag_pattern(language)
+
+# Backward compatibility: default English patterns
+LONG_FLAG_PATTERN = build_long_flag_pattern("en")
+SHORT_FLAG_PATTERN = build_short_flag_pattern("en")
 
 
-def build_assignment_pattern() -> Pattern:
+def build_assignment_pattern(language: str = "en") -> Pattern:
     """Builds the assignment pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    code_keywords = resources["spoken_keywords"]["code"]
+    
     # Get equals keywords from CODE_KEYWORDS
-    equals_keywords = [k for k, v in CODE_KEYWORDS.items() if v == "="]
+    equals_keywords = [k for k, v in code_keywords.items() if v == "="]
     equals_keywords_sorted = sorted(equals_keywords, key=len, reverse=True)
     equals_escaped = [re.escape(k) for k in equals_keywords_sorted]
     equals_pattern = f"(?:{'|'.join(equals_escaped)})"
@@ -1195,7 +1260,12 @@ def build_assignment_pattern() -> Pattern:
 
 
 # Build assignment pattern dynamically from centralized keywords
-ASSIGNMENT_PATTERN = build_assignment_pattern()
+def get_assignment_pattern(language: str = "en") -> Pattern:
+    """Get the assignment pattern for the specified language."""
+    return build_assignment_pattern(language)
+
+# Backward compatibility: default English pattern
+ASSIGNMENT_PATTERN = build_assignment_pattern("en")
 
 
 # Revert to original working pattern - centralization will be done later if needed

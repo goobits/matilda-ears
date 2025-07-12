@@ -7,17 +7,18 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import get_config, setup_logging
 from . import regex_patterns
-from .constants import ABBREVIATIONS, OPERATOR_KEYWORDS
+from .constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 
 class CodeEntityDetector:
-    def __init__(self, nlp=None):
+    def __init__(self, nlp=None, language: str = "en"):
         """Initialize CodeEntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
+            language: Language code for resource loading (default: 'en')
 
         """
         if nlp is None:
@@ -26,6 +27,15 @@ class CodeEntityDetector:
             nlp = get_nlp()
 
         self.nlp = nlp
+        self.language = language
+        
+        # Build patterns dynamically for the specified language
+        self.slash_command_pattern = regex_patterns.get_slash_command_pattern(language)
+        self.underscore_delimiter_pattern = regex_patterns.get_underscore_delimiter_pattern(language)
+        self.simple_underscore_pattern = regex_patterns.get_simple_underscore_pattern(language)
+        self.long_flag_pattern = regex_patterns.get_long_flag_pattern(language)
+        self.short_flag_pattern = regex_patterns.get_short_flag_pattern(language)
+        self.assignment_pattern = regex_patterns.get_assignment_pattern(language)
 
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all code-related entities."""
@@ -176,7 +186,7 @@ class CodeEntityDetector:
                 token_lower == "plus"
                 and i + 1 < len(doc)
                 and doc[i + 1].text.lower() == "plus"
-                and "plus plus" in OPERATOR_KEYWORDS
+                and "plus plus" in get_resources(self.language)["spoken_keywords"]["operators"]
             ):
                 logger.debug(f"Found 'plus plus' pattern at token {i}")
 
@@ -216,7 +226,7 @@ class CodeEntityDetector:
                 token_lower == "minus"
                 and i + 1 < len(doc)
                 and doc[i + 1].text.lower() == "minus"
-                and "minus minus" in OPERATOR_KEYWORDS
+                and "minus minus" in get_resources(self.language)["spoken_keywords"]["operators"]
             ):
                 if i > 0:
                     prev_token = doc[i - 1]
@@ -248,7 +258,7 @@ class CodeEntityDetector:
                 token_lower == "equals"
                 and i + 1 < len(doc)
                 and doc[i + 1].text.lower() == "equals"
-                and "equals equals" in OPERATOR_KEYWORDS
+                and "equals equals" in get_resources(self.language)["spoken_keywords"]["operators"]
             ):
                 if i > 0 and i + 2 < len(doc):
                     prev_token = doc[i - 1]
@@ -303,7 +313,7 @@ class CodeEntityDetector:
 
         """
         # This pattern looks for optional keyword, variable name, 'equals', and then captures everything after
-        assignment_pattern = regex_patterns.ASSIGNMENT_PATTERN
+        assignment_pattern = self.assignment_pattern
         for match in assignment_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
@@ -334,7 +344,7 @@ class CodeEntityDetector:
     def _detect_command_flags(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
         """Detects spoken command-line flags like 'dash dash verbose' or 'dash f'."""
         # Pattern for long flags: --flag
-        for match in regex_patterns.LONG_FLAG_PATTERN.finditer(text):
+        for match in self.long_flag_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 logger.debug(f"Found long flag: '{match.group(0)}' -> '--{match.group(1)}'")
@@ -350,7 +360,7 @@ class CodeEntityDetector:
 
         # Pattern for short flags: -f or -flag
         # But make sure we don't match long flags we already detected
-        for match in regex_patterns.SHORT_FLAG_PATTERN.finditer(text):
+        for match in self.short_flag_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             # Ensure we don't overlap with a long flag we just detected
             if not is_inside_entity(match.start(), match.end(), check_entities):
@@ -371,7 +381,7 @@ class CodeEntityDetector:
 
     def _detect_slash_commands(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
         """Detects spoken slash commands like 'slash commit' -> '/commit'."""
-        slash_command_pattern = regex_patterns.SLASH_COMMAND_PATTERN
+        slash_command_pattern = self.slash_command_pattern
         matches = list(slash_command_pattern.finditer(text))
 
         for i, match in enumerate(matches):
@@ -441,7 +451,7 @@ class CodeEntityDetector:
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None
     ) -> None:
         """Detects spoken underscore delimiters like 'underscore underscore blah underscore underscore' -> '__blah__'."""
-        underscore_delimiter_pattern = regex_patterns.UNDERSCORE_DELIMITER_PATTERN
+        underscore_delimiter_pattern = self.underscore_delimiter_pattern
         for match in underscore_delimiter_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
@@ -478,7 +488,7 @@ class CodeEntityDetector:
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None
     ) -> None:
         """Detects simple underscore variables like 'user underscore id' -> 'user_id'."""
-        simple_underscore_pattern = regex_patterns.SIMPLE_UNDERSCORE_PATTERN
+        simple_underscore_pattern = self.simple_underscore_pattern
         for match in simple_underscore_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
@@ -511,8 +521,9 @@ class CodeEntityDetector:
 
 
 class CodePatternConverter:
-    def __init__(self, number_parser: NumberParser):
+    def __init__(self, number_parser: NumberParser, language: str = "en"):
         self.number_parser = number_parser
+        self.language = language
         self.config = get_config()
 
         self.converters = {

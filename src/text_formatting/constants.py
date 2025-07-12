@@ -3,16 +3,22 @@
 
 import json
 import os
+import threading
+from typing import Dict, Any
 
 # ==============================================================================
 # I18N RESOURCE LOADER
 # ==============================================================================
 
-_RESOURCES = {}
-_RESOURCE_PATH = os.path.join(os.path.dirname(__file__), 'resources')
+_RESOURCES: Dict[str, Dict[str, Any]] = {}  # Cache for loaded languages
+_RESOURCE_PATH = os.path.join(os.path.dirname(__file__), "resources")
+_LOCK = threading.Lock()  # For thread-safe lazy loading
 
-def load_resources(language: str = 'en'):
-    """Loads language-specific resources from a JSON file.
+
+def get_resources(language: str = "en") -> Dict[str, Any]:
+    """
+    Loads and caches language-specific resources from a JSON file.
+    This is the single point of entry for all language-dependent constants.
     
     Args:
         language: Language code (e.g., 'en', 'es', 'fr')
@@ -21,24 +27,38 @@ def load_resources(language: str = 'en'):
         dict: Loaded language resources
         
     Raises:
-        ValueError: If language file not found or invalid JSON
+        ValueError: If default language resource not found
     """
-    global _RESOURCES
-    if _RESOURCES.get(language):
+    # Return from cache if already loaded
+    if language in _RESOURCES:
         return _RESOURCES[language]
 
-    try:
-        filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
-        with open(filepath, 'r', encoding='utf-8') as f:
-            _RESOURCES[language] = json.load(f)
-        return _RESOURCES[language]
-    except FileNotFoundError:
-        raise ValueError(f"Language resource file not found: {language}.json")
-    except json.JSONDecodeError:
-        raise ValueError(f"Error decoding JSON from {language}.json")
+    # Thread-safe block to load a new language
+    with _LOCK:
+        # Double-check if another thread loaded it while we were waiting
+        if language in _RESOURCES:
+            return _RESOURCES[language]
 
-# Load default resources on import
-RESOURCES = load_resources('en')
+        try:
+            filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
+            with open(filepath, "r", encoding="utf-8") as f:
+                resources = json.load(f)
+                _RESOURCES[language] = resources
+            return resources
+        except FileNotFoundError:
+            # Fallback to English if the requested language is not found
+            if language != "en":
+                print(f"Warning: Language resource '{language}.json' not found. Falling back to 'en'.")
+                return get_resources("en")
+            raise ValueError("Default language resource 'en.json' not found.")
+        except json.JSONDecodeError:
+            raise ValueError(f"Error decoding JSON from {language}.json")
+
+
+# Legacy function for backward compatibility during transition
+def load_resources(language: str = "en"):
+    """Deprecated: Use get_resources() instead."""
+    return get_resources(language)
 
 # ==============================================================================
 # LEGACY CONSTANTS (will be replaced by resource loader gradually)
@@ -800,10 +820,10 @@ PROFANITY_WORDS = [
 ]
 
 # Abbreviations mapping (from resources)
-ABBREVIATIONS = RESOURCES['abbreviations']
+ABBREVIATIONS = get_resources("en")["abbreviations"]
 
 # Top-level domains (from resources)
-TLDS = RESOURCES['top_level_domains']
+TLDS = get_resources("en")["top_level_domains"]
 
 # Words to exclude from TLD detection
 EXCLUDE_WORDS = {
@@ -842,14 +862,17 @@ AMBIGUOUS_NOUNS = {"help", "support"}
 # RESOURCE-LOADED DICTIONARIES (using i18n system)
 # ==============================================================================
 
+# Load default English resources for backward compatibility
+_DEFAULT_RESOURCES = get_resources("en")
+
 # URL keywords mapping (spoken words → symbols for URL construction)
-URL_KEYWORDS = RESOURCES['spoken_keywords']['url']
+URL_KEYWORDS = _DEFAULT_RESOURCES["spoken_keywords"]["url"]
 
 # Code-related keywords mapping (symbols and operators used in programming)
-CODE_KEYWORDS = RESOURCES['spoken_keywords']['code']
+CODE_KEYWORDS = _DEFAULT_RESOURCES["spoken_keywords"]["code"]
 
 # Operator keywords mapping (compound operators and mathematical symbols)
-OPERATOR_KEYWORDS = RESOURCES['spoken_keywords']['operators']
+OPERATOR_KEYWORDS = _DEFAULT_RESOURCES["spoken_keywords"]["operators"]
 
 # Action prefixes for email formatting
 ACTION_PREFIXES = {"email ": "Email ", "contact ": "Contact ", "write to ": "Write to ", "send to ": "Send to "}

@@ -7,17 +7,18 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import setup_logging
 from . import regex_patterns
-from .constants import EMAIL_ACTION_WORDS, LOCATION_NOUNS, AMBIGUOUS_NOUNS, URL_KEYWORDS, ACTION_PREFIXES, DIGIT_WORDS
+from .constants import EMAIL_ACTION_WORDS, LOCATION_NOUNS, AMBIGUOUS_NOUNS, ACTION_PREFIXES, DIGIT_WORDS, get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 
 class WebEntityDetector:
-    def __init__(self, nlp=None):
+    def __init__(self, nlp=None, language: str = "en"):
         """Initialize WebEntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
+            language: Language code for resource loading (default: 'en')
 
         """
         if nlp is None:
@@ -26,11 +27,14 @@ class WebEntityDetector:
             nlp = get_nlp()
 
         self.nlp = nlp
-        # Use centralized regex patterns
-        self.spoken_url_pattern = regex_patterns.SPOKEN_URL_PATTERN
+        self.language = language
+        
+        # Build patterns dynamically for the specified language
+        self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
+        self.port_number_pattern = regex_patterns.get_port_number_pattern(language)
         self.spoken_protocol_pattern = regex_patterns.SPOKEN_PROTOCOL_PATTERN
         self.spoken_email_pattern = regex_patterns.SPOKEN_EMAIL_PATTERN
-        self.port_pattern = regex_patterns.PORT_NUMBER_PATTERN
+        # Note: port_pattern is the same as port_number_pattern
 
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all web-related entities."""
@@ -126,7 +130,7 @@ class WebEntityDetector:
 
     def _detect_port_numbers(self, text: str, web_entities: List[Entity], existing_entities: List[Entity]) -> None:
         """Detect port numbers like 'localhost colon eight zero eight zero'."""
-        for match in self.port_pattern.finditer(text):
+        for match in self.port_number_pattern.finditer(text):
             if not is_inside_entity(match.start(), match.end(), existing_entities):
                 web_entities.append(
                     Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.PORT_NUMBER)
@@ -176,11 +180,12 @@ class WebEntityDetector:
 
 
 class WebPatternConverter:
-    def __init__(self, number_parser: NumberParser):
+    def __init__(self, number_parser: NumberParser, language: str = "en"):
         self.number_parser = number_parser
+        self.language = language
 
-        # Use URL keywords from constants
-        self.url_keywords = URL_KEYWORDS
+        # Use URL keywords from resources for the specified language
+        self.url_keywords = get_resources(language)["spoken_keywords"]["url"]
 
         self.converters = {
             EntityType.SPOKEN_PROTOCOL_URL: self.convert_spoken_protocol_url,

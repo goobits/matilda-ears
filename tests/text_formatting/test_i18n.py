@@ -10,64 +10,64 @@ class TestI18nResourceLoader:
 
     def test_load_english_resources(self):
         """Test loading English resources (default)."""
-        resources = load_resources('en')
-        
+        resources = load_resources("en")
+
         # Test that key sections exist
-        assert 'spoken_keywords' in resources
-        assert 'abbreviations' in resources
-        assert 'top_level_domains' in resources
-        
+        assert "spoken_keywords" in resources
+        assert "abbreviations" in resources
+        assert "top_level_domains" in resources
+
         # Test specific English keywords
-        assert resources['spoken_keywords']['url']['dot'] == '.'
-        assert resources['spoken_keywords']['url']['at'] == '@'
-        assert resources['abbreviations']['ie'] == 'i.e.'
-        assert 'com' in resources['top_level_domains']
+        assert resources["spoken_keywords"]["url"]["dot"] == "."
+        assert resources["spoken_keywords"]["url"]["at"] == "@"
+        assert resources["abbreviations"]["ie"] == "i.e."
+        assert "com" in resources["top_level_domains"]
 
     def test_load_spanish_resources(self):
         """Test loading Spanish resources."""
-        resources = load_resources('es')
-        
+        resources = load_resources("es")
+
         # Test that key sections exist
-        assert 'spoken_keywords' in resources
-        assert 'abbreviations' in resources
-        assert 'top_level_domains' in resources
-        
+        assert "spoken_keywords" in resources
+        assert "abbreviations" in resources
+        assert "top_level_domains" in resources
+
         # Test specific Spanish keywords
-        assert resources['spoken_keywords']['url']['punto'] == '.'
-        assert resources['spoken_keywords']['url']['arroba'] == '@'
-        assert resources['abbreviations']['es decir'] == 'es decir'
-        assert 'es' in resources['top_level_domains']
+        assert resources["spoken_keywords"]["url"]["punto"] == "."
+        assert resources["spoken_keywords"]["url"]["arroba"] == "@"
+        assert resources["abbreviations"]["es decir"] == "es decir"
+        assert "es" in resources["top_level_domains"]
 
     def test_resource_caching(self):
         """Test that resources are cached after first load."""
         # Load English twice - should be cached
-        resources1 = load_resources('en')
-        resources2 = load_resources('en')
-        
+        resources1 = load_resources("en")
+        resources2 = load_resources("en")
+
         # Should be the same object (cached)
         assert resources1 is resources2
 
     def test_invalid_language_file(self):
         """Test error handling for invalid language file."""
         with pytest.raises(ValueError, match="Language resource file not found"):
-            load_resources('invalid_lang')
+            load_resources("invalid_lang")
 
     def test_spanish_url_keywords_proof_of_concept(self):
         """Proof of concept: Spanish URL keywords could be used."""
         # This demonstrates how Spanish resources could be used
         # In a full implementation, the formatter would accept a language parameter
-        
-        es_resources = load_resources('es')
-        url_keywords = es_resources['spoken_keywords']['url']
-        
+
+        es_resources = load_resources("es")
+        url_keywords = es_resources["spoken_keywords"]["url"]
+
         # Example: Spanish spoken URL conversion
         # Input: "visita ejemplo punto com"
         # Could be processed using: url_keywords['punto'] -> '.'
-        
-        assert url_keywords['punto'] == '.'
-        assert url_keywords['arroba'] == '@'
-        assert url_keywords['barra'] == '/'
-        
+
+        assert url_keywords["punto"] == "."
+        assert url_keywords["arroba"] == "@"
+        assert url_keywords["barra"] == "/"
+
         # This proves the infrastructure is ready for multilingual support
 
 

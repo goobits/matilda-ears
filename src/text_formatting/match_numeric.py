@@ -168,11 +168,12 @@ class MathExpressionParser:
 
 
 class NumericalEntityDetector:
-    def __init__(self, nlp=None):
+    def __init__(self, nlp=None, language: str = "en"):
         """Initialize NumericalEntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
+            language: Language code for resource loading (default: 'en')
 
         """
         if nlp is None:
@@ -181,6 +182,7 @@ class NumericalEntityDetector:
             nlp = get_nlp()
 
         self.nlp = nlp
+        self.language = language
         self.math_parser = MathExpressionParser()
         # Initialize NumberParser for robust number word detection
         self.number_parser = NumberParser()
@@ -1418,8 +1420,9 @@ class NumericalEntityDetector:
 
 
 class NumericalPatternConverter:
-    def __init__(self, number_parser: NumberParser):
+    def __init__(self, number_parser: NumberParser, language: str = "en"):
         self.number_parser = number_parser
+        self.language = language
 
         # Operator mappings
         self.operators = {

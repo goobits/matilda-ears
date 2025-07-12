@@ -67,17 +67,19 @@ from .constants import (
 class EntityDetector:
     """Detects various entities using SpaCy and custom patterns"""
 
-    def __init__(self, nlp=None):
+    def __init__(self, nlp=None, language: str = "en"):
         """Initialize EntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
+            language: Language code for resource loading (default: 'en')
 
         """
         if nlp is None:
             nlp = get_nlp()
 
         self.nlp = nlp
+        self.language = language
 
     def detect_entities(self, text: str, doc=None) -> List[Entity]:
         """Single pass entity detection"""
@@ -440,8 +442,9 @@ class EntityDetector:
 class PatternConverter:
     """Converts specific entity types to their final form"""
 
-    def __init__(self):
+    def __init__(self, language: str = "en"):
         self.number_parser = NumberParser()
+        self.language = language
 
         # Entity type to converter method mapping
         self.converters = {
@@ -547,8 +550,9 @@ class PatternConverter:
 class SmartCapitalizer:
     """Intelligent capitalization using SpaCy POS tagging"""
 
-    def __init__(self):
+    def __init__(self, language: str = "en"):
         self.nlp = get_nlp()
+        self.language = language
 
         # Entity types that must have their casing preserved under all circumstances
         self.STRICTLY_PROTECTED_TYPES = {
@@ -1118,22 +1122,25 @@ class SmartCapitalizer:
 class TextFormatter:
     """Main formatter orchestrating the pipeline"""
 
-    def __init__(self):
+    def __init__(self, language: str = "en"):
+        # Store the language for this formatter instance
+        self.language = language
+        
         # Load shared NLP model once
         self.nlp = get_nlp()
 
-        # Initialize components with dependency injection
-        self.entity_detector = EntityDetector(nlp=self.nlp)
-        self.pattern_converter = PatternConverter()
-        self.smart_capitalizer = SmartCapitalizer()
+        # Initialize components with dependency injection and language support
+        self.entity_detector = EntityDetector(nlp=self.nlp, language=self.language)
+        self.pattern_converter = PatternConverter(language=self.language)
+        self.smart_capitalizer = SmartCapitalizer(language=self.language)
 
-        # Instantiate specialized components with shared NLP model
-        self.web_detector = WebEntityDetector(nlp=self.nlp)
-        self.web_converter = WebPatternConverter(self.pattern_converter.number_parser)
-        self.code_detector = CodeEntityDetector(nlp=self.nlp)
-        self.code_converter = CodePatternConverter(self.pattern_converter.number_parser)
-        self.numeric_detector = NumericalEntityDetector(nlp=self.nlp)
-        self.numeric_converter = NumericalPatternConverter(self.pattern_converter.number_parser)
+        # Instantiate specialized components with shared NLP model and language
+        self.web_detector = WebEntityDetector(nlp=self.nlp, language=self.language)
+        self.web_converter = WebPatternConverter(self.pattern_converter.number_parser, language=self.language)
+        self.code_detector = CodeEntityDetector(nlp=self.nlp, language=self.language)
+        self.code_converter = CodePatternConverter(self.pattern_converter.number_parser, language=self.language)
+        self.numeric_detector = NumericalEntityDetector(nlp=self.nlp, language=self.language)
+        self.numeric_converter = NumericalPatternConverter(self.pattern_converter.number_parser, language=self.language)
 
         # Complete sentence phrases that need punctuation even when short
         self.complete_sentence_phrases = COMPLETE_SENTENCE_PHRASES
@@ -1142,13 +1149,23 @@ class TextFormatter:
         self.transcription_artifacts = TRANSCRIPTION_ARTIFACTS
         self.profanity_words = PROFANITY_WORDS
 
-    def format_transcription(self, text: str, key_name: str = "", enter_pressed: bool = False) -> str:
-        """Main formatting pipeline - NEW ARCHITECTURE WITHOUT PLACEHOLDERS"""
+    def format_transcription(self, text: str, key_name: str = "", enter_pressed: bool = False, language: str = None) -> str:
+        """Main formatting pipeline - NEW ARCHITECTURE WITHOUT PLACEHOLDERS
+        
+        Args:
+            text: Text to format
+            key_name: Key name for context
+            enter_pressed: Whether enter was pressed
+            language: Optional language override (uses instance default if None)
+        """
+        # Use the override language if provided, otherwise use the instance's default
+        current_language = language or self.language
+        
         if not text or not text.strip():
             logger.debug("Empty text, skipping formatting")
             return ""
 
-        logger.info(f"Original text: '{text}'")
+        logger.info(f"Original text: '{text}' (language: {current_language})")
 
         # --- START OF NEW LOGIC ---
         # Perform the single SpaCy processing pass at the beginning

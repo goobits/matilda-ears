@@ -7,7 +7,9 @@
       "arroba": "@",
       "ampersand": "&",
       "guión": "-",
-      "guión bajo": "_"
+      "guión bajo": "_",
+      "pregunta": "?",
+      "igual": "="
     },
     "code": {
       "guión bajo": "_",
@@ -20,7 +22,10 @@
     "operators": {
       "más más": "++",
       "menos menos": "--",
-      "igual igual": "=="
+      "igual igual": "==",
+      "por": "×",
+      "dividido por": "÷",
+      "sobre": "/"
     }
   },
   "abbreviations": {
