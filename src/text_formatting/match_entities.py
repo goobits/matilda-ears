@@ -52,11 +52,6 @@ class QuantityEntityDetector:
         )
 
 
-        # Data size pattern
-        self.data_size_pattern = re.compile(
-            r"\b\d+(?:\.\d+)?\s*(?:bytes?|kb|mb|gb|tb|pb|kilobytes?|megabytes?|gigabytes?|terabytes?|petabytes?)\b",
-            re.IGNORECASE,
-        )
 
         # Frequency pattern
         self.frequency_pattern = re.compile(
@@ -136,8 +131,6 @@ class QuantityEntityDetector:
         entities.extend(self._detect_currency(text, existing_entities))
 
 
-        # Detect data sizes
-        entities.extend(self._detect_data_sizes(text, existing_entities))
 
         # Detect frequencies
         entities.extend(self._detect_frequencies(text, existing_entities))
@@ -185,17 +178,6 @@ class QuantityEntityDetector:
         return entities
 
 
-    def _detect_data_sizes(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
-        """Detect data size entities."""
-        entities = []
-
-        for match in self.data_size_pattern.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.DATA_SIZE)
-                )
-
-        return entities
 
     def _detect_frequencies(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
         """Detect frequency entities."""
