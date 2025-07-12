@@ -398,7 +398,7 @@ class CodeEntityDetector:
                             # Check if it's a number word
                             from .common import NumberParser
 
-                            parser = NumberParser()
+                            parser = NumberParser(language=self.language)
                             if last_word in parser.all_number_words or last_word.isdigit():
                                 # Skip this - it's likely division, not a slash command
                                 continue

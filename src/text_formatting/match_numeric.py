@@ -185,7 +185,7 @@ class NumericalEntityDetector:
         self.language = language
         self.math_parser = MathExpressionParser()
         # Initialize NumberParser for robust number word detection
-        self.number_parser = NumberParser()
+        self.number_parser = NumberParser(language=self.language)
 
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all numerical-related entities."""

@@ -6,9 +6,11 @@
       "dos puntos": ":",
       "arroba": "@",
       "ampersand": "&",
+      "y": "&",
       "guión": "-",
       "guión bajo": "_",
-      "pregunta": "?",
+      "signo de interrogación": "?",
+      "interrogación": "?",
       "igual": "="
     },
     "code": {
@@ -25,22 +27,76 @@
       "igual igual": "==",
       "por": "×",
       "dividido por": "÷",
+      "dividido entre": "÷",
       "sobre": "/"
     }
   },
   "abbreviations": {
-    "es decir": "es decir",
-    "por ejemplo": "p. ej.",
+    "es decir": "es decir,",
+    "por ejemplo": "p. ej.,",
+    "etcétera": "etc.",
     "etc": "etc.",
-    "versus": "vs."
+    "versus": "vs.",
+    "contra": "vs.",
+    "comparado con": "cf."
   },
   "context_words": {
-    "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar"],
-    "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado"],
-    "email_actions": ["email", "contactar", "escribir a", "enviar a"]
+    "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar", "cargar", "importar", "exportar", "crear", "borrar"],
+    "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado", "titulado"],
+    "email_actions": ["email", "correo", "contactar", "escribir a", "enviar a", "notificar"]
   },
   "currency": {
-    "units": ["euro", "euros", "dólar", "dólares", "peso", "pesos"]
+    "units": ["dólar", "dólares", "peso", "pesos", "euro", "euros", "yen", "yenes", "yuan", "yuanes", "libra", "libras", "franco", "francos", "real", "reales"]
   },
-  "top_level_domains": ["com", "org", "net", "edu", "gov", "es", "mx", "co"]
+  "data_units": {
+    "storage": ["byte", "bytes", "kilobyte", "kilobytes", "megabyte", "megabytes", "gigabyte", "gigabytes", "terabyte", "terabytes"]
+  },
+  "time_units": {
+    "duration": ["segundo", "segundos", "minuto", "minutos", "hora", "horas", "día", "días", "semana", "semanas", "mes", "meses", "año", "años"]
+  },
+  "top_level_domains": ["com", "org", "net", "edu", "gov", "es", "mx", "co", "ar", "cl", "pe", "ve", "ec", "bo", "py", "uy"],
+  "number_words": {
+    "ones": {
+      "cero": 0,
+      "uno": 1,
+      "una": 1,
+      "dos": 2,
+      "tres": 3,
+      "cuatro": 4,
+      "cinco": 5,
+      "seis": 6,
+      "siete": 7,
+      "ocho": 8,
+      "nueve": 9,
+      "diez": 10,
+      "once": 11,
+      "doce": 12,
+      "trece": 13,
+      "catorce": 14,
+      "quince": 15,
+      "dieciséis": 16,
+      "diecisiete": 17,
+      "dieciocho": 18,
+      "diecinueve": 19
+    },
+    "tens": {
+      "veinte": 20,
+      "treinta": 30,
+      "cuarenta": 40,
+      "cincuenta": 50,
+      "sesenta": 60,
+      "setenta": 70,
+      "ochenta": 80,
+      "noventa": 90
+    },
+    "scales": {
+      "cien": 100,
+      "ciento": 100,
+      "mil": 1000,
+      "millón": 1000000,
+      "millones": 1000000,
+      "billón": 1000000000000,
+      "billones": 1000000000000
+    }
+  }
 }

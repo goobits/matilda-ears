@@ -150,7 +150,7 @@ class EntityDetector:
 
                         # Reclassify DATE entities that are actually number sequences
                         if entity_type == EntityType.DATE:
-                            number_parser = NumberParser()
+                            number_parser = NumberParser(language=self.language)
                             parsed_number = number_parser.parse(ent.text.lower())
 
                             if parsed_number and parsed_number.isdigit():
@@ -443,7 +443,7 @@ class PatternConverter:
     """Converts specific entity types to their final form"""
 
     def __init__(self, language: str = "en"):
-        self.number_parser = NumberParser()
+        self.number_parser = NumberParser(language=language)
         self.language = language
 
         # Entity type to converter method mapping
@@ -453,13 +453,13 @@ class PatternConverter:
         }
 
         # Add web converters
-        self.converters.update(WebPatternConverter(self.number_parser).converters)
+        self.converters.update(WebPatternConverter(self.number_parser, language=language).converters)
 
         # Add code converters
-        self.converters.update(CodePatternConverter(self.number_parser).converters)
+        self.converters.update(CodePatternConverter(self.number_parser, language=language).converters)
 
         # Add numeric converters
-        self.converters.update(NumericalPatternConverter(self.number_parser).converters)
+        self.converters.update(NumericalPatternConverter(self.number_parser, language=language).converters)
 
         # Add quantity converters - DISABLED: Using superior NumericalPatternConverter instead
         # from .match_entities import QuantityPatternConverter
