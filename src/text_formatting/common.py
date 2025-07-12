@@ -203,8 +203,15 @@ class NumberParser:
             elif word in self.scales:
                 scale_val = self.scales[word]
                 if scale_val == 100:
-                    current_val *= scale_val
+                    # Handle "hundred" - multiply current value or default to 1 if standalone
+                    if current_val == 0:
+                        current_val = scale_val  # Standalone "hundred" = 100
+                    else:
+                        current_val *= scale_val  # "five hundred" = 5 * 100
                 else:
+                    # Handle "thousand", "million", etc.
+                    if current_val == 0:
+                        current_val = 1  # Standalone "thousand" = 1 * 1000
                     total_val += current_val * scale_val
                     current_val = 0
             elif word.isdigit():

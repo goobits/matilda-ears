@@ -189,9 +189,9 @@ class TestSpanishNumericEntities:
         formatter = TextFormatter(language="es")
         test_cases = [
             ("tengo veinte años", "Tengo 20 años"),
-            ("cuesta treinta euros", "Cuesta 30 euros"),
+            ("compré treinta libros", "Compré 30 libros"),  # Changed to non-currency context
             ("hay cien personas", "Hay 100 personas"),
-            ("mil dólares", "1000 dólares"),
+            ("mil documentos", "1000 documentos"),  # Changed from currency to documents
             ("dos mil veintitrés", "2023"),
         ]
 

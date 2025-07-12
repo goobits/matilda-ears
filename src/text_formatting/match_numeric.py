@@ -1384,10 +1384,11 @@ class NumericalEntityDetector:
     def _detect_cardinal_numbers_fallback(
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None
     ) -> None:
-        """Fallback detection for cardinal numbers when SpaCy is not available."""
-        # Only run this if SpaCy failed to load
-        if self.nlp:
-            return  # SpaCy is available, let it handle CARDINAL detection
+        """Fallback detection for cardinal numbers when SpaCy is not available or for non-English languages."""
+        # Run this if SpaCy failed to load OR if we're not using English
+        # (SpaCy's multilingual support for number recognition is limited)
+        if self.nlp and self.language == "en":
+            return  # SpaCy is available and we're using English, let it handle CARDINAL detection
 
         # Build a comprehensive pattern for number words
         number_words = sorted(self.number_parser.all_number_words, key=len, reverse=True)
