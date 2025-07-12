@@ -73,7 +73,12 @@ def main():
         return 0
     print(f"\n⚠️  {failed} dependencies missing. Install with:")
     print('   pip install -e ".[dev,server,visualizer]"')
-    print("   sudo apt-get install libopus-dev libopus0  # Ubuntu/Debian")
+    if any("opus" in str(dep[0]).lower() for dep in dependencies):
+        print("\nFor system dependencies like Opus:")
+        print("   python scripts/install_system_deps.py  # Interactive")
+        print("   python scripts/install_system_deps.py --auto  # Auto-install")
+        print("   # Or manually:")
+        print("   sudo apt-get install libopus-dev libopus0  # Ubuntu/Debian")
     return 1
 
 
