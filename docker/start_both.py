@@ -15,7 +15,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-print("Starting STT Docker services...")
+print("Starting Matilda Docker services...")
 
 # Start WebSocket server
 websocket_port = os.getenv("WEBSOCKET_PORT", "8773")

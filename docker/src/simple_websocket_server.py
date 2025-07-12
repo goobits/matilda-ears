@@ -258,7 +258,7 @@ class SimpleWebSocketServer:
                 json.dumps(
                     {
                         "type": "connected",
-                        "message": "Connected to STT WebSocket server",
+                        "message": "Connected to Matilda WebSocket server",
                         "client_name": token_data.get("client_name"),
                     }
                 )

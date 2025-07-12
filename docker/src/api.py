@@ -68,7 +68,7 @@ class ServerStatus(BaseModel):
 
 class DashboardAPI:
     def __init__(self):
-        self.app = FastAPI(title="STT Dashboard API", version="1.0.0")
+        self.app = FastAPI(title="Matilda Dashboard API", version="1.0.0")
         self.server_start_time = time.time()
         self.transcription_server = None
 

@@ -32,7 +32,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class EnhancedSTTWebSocketServer:
+class EnhancedMatildaWebSocketServer:
     """Enhanced WebSocket server with dashboard integration and encryption"""
 
     def __init__(self, host: str = "0.0.0.0", websocket_port: int = 8769, web_port: int = 8080):
@@ -71,7 +71,7 @@ class EnhancedSTTWebSocketServer:
             "end_stream": self.handle_end_stream,
         }
 
-        logger.info("Enhanced STT WebSocket Server initialized")
+        logger.info("Enhanced Matilda WebSocket Server initialized")
         logger.info(f"WebSocket: wss://{self.host}:{self.websocket_port}")
         logger.info(f"Dashboard: https://{self.host}:{self.web_port}")
         logger.info(f"Model: {self.model_size} on {self.device}")
@@ -461,9 +461,9 @@ class EnhancedSTTWebSocketServer:
 websocket_server = None
 
 
-def get_websocket_server() -> EnhancedSTTWebSocketServer:
+def get_websocket_server() -> EnhancedMatildaWebSocketServer:
     """Get the global WebSocket server instance"""
     global websocket_server
     if websocket_server is None:
-        websocket_server = EnhancedSTTWebSocketServer()
+        websocket_server = EnhancedMatildaWebSocketServer()
     return websocket_server

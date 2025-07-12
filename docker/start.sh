@@ -1,7 +1,7 @@
 #!/bin/bash
 # Start both the dashboard and WebSocket server
 
-echo "Starting STT Docker services..."
+echo "Starting Matilda Docker services..."
 
 # Create log directory if it doesn't exist
 mkdir -p /app/logs

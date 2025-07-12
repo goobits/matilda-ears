@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick structure test for the Docker STT server
+"""Quick structure test for the Docker Matilda server
 Tests basic imports and structure without external dependencies
 """
 
@@ -101,7 +101,7 @@ def test_basic_imports():
 
 def main():
     """Run structure tests"""
-    print("🐳 Docker STT Server Structure Test\n")
+    print("🐳 Docker Matilda Server Structure Test\n")
 
     structure_ok = test_structure()
     imports_ok = test_basic_imports()
