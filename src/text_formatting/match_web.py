@@ -273,6 +273,13 @@ class WebPatternConverter:
             end_j = i
             for j in range(len(words), i, -1):
                 sub_phrase = " ".join(words[i:j])
+                # Try parse_as_digits first for URL contexts
+                parsed = self.number_parser.parse_as_digits(sub_phrase)
+                if parsed:
+                    best_parse = parsed
+                    end_j = j
+                    break
+                # Fall back to regular parsing for compound numbers
                 parsed = self.number_parser.parse(sub_phrase)
                 if parsed:
                     best_parse = parsed
@@ -354,10 +361,10 @@ class WebPatternConverter:
             username_parts = username.split()
             converted_parts = []
 
-            # First try to parse the entire username as a number sequence
-            full_parsed = self.number_parser.parse(username)
-            if full_parsed and full_parsed.isdigit():
-                # The entire username is a number sequence
+            # First try to parse the entire username as a digit sequence
+            full_parsed = self.number_parser.parse_as_digits(username)
+            if full_parsed:
+                # The entire username is a digit sequence
                 username = full_parsed
             else:
                 # Process parts individually, but look for consecutive number sequences
@@ -376,19 +383,23 @@ class WebPatternConverter:
                             number_sequence.append(username_parts[j])
                             j += 1
 
-                        # Try to parse the sequence as a number
+                        # Try to parse the sequence as digits first, then as a number
                         sequence_text = " ".join(number_sequence)
-                        parsed = self.number_parser.parse(sequence_text)
-                        if parsed and parsed.isdigit():
+                        parsed = self.number_parser.parse_as_digits(sequence_text)
+                        if parsed:
                             converted_parts.append(parsed)
                         else:
-                            # Fall back to individual parsing
-                            for seq_part in number_sequence:
-                                individual_parsed = self.number_parser.parse(seq_part)
-                                if individual_parsed and individual_parsed.isdigit():
-                                    converted_parts.append(individual_parsed)
-                                else:
-                                    converted_parts.append(seq_part)
+                            parsed = self.number_parser.parse(sequence_text)
+                            if parsed and parsed.isdigit():
+                                converted_parts.append(parsed)
+                            else:
+                                # Fall back to individual parsing
+                                for seq_part in number_sequence:
+                                    individual_parsed = self.number_parser.parse(seq_part)
+                                    if individual_parsed and individual_parsed.isdigit():
+                                        converted_parts.append(individual_parsed)
+                                    else:
+                                        converted_parts.append(seq_part)
                         i = j
                     else:
                         # Not a number word, keep as is
@@ -422,19 +433,23 @@ class WebPatternConverter:
                         number_sequence.append(domain_parts[j])
                         j += 1
 
-                    # Try to parse the sequence as a number
+                    # Try to parse the sequence as digits first, then as a number
                     sequence_text = " ".join(number_sequence)
-                    parsed = self.number_parser.parse(sequence_text)
-                    if parsed and parsed.isdigit():
+                    parsed = self.number_parser.parse_as_digits(sequence_text)
+                    if parsed:
                         converted_domain_parts.append(parsed)
                     else:
-                        # Fall back to individual parsing
-                        for seq_part in number_sequence:
-                            individual_parsed = self.number_parser.parse(seq_part)
-                            if individual_parsed and individual_parsed.isdigit():
-                                converted_domain_parts.append(individual_parsed)
-                            else:
-                                converted_domain_parts.append(seq_part)
+                        parsed = self.number_parser.parse(sequence_text)
+                        if parsed and parsed.isdigit():
+                            converted_domain_parts.append(parsed)
+                        else:
+                            # Fall back to individual parsing
+                            for seq_part in number_sequence:
+                                individual_parsed = self.number_parser.parse(seq_part)
+                                if individual_parsed and individual_parsed.isdigit():
+                                    converted_domain_parts.append(individual_parsed)
+                                else:
+                                    converted_domain_parts.append(seq_part)
                     i = j
                 else:
                     # Not a number word, keep as is

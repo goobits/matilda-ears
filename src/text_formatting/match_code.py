@@ -671,6 +671,10 @@ class CodePatternConverter:
 
         # Replace all spoken number sequences with digits *before* splitting into words
         def number_word_replacer(match):
+            # Try parse_as_digits first for filenames, then fall back to regular parsing
+            result = self.number_parser.parse_as_digits(match.group(0))
+            if result:
+                return result
             return self.number_parser.parse(match.group(0)) or match.group(0)
 
         number_word_pattern = (

@@ -296,6 +296,33 @@ class NumberParser:
 
         return None
 
+    def parse_as_digits(self, text: str) -> Optional[str]:
+        """Parse text as a sequence of spoken digits, returning concatenated string.
+        
+        For example: "one two three" -> "123"
+        This is useful for URLs, filenames, and other contexts where we want
+        digit concatenation rather than arithmetic sum.
+        """
+        if not text:
+            return None
+            
+        text = text.strip().lower()
+        words = text.split()
+        
+        # Check if every word is a single digit word (0-9)
+        digit_sequence = []
+        for word in words:
+            if word in self.ones and self.ones[word] <= 9:
+                digit_sequence.append(str(self.ones[word]))
+            else:
+                # If any word is not a single digit, fall back to regular parsing
+                return None
+                
+        if digit_sequence:
+            return "".join(digit_sequence)
+            
+        return None
+
     def parse_with_validation(self, text: str) -> Optional[str]:
         """Parse numbers with additional validation for context"""
         if not text:
