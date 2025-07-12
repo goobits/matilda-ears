@@ -68,18 +68,6 @@ class QuantityEntityDetector:
         )
 
 
-        # Time duration pattern
-        self.time_duration_pattern = re.compile(
-            r"\b(?:"
-            r"\d+(?:\.\d+)?\s*(?:seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)|"
-            r"(?:one|two|three|four|five|six|seven|eight|nine|ten|"
-            r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
-            r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
-            r"eighty|ninety|hundred|thousand)"
-            r"\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)"
-            r")\b",
-            re.IGNORECASE,
-        )
 
         # General measurement pattern
         self.measurement_pattern = re.compile(
@@ -114,8 +102,8 @@ class QuantityEntityDetector:
         entities.extend(self._detect_temperatures(text, existing_entities))
 
 
-        # Detect time durations
-        entities.extend(self._detect_time_durations(text, existing_entities))
+        # Detect time durations - COMMENTED OUT: Consolidating into NumericalEntityDetector
+        # entities.extend(self._detect_time_durations(text, existing_entities))
 
         # Detect general measurements
         entities.extend(self._detect_measurements(text, existing_entities))
@@ -154,17 +142,6 @@ class QuantityEntityDetector:
         return entities
 
 
-    def _detect_time_durations(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
-        """Detect time duration entities."""
-        entities = []
-
-        for match in self.time_duration_pattern.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.TIME_DURATION)
-                )
-
-        return entities
 
     def _detect_measurements(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
         """Detect general measurement entities."""
