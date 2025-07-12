@@ -30,38 +30,8 @@ from . import regex_patterns
 config = get_config()
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
-# Import shared constants
-from .constants import (
-    CURRENCY_CONTEXTS,
-    WEIGHT_CONTEXTS,
-    MONTH_NAMES,
-    RELATIVE_DAYS,
-    DATE_KEYWORDS,
-    DATE_ORDINAL_WORDS,
-    EMAIL_ACTION_WORDS,
-    ANGLE_KEYWORDS,
-    IDIOMATIC_PLUS_WORDS,
-    COMPARATIVE_WORDS,
-    MEASUREMENT_PATTERNS_FORMATTER,
-    EMAIL_ENTITY_ACTION_WORDS,
-    COMMAND_WORDS,
-    PRESERVE_COLON_WORDS,
-    TECH_PATTERNS,
-    IDIOMATIC_PHRASES,
-    KNOWN_UNITS,
-    DATA_UNITS,
-    TECHNICAL_TERMS,
-    MULTI_WORD_TECHNICAL_TERMS,
-    TECHNICAL_CONTEXT_WORDS,
-    COMPLETE_SENTENCE_PHRASES,
-    TRANSCRIPTION_ARTIFACTS,
-    PROFANITY_WORDS,
-    ABBREVIATIONS,
-    TLDS,
-    EXCLUDE_WORDS,
-    TECHNICAL_VERBS,
-    COMMON_ABBREVIATIONS,
-)
+# Import resource loader for i18n constants
+from .constants import get_resources
 
 
 class EntityDetector:
@@ -80,6 +50,7 @@ class EntityDetector:
 
         self.nlp = nlp
         self.language = language
+        self.resources = get_resources(language)
 
     def detect_entities(self, text: str, doc=None) -> List[Entity]:
         """Single pass entity detection"""
@@ -142,7 +113,8 @@ class EntityDetector:
                                 following_text = doc[ent.end].text.lower()
 
                             # Define specific idiomatic phrases to skip
-                            if ordinal_text in IDIOMATIC_PHRASES and following_text in IDIOMATIC_PHRASES[ordinal_text]:
+                            idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+                            if ordinal_text in idiomatic_phrases and following_text in idiomatic_phrases[ordinal_text]:
                                 logger.debug(f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase")
                                 continue
 
@@ -212,7 +184,8 @@ class EntityDetector:
         if has_at_context and has_dot_context:
             # This looks like it could be part of an email address
             # Check if there are email action words at the beginning
-            has_email_action = any(prefix_text.startswith(action) for action in EMAIL_ACTION_WORDS)
+            email_actions = self.resources.get("context_words", {}).get("email_actions", [])
+            has_email_action = any(prefix_text.startswith(action) for action in email_actions)
             if has_email_action:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it appears to be part of an email address")
                 return True
@@ -249,7 +222,8 @@ class EntityDetector:
         if remaining_text.lower().startswith("degrees"):
             # Check the context before the number
             prefix_text = text[: ent.start_char].lower()
-            if any(keyword in prefix_text for keyword in ANGLE_KEYWORDS):
+            angle_keywords = self.resources.get("context_words", {}).get("angle_keywords", [])
+            if any(keyword in prefix_text for keyword in angle_keywords):
                 # This is an angle, not temperature, don't skip
                 return False
 
@@ -259,7 +233,16 @@ class EntityDetector:
         next_words = remaining_text.split()[:3]  # Look at next 3 words
         if next_words:
             next_word = next_words[0].lower()
-            if next_word in KNOWN_UNITS:
+            # Collect all known units from resources
+            time_units = self.resources.get("units", {}).get("time_units", [])
+            length_units = self.resources.get("units", {}).get("length_units", [])
+            weight_units = self.resources.get("units", {}).get("weight_units", [])
+            volume_units = self.resources.get("units", {}).get("volume_units", [])
+            frequency_units = self.resources.get("units", {}).get("frequency_units", [])
+            currency_units = self.resources.get("currency", {}).get("units", [])
+            data_units = self.resources.get("data_units", {}).get("storage", [])
+            known_units = set(time_units + length_units + weight_units + volume_units + frequency_units + currency_units + data_units)
+            if next_word in known_units:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by unit '{next_word}'")
                 return True
 
@@ -274,7 +257,8 @@ class EntityDetector:
             lookahead_words = plus_context.split()[:5]
             lookahead_context = " ".join(lookahead_words).lower()
 
-            idiomatic_words = list(IDIOMATIC_PLUS_WORDS) + [
+            idiomatic_plus_words = self.resources.get("context_words", {}).get("idiomatic_plus", [])
+            idiomatic_words = list(idiomatic_plus_words) + [
                 "things",
                 "experience",
                 "experiences",
@@ -293,7 +277,7 @@ class EntityDetector:
             if next_words:
                 next_word = next_words[0].lower()
                 # Check for comparative adjectives/adverbs
-                comparative_words = COMPARATIVE_WORDS
+                comparative_words = self.resources.get("context_words", {}).get("idiomatic_times_comparative", [])
                 if next_word in comparative_words:
                     logger.debug(
                         f"Skipping CARDINAL '{ent.text}' in idiomatic times comparative context: '{next_word}'"
@@ -363,7 +347,8 @@ class EntityDetector:
         # Check if the entity text contains data units
         entity_words = ent.text.lower().split()
         for word in entity_words:
-            if word in DATA_UNITS:
+            data_units = self.resources.get("data_units", {}).get("storage", [])
+            if word in data_units:
                 logger.debug(f"Skipping QUANTITY '{ent.text}' because it contains data unit '{word}'")
                 return True
 
@@ -384,18 +369,21 @@ class EntityDetector:
         prefix_text = text[: ent.start_char].lower()
 
         # First check for clear currency context - if found, keep as MONEY
-        found_currency_context = any(context in prefix_text for context in CURRENCY_CONTEXTS)
+        currency_contexts = self.resources.get("context_words", {}).get("currency_contexts", [])
+        found_currency_context = any(context in prefix_text for context in currency_contexts)
 
         if found_currency_context:
             logger.debug(f"Keeping MONEY '{ent.text}' because currency context found in prefix")
             return False  # Don't skip - keep as currency
 
         # No clear currency context - check for weight context or default to weight
-        found_weight_context = any(context in prefix_text for context in WEIGHT_CONTEXTS)
+        weight_contexts = self.resources.get("context_words", {}).get("weight_contexts", [])
+        found_weight_context = any(context in prefix_text for context in weight_contexts)
 
         # Also check for measurement phrases like "it is X pounds"
         words_before = prefix_text.split()[-3:]
-        found_measurement_pattern = any(pattern in words_before for pattern in MEASUREMENT_PATTERNS_FORMATTER)
+        measurement_verbs = self.resources.get("context_words", {}).get("measurement_verbs", [])
+        found_measurement_pattern = any(pattern in words_before for pattern in measurement_verbs)
 
         if found_weight_context or found_measurement_pattern or not prefix_text.strip():
             # Default to weight if: explicit weight context, measurement pattern, or no context (standalone)
@@ -413,17 +401,21 @@ class EntityDetector:
         entity_text = ent.text.lower()
 
         # Keep DATE entities that contain actual month names
-        if any(month in entity_text for month in MONTH_NAMES):
+        month_names = self.resources.get("temporal", {}).get("month_names", [])
+        if any(month in entity_text for month in month_names):
             return False  # Keep - this is a real date
 
         # Keep DATE entities that contain specific relative days
-        if any(day in entity_text for day in RELATIVE_DAYS):
+        relative_days = self.resources.get("temporal", {}).get("relative_days", [])
+        if any(day in entity_text for day in relative_days):
             return False  # Keep - this is a real date
 
         # Keep DATE entities that look like actual dates (contain numbers and date keywords)
         # If it contains ordinal words but no clear date context, it's likely an ordinal
-        has_ordinal = any(ordinal in entity_text for ordinal in DATE_ORDINAL_WORDS)
-        has_date_keyword = any(keyword in entity_text for keyword in DATE_KEYWORDS)
+        date_ordinal_words = self.resources.get("temporal", {}).get("date_ordinals", [])
+        has_ordinal = any(ordinal in entity_text for ordinal in date_ordinal_words)
+        date_keywords = self.resources.get("temporal", {}).get("date_keywords", [])
+        has_date_keyword = any(keyword in entity_text for keyword in date_keywords)
 
         if has_ordinal and not has_date_keyword:
             # This looks like "the fourth" or similar - likely an ordinal, not a date
@@ -553,11 +545,14 @@ class SmartCapitalizer:
     def __init__(self, language: str = "en"):
         self.nlp = get_nlp()
         self.language = language
+        
+        # Load language-specific resources
+        self.resources = get_resources(language)
 
         # Entity types that must have their casing preserved under all circumstances
         self.STRICTLY_PROTECTED_TYPES = {
             EntityType.CLI_COMMAND,
-            EntityType.PROGRAMMING_KEYWORD,
+            # Removed PROGRAMMING_KEYWORD to allow sentence-starting capitalization
             EntityType.URL,
             EntityType.SPOKEN_URL,
             EntityType.SPOKEN_PROTOCOL_URL,
@@ -680,7 +675,8 @@ class SmartCapitalizer:
 
             # Check the text before the match to see if it's an abbreviation
             preceding_text = text[: match.start()].lower()
-            if any(preceding_text.endswith(abbrev) for abbrev in COMMON_ABBREVIATIONS):
+            common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
+            if any(preceding_text.endswith(abbrev) for abbrev in common_abbreviations):
                 return match.group(0)  # Don't capitalize
 
             return punctuation_and_space + letter.upper()
@@ -695,7 +691,8 @@ class SmartCapitalizer:
             return abbrev_and_space + letter.lower()  # Force lowercase
 
         # Build pattern from constants - match both upper and lowercase letters
-        abbrev_pattern = "|".join(abbrev.replace(".", "\\.") for abbrev in COMMON_ABBREVIATIONS)
+        common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
+        abbrev_pattern = "|".join(abbrev.replace(".", "\\.") for abbrev in common_abbreviations)
         text = re.sub(rf"(\b(?:{abbrev_pattern})\s+)([a-zA-Z])", protect_after_abbreviation, text)
 
         # Fix first letter capitalization with entity protection
@@ -713,11 +710,24 @@ class SmartCapitalizer:
                     for entity in entities:
                         # Check if the first letter is inside ANY entity - entities should control their own formatting
                         if entity.start <= first_letter_index < entity.end:
-                            is_protected = True
-                            logger.debug(
-                                f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
-                            )
-                            break
+                            # Special case: Allow capitalization of sentence-starting programming keywords
+                            # This handles cases like "import utils.py" → "Import utils.py"
+                            if (entity.type == EntityType.PROGRAMMING_KEYWORD and 
+                                entity.start == 0 and first_letter_index == 0):
+                                logger.debug(
+                                    f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
+                                )
+                                # Don't protect - allow capitalization
+                                break
+                            else:
+                                is_protected = True
+                                logger.debug(
+                                    f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
+                                )
+                                break
+
+                if not is_protected:
+                    text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
 
                 # Abbreviations are prose entities that should follow normal sentence capitalization rules
                 # (Removed abbreviation protection logic as it was too aggressive)
@@ -970,12 +980,13 @@ class SmartCapitalizer:
                         continue
 
                     # Skip PERSON or ORG entities that are technical verbs (let, const, var, etc.)
-                    if ent.label_ in ["PERSON", "ORG"] and ent.text.isupper() and ent.text.lower() in TECHNICAL_VERBS:
+                    technical_verbs = self.resources.get("technical", {}).get("verbs", [])
+                    if ent.label_ in ["PERSON", "ORG"] and ent.text.isupper() and ent.text.lower() in technical_verbs:
                         # It's an all-caps technical term, replace with lowercase version
                         text = text[: ent.start_char] + ent.text.lower() + text[ent.end_char :]
                         continue  # Move to the next SpaCy entity
 
-                    if ent.label_ in ["PERSON", "ORG"] and ent.text.lower() in TECHNICAL_VERBS:
+                    if ent.label_ in ["PERSON", "ORG"] and ent.text.lower() in technical_verbs:
                         logger.debug(f"Skipping capitalization for technical verb: '{ent.text}'")
                         continue
 
@@ -1049,12 +1060,14 @@ class SmartCapitalizer:
         # Use technical terms from constants
 
         # Check exact match for multi-word terms
-        if entity_text.lower() in MULTI_WORD_TECHNICAL_TERMS:
+        multi_word_technical = set(self.resources.get("context_words", {}).get("multi_word_commands", []))
+        if entity_text.lower() in multi_word_technical:
             return True
 
         # Check single words in the entity
         entity_words = entity_text.lower().split()
-        if any(word in TECHNICAL_TERMS for word in entity_words):
+        technical_terms = set(self.resources.get("technical", {}).get("terms", []))
+        if any(word in technical_terms for word in entity_words):
             return True
 
         # Check context - if surrounded by technical keywords, likely technical
@@ -1070,7 +1083,8 @@ class SmartCapitalizer:
             context_end = min(len(words), entity_index + 3)
             context_words = words[context_start:context_end]
 
-            if any(word in TECHNICAL_CONTEXT_WORDS for word in context_words):
+            technical_context_words = set(self.resources.get("context_words", {}).get("technical_context", []))
+            if any(word in technical_context_words for word in context_words):
                 return True
         except ValueError:
             # Entity not found as single word, might be multi-word
@@ -1102,12 +1116,15 @@ class TextFormatter:
         self.numeric_detector = NumericalEntityDetector(nlp=self.nlp, language=self.language)
         self.numeric_converter = NumericalPatternConverter(self.pattern_converter.number_parser, language=self.language)
 
+        # Load language-specific resources
+        self.resources = get_resources(language)
+        
         # Complete sentence phrases that need punctuation even when short
-        self.complete_sentence_phrases = COMPLETE_SENTENCE_PHRASES
+        self.complete_sentence_phrases = set(self.resources.get("technical", {}).get("complete_sentence_phrases", []))
 
-        # Use artifacts and profanity lists from constants
-        self.transcription_artifacts = TRANSCRIPTION_ARTIFACTS
-        self.profanity_words = PROFANITY_WORDS
+        # Use artifacts and profanity lists from resources
+        self.transcription_artifacts = self.resources.get("filtering", {}).get("transcription_artifacts", [])
+        self.profanity_words = self.resources.get("filtering", {}).get("profanity_words", [])
 
     def format_transcription(self, text: str, key_name: str = "", enter_pressed: bool = False, language: str = None) -> str:
         """Main formatting pipeline - NEW ARCHITECTURE WITHOUT PLACEHOLDERS
@@ -1428,6 +1445,15 @@ class TextFormatter:
             return False
 
         text_stripped = text.strip()
+        
+        # Special case: If text starts with a programming keyword, it should be treated as a regular sentence
+        # that needs capitalization, not standalone technical content
+        sorted_entities = sorted(entities, key=lambda e: e.start)
+        if (sorted_entities and 
+            sorted_entities[0].start == 0 and 
+            sorted_entities[0].type == EntityType.PROGRAMMING_KEYWORD):
+            logger.debug(f"Text starts with programming keyword '{sorted_entities[0].text}' - not treating as standalone technical")
+            return False
 
         # Only treat as standalone technical if it consists ENTIRELY of command flags with minimal surrounding text
         command_flag_entities = [e for e in entities if e.type == EntityType.COMMAND_FLAG]
@@ -1449,7 +1475,7 @@ class TextFormatter:
         for entity in sorted_entities:
             if entity.type == EntityType.SPOKEN_EMAIL and entity.start == 0:
                 # Check if the email entity starts with common action words
-                action_words = EMAIL_ENTITY_ACTION_WORDS
+                action_words = self.resources.get("context_words", {}).get("email_actions", [])
                 entity_text = entity.text.lower().strip()
                 for action_word in action_words:
                     if entity_text.startswith(action_word + " "):
@@ -1647,7 +1673,8 @@ class TextFormatter:
                                         should_remove = True
 
                                     # Case 3: Known command/action words
-                                    command_words = list(COMMAND_WORDS) + [
+                                    base_command_words = self.resources.get("context_words", {}).get("command_words", [])
+                                    command_words = list(base_command_words) + [
                                         "drive",
                                         "use",
                                         "check",
@@ -1704,7 +1731,7 @@ class TextFormatter:
                     start_pos = max(0, match.start() - 20)
                     preceding_text = result[start_pos : match.start()].strip().lower()
                     # Preserve colon for specific contexts
-                    preserve_words = PRESERVE_COLON_WORDS
+                    preserve_words = self.resources.get("context_words", {}).get("preserve_colon", [])
                     for word in preserve_words:
                         if preceding_text.endswith(word):
                             return match.group(0)  # Keep the colon
@@ -1783,7 +1810,8 @@ class TextFormatter:
         # Use abbreviations from constants
 
         # Process each abbreviation
-        for abbr, formatted in ABBREVIATIONS.items():
+        abbreviations = self.resources.get("abbreviations", {})
+        for abbr, formatted in abbreviations.items():
             # Match abbreviation at word boundaries
             # This handles various contexts: start of sentence, after punctuation, etc.
             # Use negative lookbehind to avoid replacing if already has period
@@ -1829,7 +1857,8 @@ class TextFormatter:
 
         # Use TLDs and exclude words from constants
 
-        for tld in TLDS:
+        tlds = self.resources.get("top_level_domains", [])
+        for tld in tlds:
             # Pattern: word + TLD at word boundary
             pattern = rf"\b([a-zA-Z]{{3,}})({tld})\b"
 
@@ -1839,7 +1868,8 @@ class TextFormatter:
                 full_word = word + found_tld
 
                 # Skip if it's in our exclude list
-                if full_word.lower() in EXCLUDE_WORDS:
+                exclude_words = self.resources.get("context_words", {}).get("exclude_words", [])
+                if full_word.lower() in exclude_words:
                     return full_word
 
                 # Skip if the "domain" part is too short or doesn't look like a domain
@@ -1858,7 +1888,7 @@ class TextFormatter:
                     return f"{word}.{found_tld}"
 
                 # If it's a known tech company/service pattern
-                tech_patterns = TECH_PATTERNS
+                tech_patterns = self.resources.get("context_words", {}).get("tech_patterns", [])
                 if any(pattern in word.lower() for pattern in tech_patterns):
                     return f"{word}.{found_tld}"
 

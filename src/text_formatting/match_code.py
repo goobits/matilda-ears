@@ -29,6 +29,9 @@ class CodeEntityDetector:
         self.nlp = nlp
         self.language = language
         
+        # Load language-specific resources
+        self.resources = get_resources(language)
+        
         # Build patterns dynamically for the specified language
         self.slash_command_pattern = regex_patterns.get_slash_command_pattern(language)
         self.underscore_delimiter_pattern = regex_patterns.get_underscore_delimiter_pattern(language)

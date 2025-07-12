@@ -52,11 +52,18 @@
     "location_nouns": ["docs", "documentation", "api", "site", "website", "page", "server"],
     "ambiguous_nouns": ["help", "support"],
     "command_words": ["edit", "open", "run", "build", "play", "start", "stop", "create", "delete", "install"],
-    "currency_contexts": ["cost", "costs", "costing", "price", "priced", "pricing", "buy", "buying", "bought", "sell", "selling", "sold", "pay", "paying", "paid", "spend", "spending", "spent", "worth", "value", "valued", "charge", "charged", "charging", "bill", "billed", "invoice", "invoiced", "fee", "fees", "money", "cash"],
-    "weight_contexts": ["weigh", "weighs", "weighing", "mass", "heavy", "light", "weight", "kg", "kilogram", "kilograms", "gram", "grams", "ounce", "ounces", "ton", "tons"],
+    "currency_contexts": ["cost", "costs", "costing", "price", "priced", "pricing", "buy", "buying", "bought", "sell", "selling", "sold", "pay", "paying", "paid", "spend", "spending", "spent", "worth", "value", "valued", "charge", "charged", "charging", "bill", "billed", "invoice", "invoiced", "fee", "fees", "money", "cash", "currency", "dollar", "sterling", "euro", "eur", "gbp", "usd", "$", "£", "€", "bank", "banking"],
+    "weight_contexts": ["weigh", "weighs", "weight", "weighted", "weighing", "mass", "heavy", "light", "lift", "lifting", "carry", "carrying", "hold", "holding", "push", "pushing", "pull", "pulling", "measure", "measuring", "scale", "scales", "ounce", "ounces", "kg", "kilogram", "kilograms", "gram", "grams", "ton", "tons", "tonne", "tonnes", "add", "mix", "use", "need", "recipe", "cook", "bake", "ingredient", "flour", "sugar", "butter", "meat", "chicken", "beef", "pork", "food"],
     "programming_keywords": ["let", "const", "var", "if", "for", "while", "switch", "case", "return", "import", "export", "from", "class", "def", "function", "public", "private", "protected", "static", "new", "try", "catch", "finally", "throw"],
     "technical_context": ["set", "get", "use", "run", "execute", "call", "invoke", "trigger", "function", "method", "variable", "parameter", "argument", "value", "command", "script", "program", "application", "service", "process", "dash", "flag", "option", "underscore", "dot", "slash", "colon"],
-    "multi_word_commands": ["git commit", "git push", "git pull", "git merge", "git branch", "git checkout", "git clone", "git fetch", "git rebase", "git stash", "git reset", "git log", "git diff", "git status", "git init", "git add", "npm install", "npm start", "npm run", "npm test", "docker build", "docker run", "docker push", "docker pull"]
+    "multi_word_commands": ["git commit", "git push", "git pull", "git merge", "git branch", "git checkout", "git clone", "git fetch", "git rebase", "git stash", "git reset", "git log", "git diff", "git status", "git init", "git add", "npm install", "npm start", "npm run", "npm test", "docker build", "docker run", "docker push", "docker pull"],
+    "angle_keywords": ["rotate", "turn", "angle", "tilt", "spin", "pivot"],
+    "idiomatic_plus": ["years", "days", "weeks", "months", "people", "guests", "members", "items"],
+    "idiomatic_times_comparative": ["better", "worse", "faster", "slower", "bigger", "smaller", "more", "less"],
+    "measurement_verbs": ["is", "are", "was", "were", "measures", "weighs"],
+    "preserve_colon": ["contact", "email", "phone", "fax", "website", "address", "from", "to", "subject"],
+    "tech_patterns": ["google", "github", "stack", "reddit", "amazon", "face", "open", "micro", "apple"],
+    "exclude_words": ["become", "income", "welcome", "outcome", "overcome", "inform", "perform", "transform", "platform", "uniform", "internet", "cabinet", "planet", "magnet", "helmet", "video", "radio", "studio", "ratio", "audio", "to", "do", "go", "so", "no"]
   },
   "currency": {
     "units": ["dollar", "dollars", "pound", "pounds", "euro", "euros", "yen", "yuan", "won", "peso", "ruble", "franc", "shekel", "real"]
@@ -123,9 +130,63 @@
     "profanity_words": ["damn", "hell", "crap", "shit", "fuck", "bitch", "ass", "bastard", "piss"]
   },
   "temporal": {
-    "month_names": ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"],
-    "relative_days": ["today", "tomorrow", "yesterday", "the day before yesterday", "the day after tomorrow"],
+    "month_names": ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],
+    "relative_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "today", "tomorrow", "yesterday", "weekend", "weekday"],
     "date_keywords": ["day", "week", "month", "year", "date"],
-    "date_ordinals": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty first", "twenty second", "twenty third", "twenty fourth", "twenty fifth", "twenty sixth", "twenty seventh", "twenty eighth", "twenty ninth", "thirtieth", "thirty first"]
+    "date_ordinals": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty first", "twenty second", "twenty third", "thirtieth", "thirty first"]
+  },
+  "units": {
+    "currency_map": {
+      "dollar": "$",
+      "dollars": "$",
+      "cent": "¢",
+      "cents": "¢",
+      "pound": "£",
+      "pounds": "£",
+      "euro": "€",
+      "euros": "€",
+      "yen": "¥",
+      "rupee": "₹",
+      "rupees": "₹",
+      "yuan": "¥",
+      "renminbi": "¥",
+      "won": "₩",
+      "peso": "₱",
+      "pesos": "₱",
+      "ruble": "₽",
+      "rubles": "₽",
+      "franc": "₣",
+      "francs": "₣",
+      "lira": "₺",
+      "shekel": "₪",
+      "shekels": "₪",
+      "real": "R$",
+      "reais": "R$"
+    },
+    "time_units": ["second", "seconds", "minute", "minutes", "hour", "hours", "day", "days", "week", "weeks", "month", "months", "year", "years", "millisecond", "milliseconds", "microsecond", "microseconds"],
+    "frequency_units": ["hertz", "kilohertz", "megahertz", "gigahertz", "hz", "khz", "mhz", "ghz"],
+    "percent_units": ["percent", "percentage"],
+    "length_units": ["millimeter", "millimeters", "millimetre", "millimetres", "mm", "centimeter", "centimeters", "centimetre", "centimetres", "cm", "meter", "meters", "metre", "metres", "m", "kilometer", "kilometers", "kilometre", "kilometres", "km"],
+    "weight_units": ["milligram", "milligrams", "mg", "gram", "grams", "g", "kilogram", "kilograms", "kg", "metric ton", "metric tons", "tonne", "tonnes"],
+    "volume_units": ["milliliter", "milliliters", "millilitre", "millilitres", "ml", "liter", "liters", "litre", "litres", "l"]
+  },
+  "technical": {
+    "terms": ["git", "commit", "push", "pull", "merge", "branch", "checkout", "clone", "fetch", "rebase", "stash", "reset", "log", "diff", "status", "init", "add", "rm", "npm", "yarn", "pip", "cargo", "composer", "gem", "brew", "apt", "yum", "conda", "docker", "kubectl", "helm", "terraform", "ansible", "vagrant", "make", "cmake", "max", "min", "sum", "count", "avg", "len", "size", "width", "height", "start", "end", "begin", "stop", "pause", "run", "execute", "build", "test", "debug", "compile", "deploy", "install", "update", "delete", "create", "save", "load", "read", "write", "copy", "move", "sort", "filter", "user", "admin", "guest", "root", "config", "settings", "options", "params", "data", "info", "result", "output", "input", "temp", "cache", "buffer", "file", "folder", "directory", "path", "backup", "restore", "sync"],
+    "verbs": ["commit", "run", "build", "deploy", "test", "debug", "compile", "install", "update", "delete", "create", "save", "load", "read", "write", "copy", "move", "sort", "filter", "push", "pull", "merge", "branch", "checkout", "clone", "fetch", "rebase", "stash", "reset", "init", "add", "rm", "start", "stop", "pause", "execute", "backup", "restore", "sync"],
+    "common_abbreviations": ["i.e.", "e.g.", "etc.", "vs.", "cf."],
+    "complete_sentence_phrases": ["yes", "no", "okay", "thanks", "hello", "goodbye", "hi", "bye", "thank you", "sure", "please", "sorry"],
+    "idiomatic_phrases": {
+      "first": ["class", "rate", "person", "aid", "hand", "base", "string", "impression"],
+      "second": ["nature", "hand", "string", "thoughts", "class", "rate", "person"],
+      "third": ["party", "person", "string", "wheel", "base", "class", "rate"],
+      "fourth": ["wall", "estate", "dimension"],
+      "fifth": ["wheel", "column", "amendment"],
+      "sixth": ["sense"],
+      "seventh": ["heaven"],
+      "eighth": ["wonder"],
+      "ninth": ["inning"],
+      "tenth": ["amendment"]
+    },
+    "ordinal_words": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "thirtieth", "fortieth", "fiftieth", "sixtieth", "seventieth", "eightieth", "ninetieth", "hundredth", "thousandth"]
   }
 }

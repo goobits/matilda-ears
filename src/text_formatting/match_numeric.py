@@ -7,20 +7,7 @@ from .common import Entity, EntityType, NumberParser
 from .utils import is_inside_entity
 from ..core.config import setup_logging
 from . import regex_patterns
-from .constants import (
-    ORDINAL_WORDS,
-    CURRENCY_UNITS,
-    DATA_UNITS,
-    TIME_UNITS,
-    FREQUENCY_UNITS,
-    PERCENT_UNITS,
-    IDIOMATIC_OVER_PATTERNS,
-    ANGLE_KEYWORDS_NUMERIC,
-    LENGTH_UNITS,
-    WEIGHT_UNITS,
-    VOLUME_UNITS,
-    CURRENCY_MAP,
-)
+from .constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -183,6 +170,10 @@ class NumericalEntityDetector:
 
         self.nlp = nlp
         self.language = language
+        
+        # Load language-specific resources
+        self.resources = get_resources(language)
+        
         self.math_parser = MathExpressionParser()
         # Initialize NumberParser for robust number word detection
         self.number_parser = NumberParser(language=self.language)
@@ -264,11 +255,11 @@ class NumericalEntityDetector:
             return
 
         # Define all unit types in one place
-        currency_units = CURRENCY_UNITS
-        percent_units = PERCENT_UNITS
-        data_units = DATA_UNITS
-        frequency_units = FREQUENCY_UNITS
-        time_units = TIME_UNITS
+        currency_units = set(self.resources.get("currency", {}).get("units", []))
+        percent_units = set(self.resources.get("units", {}).get("percent_units", []))
+        data_units = set(self.resources.get("data_units", {}).get("storage", []))
+        frequency_units = set(self.resources.get("units", {}).get("frequency_units", []))
+        time_units = set(self.resources.get("units", {}).get("time_units", []))
 
         i = 0
         while i < len(doc):
@@ -276,7 +267,7 @@ class NumericalEntityDetector:
 
             # Find a number-like token (includes cardinals, digits, and number words)
             is_a_number = (
-                (token.like_num and token.lower_ not in ORDINAL_WORDS)
+                (token.like_num and token.lower_ not in self.resources.get("technical", {}).get("ordinal_words", []))
                 or (token.ent_type_ == "CARDINAL")
                 or (token.lower_ in self.number_parser.all_number_words)
             )
@@ -384,7 +375,11 @@ class NumericalEntityDetector:
 
         # Build unit patterns
         all_units = (
-            list(CURRENCY_UNITS) + list(PERCENT_UNITS) + list(DATA_UNITS) + list(FREQUENCY_UNITS) + list(TIME_UNITS)
+            (self.resources.get("currency", {}).get("units", []) + 
+             self.resources.get("units", {}).get("percent_units", []) + 
+             self.resources.get("data_units", {}).get("storage", []) + 
+             self.resources.get("units", {}).get("frequency_units", []) + 
+             self.resources.get("units", {}).get("time_units", []))
         )
         unit_pattern = r"(?:" + "|".join(sorted(all_units, key=len, reverse=True)) + r")"
 
@@ -406,15 +401,21 @@ class NumericalEntityDetector:
                     if match_text.endswith(" " + test_unit.lower()):
                         unit = test_unit
                         # Determine entity type based on unit
-                        if unit in CURRENCY_UNITS:
+                        currency_units = set(self.resources.get("currency", {}).get("units", []))
+                        data_units = set(self.resources.get("data_units", {}).get("storage", []))
+                        time_units = set(self.resources.get("units", {}).get("time_units", []))
+                        percent_units = set(self.resources.get("units", {}).get("percent_units", []))
+                        frequency_units = set(self.resources.get("units", {}).get("frequency_units", []))
+                        
+                        if unit in currency_units:
                             entity_type = EntityType.CURRENCY
-                        elif unit in PERCENT_UNITS:
+                        elif unit in percent_units:
                             entity_type = EntityType.PERCENT
-                        elif unit in DATA_UNITS:
+                        elif unit in data_units:
                             entity_type = EntityType.DATA_SIZE
-                        elif unit in FREQUENCY_UNITS:
+                        elif unit in frequency_units:
                             entity_type = EntityType.FREQUENCY
-                        elif unit in TIME_UNITS:
+                        elif unit in time_units:
                             entity_type = EntityType.TIME_DURATION
                         break
 
@@ -473,7 +474,36 @@ class NumericalEntityDetector:
 
             # Test if this is a valid math expression (pyparsing will handle the actual math part)
             clean_expr = potential_expr.rstrip(".!?")  # Remove punctuation for parsing
-            math_result = self.math_parser.parse_expression(clean_expr)
+            
+            # Pre-process number words and operators for better math parser compatibility
+            words = clean_expr.split()
+            converted_words = []
+            for word in words:
+                # Try to parse word as a number first
+                parsed = self.number_parser.parse(word)
+                if parsed:
+                    converted_words.append(parsed)
+                # Convert spoken operators to symbols
+                elif word.lower() == "slash":
+                    converted_words.append("/")
+                elif word.lower() == "times":
+                    converted_words.append("*")
+                elif word.lower() == "plus":
+                    converted_words.append("+")
+                elif word.lower() == "minus":
+                    converted_words.append("-")
+                elif word.lower() in ["divided", "by"] and " ".join(words).lower().find("divided by") != -1:
+                    # Handle "divided by" as a unit
+                    if word.lower() == "divided":
+                        converted_words.append("/")
+                    # Skip "by" when it follows "divided"
+                elif word.lower() == "by" and len(converted_words) > 0 and converted_words[-1] == "/":
+                    continue  # Skip "by" in "divided by"
+                else:
+                    converted_words.append(word)
+            preprocessed_expr = " ".join(converted_words)
+            
+            math_result = self.math_parser.parse_expression(preprocessed_expr)
             if math_result:
                 # Context filter: Skip if "over" is used idiomatically (not mathematically)
                 if self._is_idiomatic_over_expression(clean_expr, text, start_pos):
@@ -579,7 +609,13 @@ class NumericalEntityDetector:
 
         # Common idiomatic uses of "over"
         # Check the expression itself and preceding context
-        for pattern in IDIOMATIC_OVER_PATTERNS:
+        idiomatic_over_patterns = [
+            "game over", "over par", "it's over", "start over", "do over", "all over",
+            "fight over", "argue over", "debate over", "think over", "over the", "over there",
+            "over here", "over it", "over him", "over her", "over them", "get over",
+            "be over", "i'm over", "i am over", "getting over"
+        ]
+        for pattern in idiomatic_over_patterns:
             if pattern in expr_lower or pattern in (preceding_context + " " + expr_lower).lower():
                 return True
 
@@ -868,6 +904,17 @@ class NumericalEntityDetector:
                             text=full_match,
                             type=EntityType.PERCENT,
                             metadata={"groups": match.groups(), "is_percentage": True},
+                        )
+                    )
+                else:
+                    # Create a FRACTION entity for decimal numbers
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=full_match,
+                            type=EntityType.FRACTION,
+                            metadata={"groups": match.groups(), "is_decimal": True},
                         )
                     )
 
@@ -1424,6 +1471,9 @@ class NumericalPatternConverter:
     def __init__(self, number_parser: NumberParser, language: str = "en"):
         self.number_parser = number_parser
         self.language = language
+        
+        # Load language-specific resources
+        self.resources = get_resources(language)
 
         # Operator mappings
         self.operators = {
@@ -1639,13 +1689,15 @@ class NumericalPatternConverter:
                 text_lower = text_lower[:-1]
 
             # Find which currency word is in the text
-            for currency_word in CURRENCY_MAP:
+            currency_map = self.resources.get("units", {}).get("currency_map", {})
+            for currency_word in currency_map:
                 if currency_word in text_lower:
                     unit = currency_word
                     break
 
         # Get the currency symbol
-        symbol = CURRENCY_MAP.get(unit, "$")  # Default to $ if not found
+        currency_map = self.resources.get("units", {}).get("currency_map", {})
+        symbol = currency_map.get(unit, "$")  # Default to $ if not found
 
         # Extract and parse the number
         number_text = None
@@ -1664,7 +1716,8 @@ class NumericalPatternConverter:
                 number_text = re.sub(pattern, "", text_lower).strip()
             else:
                 # Try removing any known currency words
-                for currency_word in CURRENCY_MAP:
+                currency_map = self.resources.get("units", {}).get("currency_map", {})
+            for currency_word in currency_map:
                     if currency_word in text_lower:
                         # Use regex for proper word boundary matching
                         pattern = r"\b" + re.escape(currency_word) + r"s?\b"
@@ -1849,7 +1902,8 @@ class NumericalPatternConverter:
         if "number" in entity.metadata:
             number_text = entity.metadata["number"].lower()
             # Check if it's an ordinal word
-            if number_text in ORDINAL_WORDS:
+            ordinal_words = self.resources.get("technical", {}).get("ordinal_words", [])
+            if number_text in ordinal_words:
                 # This is an ordinal + time unit (e.g., "fourth day"), not a duration
                 # Return the original text unchanged
                 return entity.text
@@ -2323,9 +2377,13 @@ class NumericalPatternConverter:
         return entity.text
 
     def convert_fraction(self, entity: Entity) -> str:
-        """Convert fraction expressions (one half -> ½)."""
+        """Convert fraction expressions (one half -> ½) and decimal numbers (three point one four -> 3.14)."""
         if not entity.metadata:
             return entity.text
+
+        # Handle decimal numbers (e.g., "three point one four" -> "3.14")
+        if entity.metadata.get("is_decimal"):
+            return self.number_parser.parse(entity.text) or entity.text
 
         numerator_word = entity.metadata.get("numerator_word", "").lower()
         denominator_word = entity.metadata.get("denominator_word", "").lower()
@@ -2509,7 +2567,8 @@ class NumericalPatternConverter:
         if "degrees" in text:
             # Check if this is an angle context (rotate, turn, angle, etc.) in the full text
             full_text_lower = full_text.lower() if full_text else ""
-            if any(keyword in full_text_lower for keyword in ANGLE_KEYWORDS_NUMERIC):
+            angle_keywords = self.resources.get("context_words", {}).get("angle_keywords", [])
+            if any(keyword in full_text_lower for keyword in angle_keywords):
                 # This is an angle, not a temperature - return unchanged
                 return entity.text
             # Also skip if there's no explicit unit (could be angle)
