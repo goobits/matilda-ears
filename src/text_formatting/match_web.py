@@ -263,11 +263,11 @@ class WebPatternConverter:
 
     def _convert_url_keywords(self, url_text: str) -> str:
         """Convert URL keywords in base URL text, properly handling numbers."""
-        # First, apply non-numeric keyword replacements
-        for keyword, replacement in self.url_keywords.items():
-            url_text = url_text.replace(keyword, replacement)
-
-        # Then, parse multi-word numbers and join parts without spaces
+        # IMPORTANT: Parse numbers FIRST, before replacing keywords
+        # This ensures "servidor uno punto ejemplo" -> "servidor 1 punto ejemplo" -> "servidor1.ejemplo"
+        # instead of "servidor uno punto ejemplo" -> "servidor uno . ejemplo" -> "servidor 1 . ejemplo"
+        
+        # First, parse multi-word numbers
         words = url_text.split()
         result_parts = []
         i = 0
@@ -298,7 +298,15 @@ class WebPatternConverter:
                 result_parts.append(words[i])
                 i += 1
 
-        return "".join(result_parts)
+        # Rejoin with spaces temporarily to apply keyword replacements
+        temp_text = " ".join(result_parts)
+        
+        # Then apply keyword replacements
+        for keyword, replacement in self.url_keywords.items():
+            temp_text = re.sub(rf"\b{re.escape(keyword)}\b", replacement, temp_text, flags=re.IGNORECASE)
+        
+        # Finally, remove all spaces to form the URL
+        return temp_text.replace(" ", "")
 
     def convert_url(self, entity: Entity) -> str:
         """Convert URL with proper formatting"""
