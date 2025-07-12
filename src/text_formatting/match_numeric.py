@@ -1711,8 +1711,13 @@ class NumericalPatternConverter:
 
         # Original handling for SpaCy-detected percentages
         if entity.metadata and "number" in entity.metadata:
-            number = entity.metadata["number"]
-            return f"{number}%"
+            number_text = entity.metadata["number"]
+            # Parse the number text to convert words to digits
+            parsed_number = self.number_parser.parse(number_text)
+            if parsed_number is not None:
+                return f"{parsed_number}%"
+            # Fallback to original if parsing fails
+            return f"{number_text}%"
 
         # Fallback: parse from text if no metadata available
         text = entity.text.lower()

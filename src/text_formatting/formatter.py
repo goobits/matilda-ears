@@ -158,15 +158,25 @@ class EntityDetector:
                                     f"Reclassifying DATE '{ent.text}' as CARDINAL (number sequence: {parsed_number})"
                                 )
 
-                        # For PERCENT entities with spoken decimals, add metadata for conversion
+                        # For PERCENT entities, add metadata for conversion
                         metadata = {}
-                        if entity_type == EntityType.PERCENT and "point" in ent.text.lower():
-                            # Extract number components for decimal percentages
+                        if entity_type == EntityType.PERCENT:
                             import re
-
-                            decimal_match = re.search(r"(\w+)\s+point\s+(\w+)", ent.text, re.IGNORECASE)
-                            if decimal_match:
-                                metadata = {"groups": decimal_match.groups(), "is_percentage": True}
+                            
+                            # Handle decimal percentages like "zero point one percent"
+                            if "point" in ent.text.lower():
+                                decimal_match = re.search(r"(\w+)\s+point\s+(\w+)", ent.text, re.IGNORECASE)
+                                if decimal_match:
+                                    metadata = {"groups": decimal_match.groups(), "is_percentage": True}
+                            else:
+                                # Handle simple percentages like "ten percent"
+                                # Try multiple patterns to match different spaCy outputs
+                                percent_match = re.search(r"^(.+?)\s*percent$", ent.text, re.IGNORECASE)
+                                if not percent_match:
+                                    percent_match = re.search(r"^(.+?)$", ent.text.replace(" percent", ""), re.IGNORECASE)
+                                if percent_match:
+                                    number_text = percent_match.group(1).strip()
+                                    metadata = {"number": number_text, "unit": "percent"}
                         entities.append(
                             Entity(
                                 start=ent.start_char,

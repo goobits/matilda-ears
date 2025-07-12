@@ -51,8 +51,6 @@ class QuantityEntityDetector:
             re.IGNORECASE,
         )
 
-        # Percent pattern
-        self.percent_pattern = re.compile(r"\b\d+(?:\.\d+)?\s*(?:percent|%)\b", re.IGNORECASE)
 
         # Data size pattern
         self.data_size_pattern = re.compile(
@@ -137,8 +135,6 @@ class QuantityEntityDetector:
         # Detect currency
         entities.extend(self._detect_currency(text, existing_entities))
 
-        # Detect percentages
-        entities.extend(self._detect_percentages(text, existing_entities))
 
         # Detect data sizes
         entities.extend(self._detect_data_sizes(text, existing_entities))
@@ -188,17 +184,6 @@ class QuantityEntityDetector:
 
         return entities
 
-    def _detect_percentages(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
-        """Detect percentage entities."""
-        entities = []
-
-        for match in self.percent_pattern.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), existing_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(), type=EntityType.PERCENT)
-                )
-
-        return entities
 
     def _detect_data_sizes(self, text: str, existing_entities: List[Entity]) -> List[Entity]:
         """Detect data size entities."""
