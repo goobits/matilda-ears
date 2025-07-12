@@ -984,6 +984,11 @@ class SmartCapitalizer:
                     "EVENT",
                 ]:  # Types that should be capitalized
 
+                    # Skip pi constant to prevent capitalization
+                    if ent.text.lower() == "pi":
+                        logger.debug(f"Skipping pi constant '{ent.text}' to allow MATH_CONSTANT converter to handle it")
+                        continue
+
                     # Skip if this SpaCy entity is inside a final filtered entity
                     if entities and is_inside_entity(ent.start_char, ent.end_char, entities):
                         logger.debug(
