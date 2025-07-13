@@ -478,7 +478,8 @@ class CodeEntityDetector:
         # Pattern for short flags: -f or -flag
         # But make sure we don't match long flags we already detected
         for match in self.short_flag_pattern.finditer(text):
-            check_entities = all_entities if all_entities else entities
+            # Include both original entities and newly detected entities for overlap checking
+            check_entities = (all_entities if all_entities else []) + entities
             # Ensure we don't overlap with a long flag we just detected
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # Also make sure this isn't part of "dash dash" by checking preceding context

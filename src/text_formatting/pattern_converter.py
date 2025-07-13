@@ -694,10 +694,10 @@ class PatternConverter:
                 if len(words) == 2:
                     first_word, second_word = words
                     # Common argument patterns that should NOT be part of flag name
-                    argument_words = {"test", "file", "message", "mode", "path", "name", "value", "option"}
+                    argument_words = {"test", "file", "message", "mode", "path", "name", "value", "option", "flag"}
                     if second_word.lower() in argument_words:
-                        # Return just the flag and let the second word remain as argument
-                        return f"--{first_word.lower()}"
+                        # Return the flag followed by the argument (preserving the argument)
+                        return f"--{first_word.lower()} {second_word.lower()}"
 
                 # Default: replace spaces with hyphens for multi-word flags
                 name = name.replace(" ", "-").lower()

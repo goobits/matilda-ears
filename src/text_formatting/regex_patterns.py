@@ -1387,7 +1387,7 @@ def build_long_flag_pattern(language: str = "en") -> Pattern:
     dash_pattern = f"(?:{'|'.join(dash_escaped)})"
 
     return re.compile(
-        rf"\b{dash_pattern}\s+{dash_pattern}\s+([a-zA-Z][a-zA-Z0-9]*(?:\s+(?:dev|run|dir|cache|config|output|input|quiet|force|dry))?)",
+        rf"\b{dash_pattern}\s+{dash_pattern}\s+([a-zA-Z][a-zA-Z0-9_-]*(?:\s+[a-zA-Z][a-zA-Z0-9_-]*)?)",
         re.IGNORECASE,
     )
 
