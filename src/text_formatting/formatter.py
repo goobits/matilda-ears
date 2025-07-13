@@ -485,10 +485,7 @@ class PatternConverter:
         self.unified_converter = UnifiedPatternConverter(NumberParser(language=language), language=language)
         
         # Entity type to converter method mapping
-        self.converters = {
-            EntityType.PHYSICS_SQUARED: self.convert_physics_squared,
-            EntityType.PHYSICS_TIMES: self.convert_physics_times,
-        }
+        self.converters = {}  # Start with an empty dict
         
         # Add all converters from the unified converter
         self.converters.update(self.unified_converter.converters)
@@ -557,22 +554,6 @@ class PatternConverter:
         self_punctuating_types.add(EntityType.SPOKEN_EMOJI)
 
         return entity_type in self_punctuating_types
-
-    def convert_physics_squared(self, entity: Entity) -> str:
-        """Convert physics squared formulas like 'E equals MC squared' -> 'e = mc²'"""
-        # The original test logic was correct, this change was a bug. Restoring it.
-        if entity.metadata and "groups" in entity.metadata:
-            var1, var2 = entity.metadata["groups"]
-            return f"{var1.upper()} = {var2.upper()}²"
-        return entity.text
-
-    def convert_physics_times(self, entity: Entity) -> str:
-        """Convert physics multiplication like 'F equals M times A' -> 'f = m × a'"""
-        # The original test logic was correct, this change was a bug. Restoring it.
-        if entity.metadata and "groups" in entity.metadata:
-            var1, var2, var3 = entity.metadata["groups"]
-            return f"{var1.upper()} = {var2.upper()} × {var3.upper()}"
-        return entity.text
 
 
 
