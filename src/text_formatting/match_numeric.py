@@ -170,10 +170,10 @@ class NumericalEntityDetector:
 
         self.nlp = nlp
         self.language = language
-        
+
         # Load language-specific resources
         self.resources = get_resources(language)
-        
+
         self.math_parser = MathExpressionParser()
         # Initialize NumberParser for robust number word detection
         self.number_parser = NumberParser(language=self.language)
@@ -375,11 +375,11 @@ class NumericalEntityDetector:
 
         # Build unit patterns
         all_units = (
-            (self.resources.get("currency", {}).get("units", []) + 
-             self.resources.get("units", {}).get("percent_units", []) + 
-             self.resources.get("data_units", {}).get("storage", []) + 
-             self.resources.get("units", {}).get("frequency_units", []) + 
-             self.resources.get("units", {}).get("time_units", []))
+            self.resources.get("currency", {}).get("units", [])
+            + self.resources.get("units", {}).get("percent_units", [])
+            + self.resources.get("data_units", {}).get("storage", [])
+            + self.resources.get("units", {}).get("frequency_units", [])
+            + self.resources.get("units", {}).get("time_units", [])
         )
         unit_pattern = r"(?:" + "|".join(sorted(all_units, key=len, reverse=True)) + r")"
 
@@ -406,7 +406,7 @@ class NumericalEntityDetector:
                         time_units = set(self.resources.get("units", {}).get("time_units", []))
                         percent_units = set(self.resources.get("units", {}).get("percent_units", []))
                         frequency_units = set(self.resources.get("units", {}).get("frequency_units", []))
-                        
+
                         if unit in currency_units:
                             entity_type = EntityType.CURRENCY
                         elif unit in percent_units:
@@ -474,7 +474,7 @@ class NumericalEntityDetector:
 
             # Test if this is a valid math expression (pyparsing will handle the actual math part)
             clean_expr = potential_expr.rstrip(".!?")  # Remove punctuation for parsing
-            
+
             # Pre-process number words and operators for better math parser compatibility
             words = clean_expr.split()
             converted_words = []
@@ -502,7 +502,7 @@ class NumericalEntityDetector:
                 else:
                     converted_words.append(word)
             preprocessed_expr = " ".join(converted_words)
-            
+
             math_result = self.math_parser.parse_expression(preprocessed_expr)
             if math_result:
                 # Context filter: Skip if "over" is used idiomatically (not mathematically)
@@ -610,10 +610,28 @@ class NumericalEntityDetector:
         # Common idiomatic uses of "over"
         # Check the expression itself and preceding context
         idiomatic_over_patterns = [
-            "game over", "over par", "it's over", "start over", "do over", "all over",
-            "fight over", "argue over", "debate over", "think over", "over the", "over there",
-            "over here", "over it", "over him", "over her", "over them", "get over",
-            "be over", "i'm over", "i am over", "getting over"
+            "game over",
+            "over par",
+            "it's over",
+            "start over",
+            "do over",
+            "all over",
+            "fight over",
+            "argue over",
+            "debate over",
+            "think over",
+            "over the",
+            "over there",
+            "over here",
+            "over it",
+            "over him",
+            "over her",
+            "over them",
+            "get over",
+            "be over",
+            "i'm over",
+            "i am over",
+            "getting over",
         ]
         for pattern in idiomatic_over_patterns:
             if pattern in expr_lower or pattern in (preceding_context + " " + expr_lower).lower():
@@ -1471,7 +1489,7 @@ class NumericalPatternConverter:
     def __init__(self, number_parser: NumberParser, language: str = "en"):
         self.number_parser = number_parser
         self.language = language
-        
+
         # Load language-specific resources
         self.resources = get_resources(language)
 
@@ -1718,12 +1736,12 @@ class NumericalPatternConverter:
                 # Try removing any known currency words
                 currency_map = self.resources.get("units", {}).get("currency_map", {})
             for currency_word in currency_map:
-                    if currency_word in text_lower:
-                        # Use regex for proper word boundary matching
-                        pattern = r"\b" + re.escape(currency_word) + r"s?\b"
-                        number_text = re.sub(pattern, "", text_lower).strip()
-                        unit = currency_word
-                        break
+                if currency_word in text_lower:
+                    # Use regex for proper word boundary matching
+                    pattern = r"\b" + re.escape(currency_word) + r"s?\b"
+                    number_text = re.sub(pattern, "", text_lower).strip()
+                    unit = currency_word
+                    break
 
         if number_text:
             amount = self.number_parser.parse(number_text)
@@ -2497,7 +2515,19 @@ class NumericalPatternConverter:
         if prefix_match:
             prefix = prefix_match.group(1)
             # Capitalize the prefix appropriately
-            if prefix.lower() in ["v", "version", "python", "java", "node", "ruby", "php", "go", "rust", "dotnet", "gcc"]:
+            if prefix.lower() in [
+                "v",
+                "version",
+                "python",
+                "java",
+                "node",
+                "ruby",
+                "php",
+                "go",
+                "rust",
+                "dotnet",
+                "gcc",
+            ]:
                 if prefix.lower() in ["v", "version"]:
                     prefix = prefix.lower()  # Keep lowercase for version and v
                 elif prefix.lower() in ["php", "gcc"]:
@@ -2544,8 +2574,7 @@ class NumericalPatternConverter:
                     # No space for "v" prefix, space for others
                     separator = "" if prefix.lower() == "v" else " "
                     return f"{prefix}{separator}{version_str}"
-                else:
-                    return version_str
+                return version_str
 
         # Fallback
         return entity.text

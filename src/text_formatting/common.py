@@ -89,18 +89,18 @@ class Entity:
 class NumberParser:
     """Algorithmic number parsing with multilingual support"""
 
-    def __init__(self, language: str = 'en'):
+    def __init__(self, language: str = "en"):
         from .constants import get_resources
-        
+
         # Load language-specific number words
         resources = get_resources(language)
-        number_resources = resources.get('number_words', {})
-        
+        number_resources = resources.get("number_words", {})
+
         # Use language-specific words or fall back to English defaults
         if number_resources:
-            self.ones = number_resources.get('ones', {})
-            self.tens = number_resources.get('tens', {})
-            self.scales = number_resources.get('scales', {})
+            self.ones = number_resources.get("ones", {})
+            self.tens = number_resources.get("tens", {})
+            self.scales = number_resources.get("scales", {})
         else:
             # Fallback to hardcoded English for backward compatibility
             self.ones = {
@@ -227,7 +227,7 @@ class NumberParser:
                     if word_index >= 0 and word_index < len(words) - 1:
                         # Look ahead to see if next word starts a fraction or other construct
                         next_word = words[word_index + 1]
-                        # If next word is a number that could start a fraction, 
+                        # If next word is a number that could start a fraction,
                         # treat this "and" as a separator
                         if next_word in self.ones and self.ones[next_word] <= 10:
                             # This could be "one and one half" - end number here

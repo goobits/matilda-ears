@@ -241,7 +241,9 @@ class EntityDetector:
             frequency_units = self.resources.get("units", {}).get("frequency_units", [])
             currency_units = self.resources.get("currency", {}).get("units", [])
             data_units = self.resources.get("data_units", {}).get("storage", [])
-            known_units = set(time_units + length_units + weight_units + volume_units + frequency_units + currency_units + data_units)
+            known_units = set(
+                time_units + length_units + weight_units + volume_units + frequency_units + currency_units + data_units
+            )
             if next_word in known_units:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by unit '{next_word}'")
                 return True
@@ -545,7 +547,7 @@ class SmartCapitalizer:
     def __init__(self, language: str = "en"):
         self.nlp = get_nlp()
         self.language = language
-        
+
         # Load language-specific resources
         self.resources = get_resources(language)
 
@@ -619,7 +621,6 @@ class SmartCapitalizer:
         """Apply intelligent capitalization with entity protection"""
         if not text:
             return text
-            
 
         # Preserve all-caps words (acronyms like CPU, API, JSON) and number+unit combinations (500MB, 2.5GHz)
         # But exclude version numbers (v16.4.2)
@@ -714,19 +715,21 @@ class SmartCapitalizer:
                         if entity.start <= first_letter_index < entity.end:
                             # Special case: Allow capitalization of sentence-starting programming keywords
                             # This handles cases like "import utils.py" → "Import utils.py"
-                            if (entity.type == EntityType.PROGRAMMING_KEYWORD and 
-                                entity.start == 0 and first_letter_index == 0):
+                            if (
+                                entity.type == EntityType.PROGRAMMING_KEYWORD
+                                and entity.start == 0
+                                and first_letter_index == 0
+                            ):
                                 logger.debug(
                                     f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
                                 )
                                 # Don't protect - allow capitalization
                                 break
-                            else:
-                                is_protected = True
-                                logger.debug(
-                                    f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
-                                )
-                                break
+                            is_protected = True
+                            logger.debug(
+                                f"Protecting first letter '{text[first_letter_index]}' from capitalization due to entity: {entity.type}"
+                            )
+                            break
 
                 if not is_protected:
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
@@ -750,22 +753,19 @@ class SmartCapitalizer:
 
             if doc_to_use:
                 try:
-                    new_text = list(text) # Work on a list of characters to avoid slicing errors
+                    new_text = list(text)  # Work on a list of characters to avoid slicing errors
                     for token in doc_to_use:
                         # Find standalone 'i' tokens that are pronouns
                         if token.text == "i" and token.pos_ == "PRON":
                             # Check if this 'i' is inside a protected entity (like a filename)
                             is_protected = False
                             if entities:
-                                is_protected = any(
-                                    entity.start <= token.idx < entity.end
-                                    for entity in entities
-                                )
+                                is_protected = any(entity.start <= token.idx < entity.end for entity in entities)
 
                             if not is_protected:
                                 # Safely replace the character at the correct index
                                 new_text[token.idx] = "I"
-                    text = "".join(new_text) # Re-assemble the string once at the end
+                    text = "".join(new_text)  # Re-assemble the string once at the end
                 except Exception as e:
                     logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
                     # If spaCy fails, do nothing. It's better to have a lowercase 'i'
@@ -809,7 +809,6 @@ class SmartCapitalizer:
             text = text.replace(f" {old}", f" {new}")
             text = text.replace(f": {old}", f": {new}")
             text = text.replace(f", {old}", f", {new}")
-            
 
             # Fix at start only if not truly the beginning of input
             if text.startswith(old) and len(text) > len(old) + 5:
@@ -831,8 +830,7 @@ class SmartCapitalizer:
                 for match in reversed(matches):
                     match_start, match_end = match.span()
                     matched_text = text[match_start:match_end]
-                    
-                    
+
                     # Check if this match overlaps with any protected entity
                     is_protected = any(
                         match_start < entity.end
@@ -857,7 +855,7 @@ class SmartCapitalizer:
                         # Safe to replace this match
                         old_text = text
                         text = text[:match_start] + upper_abbrev + text[match_end:]
-                        
+
             else:
                 # No entities to protect, do normal replacement
                 text = re.sub(pattern, upper_abbrev, text, flags=re.IGNORECASE)
@@ -870,7 +868,6 @@ class SmartCapitalizer:
         for placeholder, caps_word in all_caps_words.items():
             text = re.sub(rf"\b{re.escape(placeholder)}\b", caps_word, text)
 
-            
         return text
 
     def _capitalize_proper_nouns(self, text: str, entities: List[Entity] = None, doc=None) -> str:
@@ -1047,7 +1044,7 @@ class TextFormatter:
     def __init__(self, language: str = "en"):
         # Store the language for this formatter instance
         self.language = language
-        
+
         # Load shared NLP model once
         self.nlp = get_nlp()
 
@@ -1066,7 +1063,7 @@ class TextFormatter:
 
         # Load language-specific resources
         self.resources = get_resources(language)
-        
+
         # Complete sentence phrases that need punctuation even when short
         self.complete_sentence_phrases = set(self.resources.get("technical", {}).get("complete_sentence_phrases", []))
 
@@ -1074,18 +1071,21 @@ class TextFormatter:
         self.transcription_artifacts = self.resources.get("filtering", {}).get("transcription_artifacts", [])
         self.profanity_words = self.resources.get("filtering", {}).get("profanity_words", [])
 
-    def format_transcription(self, text: str, key_name: str = "", enter_pressed: bool = False, language: str = None) -> str:
+    def format_transcription(
+        self, text: str, key_name: str = "", enter_pressed: bool = False, language: str = None
+    ) -> str:
         """Main formatting pipeline - NEW ARCHITECTURE WITHOUT PLACEHOLDERS
-        
+
         Args:
             text: Text to format
             key_name: Key name for context
             enter_pressed: Whether enter was pressed
             language: Optional language override (uses instance default if None)
+
         """
         # Use the override language if provided, otherwise use the instance's default
         current_language = language or self.language
-        
+
         if not text or not text.strip():
             logger.debug("Empty text, skipping formatting")
             return ""
@@ -1146,28 +1146,27 @@ class TextFormatter:
         # Build the new string from scratch by processing entities in order
         result_parts = []
         last_end = 0
-        
+
         # Sort entities by start position to process in sequence
         sorted_entities = sorted(filtered_entities, key=lambda e: e.start)
-        
+
         for entity in sorted_entities:
             # Add the plain text gap before this entity
-            result_parts.append(text[last_end:entity.start])
-            
+            result_parts.append(text[last_end : entity.start])
+
             # Convert the entity to its final form and add it
             converted_text = self.pattern_converter.convert(entity, text)
             result_parts.append(converted_text)
-            
+
             last_end = entity.end
-            
+
         # Add any remaining text after the last entity
         result_parts.append(text[last_end:])
-        
+
         # Join everything into a single string
         processed_text = "".join(result_parts)
 
         logger.debug(f"Processed text after entity conversion: '{processed_text}'")
-        
 
         # Step 4: Apply punctuation and capitalization LAST (Phase 2 refactoring)
         is_standalone_technical = self._is_standalone_technical(text, filtered_entities)
@@ -1198,20 +1197,17 @@ class TextFormatter:
                     )
                     converted_entities.append(converted_entity)
                     current_pos = entity_start + len(converted_text)
-            
-                
+
             final_text = self._apply_capitalization_with_entity_protection(final_text, converted_entities, doc=doc)
             logger.debug(f"Text after capitalization: '{final_text}'")
 
         text = final_text
         logger.debug(f"Text after processing: '{text}'")
-        
 
         # Step 6: Clean up formatting artifacts
         text = re.sub(r"\.\.+", ".", text)
         text = re.sub(r"\?\?+", "?", text)
         text = re.sub(r"!!+", "!", text)
-        
 
         # Step 7: Restore abbreviations that the punctuation model may have mangled
         text = self._restore_abbreviations(text)
@@ -1397,14 +1393,18 @@ class TextFormatter:
             return False
 
         text_stripped = text.strip()
-        
+
         # Special case: If text starts with a programming keyword, it should be treated as a regular sentence
         # that needs capitalization, not standalone technical content
         sorted_entities = sorted(entities, key=lambda e: e.start)
-        if (sorted_entities and 
-            sorted_entities[0].start == 0 and 
-            sorted_entities[0].type == EntityType.PROGRAMMING_KEYWORD):
-            logger.debug(f"Text starts with programming keyword '{sorted_entities[0].text}' - not treating as standalone technical")
+        if (
+            sorted_entities
+            and sorted_entities[0].start == 0
+            and sorted_entities[0].type == EntityType.PROGRAMMING_KEYWORD
+        ):
+            logger.debug(
+                f"Text starts with programming keyword '{sorted_entities[0].text}' - not treating as standalone technical"
+            )
             return False
 
         # Only treat as standalone technical if it consists ENTIRELY of command flags with minimal surrounding text
@@ -1625,7 +1625,9 @@ class TextFormatter:
                                         should_remove = True
 
                                     # Case 3: Known command/action words
-                                    base_command_words = self.resources.get("context_words", {}).get("command_words", [])
+                                    base_command_words = self.resources.get("context_words", {}).get(
+                                        "command_words", []
+                                    )
                                     command_words = list(base_command_words) + [
                                         "drive",
                                         "use",
@@ -1748,7 +1750,7 @@ class TextFormatter:
         # Add a more intelligent final punctuation check
         if not is_standalone_technical and text and text.strip() and text.strip()[-1].isalnum():
             word_count = len(text.split())
-            if word_count > 2 or text.lower().strip() in COMPLETE_SENTENCE_PHRASES:
+            if word_count > 2 or text.lower().strip() in self.complete_sentence_phrases:
                 text += "."
                 logger.debug(f"Added final punctuation: '{text}'")
 
@@ -1875,18 +1877,21 @@ class TextFormatter:
         # Debug: Check for entity position misalignment
         for entity in entities:
             if entity.start < len(text) and entity.end <= len(text):
-                actual_text = text[entity.start:entity.end]
-                logger.debug(f"Entity {entity.type} at [{entity.start}:{entity.end}] text='{entity.text}' actual='{actual_text}'")
+                actual_text = text[entity.start : entity.end]
+                logger.debug(
+                    f"Entity {entity.type} at [{entity.start}:{entity.end}] text='{entity.text}' actual='{actual_text}'"
+                )
                 if actual_text != entity.text:
                     logger.warning(f"Entity position mismatch! Expected '{entity.text}' but found '{actual_text}'")
             else:
-                logger.warning(f"Entity {entity.type} position out of bounds: [{entity.start}:{entity.end}] for text length {len(text)}")
+                logger.warning(
+                    f"Entity {entity.type} position out of bounds: [{entity.start}:{entity.end}] for text length {len(text)}"
+                )
 
         # Phase 1: Use the converted entities with their correct positions in the final text
         # Pass the entities directly to the capitalizer for protection
         logger.debug(f"Sending to capitalizer: '{text}'")
-        
-        
+
         # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
         capitalized_text = self.smart_capitalizer.capitalize(text, entities, doc=doc)
         logger.debug(f"Received from capitalizer: '{capitalized_text}'")

@@ -16,18 +16,18 @@ _LOCK = threading.Lock()  # For thread-safe lazy loading
 
 
 def get_resources(language: str = "en") -> Dict[str, Any]:
-    """
-    Loads and caches language-specific resources from a JSON file.
+    """Loads and caches language-specific resources from a JSON file.
     This is the single point of entry for all language-dependent constants.
-    
+
     Args:
         language: Language code (e.g., 'en', 'es', 'fr')
-        
+
     Returns:
         dict: Loaded language resources
-        
+
     Raises:
         ValueError: If default language resource not found
+
     """
     # Return from cache if already loaded
     if language in _RESOURCES:
@@ -41,7 +41,7 @@ def get_resources(language: str = "en") -> Dict[str, Any]:
 
         try:
             filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 resources = json.load(f)
                 _RESOURCES[language] = resources
             return resources
@@ -59,6 +59,7 @@ def get_resources(language: str = "en") -> Dict[str, Any]:
 def load_resources(language: str = "en"):
     """Deprecated: Use get_resources() instead."""
     return get_resources(language)
+
 
 # ==============================================================================
 # LEGACY CONSTANTS (will be replaced by resource loader gradually)
@@ -747,9 +748,30 @@ MULTI_WORD_TECHNICAL_TERMS = {
 
 # Keywords that often start a line of code and should not be capitalized
 PROGRAMMING_KEYWORD_STARTERS = {
-    "let", "const", "var", "if", "for", "while", "switch", "case", "return",
-    "import", "export", "from", "class", "def", "function", "public", "private",
-    "protected", "static", "new", "try", "catch", "finally", "throw"
+    "let",
+    "const",
+    "var",
+    "if",
+    "for",
+    "while",
+    "switch",
+    "case",
+    "return",
+    "import",
+    "export",
+    "from",
+    "class",
+    "def",
+    "function",
+    "public",
+    "private",
+    "protected",
+    "static",
+    "new",
+    "try",
+    "catch",
+    "finally",
+    "throw",
 }
 
 # Technical context words

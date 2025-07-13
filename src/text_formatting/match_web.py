@@ -28,10 +28,10 @@ class WebEntityDetector:
 
         self.nlp = nlp
         self.language = language
-        
+
         # Load language-specific resources
         self.resources = get_resources(language)
-        
+
         # Build patterns dynamically for the specified language
         self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
         self.port_number_pattern = regex_patterns.get_port_number_pattern(language)
@@ -103,9 +103,7 @@ class WebEntityDetector:
                             # Check if this looks like a location reference vs. an actual email address
                             # Look at the action word at the beginning of the match
                             email_actions = self.resources.get("context_words", {}).get("email_actions", [])
-                            has_email_action = any(
-                                match_text.lower().startswith(action) for action in email_actions
-                            )
+                            has_email_action = any(match_text.lower().startswith(action) for action in email_actions)
 
                             # Use location and ambiguous nouns from resources
                             location_nouns = self.resources.get("context_words", {}).get("location_nouns", [])
@@ -272,7 +270,7 @@ class WebPatternConverter:
         # IMPORTANT: Parse numbers FIRST, before replacing keywords
         # This ensures "servidor uno punto ejemplo" -> "servidor 1 punto ejemplo" -> "servidor1.ejemplo"
         # instead of "servidor uno punto ejemplo" -> "servidor uno . ejemplo" -> "servidor 1 . ejemplo"
-        
+
         # First, parse multi-word numbers
         words = url_text.split()
         result_parts = []
@@ -306,11 +304,11 @@ class WebPatternConverter:
 
         # Rejoin with spaces temporarily to apply keyword replacements
         temp_text = " ".join(result_parts)
-        
+
         # Then apply keyword replacements
         for keyword, replacement in self.url_keywords.items():
             temp_text = re.sub(rf"\b{re.escape(keyword)}\b", replacement, temp_text, flags=re.IGNORECASE)
-        
+
         # Finally, remove all spaces to form the URL
         return temp_text.replace(" ", "")
 
@@ -370,7 +368,7 @@ class WebPatternConverter:
             if text_lower.startswith(action_with_space):
                 # Capitalize first letter of action for prefix
                 prefix = action.capitalize() + " "
-                text = text[len(action_with_space):]
+                text = text[len(action_with_space) :]
                 break
 
         # Split at the language-specific "at" keyword to isolate the username part
@@ -513,7 +511,7 @@ class WebPatternConverter:
                 host_part, port_part = text.split(colon_sep, 1)
                 colon_pattern = colon_keyword
                 break
-        
+
         if colon_pattern:
 
             # Use digit words from constants

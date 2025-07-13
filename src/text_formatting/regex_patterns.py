@@ -381,7 +381,7 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     url_keywords = resources["spoken_keywords"]["url"]
-    
+
     # Get keyword patterns from URL_KEYWORDS
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
     slash_keywords = [k for k, v in url_keywords.items() if v == "/"]
@@ -399,6 +399,7 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
 
     # Create number words pattern from language-specific resources
     from .common import NumberParser
+
     number_parser_instance = NumberParser(language)
     number_words = list(number_parser_instance.all_number_words)
     number_words_escaped = [re.escape(word) for word in number_words]
@@ -451,6 +452,7 @@ def get_spoken_url_pattern(language: str = "en") -> Pattern:
     """Get the spoken URL pattern for the specified language."""
     return build_spoken_url_pattern(language)
 
+
 # Backward compatibility: default English pattern
 SPOKEN_URL_PATTERN = build_spoken_url_pattern("en")
 
@@ -459,19 +461,19 @@ def build_spoken_email_pattern(language: str = "en") -> Pattern:
     """Builds the spoken email pattern dynamically for the specified language."""
     resources = get_resources(language)
     url_keywords = resources["spoken_keywords"]["url"]
-    
+
     # Get keywords for email patterns
     at_keywords = [k for k, v in url_keywords.items() if v == "@"]
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
-    
+
     # Create pattern strings
     at_pattern = "|".join(re.escape(k) for k in at_keywords)
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
-    
+
     # Email action words from resources or defaults
     email_actions = resources.get("context_words", {}).get("email_actions", ["email", "contact", "write to", "send to"])
     action_pattern = "|".join(re.escape(action) for action in email_actions)
-    
+
     pattern_str = rf"""
     (?:^|(?<=\s))                       # Start of string or preceded by space
     (?:                                 # Non-capturing group for email action prefix
@@ -505,23 +507,24 @@ def get_spoken_email_pattern(language: str = "en") -> Pattern:
     """Get the spoken email pattern for the specified language."""
     return build_spoken_email_pattern(language)
 
+
 def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
     """Builds the spoken protocol pattern dynamically for the specified language."""
     resources = get_resources(language)
     url_keywords = resources["spoken_keywords"]["url"]
-    
+
     # Get keywords
     colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
     slash_keywords = [k for k, v in url_keywords.items() if v == "/"]
     dot_keywords = [k for k, v in url_keywords.items() if v == "."]
     question_keywords = [k for k, v in url_keywords.items() if v == "?"]
-    
+
     # Create pattern strings
     colon_pattern = "|".join(re.escape(k) for k in colon_keywords)
     slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
     question_pattern = "|".join(re.escape(k) for k in question_keywords) if question_keywords else "question\\s+mark"
-    
+
     pattern_str = rf"""
     \b                                  # Word boundary
     (https?|ftp)                        # Protocol
@@ -606,7 +609,7 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     url_keywords = resources["spoken_keywords"]["url"]
-    
+
     # Get colon keywords from URL_KEYWORDS
     colon_keywords = [k for k, v in url_keywords.items() if v == ":"]
 
@@ -616,6 +619,7 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
 
     # Create number words pattern from language-specific resources
     from .common import NumberParser
+
     number_parser_instance = NumberParser(language)
     number_words = list(number_parser_instance.all_number_words)
     number_words_escaped = [re.escape(word) for word in number_words]
@@ -646,6 +650,7 @@ def build_port_number_pattern(language: str = "en") -> Pattern:
 def get_port_number_pattern(language: str = "en") -> Pattern:
     """Get the port number pattern for the specified language."""
     return build_port_number_pattern(language)
+
 
 # Backward compatibility: default English pattern
 PORT_NUMBER_PATTERN = build_port_number_pattern("en")
@@ -1116,7 +1121,7 @@ FULL_SPOKEN_FILENAME_PATTERN = re.compile(
     ({"|".join(ALL_FILE_EXTENSIONS)})           # Capture file extension
     \b                                          # Word boundary
     """,
-    re.VERBOSE | re.IGNORECASE
+    re.VERBOSE | re.IGNORECASE,
 )
 JAVA_PACKAGE_PATTERN = re.compile(r"\b([a-zA-Z]\w*(?:\s+dot\s+[a-zA-Z]\w*){2,})\b", re.IGNORECASE)
 
@@ -1160,7 +1165,7 @@ ENTITY_BOUNDARY_PATTERN = re.compile(r"\b(?=\w)")
 
 def create_artifact_patterns(artifacts: List[str]) -> List[Pattern]:
     """Create and cache compiled patterns for transcription artifacts."""
-    return [re.compile(r'\b' + re.escape(artifact) + r'\b', re.IGNORECASE) for artifact in artifacts]
+    return [re.compile(r"\b" + re.escape(artifact) + r"\b", re.IGNORECASE) for artifact in artifacts]
 
 
 def get_compiled_pattern(pattern_name: str) -> Optional[Pattern]:
@@ -1222,7 +1227,7 @@ def build_slash_command_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     code_keywords = resources["spoken_keywords"]["code"]
-    
+
     # Get slash keywords from CODE_KEYWORDS
     slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
     slash_keywords_sorted = sorted(slash_keywords, key=len, reverse=True)
@@ -1245,6 +1250,7 @@ def get_slash_command_pattern(language: str = "en") -> Pattern:
     """Get the slash command pattern for the specified language."""
     return build_slash_command_pattern(language)
 
+
 # Backward compatibility: default English pattern
 SLASH_COMMAND_PATTERN = build_slash_command_pattern("en")
 
@@ -1254,7 +1260,7 @@ def build_underscore_delimiter_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     code_keywords = resources["spoken_keywords"]["code"]
-    
+
     # Get underscore keywords from CODE_KEYWORDS
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
     underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
@@ -1278,7 +1284,7 @@ def build_simple_underscore_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     code_keywords = resources["spoken_keywords"]["code"]
-    
+
     # Get underscore keywords from CODE_KEYWORDS
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
     underscore_keywords_sorted = sorted(underscore_keywords, key=len, reverse=True)
@@ -1302,9 +1308,11 @@ def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
     """Get the underscore delimiter pattern for the specified language."""
     return build_underscore_delimiter_pattern(language)
 
+
 def get_simple_underscore_pattern(language: str = "en") -> Pattern:
     """Get the simple underscore pattern for the specified language."""
     return build_simple_underscore_pattern(language)
+
 
 # Backward compatibility: default English patterns
 UNDERSCORE_DELIMITER_PATTERN = build_underscore_delimiter_pattern("en")
@@ -1316,7 +1324,7 @@ def build_long_flag_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     code_keywords = resources["spoken_keywords"]["code"]
-    
+
     # Get dash keywords from CODE_KEYWORDS
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
@@ -1334,11 +1342,11 @@ def build_short_flag_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     code_keywords = resources["spoken_keywords"]["code"]
-    
+
     # Get dash keywords from CODE_KEYWORDS
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
-    
+
     # Build individual patterns with negative lookaheads to avoid conflicts
     # For Spanish: prevent "guión" from matching when it's part of "guión bajo" (underscore)
     patterns = []
@@ -1349,7 +1357,7 @@ def build_short_flag_pattern(language: str = "en") -> Pattern:
             patterns.append(f"(?:{escaped_keyword}(?!\\s+bajo))")
         else:
             patterns.append(f"(?:{escaped_keyword})")
-    
+
     dash_pattern = f"(?:{'|'.join(patterns)})"
 
     return re.compile(rf"\b{dash_pattern}\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
@@ -1360,9 +1368,11 @@ def get_long_flag_pattern(language: str = "en") -> Pattern:
     """Get the long flag pattern for the specified language."""
     return build_long_flag_pattern(language)
 
+
 def get_short_flag_pattern(language: str = "en") -> Pattern:
     """Get the short flag pattern for the specified language."""
     return build_short_flag_pattern(language)
+
 
 # Backward compatibility: default English patterns
 LONG_FLAG_PATTERN = build_long_flag_pattern("en")
@@ -1374,7 +1384,7 @@ def build_assignment_pattern(language: str = "en") -> Pattern:
     # Get resources for the specified language
     resources = get_resources(language)
     code_keywords = resources["spoken_keywords"]["code"]
-    
+
     # Get equals keywords from CODE_KEYWORDS
     equals_keywords = [k for k, v in code_keywords.items() if v == "="]
     equals_keywords_sorted = sorted(equals_keywords, key=len, reverse=True)
@@ -1404,6 +1414,7 @@ def build_assignment_pattern(language: str = "en") -> Pattern:
 def get_assignment_pattern(language: str = "en") -> Pattern:
     """Get the assignment pattern for the specified language."""
     return build_assignment_pattern(language)
+
 
 # Backward compatibility: default English pattern
 ASSIGNMENT_PATTERN = build_assignment_pattern("en")

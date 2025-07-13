@@ -22,6 +22,7 @@ class TestSpanishSpokenUrls:
         # Note: preloaded_formatter doesn't support language parameter
         # We need to create our own formatter but ensure punctuation is disabled
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -39,6 +40,7 @@ class TestSpanishSpokenUrls:
     def test_spoken_urls_with_paths(self, preloaded_formatter):
         """Test Spanish spoken URLs with path segments."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -55,6 +57,7 @@ class TestSpanishSpokenUrls:
     def test_spoken_urls_with_numbers(self, preloaded_formatter):
         """Test Spanish spoken URLs containing numbers."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -71,6 +74,7 @@ class TestSpanishSpokenUrls:
     def test_spoken_urls_with_query_parameters(self, preloaded_formatter):
         """Test Spanish spoken URLs with query parameters."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -99,6 +103,7 @@ class TestSpanishSpokenEmails:
     def test_basic_spoken_emails(self, preloaded_formatter):
         """Test basic Spanish spoken email patterns."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -115,6 +120,7 @@ class TestSpanishSpokenEmails:
     def test_spoken_emails_with_numbers(self, preloaded_formatter):
         """Test Spanish spoken emails with numbers."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -134,6 +140,7 @@ class TestSpanishCodeOperators:
     def test_basic_operators(self, preloaded_formatter):
         """Test basic Spanish code operators."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -151,6 +158,7 @@ class TestSpanishCodeOperators:
     def test_slash_commands(self, preloaded_formatter):
         """Test Spanish slash command formatting."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -166,6 +174,7 @@ class TestSpanishCodeOperators:
     def test_underscore_variables(self, preloaded_formatter):
         """Test Spanish underscore variable formatting."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -185,6 +194,7 @@ class TestSpanishNumericEntities:
     def test_spanish_numbers(self, preloaded_formatter):
         """Test Spanish number word conversion."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -202,6 +212,7 @@ class TestSpanishNumericEntities:
     def test_currency_formatting(self, preloaded_formatter):
         """Test Spanish currency formatting."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [

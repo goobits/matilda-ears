@@ -19,6 +19,7 @@ class TestSpanishSlashCommands:
     def test_basic_slash_commands(self, preloaded_formatter):
         """Test basic Spanish slash command patterns."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -35,6 +36,7 @@ class TestSpanishSlashCommands:
     def test_slash_commands_with_params(self, preloaded_formatter):
         """Test Spanish slash commands with parameters."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -50,6 +52,7 @@ class TestSpanishSlashCommands:
     def test_slash_commands_with_dashes(self, preloaded_formatter):
         """Test Spanish slash commands with dashed names."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -69,6 +72,7 @@ class TestSpanishCommandFlags:
     def test_short_flags(self, preloaded_formatter):
         """Test Spanish short command flag patterns."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -85,6 +89,7 @@ class TestSpanishCommandFlags:
     def test_long_flags(self, preloaded_formatter):
         """Test Spanish long command flag patterns."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -105,6 +110,7 @@ class TestSpanishUnderscorePatterns:
     def test_simple_underscore_variables(self, preloaded_formatter):
         """Test Spanish simple underscore variable patterns."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -121,6 +127,7 @@ class TestSpanishUnderscorePatterns:
     def test_multiple_underscores(self, preloaded_formatter):
         """Test Spanish patterns with multiple underscores."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -140,6 +147,7 @@ class TestSpanishCodeOperators:
     def test_increment_decrement(self, preloaded_formatter):
         """Test Spanish increment and decrement operators."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -156,6 +164,7 @@ class TestSpanishCodeOperators:
     def test_comparison_operators(self, preloaded_formatter):
         """Test Spanish comparison operators."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -171,6 +180,7 @@ class TestSpanishCodeOperators:
     def test_assignment_operators(self, preloaded_formatter):
         """Test Spanish assignment operators."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -191,6 +201,7 @@ class TestSpanishMixedPatterns:
     def test_code_with_urls(self, preloaded_formatter):
         """Test Spanish code patterns mixed with URLs."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
@@ -206,6 +217,7 @@ class TestSpanishMixedPatterns:
     def test_code_with_numbers(self, preloaded_formatter):
         """Test Spanish code patterns with numbers."""
         import os
+
         os.environ["MATILDA_DISABLE_PUNCTUATION"] = "1"
         formatter = TextFormatter(language="es")
         test_cases = [
