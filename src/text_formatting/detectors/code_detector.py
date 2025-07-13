@@ -160,59 +160,36 @@ class CodeEntityDetector:
             for i in range(current_token.i, -1, -1):
                 token = doc[i]
 
+                # --- Start of Replacement ---
                 # ** THE CRITICAL STOPPING LOGIC **
                 # Stop if we hit a clear sentence-starting verb, preposition, or conjunction.
                 # This prevents walking back across an entire sentence.
-                # Special case: "underscore" is often misclassified as a verb by SpaCy
-                is_verb = token.pos_ == "VERB" and token.text.lower() != "underscore"
-                is_preposition = token.pos_ == "ADP" and token.text.lower() != "v"
-                is_conjunction = token.pos_ == "CCONJ"
-                is_punctuation = token.is_punct
+                
+                # Get language-specific filename stop words from i18n resources
+                filename_actions = self.resources.get("context_words", {}).get("filename_actions", [])
+                filename_linking = self.resources.get("context_words", {}).get("filename_linking", [])
+                filename_stop_words = self.resources.get("context_words", {}).get("filename_stop_words", [])
 
                 # Check for words that clearly separate context from a filename
-                resources = get_resources(self.language)
-                filename_actions = resources.get("context_words", {}).get("filename_actions", [])
-                filename_linking = resources.get("context_words", {}).get("filename_linking", [])
-
-                is_context_separator = token.lemma_ in filename_actions or token.lemma_ in filename_linking
-
-                # Additional common separators that indicate we should stop
-                # Be more conservative - only stop at clear document type separators
-                filename_separators = {"document", "script", "program", "application"}
-                is_filename_separator = token.text.lower() in filename_separators
-
-                # Enhanced stopping conditions for greedy filename detection
-                # Get language-specific filename stop words from i18n resources
-                filename_stop_words = resources.get("context_words", {}).get("filename_stop_words", [])
+                is_action_verb = token.lemma_ in filename_actions
+                is_linking_verb = token.lemma_ in filename_linking
                 is_stop_word = token.text.lower() in filename_stop_words
+                is_punctuation = token.is_punct
+                
+                # Also stop at common conjunctions and prepositions that break context
+                is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ")
 
-                # Stop at prepositions that clearly indicate context separation
-                context_prepositions = {"in", "on", "at", "for", "with", "from", "to", "of"}
-                is_context_preposition = token.text.lower() in context_prepositions
-
-                # Special case: handle "the file" pattern
-                # If we encounter "file" and the previous token was "the", exclude both
-                if token.text.lower() == "file" and i > 0:
-                    prev_token = doc[i - 1]
-                    if prev_token.text.lower() == "the":
-                        # Stop here, don't include "the file" in the filename
-                        break
-
-                if (
-                    is_verb
-                    or is_context_separator
-                    or is_preposition
-                    or is_conjunction
-                    or is_punctuation
-                    or is_filename_separator
-                    or is_stop_word
-                    or is_context_preposition
-                ):
-                    logger.debug(
-                        f"SPACY FILENAME: Stopping at token '{token.text}' - verb:{is_verb}, context:{is_context_separator}, prep:{is_preposition}, conj:{is_conjunction}, punct:{is_punctuation}, sep:{is_filename_separator}"
-                    )
-                    # Always stop at context separators - don't include them in the filename
+                # If we encounter "the file", stop and don't include it.
+                if token.text.lower() == "file" and i > 0 and doc[i-1].text.lower() == "the":
                     break
+                    
+                # The main condition to stop walking backward
+                if is_action_verb or is_linking_verb or is_stop_word or is_punctuation or is_separator:
+                    logger.debug(
+                        f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})"
+                    )
+                    break
+                # --- End of Replacement ---
 
                 # If we've walked back more than ~8 words, it's probably not a filename.
                 # Increased to 8 to accommodate dunder names like "__init__"
