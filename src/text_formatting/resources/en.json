@@ -46,7 +46,7 @@
     "e dot g dot": "e.g."
   },
   "context_words": {
-    "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export"],
+    "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export", "view", "read", "create", "delete", "execute"],
     "filename_linking": ["be", "is", "are", "was", "were", "called", "named"],
     "email_actions": ["email", "contact", "write to", "send to", "reach out to"],
     "location_nouns": ["docs", "documentation", "api", "site", "website", "page", "server"],

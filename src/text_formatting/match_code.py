@@ -154,10 +154,10 @@ class CodeEntityDetector:
                 is_context_separator = token.lemma_ in filename_actions or token.lemma_ in filename_linking
                 
                 # Additional common separators that indicate we should stop
-                filename_separators = {"file", "document", "script", "program", "application", "the"}
+                filename_separators = {"document", "script", "program", "application", "the"}
                 is_filename_separator = token.text.lower() in filename_separators
 
-                if is_context_separator or is_preposition or is_conjunction or is_punctuation or is_filename_separator:
+                if is_verb or is_context_separator or is_preposition or is_conjunction or is_punctuation or is_filename_separator:
                     # Always stop at context separators - don't include them in the filename
                     break
 
@@ -767,7 +767,7 @@ class CodePatternConverter:
                 has_spoken_underscores = " underscore " in context.lower()
 
         # First, handle all spoken separators to create a clean string
-        text = re.sub(r"\s*underscore\s+", "_", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*underscore\s*", "_", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*dash\s*", "-", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE)
 
