@@ -876,7 +876,7 @@ class NumericalEntityDetector:
                 # Check if this is a percentage (e.g., "rate is zero point five percent")
                 is_percentage = "percent" in full_match.lower()
 
-                entity_type = EntityType.PERCENT if is_percentage else EntityType.VERSION_TWO
+                entity_type = EntityType.PERCENT if is_percentage else EntityType.VERSION
 
                 entities.append(
                     Entity(
