@@ -776,49 +776,67 @@ class TextFormatter:
         # Sort entities primarily by start position, then by priority (higher first), then by length (longer first)
         # This ensures that at any given position, we first consider the highest-priority, longest entity.
         entity_priority = {
-            # Highest priority: Very specific and unambiguous patterns
-            EntityType.SPOKEN_EMAIL: 40, EntityType.EMAIL: 40,
-            EntityType.SPOKEN_PROTOCOL_URL: 39, EntityType.URL: 39,
-            EntityType.FILENAME: 38, # High priority to correctly identify file paths
-            EntityType.PORT_NUMBER: 37,
-            EntityType.SLASH_COMMAND: 36,
-            EntityType.UNDERSCORE_DELIMITER: 35,
+            # HIGHEST: Unambiguous, already-formatted entities
+            EntityType.URL: 50,
+            EntityType.EMAIL: 50,
+            EntityType.FILENAME: 48,
+            EntityType.PORT_NUMBER: 47,
+            EntityType.UNIX_PATH: 46,
+            EntityType.WINDOWS_PATH: 46,
             
-            # High priority: Technical operators and flags
-            EntityType.COMMAND_FLAG: 30,
-            EntityType.ASSIGNMENT: 29,
-            EntityType.INCREMENT_OPERATOR: 28, EntityType.DECREMENT_OPERATOR: 28,
-            EntityType.COMPARISON: 27,
+            # HIGH: Very specific spoken patterns with clear delimiters
+            EntityType.SPOKEN_PROTOCOL_URL: 45, # "http colon slash slash..." is very clear
+            EntityType.UNDERSCORE_DELIMITER: 42, # "__init__" is very specific
+            EntityType.SLASH_COMMAND: 41,
+            EntityType.COMMAND_FLAG: 40,
             
-            # Medium-high priority: Measurements and specific numeric types
-            EntityType.SCIENTIFIC_NOTATION: 25,
-            EntityType.TEMPERATURE: 24,
-            EntityType.DATA_SIZE: 23,
-            EntityType.FREQUENCY: 23,
-            EntityType.TIME_DURATION: 23,
-            EntityType.MONEY: 22, EntityType.CURRENCY: 22,
-            EntityType.PERCENT: 21,
+            # MEDIUM-HIGH: Technical terms and operators
+            EntityType.CLI_COMMAND: 35, # Give CLI commands a solid priority
+            EntityType.PROGRAMMING_KEYWORD: 34,
+            EntityType.ASSIGNMENT: 33,
+            EntityType.COMPARISON: 32,
+            EntityType.INCREMENT_OPERATOR: 31, EntityType.DECREMENT_OPERATOR: 31,
             
-            # Medium priority: More complex but potentially ambiguous patterns
-            EntityType.NUMERIC_RANGE: 20,
-            EntityType.FRACTION: 19,
-            EntityType.ROOT_EXPRESSION: 18,
-            EntityType.MATH_EXPRESSION: 17,
+            # MEDIUM: Specific numeric types and measurements
+            EntityType.MONEY: 30, EntityType.CURRENCY: 30,
+            EntityType.DOLLAR_CENTS: 29, EntityType.DOLLARS: 29, EntityType.CENTS: 29,
+            EntityType.POUNDS: 29, EntityType.EUROS: 29,
+            EntityType.DATA_SIZE: 28,
+            EntityType.TEMPERATURE: 28,
+            EntityType.METRIC_LENGTH: 28, EntityType.METRIC_WEIGHT: 28, EntityType.METRIC_VOLUME: 28,
+            EntityType.SCIENTIFIC_NOTATION: 27,
+            EntityType.FREQUENCY: 26,
+            EntityType.TIME_DURATION: 26,
+            EntityType.NUMERIC_RANGE: 25, # Ranges should beat individual numbers
+            EntityType.PERCENT: 24,
+            EntityType.VERSION_TWO: 23, EntityType.VERSION_THREE: 23,
+            EntityType.PHONE_LONG: 22,
+            EntityType.TIME_CONTEXT: 21, EntityType.TIME_AMPM: 21,
             
-            # Low priority: General and often overlapping types
+            # LOWER-MEDIUM: Ambiguous spoken patterns
+            EntityType.SPOKEN_EMAIL: 20, # Lowering this to let specific terms like API win
+            EntityType.SPOKEN_URL: 19,
+            EntityType.TIME_RELATIVE: 18,
+            
+            # LOW: More complex but potentially ambiguous patterns
+            EntityType.FRACTION: 15,
+            EntityType.ROOT_EXPRESSION: 14,
+            EntityType.MATH_EXPRESSION: 13,
+            EntityType.MATH_CONSTANT: 12,
+            EntityType.PHYSICS_SQUARED: 11, EntityType.PHYSICS_TIMES: 11,
+            EntityType.PROTOCOL: 11,
+            EntityType.MATH: 11,
+            
+            # LOWEST: General, often-overlapping base types
             EntityType.ORDINAL: 10,
             EntityType.DATE: 9,
             EntityType.TIME: 8,
-            EntityType.SPOKEN_URL: 7, # Lower priority because it can be greedy
-            EntityType.CARDINAL: 5,
-            EntityType.QUANTITY: 5,
-            
-            # Lowest priority: General context or simple patterns
-            EntityType.ABBREVIATION: 4,
-            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
-            EntityType.MUSIC_NOTATION: 2,
-            EntityType.SPOKEN_EMOJI: 1,
-            EntityType.PROGRAMMING_KEYWORD: 0, EntityType.CLI_COMMAND: 0
+            EntityType.ABBREVIATION: 7,
+            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 6,
+            EntityType.CARDINAL: 5, # Should be overridden by almost everything else
+            EntityType.QUANTITY: 4,
+            EntityType.MUSIC_NOTATION: 3,
+            EntityType.SPOKEN_EMOJI: 2
         }
 
         # Sort entities by start index, then by priority (desc), then by length (desc)

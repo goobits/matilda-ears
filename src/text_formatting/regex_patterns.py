@@ -126,20 +126,29 @@ SPOKEN_FRACTION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Numeric range patterns - matches compound number words with "to" between them
-# Uses a simpler approach that captures multiple number words on each side
+# Component-based numeric range pattern for better maintainability
+# Get the number words from a single source of truth
+from .common import NumberParser
+_number_parser_instance = NumberParser("en")  # Use English as default for pattern building
+_number_words_pattern = "(?:" + "|".join(_number_parser_instance.all_number_words) + ")"
+
+# Define a reusable pattern for a sequence of one or more number words
+NUMBER_WORD_SEQUENCE = f"{_number_words_pattern}(?:\\s+{_number_words_pattern})*"
+
+# Build the range pattern from components - much more readable and maintainable
 SPOKEN_NUMERIC_RANGE_PATTERN = re.compile(
-    r"\b((?:(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
-    r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
-    r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)(?:\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
-    r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
-    r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand))*)+)\s+to\s+"
-    r"((?:(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
-    r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
-    r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)(?:\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
-    r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
-    r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand))*)+)\b",
-    re.IGNORECASE,
+    rf"""
+    \b                      # Word boundary
+    (                       # Capture group 1: Start of range
+        {NUMBER_WORD_SEQUENCE}
+    )
+    \s+to\s+                # The word "to"
+    (                       # Capture group 2: End of range
+        {NUMBER_WORD_SEQUENCE}
+    )
+    \b                      # Word boundary
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 # Common domain TLDs

@@ -42,10 +42,22 @@ class WebEntityDetector:
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all web-related entities."""
         web_entities = []
-        self._detect_spoken_protocol_urls(text, web_entities, entities)
-        self._detect_spoken_urls(text, web_entities, entities)
-        self._detect_spoken_emails(text, web_entities, entities)
-        self._detect_port_numbers(text, web_entities, entities)
+        # Create a combined list for overlap checking that includes both existing and newly detected entities
+        all_entities = entities[:]
+        
+        # Detect emails first as they're more specific than URLs
+        self._detect_spoken_emails(text, web_entities, all_entities)
+        all_entities = entities + web_entities  # Update with all detected so far
+        
+        self._detect_spoken_protocol_urls(text, web_entities, all_entities)
+        all_entities = entities + web_entities  # Update with all detected so far
+        
+        self._detect_spoken_urls(text, web_entities, all_entities)
+        all_entities = entities + web_entities  # Update with all detected so far
+        
+        self._detect_port_numbers(text, web_entities, all_entities)
+        all_entities = entities + web_entities  # Update with all detected so far
+        
         self._detect_links(text, web_entities)
         return web_entities
 
@@ -102,14 +114,18 @@ class WebEntityDetector:
                 words_before_at = before_at.split()
                 if words_before_at:
                     last_word = words_before_at[-1].lower()
+                    
+                    # Common email username patterns that should be treated as emails
+                    common_email_usernames = {"support", "help", "info", "admin", "contact", "sales", "hello"}
+                    
                     # Skip if it's a clear location noun
                     if last_word in location_nouns:
                         logger.debug(
                             f"Skipping email match '{match.group()}' - '{last_word}' indicates location context"
                         )
                         should_skip = True
-                    # Skip ambiguous nouns only if there's no email action
-                    elif last_word in ambiguous_nouns and not has_email_action:
+                    # Skip ambiguous nouns only if there's no email action AND it's not a common email username
+                    elif last_word in ambiguous_nouns and not has_email_action and last_word not in common_email_usernames:
                         logger.debug(
                             f"Skipping email match '{match.group()}' - '{last_word}' without email action indicates location context"
                         )
