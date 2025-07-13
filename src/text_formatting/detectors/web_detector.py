@@ -36,7 +36,7 @@ class WebEntityDetector:
         self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
         self.port_number_pattern = regex_patterns.get_port_number_pattern(language)
         self.spoken_protocol_pattern = regex_patterns.get_spoken_protocol_pattern(language)
-        self.spoken_email_pattern = regex_patterns.get_spoken_email_pattern(language)
+        # Note: _detect_spoken_emails builds its own pattern internally
         # Note: port_pattern is the same as port_number_pattern
 
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
