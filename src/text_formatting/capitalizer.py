@@ -47,8 +47,7 @@ class SmartCapitalizer:
             EntityType.SIMPLE_UNDERSCORE_VARIABLE,
             EntityType.UNDERSCORE_DELIMITER,
             EntityType.PORT_NUMBER,
-            EntityType.VERSION_TWO,
-            EntityType.VERSION_THREE,
+            EntityType.VERSION,
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
         }

@@ -124,7 +124,7 @@ class TestFilenameEntities:
         format_transcription = preloaded_formatter
         test_cases = [
             ("open report version two dot pdf", "Open report_version_2.pdf"),
-            ("edit config v one dot json", "Edit config_v_1.json"),
+            ("edit config v one dot json", "Edit config_v1.json"),
             ("check log file one hundred dot txt", "Check log_file_100.txt"),
             ("run test case three dot py", "Run test_case_3.py"),
         ]

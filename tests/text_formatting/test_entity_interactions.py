@@ -197,7 +197,7 @@ class TestNestedEntities:
         format_transcription = preloaded_formatter
         test_cases = [
             ("open test file version two dot py", "Open test_file_version_2.py"),
-            ("edit config v three dot json", "Edit config_v_3.json"),
+            ("edit config v three dot json", "Edit config_v3.json"),
             ("check log twenty twenty four dot txt", "Check log_2024.txt"),
         ]
 

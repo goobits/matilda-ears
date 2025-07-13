@@ -87,8 +87,7 @@ class PatternConverter:
             EntityType.TIME_RELATIVE: self.convert_time_relative,
             EntityType.FRACTION: self.convert_fraction,
             EntityType.NUMERIC_RANGE: self.convert_numeric_range,
-            EntityType.VERSION_TWO: self.convert_version,
-            EntityType.VERSION_THREE: self.convert_version,
+            EntityType.VERSION: self.convert_version,
             EntityType.QUANTITY: self.convert_measurement,
             EntityType.TEMPERATURE: self.convert_temperature,
             EntityType.METRIC_LENGTH: self.convert_metric_unit,
@@ -469,6 +468,7 @@ class PatternConverter:
     def convert_filename(self, entity: Entity, full_text: str = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
+        logger.info(f"🔍 FILENAME CONVERSION START: entity.text='{entity.text}', start={entity.start}, end={entity.end}")
 
         # Check for Java package metadata
         if entity.metadata and entity.metadata.get("is_package"):
@@ -507,8 +507,11 @@ class PatternConverter:
             # Try parse_as_digits first for filenames, then fall back to regular parsing
             result = self.number_parser.parse_as_digits(match.group(0))
             if result:
+                logger.info(f"🔍 FILENAME NUMBER: '{match.group(0)}' -> '{result}'")
                 return result
-            return self.number_parser.parse(match.group(0)) or match.group(0)
+            fallback = self.number_parser.parse(match.group(0)) or match.group(0)
+            logger.info(f"🔍 FILENAME NUMBER FALLBACK: '{match.group(0)}' -> '{fallback}'")
+            return fallback
 
         number_word_pattern = (
             r"\b(?:"
@@ -517,7 +520,9 @@ class PatternConverter:
             + "|".join(self.number_parser.all_number_words)
             + r"))*\b"
         )
+        logger.info(f"🔍 FILENAME BEFORE NUMBER REPLACEMENT: '{filename_part}'")
         filename_part = re.sub(number_word_pattern, number_word_replacer, filename_part, flags=re.IGNORECASE)
+        logger.info(f"🔍 FILENAME AFTER NUMBER REPLACEMENT: '{filename_part}'")
 
         # If underscores were spoken, they dictate the format
         if has_spoken_underscores:
@@ -1745,9 +1750,6 @@ class PatternConverter:
 
     def convert_version(self, entity: Entity) -> str:
         """Convert version numbers from spoken form to numeric form."""
-        # Handle VERSION_THREE (keyword-only capitalization)
-        if entity.type == EntityType.VERSION_THREE and entity.metadata and "capitalized" in entity.metadata:
-            return entity.metadata["capitalized"]
 
         text = entity.text
 
