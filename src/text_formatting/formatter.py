@@ -18,9 +18,10 @@ from .common import EntityType, Entity, NumberParser
 from .utils import is_inside_entity
 
 # Import specialized formatters
-from .detectors.web_detector import WebEntityDetector, WebPatternConverter
-from .detectors.code_detector import CodeEntityDetector, CodePatternConverter
-from .detectors.numeric_detector import NumericalEntityDetector, NumericalPatternConverter
+from .detectors.web_detector import WebEntityDetector
+from .detectors.code_detector import CodeEntityDetector
+from .detectors.numeric_detector import NumericalEntityDetector
+from .pattern_converter import PatternConverter as UnifiedPatternConverter
 from .capitalizer import SmartCapitalizer
 from .nlp_provider import get_nlp, get_punctuator
 
@@ -478,27 +479,19 @@ class PatternConverter:
     """Converts specific entity types to their final form"""
 
     def __init__(self, language: str = "en"):
-        self.number_parser = NumberParser(language=language)
         self.language = language
-
+        
+        # Use the unified converter with all conversion methods
+        self.unified_converter = UnifiedPatternConverter(NumberParser(language=language), language=language)
+        
         # Entity type to converter method mapping
         self.converters = {
             EntityType.PHYSICS_SQUARED: self.convert_physics_squared,
             EntityType.PHYSICS_TIMES: self.convert_physics_times,
         }
-
-        # Add web converters
-        self.converters.update(WebPatternConverter(self.number_parser, language=language).converters)
-
-        # Add code converters
-        self.converters.update(CodePatternConverter(self.number_parser, language=language).converters)
-
-        # Add numeric converters
-        self.converters.update(NumericalPatternConverter(self.number_parser, language=language).converters)
-
-        # Add quantity converters - DISABLED: Using superior NumericalPatternConverter instead
-        # from .match_entities import QuantityPatternConverter
-        # self.converters.update(QuantityPatternConverter(self.number_parser).converters)
+        
+        # Add all converters from the unified converter
+        self.converters.update(self.unified_converter.converters)
 
     def convert(self, entity: Entity, full_text: str) -> str:
         """Convert entity based on its type"""
@@ -598,13 +591,11 @@ class TextFormatter:
         self.pattern_converter = PatternConverter(language=self.language)
         self.smart_capitalizer = SmartCapitalizer(language=self.language)
 
-        # Instantiate specialized components with shared NLP model and language
+        # Instantiate specialized detectors with shared NLP model and language
+        # Note: Converters are now unified in PatternConverter
         self.web_detector = WebEntityDetector(nlp=self.nlp, language=self.language)
-        self.web_converter = WebPatternConverter(self.pattern_converter.number_parser, language=self.language)
         self.code_detector = CodeEntityDetector(nlp=self.nlp, language=self.language)
-        self.code_converter = CodePatternConverter(self.pattern_converter.number_parser, language=self.language)
         self.numeric_detector = NumericalEntityDetector(nlp=self.nlp, language=self.language)
-        self.numeric_converter = NumericalPatternConverter(self.pattern_converter.number_parser, language=self.language)
 
         # Load language-specific resources
         self.resources = get_resources(language)
