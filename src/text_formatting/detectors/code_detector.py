@@ -183,12 +183,18 @@ class CodeEntityDetector:
                 # BUT allow 'v' which is often used in version patterns (config v1.json)
                 is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != 'v'
 
-                # If we encounter "the file", stop and don't include it.
-                if token.text.lower() == "file" and i > 0 and doc[i-1].text.lower() == "the":
-                    break
+                # Special handling for "file" - stop if it's preceded by articles like "the", "a"
+                if token.text.lower() == "file" and i > 0:
+                    prev_token = doc[i-1].text.lower()
+                    if prev_token in ["the", "a", "an", "this", "that"]:
+                        break
+                
+                # Don't treat "file" as a stop word when it could be part of a compound filename
+                # (e.g., "log file", "config file", "data file")
+                is_stop_word_filtered = is_stop_word and token.text.lower() != "file"
                     
                 # The main condition to stop walking backward
-                if is_action_verb or is_linking_verb or is_stop_word or is_punctuation or is_separator:
+                if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator:
                     logger.debug(
                         f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})"
                     )
