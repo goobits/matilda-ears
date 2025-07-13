@@ -684,7 +684,6 @@ class TextFormatter:
         logger.debug(f"Final formatted: '{text[:50]}...'")
         return text
 
-
     def _is_standalone_technical(self, text: str, entities: List[Entity]) -> bool:
         """Check if the text consists entirely of technical entities with no natural language."""
         if not entities:
