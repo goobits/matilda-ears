@@ -4,7 +4,7 @@
 import re
 from typing import List
 from ..common import Entity, EntityType, NumberParser
-from ..utils import is_inside_entity
+from ..utils import is_inside_entity, overlaps_with_entity
 from ...core.config import get_config, setup_logging
 from .. import regex_patterns
 from ..constants import get_resources
@@ -47,35 +47,35 @@ class CodeEntityDetector:
         # Start with existing entities and build cumulatively
         all_entities = entities[:]  # Start with copy of existing entities
         
+        self._detect_filenames(text, code_entities, all_entities)
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
+        
         self._detect_cli_commands(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_programming_keywords(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
-        
-        self._detect_filenames(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_assignment_operators(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_spoken_operators(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_abbreviations(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_command_flags(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_preformatted_flags(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_slash_commands(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_underscore_delimiters(text, code_entities, all_entities)
-        all_entities = entities + code_entities  # Update with found entities
+        all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
         
         self._detect_simple_underscore_variables(text, code_entities, all_entities)
 
@@ -93,13 +93,13 @@ class CodeEntityDetector:
         # --- Part 1: Handle already-formatted files first (e.g., main.py, com.example.app) ---
         # This logic is sound and should run first.
         for match in regex_patterns.FILENAME_WITH_EXTENSION_PATTERN.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), all_entities):
+            if not overlaps_with_entity(match.start(), match.end(), all_entities):
                 entities.append(
                     Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
                 )
 
         for match in regex_patterns.JAVA_PACKAGE_PATTERN.finditer(text):
-            if not is_inside_entity(match.start(), match.end(), all_entities):
+            if not overlaps_with_entity(match.start(), match.end(), all_entities):
                 package_text = match.group(1).lower()
                 # Expanded to include more common package prefixes
                 common_prefixes = ["com dot", "org dot", "net dot", "io dot", "gov dot", "edu dot"]
@@ -136,7 +136,7 @@ class CodeEntityDetector:
         end_char_to_token = {token.idx + len(token.text): token for token in doc}
 
         for match in regex_patterns.SPOKEN_DOT_FILENAME_PATTERN.finditer(text):
-            if is_inside_entity(match.start(), match.end(), all_entities):
+            if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
 
             logger.debug(
@@ -217,7 +217,7 @@ class CodeEntityDetector:
             logger.debug(f"SPACY FILENAME: Entity text: '{entity_text}' at {start_pos}-{end_pos}")
 
             # Final check to ensure we don't create an overlapping entity
-            if not is_inside_entity(start_pos, end_pos, all_entities):
+            if not overlaps_with_entity(start_pos, end_pos, all_entities):
                 entities.append(Entity(start=start_pos, end=end_pos, text=entity_text, type=EntityType.FILENAME))
                 logger.debug(f"SPACY FILENAME: Created filename entity: '{entity_text}'")
             else:
@@ -727,7 +727,7 @@ class CodeEntityDetector:
 
         # Use the comprehensive pattern that captures both filename and extension
         for match in regex_patterns.FULL_SPOKEN_FILENAME_PATTERN.finditer(text):
-            if is_inside_entity(match.start(), match.end(), all_entities):
+            if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
 
             full_filename = match.group(0)  # e.g., "my script dot py"
