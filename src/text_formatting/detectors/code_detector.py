@@ -68,6 +68,9 @@ class CodeEntityDetector:
         self._detect_command_flags(text, code_entities, all_entities)
         all_entities = entities + code_entities  # Update with found entities
         
+        self._detect_preformatted_flags(text, code_entities, all_entities)
+        all_entities = entities + code_entities  # Update with found entities
+        
         self._detect_slash_commands(text, code_entities, all_entities)
         all_entities = entities + code_entities  # Update with found entities
         
@@ -486,6 +489,32 @@ class CodeEntityDetector:
                         )
                     )
 
+    def _detect_preformatted_flags(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
+        """Detects already-formatted command flags (like --MESSAGE) and normalizes them to lowercase."""
+        if all_entities is None:
+            all_entities = entities
+            
+        # Pattern to match already-formatted flags with uppercase letters
+        preformatted_flag_pattern = re.compile(r'--[A-Z][A-Z0-9_-]*', re.IGNORECASE)
+        
+        for match in preformatted_flag_pattern.finditer(text):
+            # Only detect if it has uppercase letters and isn't already detected
+            flag_text = match.group(0)
+            if any(c.isupper() for c in flag_text) and not is_inside_entity(match.start(), match.end(), all_entities):
+                # Extract flag name (everything after --)
+                flag_name = flag_text[2:]  # Remove --
+                entities.append(
+                    Entity(
+                        start=match.start(),
+                        end=match.end(),
+                        text=flag_text,
+                        type=EntityType.COMMAND_FLAG,
+                        metadata={"type": "preformatted", "name": flag_name.lower()},
+                    )
+                )
+                # Update all_entities to include newly found entity for subsequent overlap checks
+                all_entities.append(entities[-1])
+
     def _detect_slash_commands(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
         """Detects spoken slash commands like 'slash commit' -> '/commit'."""
         slash_command_pattern = self.slash_command_pattern
@@ -676,15 +705,16 @@ class CodeEntityDetector:
             pattern = rf"\b{re.escape(command)}\b"
             for match in re.finditer(pattern, text, re.IGNORECASE):
                 if not is_inside_entity(match.start(), match.end(), all_entities):
-                    entities.append(
-                        Entity(
-                            start=match.start(),
-                            end=match.end(),
-                            text=match.group(0),
-                            type=EntityType.CLI_COMMAND,
-                            metadata={"command": match.group(0)},
-                        )
+                    new_entity = Entity(
+                        start=match.start(),
+                        end=match.end(),
+                        text=match.group(0),
+                        type=EntityType.CLI_COMMAND,
+                        metadata={"command": match.group(0)},
                     )
+                    entities.append(new_entity)
+                    # Update all_entities to include newly found entity for subsequent overlap checks
+                    all_entities.append(new_entity)
 
     def _detect_filenames_regex_fallback(
         self, text: str, entities: List[Entity], all_entities: List[Entity] = None

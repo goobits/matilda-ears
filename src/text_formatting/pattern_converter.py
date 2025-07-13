@@ -688,6 +688,9 @@ class PatternConverter:
                 return f"--{name}"
             if flag_type == "short":
                 return f"-{name.lower()}"
+            if flag_type == "preformatted":
+                # Already-formatted flag, just ensure lowercase
+                return f"--{name.lower()}"
 
         return entity.text  # Fallback
 
