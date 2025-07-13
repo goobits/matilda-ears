@@ -530,6 +530,17 @@ class PatternConverter:
 
         # Otherwise, apply casing rules based on the config
         format_rule = self.config.get_filename_format(extension)
+        
+        # Special handling for version patterns - treat "v<number>" as single units
+        # Handle both "v1" and "v 1" patterns by collapsing them before splitting
+        logger.info(f"🔍 FILENAME BEFORE VERSION COLLAPSE: '{filename_part}'")
+        
+        # Collapse "v <number>" patterns into "v<number>" to treat as single units
+        version_collapse_pattern = r'\bv\s+(\d+(?:\.\d+)*)\b'
+        filename_part = re.sub(version_collapse_pattern, r'v\1', filename_part, flags=re.IGNORECASE)
+        logger.info(f"🔍 FILENAME AFTER VERSION COLLAPSE: '{filename_part}'")
+        
+        # Now split on spaces, underscores, and hyphens
         casing_words = re.split(r"[ _-]", filename_part)
         casing_words = [w.lower() for w in casing_words if w]
 

@@ -180,7 +180,8 @@ class CodeEntityDetector:
                 is_punctuation = token.is_punct
                 
                 # Also stop at common conjunctions and prepositions that break context
-                is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ")
+                # BUT allow 'v' which is often used in version patterns (config v1.json)
+                is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != 'v'
 
                 # If we encounter "the file", stop and don't include it.
                 if token.text.lower() == "file" and i > 0 and doc[i-1].text.lower() == "the":
