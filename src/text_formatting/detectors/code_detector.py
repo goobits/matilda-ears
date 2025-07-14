@@ -502,7 +502,7 @@ class CodeEntityDetector:
                         if words:
                             last_word = words[-1].lower()
                             # Check if it's a number word
-                            from .common import NumberParser
+                            from ..common import NumberParser
 
                             parser = NumberParser(language=self.language)
                             if last_word in parser.all_number_words or last_word.isdigit():

@@ -835,10 +835,26 @@ class TextFormatter:
             processed_text, original_had_punctuation, is_standalone_technical, filtered_entities
         )
         logger.debug(f"Text after punctuation: '{final_text}'")
+        
+        # Step 4.5: Remove trailing punctuation from standalone entities (before capitalization)
+        logger.debug(f"Text before standalone entity cleanup: '{final_text}'")
+        cleaned_text = self._clean_standalone_entity_punctuation(final_text, converted_entities)
+        logger.debug(f"Text after standalone entity cleanup: '{cleaned_text}'")
+        
+        # If punctuation was removed from CLI commands or lowercase versions, skip capitalization
+        punctuation_was_removed = cleaned_text != final_text
+        has_cli_command = any(entity.type == EntityType.CLI_COMMAND for entity in converted_entities)
+        # Check if cleaned text is a short lowercase version pattern (e.g., 'v1.0' not 'version 2.1')
+        import re
+        has_lowercase_version = (any(entity.type == EntityType.VERSION for entity in converted_entities) 
+                               and re.match(r'^v\d', cleaned_text))  # 'v' followed by digit
+        skip_capitalization_for_cli = punctuation_was_removed and (has_cli_command or has_lowercase_version)
+        
+        final_text = cleaned_text
 
         # Step 5: Apply capitalization to the final text (entities already converted)
-        # Skip capitalization for standalone technical content
-        if not is_standalone_technical:
+        # Skip capitalization for standalone technical content OR CLI commands with removed punctuation
+        if not is_standalone_technical and not skip_capitalization_for_cli:
             logger.debug(f"Text before capitalization: '{final_text}'")
 
             final_text = self._apply_capitalization_with_entity_protection(final_text, converted_entities, doc=doc)
@@ -869,6 +885,7 @@ class TextFormatter:
         logger.debug(f"Text before smart quotes: '{text}'")
         text = self._apply_smart_quotes(text)
         logger.debug(f"Text after smart quotes: '{text}'")
+
 
         # Note: Suffix handling remains in hotkey_daemon for reliability
 
@@ -1477,6 +1494,66 @@ class TextFormatter:
         logger.debug(f"Received from capitalizer: '{capitalized_text}'")
 
         return capitalized_text
+
+    def _clean_standalone_entity_punctuation(self, text: str, entities: List[Entity]) -> str:
+        """Remove trailing punctuation from standalone entities.
+        
+        If the formatted text is essentially just a single entity with trailing punctuation,
+        remove the punctuation. This handles cases like '/compact.' → '/compact'.
+        
+        Returns a tuple (cleaned_text, should_skip_capitalization) to indicate whether
+        capitalization should be skipped for this entity.
+        """
+        if not text or not entities:
+            return text
+            
+        # Strip whitespace for analysis
+        text_stripped = text.strip()
+        
+        # Check if text ends with punctuation
+        if not text_stripped or text_stripped[-1] not in '.!?':
+            return text
+            
+        # Remove trailing punctuation for analysis (handle multiple punctuation marks)
+        text_no_punct = re.sub(r'[.!?]+$', '', text_stripped).strip()
+        
+        # Define entity types that should be standalone (no punctuation when alone)
+        standalone_entity_types = {
+            EntityType.SLASH_COMMAND,
+            EntityType.CLI_COMMAND,
+            EntityType.FILENAME,
+            EntityType.URL,
+            EntityType.SPOKEN_URL,
+            EntityType.SPOKEN_PROTOCOL_URL,
+            EntityType.EMAIL,
+            EntityType.SPOKEN_EMAIL,
+            EntityType.VERSION,
+            EntityType.COMMAND_FLAG,
+            EntityType.PROGRAMMING_KEYWORD,
+        }
+        
+        # Only remove punctuation if the text is very short and mostly consists of the entity
+        if len(text_no_punct.split()) <= 2:  # 2 words or fewer (more restrictive)
+            # Check if we have any standalone entity types that cover most of the text
+            for entity in entities:
+                if entity.type in standalone_entity_types:
+                    # Check if this entity covers at least 70% of the text
+                    try:
+                        entity_length = len(entity.text) if hasattr(entity, 'text') else (entity.end - entity.start)
+                        text_length = len(text_no_punct)
+                        coverage = entity_length / text_length if text_length > 0 else 0
+                        
+                        if coverage >= 0.7:
+                            logger.debug(f"Removing trailing punctuation from standalone entity: '{text_stripped}' → '{text_no_punct}' (coverage: {coverage:.2f})")
+                            return text_no_punct
+                    except (AttributeError, ZeroDivisionError):
+                        # If we can't calculate coverage, fall back to simpler check
+                        if len(text_no_punct.split()) == 1:  # Single word/entity
+                            logger.debug(f"Removing trailing punctuation from single-word entity: '{text_stripped}' → '{text_no_punct}'")
+                            return text_no_punct
+        
+        # If we get here, it's likely a sentence containing entities, keep punctuation
+        return text
 
     # Note: Suffix handling is performed in hotkey_daemon.py for reliability
     # The TextFormatter focuses only on text content formatting
