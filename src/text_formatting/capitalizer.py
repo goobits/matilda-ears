@@ -49,6 +49,7 @@ class SmartCapitalizer:
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
             EntityType.CLI_COMMAND,  # CLI commands like 'git' should remain lowercase
+            EntityType.ABBREVIATION,  # Protect abbreviations from capitalization changes
         }
 
         # Version patterns that indicate technical content
@@ -319,6 +320,7 @@ class SmartCapitalizer:
                             EntityType.DECREMENT_OPERATOR,
                             EntityType.COMMAND_FLAG,
                             EntityType.PORT_NUMBER,
+                            EntityType.ABBREVIATION,  # Protect abbreviations from uppercase conversion
                         }
                         for entity in entities
                     )
