@@ -146,7 +146,7 @@ class NumberParser:
         self.all_number_words = set(self.ones.keys()) | set(self.tens.keys()) | set(self.scales.keys())
 
     def parse(self, text: str) -> Optional[str]:
-        """Parse number words to digits algorithmically"""
+        """Parse number words to digits algorithmically, handling compound numbers."""
         if not text:
             return None
 
@@ -161,38 +161,25 @@ class NumberParser:
         if " point " in text or " dot " in text:
             # Normalize to " point "
             text = text.replace(" dot ", " point ")
-            left_part, right_part = text.split(" point ", 1)
-
-            left_num_str = self.parse(left_part)
+            parts = text.split(" point ", 1)
+            left_num_str = self.parse(parts[0])
             if left_num_str is None:
                 return None
-
-            # For the decimal part, parse each word as a single digit
-            right_digits = []
-            for word in right_part.split():
-                digit = self.ones.get(word)
-                if digit is not None and digit < 10:
-                    right_digits.append(str(digit))
-                # Allow for already-digitized parts
-                elif word.isdigit():
-                    right_digits.append(word)
-                else:
-                    # Try parsing as a number for multi-word decimals
-                    break
-
+            
+            right_digits = self.parse_as_digits(parts[1])
             if right_digits:
-                return f"{left_num_str}.{''.join(right_digits)}"
-            # Fallback if right part is not single digits
-            right_num_str = self.parse(right_part)
-            if right_num_str:
-                return f"{left_num_str}.{right_num_str}"
-            return None  # Invalid decimal part
+                return f"{left_num_str}.{right_digits}"
+            return None
 
-        # Handle large numbers by splitting on spaces
         words = text.split()
-
         current_val = 0
         total_val = 0
+        
+        # Check if no scale words are present - handle as sequence
+        if not any(word in self.scales for word in words):
+            parsed_sequence = self.parse_as_sequence(words)
+            if parsed_sequence is not None:
+                return parsed_sequence
 
         for word in words:
             if word in self.ones:
@@ -201,62 +188,78 @@ class NumberParser:
                 current_val += self.tens[word]
             elif word in self.scales:
                 scale_val = self.scales[word]
+                # If current_val is 0, it implies a standalone scale word
+                multiplier = current_val if current_val > 0 else 1
                 if scale_val == 100:
-                    # Handle "hundred" - multiply current value or default to 1 if standalone
-                    if current_val == 0:
-                        current_val = scale_val  # Standalone "hundred" = 100
-                    else:
-                        current_val *= scale_val  # "five hundred" = 5 * 100
+                    current_val = multiplier * scale_val
                 else:
-                    # Handle "thousand", "million", etc.
-                    if current_val == 0:
-                        current_val = 1  # Standalone "thousand" = 1 * 1000
-                    total_val += current_val * scale_val
+                    total_val += multiplier * scale_val
                     current_val = 0
             elif word.isdigit():
-                # Handle cases where part of the number is already a digit
                 current_val += int(word)
-            elif word == "and":
-                # Handle "and" in compound numbers
-                # If we have accumulated a value and "and" is not at the end,
-                # this might be the end of a number part (like "one and" in "one and one half")
-                if current_val > 0 and len(words) > 1:
-                    # Check if this is likely the end of a number sequence
-                    word_index = words.index(word) if word in words else -1
-                    if word_index >= 0 and word_index < len(words) - 1:
-                        # Look ahead to see if next word starts a fraction or other construct
-                        next_word = words[word_index + 1]
-                        # If next word is a number that could start a fraction,
-                        # treat this "and" as a separator
-                        if next_word in self.ones and self.ones[next_word] <= 10:
-                            # This could be "one and one half" - end number here
-                            break
-                # Otherwise, skip "and" in numbers like "one hundred and twenty"
-                continue
-            else:
-                # If a word is not a number word, return None
+            elif word != "and":
                 return None
-
+        
         total_val += current_val
+        return str(total_val) if total_val > 0 or text == "zero" else None
 
-        # Return the result if we parsed a valid number
-        if total_val > 0 or text == "zero":
-            return str(total_val)
-
-        # Fallback for simple sequences of digits spoken as words
-        if len(words) > 1:
-            digit_sequence = []
-            all_digits = True
-            for word in words:
-                if word in self.ones and self.ones[word] < 10:
-                    digit_sequence.append(str(self.ones[word]))
+    def parse_as_sequence(self, words: list) -> Optional[str]:
+        """Tries to parse a list of words as a sequence of numbers."""
+        try:
+            # Special case for year patterns like "twenty twenty four" -> "2024"
+            if len(words) == 3 and all(w in self.tens for w in words[:2]) and words[2] in self.ones:
+                # Pattern: tens tens ones (e.g., twenty twenty four)
+                first_tens = self.tens[words[0]]
+                second_tens = self.tens[words[1]] 
+                ones = self.ones[words[2]]
+                # Construct as year: 20 + 20 + 4 -> 2024 (concatenation, not addition)
+                return f"{first_tens}{second_tens // 10}{ones}"
+            
+            # Special case for "twenty twenty" -> "2020"
+            if len(words) == 2 and all(w in self.tens for w in words):
+                first_tens = self.tens[words[0]]
+                second_tens = self.tens[words[1]]
+                return f"{first_tens}{second_tens // 10}0"
+            
+            parts = []
+            i = 0
+            while i < len(words):
+                # Greedily parse the longest possible number from current position
+                best_parse = None
+                best_j = i
+                for j in range(len(words), i, -1):
+                    chunk = words[i:j]
+                    parsed_chunk = self._parse_simple_number(" ".join(chunk))
+                    if parsed_chunk is not None:
+                        best_parse = parsed_chunk
+                        best_j = j
+                        break
+                
+                if best_parse is not None:
+                    parts.append(str(best_parse))
+                    i = best_j
                 else:
-                    all_digits = False
-                    break
-            if all_digits:
-                return "".join(digit_sequence)
+                    return None
+            return "".join(parts)
+        except RecursionError:
+            return None
 
-        return None  # Return None if no valid number could be parsed
+    def _parse_simple_number(self, text: str) -> Optional[int]:
+        """A non-recursive helper to parse numbers up to 999."""
+        words = text.split()
+        current_val = 0
+        total_val = 0
+        for word in words:
+            if word in self.ones:
+                current_val += self.ones[word]
+            elif word in self.tens:
+                current_val += self.tens[word]
+            elif word == "hundred":
+                current_val *= 100
+            elif word != "and":
+                return None
+        total_val += current_val
+        return total_val if total_val > 0 or text == "zero" else None
 
     def parse_ordinal(self, text: str) -> Optional[str]:
         """Parse ordinal words to digits (e.g., 'first' -> '1', 'twenty third' -> '23')"""
