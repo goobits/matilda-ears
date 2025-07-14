@@ -162,14 +162,14 @@ class CodeEntityDetector:
                 is_punctuation = token.is_punct
                 is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != 'v'
 
-                # Special handling for "file" - stop if preceded by articles like "the", "a"
+                # Special handling for "file" - stop if preceded by articles or stop words
                 if token.text.lower() == "file" and i > 0:
                     prev_token = doc[i-1].text.lower()
-                    if prev_token in ["the", "a", "an", "this", "that"]:
+                    if prev_token in ["the", "a", "an", "this", "that"] or prev_token in filename_stop_words:
                         break
                 
-                # Don't treat "file" as a stop word if it could be part of the name
-                is_stop_word_filtered = is_stop_word and token.text.lower() != "file"
+                # Don't treat "file" as a stop word only if it's part of a compound filename (like "makefile")
+                is_stop_word_filtered = is_stop_word and not (token.text.lower() == "file" and len(filename_tokens) == 0)
                     
                 if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator:
                     logger.debug(f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})")

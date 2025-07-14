@@ -470,7 +470,11 @@ class PatternConverter:
         text = entity.text.strip()
 
         # Strip common leading phrases to isolate the filename
-        leading_phrases_to_strip = ["edit the file", "open the file", "check the file", "the file", "my favorite file is"]
+        leading_phrases_to_strip = [
+            "edit the config file", "open the config file", "check the config file",
+            "edit the file", "open the file", "check the file", "save the file",
+            "the config file", "config file", "the file", "my favorite file is"
+        ]
         for phrase in leading_phrases_to_strip:
             if text.lower().startswith(phrase):
                 text = text[len(phrase):].lstrip()

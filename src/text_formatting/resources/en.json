@@ -48,7 +48,7 @@
   "context_words": {
     "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export", "view", "read", "create", "delete", "execute"],
     "filename_linking": ["be", "is", "are", "was", "were", "called", "named"],
-    "filename_stop_words": ["the", "a", "an", "this", "that", "file", "script", "document"],
+    "filename_stop_words": ["the", "a", "an", "this", "that", "file", "script", "document", "in", "on", "for", "is", "was", "called"],
     "email_actions": ["email", "send", "write", "mail", "contact", "notify", "reach", "write to", "send to", "reach out to"],
     "location_nouns": ["docs", "documentation", "api", "site", "website", "page", "server"],
     "ambiguous_nouns": ["help", "support"],
