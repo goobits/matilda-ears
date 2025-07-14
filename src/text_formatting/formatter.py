@@ -177,6 +177,10 @@ class EntityDetector:
         if ent.label_ != "CARDINAL":
             return False
 
+        # Check for contextual number words (one/two) in natural speech
+        if self._is_contextual_number_word(ent, text):
+            return True
+
         # Check for known idiomatic phrases that are exceptions
         # Check if this CARDINAL is part of a known idiomatic phrase
         # Get the text context before the entity
@@ -390,6 +394,131 @@ class EntityDetector:
             return True
 
         return False  # Keep as PERCENT
+
+    def _is_contextual_number_word(self, ent, text: str) -> bool:
+        """Check if a number word (one, two) should remain as text in natural speech contexts."""
+        # Only check for common number words that often appear in natural speech
+        ent_lower = ent.text.lower()
+        if ent_lower not in ["one", "two"]:
+            return False
+            
+        # Get the spaCy doc if available
+        doc = None
+        if self.nlp:
+            try:
+                doc = self.nlp(text)
+            except Exception:
+                pass
+                
+        # Get context before and after the entity
+        prefix_text = text[: ent.start_char].strip().lower()
+        suffix_text = text[ent.end_char :].strip().lower()
+        
+        # Get immediate preceding and following words
+        prefix_words = prefix_text.split()
+        suffix_words = suffix_text.split()
+        
+        # Check for determiner context (the one, which one, etc.)
+        if prefix_words:
+            last_word = prefix_words[-1]
+            if last_word in ["the", "which", "any", "every", "each", "either", "neither"]:
+                logger.debug(f"Skipping CARDINAL '{ent.text}' - preceded by determiner '{last_word}'")
+                return True
+                
+        # Check for "one/two of" pattern (one of us, two of them)
+        # But NOT for patterns like "page one of ten" 
+        if suffix_words and suffix_words[0] == "of":
+            # Check if preceded by words that indicate enumeration/counting
+            if prefix_words:
+                last_word = prefix_words[-1]
+                # Don't skip if preceded by enumeration words
+                if last_word in ["page", "chapter", "section", "part", "volume", "item", "step", "line", "row", "column"]:
+                    return False  # This is enumeration context, convert to number
+            # Otherwise, it's likely natural speech
+            logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} of' pattern")
+            return True
+            
+        # Check for "or the other" pattern
+        if ent_lower == "one" and suffix_text.startswith("or the other"):
+            logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'one or the other'")
+            return True
+            
+        # Check for "one or two" pattern - common in estimates
+        if suffix_words and len(suffix_words) >= 2:
+            if suffix_words[0] == "or" and suffix_words[1] in ["one", "two", "three"]:
+                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} or {suffix_words[1]}' pattern")
+                return True
+        
+        # Also check if preceded by "or" and followed by a general noun
+        if prefix_words and suffix_words:
+            if prefix_words[-1] == "or" and ent_lower in ["one", "two", "three"]:
+                # Check if followed by a plural noun (examples, things, items, etc.)
+                if suffix_words[0] in ["examples", "things", "items", "options", "choices", "ways", "methods"]:
+                    logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'X or {ent.text} {suffix_words[0]}' pattern")
+                    return True
+            
+        # Check if it's followed by a unit (indicates numeric context)
+        if suffix_words:
+            first_word = suffix_words[0]
+            # Check common units
+            time_units = self.resources.get("units", {}).get("time_units", [])
+            if first_word in time_units or first_word in ["dollar", "dollars", "cent", "cents", "percent"]:
+                return False  # This is numeric context, don't skip
+                
+        # Check for "X test/thing/item for" pattern - common in natural speech
+        if suffix_words and len(suffix_words) >= 2:
+            first_word = suffix_words[0]
+            second_word = suffix_words[1]
+            if first_word in ["test", "tests", "thing", "things", "item", "items", "example", "examples", "issue", "issues", "problem", "problems"] and second_word in ["for", "of"]:
+                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern")
+                return True
+                
+        # Check for "those NUMBER things/issues" pattern
+        if prefix_words and prefix_words[-1] == "those":
+            if suffix_words and suffix_words[0] in ["things", "items", "issues", "problems", "examples", "cases"]:
+                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'those {ent.text} {suffix_words[0]}' pattern")
+                return True
+                
+        # Use SpaCy analysis if available
+        if doc and hasattr(ent, 'start') and hasattr(ent, 'end'):
+            try:
+                # Find the token(s) that correspond to this entity
+                for token in doc:
+                    if token.idx == ent.start_char:
+                        # Check grammatical role
+                        # Skip if it's a determiner or part of a noun phrase (not numeric)
+                        if token.dep_ in ["det", "nsubj", "dobj", "pobj"]:
+                            # But allow if followed by a unit
+                            if token.i + 1 < len(doc):
+                                next_token = doc[token.i + 1]
+                                if next_token.text.lower() not in time_units:
+                                    logger.debug(f"Skipping CARDINAL '{ent.text}' - grammatical role: {token.dep_}")
+                                    return True
+                        break
+            except Exception as e:
+                logger.debug(f"SpaCy analysis failed: {e}")
+                
+        # Additional patterns for "two"
+        if ent_lower == "two":
+            # "between the two" pattern
+            if prefix_text.endswith("between the"):
+                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'between the two'")
+                return True
+            # "the two of" pattern  
+            if prefix_text.endswith("the") and suffix_text.startswith("of"):
+                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'the two of'")
+                return True
+                
+        # Check for subject position at sentence start
+        if ent.start_char == 0 or (ent.start_char > 0 and text[ent.start_char - 1] in ".!?"):
+            # At sentence start - check if followed by a verb (indicates subject)
+            if suffix_words and len(suffix_words) > 1:
+                # Simple heuristic: if followed by "can", "should", "will", etc., it's likely a subject
+                if suffix_words[0] in ["can", "should", "will", "would", "might", "could", "must", "may"]:
+                    logger.debug(f"Skipping CARDINAL '{ent.text}' - sentence subject before modal verb")
+                    return True
+                    
+        return False
 
 
 class PatternConverter:
@@ -824,15 +953,52 @@ class TextFormatter:
 
     def _clean_artifacts(self, text: str) -> str:
         """Clean audio artifacts and normalize text"""
-        # Remove various transcription artifacts using cached patterns
+        # Get context words from resources for i18n support
+        meta_discussion_words = self.resources.get("context_words", {}).get("meta_discussion", 
+            ["words", "word", "term", "terms", "phrase", "phrases", "say", "says", "said", "saying", "using", "called"])
+        
+        # Define which artifacts should be preserved in meta-discussion contexts
+        contextual_artifacts = self.resources.get("filtering", {}).get("contextual_fillers",
+            ["like", "actually", "literally", "basically", "sort of", "kind of"])
+        
+        # Remove various transcription artifacts using context-aware replacement
         if not hasattr(self, "_artifact_patterns"):
             self._artifact_patterns = regex_patterns.create_artifact_patterns(self.transcription_artifacts)
 
-        for pattern in self._artifact_patterns:
-            text = pattern.sub("", text).strip()
+        for i, pattern in enumerate(self._artifact_patterns):
+            # Get the original artifact word
+            artifact_word = self.transcription_artifacts[i]
+            
+            # For certain filler words, check if they're being discussed
+            if artifact_word in contextual_artifacts:
+                # Check if this word appears in a meta-discussion context
+                # Look for patterns like "words like X" or "saying X"
+                preserved = False
+                for meta_word in meta_discussion_words:
+                    # Check if meta word appears before the artifact (within reasonable distance)
+                    # Allow up to 3 words between meta word and artifact
+                    meta_pattern = re.compile(
+                        rf"\b{re.escape(meta_word)}\s+(?:\w+\s+){{0,3}}{re.escape(artifact_word)}\b",
+                        re.IGNORECASE
+                    )
+                    if meta_pattern.search(text):
+                        preserved = True
+                        break
+                
+                if not preserved:
+                    text = pattern.sub("", text).strip()
+            else:
+                text = pattern.sub("", text).strip()
 
         # Remove filler words using centralized pattern
         text = regex_patterns.FILLER_WORDS_PATTERN.sub("", text)
+
+        # Clean up orphaned commas at the beginning of text
+        # This handles cases like "Actually, that's great" → ", that's great" → "that's great"
+        text = re.sub(r'^\s*,\s*', '', text)
+        
+        # Also clean up double commas that might result from removal
+        text = re.sub(r',\s*,', ',', text)
 
         # Normalize repeated punctuation using centralized patterns
         for pattern, replacement in regex_patterns.REPEATED_PUNCTUATION_PATTERNS:
