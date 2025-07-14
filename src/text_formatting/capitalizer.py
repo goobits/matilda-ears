@@ -44,11 +44,11 @@ class SmartCapitalizer:
             EntityType.COMMAND_FLAG,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE,
             EntityType.UNDERSCORE_DELIMITER,
-            EntityType.PORT_NUMBER,
-            EntityType.VERSION,
+            # Note: PORT_NUMBER removed - host names before port should be capitalized normally
+            # Note: VERSION removed - version numbers at sentence start should be capitalized
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
-            EntityType.CLI_COMMAND,  # CLI commands like 'git' should remain lowercase
+            # Note: CLI_COMMAND removed - they should be capitalized at sentence start
             EntityType.ABBREVIATION,  # Protect abbreviations from capitalization changes
         }
 
@@ -193,15 +193,21 @@ class SmartCapitalizer:
                 # Check for protected entities at the start
                 for entity in entities:
                     if entity.start <= first_letter_index < entity.end:
+                        logger.debug(f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}")
                         # Don't capitalize if it's a strictly protected type
                         if entity.type in self.STRICTLY_PROTECTED_TYPES:
+                            logger.debug(f"Entity {entity.type} is strictly protected")
                             should_capitalize = False
                             break
                         # Special rule for CLI commands: only keep lowercase if the *entire* text is the command
                         if entity.type == EntityType.CLI_COMMAND:
                             if entity.text.strip() == text.strip():
+                                logger.debug(f"CLI command is entire text, not capitalizing")
                                 should_capitalize = False
-                            break
+                                break
+                            else:
+                                logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
+                            # Otherwise, allow normal capitalization for CLI commands at sentence start
                         # Special case: Allow capitalization of sentence-starting programming keywords
                         elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
                             logger.debug(
@@ -211,7 +217,10 @@ class SmartCapitalizer:
                             break
                 
                 if should_capitalize:
+                    logger.debug(f"Capitalizing first letter at index {first_letter_index}")
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
+                else:
+                    logger.debug(f"Not capitalizing first letter")
 
         # Fix "i" pronoun using grammatical context
         if self.nlp:
