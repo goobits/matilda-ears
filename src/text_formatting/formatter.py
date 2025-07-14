@@ -597,7 +597,10 @@ class TextFormatter:
         entity_priorities = {
             EntityType.MATH_EXPRESSION: 10,
             EntityType.ASSIGNMENT: 9,
+            EntityType.FILENAME: 8,
+            EntityType.UNDERSCORE_DELIMITER: 7,
             EntityType.COMPARISON: 5,
+            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
             EntityType.CARDINAL: 1,
             EntityType.QUANTITY: 1,
         }
@@ -608,11 +611,15 @@ class TextFormatter:
                 if entity == other_entity:
                     continue
                     
-                # Check if entity is completely contained within other_entity
-                if (other_entity.start <= entity.start and entity.end <= other_entity.end and
-                    entity_priorities.get(other_entity.type, 0) > entity_priorities.get(entity.type, 0)):
-                    logger.debug(f"Removing contained lower-priority entity: {entity.type}('{entity.text}') "
-                               f"contained within {other_entity.type}('{other_entity.text}')")
+                # Check if entity is completely contained within other_entity OR overlaps with higher priority
+                is_contained_within = (other_entity.start <= entity.start and entity.end <= other_entity.end)
+                is_overlapping = not (entity.end <= other_entity.start or other_entity.end <= entity.start)
+                has_higher_priority = entity_priorities.get(other_entity.type, 0) > entity_priorities.get(entity.type, 0)
+                
+                if (is_contained_within or is_overlapping) and has_higher_priority:
+                    action = "contained within" if is_contained_within else "overlapping with"
+                    logger.debug(f"Removing lower-priority entity: {entity.type}('{entity.text}') "
+                               f"{action} {other_entity.type}('{other_entity.text}')")
                     is_contained = True
                     break
                     

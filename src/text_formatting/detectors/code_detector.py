@@ -656,6 +656,7 @@ class CodeEntityDetector:
                 if not has_valid_context:
                     continue
 
+
                 logger.debug(f"Found simple underscore variable: '{match.group(0)}' -> '{first_word}_{second_word}'")
                 entities.append(
                     Entity(

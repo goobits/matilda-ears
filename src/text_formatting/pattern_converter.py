@@ -468,7 +468,6 @@ class PatternConverter:
     def convert_filename(self, entity: Entity, full_text: str = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
-        logger.info(f"🔍 FILENAME CONVERSION START: entity.text='{entity.text}', start={entity.start}, end={entity.end}")
 
         # Check for Java package metadata
         if entity.metadata and entity.metadata.get("is_package"):
@@ -507,10 +506,8 @@ class PatternConverter:
             # Try parse_as_digits first for filenames, then fall back to regular parsing
             result = self.number_parser.parse_as_digits(match.group(0))
             if result:
-                logger.info(f"🔍 FILENAME NUMBER: '{match.group(0)}' -> '{result}'")
                 return result
             fallback = self.number_parser.parse(match.group(0)) or match.group(0)
-            logger.info(f"🔍 FILENAME NUMBER FALLBACK: '{match.group(0)}' -> '{fallback}'")
             return fallback
 
         number_word_pattern = (
@@ -520,9 +517,7 @@ class PatternConverter:
             + "|".join(self.number_parser.all_number_words)
             + r"))*\b"
         )
-        logger.info(f"🔍 FILENAME BEFORE NUMBER REPLACEMENT: '{filename_part}'")
         filename_part = re.sub(number_word_pattern, number_word_replacer, filename_part, flags=re.IGNORECASE)
-        logger.info(f"🔍 FILENAME AFTER NUMBER REPLACEMENT: '{filename_part}'")
 
         # If underscores were spoken, they dictate the format
         if has_spoken_underscores:
@@ -533,12 +528,10 @@ class PatternConverter:
         
         # Special handling for version patterns - treat "v<number>" as single units
         # Handle both "v1" and "v 1" patterns by collapsing them before splitting
-        logger.info(f"🔍 FILENAME BEFORE VERSION COLLAPSE: '{filename_part}'")
         
         # Collapse "v <number>" patterns into "v<number>" to treat as single units
         version_collapse_pattern = r'\bv\s+(\d+(?:\.\d+)*)\b'
         filename_part = re.sub(version_collapse_pattern, r'v\1', filename_part, flags=re.IGNORECASE)
-        logger.info(f"🔍 FILENAME AFTER VERSION COLLAPSE: '{filename_part}'")
         
         # Now split on spaces, underscores, and hyphens
         casing_words = re.split(r"[ _-]", filename_part)
