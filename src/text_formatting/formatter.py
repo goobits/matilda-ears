@@ -590,8 +590,37 @@ class TextFormatter:
             else:
                 logger.debug(f"Skipping duplicate entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
         
-        # The deduplicated list is now our authoritative, non-overlapping list
-        filtered_entities = sorted(deduplicated_entities, key=lambda e: e.start)
+        # Remove smaller entities that are completely contained within larger, higher-priority entities
+        priority_filtered_entities = []
+        
+        # Define entity priority (higher number = higher priority)
+        entity_priorities = {
+            EntityType.MATH_EXPRESSION: 10,
+            EntityType.ASSIGNMENT: 9,
+            EntityType.COMPARISON: 5,
+            EntityType.CARDINAL: 1,
+            EntityType.QUANTITY: 1,
+        }
+        
+        for entity in deduplicated_entities:
+            is_contained = False
+            for other_entity in deduplicated_entities:
+                if entity == other_entity:
+                    continue
+                    
+                # Check if entity is completely contained within other_entity
+                if (other_entity.start <= entity.start and entity.end <= other_entity.end and
+                    entity_priorities.get(other_entity.type, 0) > entity_priorities.get(entity.type, 0)):
+                    logger.debug(f"Removing contained lower-priority entity: {entity.type}('{entity.text}') "
+                               f"contained within {other_entity.type}('{other_entity.text}')")
+                    is_contained = True
+                    break
+                    
+            if not is_contained:
+                priority_filtered_entities.append(entity)
+
+        # The priority filtered list is now our authoritative, non-overlapping list
+        filtered_entities = sorted(priority_filtered_entities, key=lambda e: e.start)
         logger.debug(f"Found {len(filtered_entities)} final non-overlapping entities.")
 
         # Step 3: Assemble final string WITHOUT placeholders (Phase 2 refactoring)

@@ -492,7 +492,7 @@ class NumericalEntityDetector:
                 elif word.lower() == "slash":
                     converted_words.append("/")
                 elif word.lower() == "times":
-                    converted_words.append("*")
+                    converted_words.append("×")
                 elif word.lower() == "plus":
                     converted_words.append("+")
                 elif word.lower() == "minus":
@@ -500,9 +500,9 @@ class NumericalEntityDetector:
                 elif word.lower() in ["divided", "by"] and " ".join(words).lower().find("divided by") != -1:
                     # Handle "divided by" as a unit
                     if word.lower() == "divided":
-                        converted_words.append("/")
+                        converted_words.append("÷")
                     # Skip "by" when it follows "divided"
-                elif word.lower() == "by" and len(converted_words) > 0 and converted_words[-1] == "/":
+                elif word.lower() == "by" and len(converted_words) > 0 and converted_words[-1] == "÷":
                     continue  # Skip "by" in "divided by"
                 else:
                     converted_words.append(word)
