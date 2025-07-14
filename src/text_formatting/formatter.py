@@ -577,18 +577,41 @@ class TextFormatter:
         final_entities.extend(base_spacy_entities)
         logger.info(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}")
         
-        # Phase 4 Fix: Deduplicate entities with identical boundaries to prevent text duplication
-        # This fixes cases where SpaCy and custom detectors find the same entity (e.g., "fifty percent")
+        # Phase 4 Fix: Deduplicate entities with identical boundaries and overlapping entities
+        # This fixes cases where SpaCy and custom detectors find overlapping entities
         deduplicated_entities = []
-        seen_spans = set()
+        
+        logger.debug(f"Starting deduplication with {len(final_entities)} entities:")
+        for i, entity in enumerate(final_entities):
+            logger.debug(f"  {i}: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
+        
+        def entities_overlap(e1, e2):
+            """Check if two entities overlap."""
+            return not (e1.end <= e2.start or e2.end <= e1.start)
         
         for entity in final_entities:
-            span_key = (entity.start, entity.end)
-            if span_key not in seen_spans:
+            # Check if this entity overlaps with any already accepted entity
+            overlaps_with_existing = False
+            for existing in deduplicated_entities:
+                if entities_overlap(entity, existing):
+                    # Prefer longer entity (more specific) or same type
+                    entity_length = entity.end - entity.start
+                    existing_length = existing.end - existing.start
+                    
+                    if entity_length > existing_length:
+                        # Remove the shorter existing entity and add this longer one
+                        deduplicated_entities.remove(existing)
+                        logger.debug(f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}')")
+                        break
+                    else:
+                        # Keep the existing longer/equal entity
+                        overlaps_with_existing = True
+                        logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')")
+                        break
+            
+            if not overlaps_with_existing:
                 deduplicated_entities.append(entity)
-                seen_spans.add(span_key)
-            else:
-                logger.debug(f"Skipping duplicate entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
+                logger.debug(f"Added entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
         
         # Remove smaller entities that are completely contained within larger, higher-priority entities
         priority_filtered_entities = []
@@ -600,6 +623,8 @@ class TextFormatter:
             EntityType.FILENAME: 8,
             EntityType.UNDERSCORE_DELIMITER: 7,
             EntityType.COMPARISON: 5,
+            EntityType.TIME_AMPM: 4,  # Time entities should have priority
+            EntityType.TIME: 4,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
             EntityType.CARDINAL: 1,
             EntityType.QUANTITY: 1,
@@ -628,7 +653,9 @@ class TextFormatter:
 
         # The priority filtered list is now our authoritative, non-overlapping list
         filtered_entities = sorted(priority_filtered_entities, key=lambda e: e.start)
-        logger.debug(f"Found {len(filtered_entities)} final non-overlapping entities.")
+        logger.debug(f"Found {len(filtered_entities)} final non-overlapping entities:")
+        for i, entity in enumerate(filtered_entities):
+            logger.debug(f"  Final {i}: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
 
         # Step 3: Assemble final string WITHOUT placeholders (Phase 2 refactoring)
         # Build the new string from scratch by processing entities in order

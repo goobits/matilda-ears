@@ -721,6 +721,97 @@ URL_PARAMETER_PARSE_PATTERN = re.compile(
 
 
 # ==============================================================================
+# CODE-RELATED I18N-AWARE PATTERN BUILDERS
+# ==============================================================================
+
+def get_slash_command_pattern(language: str = "en") -> Pattern:
+    """Builds the slash command pattern dynamically."""
+    resources = get_resources(language)
+    code_keywords = resources.get("spoken_keywords", {}).get("code", {})
+    slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
+    slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
+    
+    return re.compile(
+        rf"""
+        \b(?:{slash_pattern})\s+([a-zA-Z][a-zA-Z0-9_-]*)
+        """, re.VERBOSE | re.IGNORECASE
+    )
+
+def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
+    """Builds the dunder/underscore delimiter pattern dynamically."""
+    resources = get_resources(language)
+    code_keywords = resources.get("spoken_keywords", {}).get("code", {})
+    underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
+    underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords)
+    
+    return re.compile(
+        rf"""
+        \b((?:{underscore_pattern}\s+)+)
+        ([a-zA-Z][\w-]*)
+        ((?:\s+{underscore_pattern})+)
+        (?=\s|$)
+        """, re.VERBOSE | re.IGNORECASE
+    )
+
+def get_simple_underscore_pattern(language: str = "en") -> Pattern:
+    """Builds the simple underscore variable pattern dynamically."""
+    resources = get_resources(language)
+    code_keywords = resources.get("spoken_keywords", {}).get("code", {})
+    underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
+    underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords)
+
+    return re.compile(
+        rf"""
+        \b([\w][\w0-9_-]*)\s+(?:{underscore_pattern})\s+([\w][\w0-9_-]*)\b
+        """, re.VERBOSE | re.IGNORECASE | re.UNICODE
+    )
+
+def get_long_flag_pattern(language: str = "en") -> Pattern:
+    """Builds the long command flag pattern dynamically."""
+    resources = get_resources(language)
+    code_keywords = resources.get("spoken_keywords", {}).get("code", {})
+    dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
+    dash_pattern = "|".join(re.escape(k) for k in sorted(dash_keywords, key=len, reverse=True))
+
+    return re.compile(rf"\b(?:{dash_pattern})\s+(?:{dash_pattern})\s+([a-zA-Z][\w-]*(\s+[a-zA-Z][\w-]*)?)", re.IGNORECASE)
+
+def get_short_flag_pattern(language: str = "en") -> Pattern:
+    """Builds the short command flag pattern dynamically and safely."""
+    resources = get_resources(language)
+    code_keywords = resources.get("spoken_keywords", {}).get("code", {})
+    dash_keywords = sorted([k for k, v in code_keywords.items() if v == "-"], key=len, reverse=True)
+    
+    patterns = []
+    for keyword in dash_keywords:
+        escaped_keyword = re.escape(keyword)
+        if keyword == "guión" and language == "es": # Specific fix for Spanish
+             patterns.append(rf"(?:{escaped_keyword}(?!\s+bajo))")
+        else:
+            patterns.append(f"(?:{escaped_keyword})")
+    
+    dash_pattern = "|".join(patterns)
+    return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
+
+def get_assignment_pattern(language: str = "en") -> Pattern:
+    """Builds the assignment pattern dynamically."""
+    resources = get_resources(language)
+    code_keywords = resources.get("spoken_keywords", {}).get("code", {})
+    equals_keywords = [k for k, v in code_keywords.items() if v == "="]
+    equals_pattern = "|".join(re.escape(k) for k in equals_keywords)
+
+    return re.compile(
+        rf"""
+        \b(?:(let|const|var)\s+)?
+        ([a-zA-Z_]\w*)\s+(?:{equals_pattern})\s+
+        (
+            (?!=\s*(?:{equals_pattern})) # Not followed by another equals
+            .+?
+        )
+        (?=\s*(?:;|\n|$)|--|\+\+) # Ends at semicolon, newline, end, or other operator
+        """, re.VERBOSE | re.IGNORECASE
+    )
+
+# ==============================================================================
 # CODE-RELATED PATTERNS
 # ==============================================================================
 

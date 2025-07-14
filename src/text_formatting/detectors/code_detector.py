@@ -91,28 +91,26 @@ class CodeEntityDetector:
             all_entities = entities
 
         # --- Part 1: Handle already-formatted files first (e.g., main.py, com.example.app) ---
-        # This logic is sound and should run first.
         for match in regex_patterns.FILENAME_WITH_EXTENSION_PATTERN.finditer(text):
             if not overlaps_with_entity(match.start(), match.end(), all_entities):
-                entities.append(
-                    Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
-                )
+                new_entity = Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
+                entities.append(new_entity)
+                all_entities.append(new_entity)
 
         for match in regex_patterns.JAVA_PACKAGE_PATTERN.finditer(text):
             if not overlaps_with_entity(match.start(), match.end(), all_entities):
                 package_text = match.group(1).lower()
-                # Expanded to include more common package prefixes
                 common_prefixes = ["com dot", "org dot", "net dot", "io dot", "gov dot", "edu dot"]
                 if any(package_text.startswith(prefix) for prefix in common_prefixes):
-                    entities.append(
-                        Entity(
-                            start=match.start(), 
-                            end=match.end(), 
-                            text=match.group(0), 
-                            type=EntityType.FILENAME,
-                            metadata={"is_package": True}
-                        )
+                    new_entity = Entity(
+                        start=match.start(), 
+                        end=match.end(), 
+                        text=match.group(0), 
+                        type=EntityType.FILENAME,
+                        metadata={"is_package": True}
                     )
+                    entities.append(new_entity)
+                    all_entities.append(new_entity)
 
         # --- Part 2: Handle spoken filenames ("my file dot py") with a robust, non-greedy method ---
         if not self.nlp:
@@ -120,121 +118,85 @@ class CodeEntityDetector:
             self._detect_filenames_regex_fallback(text, entities, all_entities)
             return
 
-        # Count entities before spaCy detection
         entities_before_spacy = len(entities)
 
         try:
             doc = self.nlp(text)
         except (AttributeError, ValueError, IndexError) as e:
             logger.warning(f"SpaCy filename detection failed: {e}")
-            logger.debug("Falling back to regex-based filename detection")
             self._detect_filenames_regex_fallback(text, entities, all_entities)
             return
 
-        # Create a reverse map from a token's end position to the token itself.
-        # This helps us find the token that ends right before our "dot extension" match.
         end_char_to_token = {token.idx + len(token.text): token for token in doc}
 
         for match in regex_patterns.SPOKEN_DOT_FILENAME_PATTERN.finditer(text):
             if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
 
-            logger.debug(
-                f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}"
-            )
+            logger.debug(f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}")
 
-            # Check for email conflict
             if " at " in text[max(0, match.start() - 10) : match.start()]:
                 continue
 
-            # Find the token immediately preceding the " dot " match
             start_of_dot = match.start()
             if start_of_dot not in end_char_to_token:
                 logger.debug(f"SPACY FILENAME: No token ends at position {start_of_dot}, skipping")
-                continue  # No token ends exactly where " dot " begins, weird spacing.
+                continue
 
             current_token = end_char_to_token[start_of_dot]
-            logger.debug(
-                f"SPACY FILENAME: Token before 'dot': '{current_token.text}' at {current_token.idx}-{current_token.idx + len(current_token.text)}"
-            )
-
             filename_tokens = []
+            
             # Walk backwards from the token before "dot"
             for i in range(current_token.i, -1, -1):
                 token = doc[i]
 
-                # --- Start of Replacement ---
                 # ** THE CRITICAL STOPPING LOGIC **
-                # Stop if we hit a clear sentence-starting verb, preposition, or conjunction.
-                # This prevents walking back across an entire sentence.
-                
                 # Get language-specific filename stop words from i18n resources
                 filename_actions = self.resources.get("context_words", {}).get("filename_actions", [])
                 filename_linking = self.resources.get("context_words", {}).get("filename_linking", [])
                 filename_stop_words = self.resources.get("context_words", {}).get("filename_stop_words", [])
 
-                # Check for words that clearly separate context from a filename
                 is_action_verb = token.lemma_ in filename_actions
                 is_linking_verb = token.lemma_ in filename_linking
                 is_stop_word = token.text.lower() in filename_stop_words
                 is_punctuation = token.is_punct
-                
-                # Also stop at common conjunctions and prepositions that break context
-                # BUT allow 'v' which is often used in version patterns (config v1.json)
                 is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != 'v'
 
-                # Special handling for "file" - stop if it's preceded by articles like "the", "a"
+                # Special handling for "file" - stop if preceded by articles like "the", "a"
                 if token.text.lower() == "file" and i > 0:
                     prev_token = doc[i-1].text.lower()
                     if prev_token in ["the", "a", "an", "this", "that"]:
                         break
                 
-                # Don't treat "file" as a stop word when it could be part of a compound filename
-                # (e.g., "log file", "config file", "data file")
+                # Don't treat "file" as a stop word if it could be part of the name
                 is_stop_word_filtered = is_stop_word and token.text.lower() != "file"
                     
-                # The main condition to stop walking backward
                 if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator:
-                    logger.debug(
-                        f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})"
-                    )
+                    logger.debug(f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})")
                     break
-                # --- End of Replacement ---
 
-                # If we've walked back more than ~8 words, it's probably not a filename.
-                # Increased to 8 to accommodate dunder names like "__init__"
                 if len(filename_tokens) >= 8:
                     break
 
-                # If all checks pass, this token is part of the filename
                 filename_tokens.insert(0, token)
 
             if not filename_tokens:
-                logger.debug("SPACY FILENAME: No filename tokens collected, skipping")
                 continue
 
-            logger.debug(f"SPACY FILENAME: Collected filename tokens: {[t.text for t in filename_tokens]}")
-
-            # Construct the final entity
             start_pos = filename_tokens[0].idx
-            # The end position is the end of the original "dot extension" match
             end_pos = match.end()
             entity_text = text[start_pos:end_pos]
 
-            logger.debug(f"SPACY FILENAME: Entity text: '{entity_text}' at {start_pos}-{end_pos}")
-
-            # Final check to ensure we don't create an overlapping entity
             if not overlaps_with_entity(start_pos, end_pos, all_entities):
-                entities.append(Entity(start=start_pos, end=end_pos, text=entity_text, type=EntityType.FILENAME))
+                new_entity = Entity(start=start_pos, end=end_pos, text=entity_text, type=EntityType.FILENAME)
+                entities.append(new_entity)
+                all_entities.append(new_entity)
                 logger.debug(f"SPACY FILENAME: Created filename entity: '{entity_text}'")
             else:
                 logger.debug("SPACY FILENAME: Entity overlaps with existing entity, skipping")
 
-        # Check if spaCy detection found any new entities, if not, fall back to regex
-        entities_after_spacy = len(entities)
-        if entities_after_spacy == entities_before_spacy:
-            # spaCy didn't find any filename entities, try regex fallback
-            logger.debug("SpaCy filename detection found no entities, trying regex fallback")
+        if len(entities) == entities_before_spacy:
+            logger.debug("SpaCy filename detection found no new entities, trying regex fallback")
             self._detect_filenames_regex_fallback(text, entities, all_entities)
 
     def _detect_spoken_operators(self, text: str, entities: List[Entity], all_entities: List[Entity] = None) -> None:
