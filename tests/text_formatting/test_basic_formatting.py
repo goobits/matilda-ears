@@ -146,6 +146,7 @@ class TestBasicPunctuation:
             ("thats correct", "That's correct."),
             ("weve finished", "We've finished."),
             ("theyre here", "They're here."),
+            ("whats our test coverage look like", "What's our test coverage look like?"),
         ]
 
         for input_text, expected in test_cases:

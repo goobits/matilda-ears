@@ -141,6 +141,10 @@ class ListenOnceMode:
             )
             
             self.logger.info("Silero VAD initialized successfully")
+        except ImportError as e:
+            self.logger.error(f"VAD dependencies not available: {e}")
+            self.logger.error("Install dependencies with: pip install torch torchaudio silero-vad")
+            raise RuntimeError(f"VAD initialization failed: {e}")
         except Exception as e:
             self.logger.error(f"Failed to initialize VAD: {e}")
             raise

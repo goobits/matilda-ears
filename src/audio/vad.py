@@ -6,12 +6,27 @@ Provides accurate voice activity detection using the Silero VAD model.
 Significantly more accurate than simple amplitude-based detection.
 """
 
-import torch
-import numpy as np
 from typing import Optional, List, Tuple
 import asyncio
 import logging
 from pathlib import Path
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    # Create a dummy numpy module for type annotations
+    class _DummyNumpy:
+        class ndarray:
+            pass
+    np = _DummyNumpy()
+
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
 
 
 class SileroVAD:
@@ -47,6 +62,19 @@ class SileroVAD:
         self.padding_duration = padding_duration
         self.use_onnx = use_onnx
         
+        # Check dependencies
+        if not NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is required for VAD. "
+                "Install with: pip install numpy"
+            )
+        
+        if not TORCH_AVAILABLE:
+            raise ImportError(
+                "PyTorch is required for Silero VAD. "
+                "Install with: pip install torch torchaudio"
+            )
+        
         # Validate sample rate
         if sample_rate not in [8000, 16000]:
             raise ValueError(f"Sample rate must be 8000 or 16000 Hz, got {sample_rate}")
@@ -75,7 +103,17 @@ class SileroVAD:
             
             self.logger.info(f"Loading Silero VAD model (ONNX: {self.use_onnx})...")
             
-            # Load model and utilities
+            # Try the newer silero-vad package first
+            try:
+                from silero_vad import load_silero_vad, get_speech_timestamps
+                self.model = load_silero_vad(onnx=self.use_onnx)
+                self.get_speech_timestamps = get_speech_timestamps
+                self.logger.info("Loaded Silero VAD using silero-vad package")
+                return
+            except ImportError:
+                self.logger.debug("silero-vad package not available, using torch.hub")
+            
+            # Fallback to torch.hub method
             self.model, self.utils = torch.hub.load(
                 repo_or_dir='snakers4/silero-vad',
                 model='silero_vad',
@@ -84,14 +122,20 @@ class SileroVAD:
                 verbose=False
             )
             
-            # Get utility functions
-            self.get_speech_timestamps = self.utils[0]
+            # Get utility functions from torch.hub
+            (get_speech_timestamps, _, _, _, _) = self.utils
+            self.get_speech_timestamps = get_speech_timestamps
             
-            self.logger.info("Silero VAD model loaded successfully")
+            self.logger.info("Silero VAD model loaded successfully via torch.hub")
             
         except Exception as e:
             self.logger.error(f"Failed to load Silero VAD model: {e}")
-            raise RuntimeError(f"Failed to load VAD model: {e}")
+            # Provide helpful error message
+            error_msg = (
+                f"Failed to load VAD model: {e}. "
+                "Make sure you have installed: pip install torch torchaudio silero-vad"
+            )
+            raise RuntimeError(error_msg)
     
     def process_chunk(self, audio_chunk: np.ndarray) -> float:
         """
@@ -300,3 +344,122 @@ class VADProcessor:
             threshold = min(0.7, threshold + 0.15)
         
         return smoothed_prob >= threshold
+
+
+class SimpleFallbackVAD:
+    """
+    Simple amplitude-based VAD fallback when Silero is not available.
+    
+    This provides basic functionality using RMS amplitude detection
+    as a fallback when PyTorch/Silero dependencies are not installed.
+    """
+    
+    def __init__(self, 
+                 sample_rate: int = 16000,
+                 threshold: float = 0.01,
+                 **kwargs):
+        """Initialize simple VAD with amplitude threshold."""
+        if not NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is required for VAD. "
+                "Install with: pip install numpy"
+            )
+            
+        self.sample_rate = sample_rate
+        self.threshold = threshold
+        self.logger = logging.getLogger(__name__)
+        
+        self.logger.warning(
+            "Using fallback amplitude-based VAD. "
+            "For better accuracy, install: pip install torch torchaudio silero-vad"
+        )
+    
+    def process_chunk(self, audio_chunk: np.ndarray) -> float:
+        """
+        Process chunk with simple RMS amplitude detection.
+        
+        Returns RMS normalized to 0-1 range (approximates speech probability).
+        """
+        try:
+            # Convert to float32 if needed
+            if audio_chunk.dtype == np.int16:
+                audio_float = audio_chunk.astype(np.float32) / 32768.0
+            else:
+                audio_float = audio_chunk.astype(np.float32)
+            
+            # Calculate RMS
+            rms = np.sqrt(np.mean(audio_float ** 2))
+            
+            # Normalize to approximate probability
+            # This is a rough approximation, not real speech detection
+            normalized_prob = min(1.0, rms / self.threshold * 0.5)
+            
+            return normalized_prob
+            
+        except Exception as e:
+            self.logger.error(f"Error in fallback VAD: {e}")
+            return 0.0
+    
+    def get_stats(self) -> dict:
+        """Get VAD statistics."""
+        return {
+            'sample_rate': self.sample_rate,
+            'threshold': self.threshold,
+            'model_type': 'Fallback_RMS',
+            'speech_segments': 0,
+            'is_speaking': False
+        }
+    
+    def reset_states(self):
+        """Reset VAD state (no-op for simple VAD)."""
+        pass
+
+
+def create_vad(sample_rate: int = 16000, 
+               threshold: float = 0.5,
+               use_fallback: bool = False,
+               **kwargs):
+    """
+    Create the best available VAD instance.
+    
+    Args:
+        sample_rate: Audio sample rate
+        threshold: Speech detection threshold
+        use_fallback: Force use of simple fallback VAD
+        **kwargs: Additional arguments for VAD initialization
+        
+    Returns:
+        VAD instance (SileroVAD or SimpleFallbackVAD)
+        
+    Raises:
+        ImportError: If required dependencies are not available
+    """
+    # Check minimum dependencies
+    if not NUMPY_AVAILABLE:
+        raise ImportError(
+            "NumPy is required for VAD functionality. "
+            "Install with: pip install numpy"
+        )
+    
+    if use_fallback or not TORCH_AVAILABLE:
+        return SimpleFallbackVAD(
+            sample_rate=sample_rate,
+            threshold=threshold * 20,  # Scale threshold for RMS
+            **kwargs
+        )
+    
+    try:
+        return SileroVAD(
+            sample_rate=sample_rate,
+            threshold=threshold,
+            **kwargs
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            f"Failed to create SileroVAD ({e}), falling back to simple VAD"
+        )
+        return SimpleFallbackVAD(
+            sample_rate=sample_rate,
+            threshold=threshold * 20,  # Scale threshold for RMS
+            **kwargs
+        )
