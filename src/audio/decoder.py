@@ -96,7 +96,8 @@ class OpusDecoder:
         wav_data = wav_buffer.read()
 
         logger.info(
-            f"Generated WAV: {len(wav_data)} bytes, {self.sample_count} samples, {self.sample_count/self.sample_rate:.2f}s duration"
+            f"Generated WAV: {len(wav_data)} bytes, {self.sample_count} samples, "
+            f"{self.sample_count/self.sample_rate:.2f}s duration"
         )
         return wav_data
 
@@ -143,7 +144,7 @@ class OpusStreamDecoder:
 
     def __init__(self):
         """Initialize stream decoder manager."""
-        self.sessions = {}
+        self.sessions: dict[str, OpusDecoder] = {}
         logger.info("Opus stream decoder initialized")
 
     def create_session(self, session_id: str, sample_rate: int = 16000, channels: int = 1) -> OpusDecoder:

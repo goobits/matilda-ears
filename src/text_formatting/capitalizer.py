@@ -2,7 +2,7 @@
 """Smart capitalization module for Matilda transcriptions."""
 
 import re
-from typing import List
+from typing import List, Optional
 from ..core.config import setup_logging
 
 # Import common data structures
@@ -97,7 +97,7 @@ class SmartCapitalizer:
         # Abbreviation patterns for starts detection
         self.common_abbreviations = ("i.e.", "e.g.", "etc.", "vs.", "cf.", "ie.", "eg.")
 
-    def capitalize(self, text: str, entities: List[Entity] = None, doc=None) -> str:
+    def capitalize(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
         """Apply intelligent capitalization with entity protection"""
         if not text:
             return text
@@ -115,7 +115,7 @@ class SmartCapitalizer:
         matches.sort(key=lambda m: m.start())
 
         # Remove duplicates and overlapping matches
-        unique_matches = []
+        unique_matches: list[re.Match[str]] = []
         for match in matches:
             # Check if this match overlaps with any already added
             overlaps = False
@@ -134,7 +134,7 @@ class SmartCapitalizer:
         for i, match in enumerate(reversed(unique_matches)):
             placeholder = f"__CAPS_{len(unique_matches) - i - 1}__"
             all_caps_words[placeholder] = match.group()
-            old_len = len(text)
+            # old_len = len(text)  # Unused variable
             text = text[: match.start()] + placeholder + text[match.end() :]
 
         # Preserve placeholders and entities
@@ -142,7 +142,7 @@ class SmartCapitalizer:
         placeholders_found = re.findall(placeholder_pattern, text)
 
         # Apply proper noun capitalization using spaCy NER
-        text = self._capitalize_proper_nouns(text, entities, doc=doc)
+        text = self._capitalize_proper_nouns(text, entities or [], doc=doc)
 
         # Only capitalize after clear sentence endings with space, but not for abbreviations like i.e., e.g.
         def capitalize_after_sentence(match):
@@ -189,9 +189,9 @@ class SmartCapitalizer:
 
             if first_letter_index != -1:
                 should_capitalize = True
-                
+
                 # Check for protected entities at the start
-                for entity in entities:
+                for entity in (entities or []):
                     if entity.start <= first_letter_index < entity.end:
                         logger.debug(f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}")
                         # Don't capitalize if it's a strictly protected type
@@ -202,7 +202,7 @@ class SmartCapitalizer:
                         # Special rule for CLI commands: only keep lowercase if the *entire* text is the command
                         if entity.type == EntityType.CLI_COMMAND:
                             if entity.text.strip() == text.strip():
-                                logger.debug(f"CLI command is entire text, not capitalizing")
+                                logger.debug("CLI command is entire text, not capitalizing")
                                 should_capitalize = False
                                 break
                             else:
@@ -215,12 +215,12 @@ class SmartCapitalizer:
                             )
                             # Don't protect - allow capitalization
                             break
-                
+
                 if should_capitalize:
                     logger.debug(f"Capitalizing first letter at index {first_letter_index}")
                     text = text[:first_letter_index] + text[first_letter_index].upper() + text[first_letter_index + 1 :]
                 else:
-                    logger.debug(f"Not capitalizing first letter")
+                    logger.debug("Not capitalizing first letter")
 
         # Fix "i" pronoun using grammatical context
         if self.nlp:
@@ -235,7 +235,7 @@ class SmartCapitalizer:
 
             if doc_to_use:
                 try:
-                    new_text = list(text)  # Work on a list of characters to avoid slicing errors
+                    text_chars = list(text)  # Work on a list of characters to avoid slicing errors
                     for token in doc_to_use:
                         # Find standalone 'i' tokens that are pronouns
                         if token.text == "i" and token.pos_ == "PRON":
@@ -246,8 +246,8 @@ class SmartCapitalizer:
 
                             if not is_protected:
                                 # Safely replace the character at the correct index
-                                new_text[token.idx] = "I"
-                    text = "".join(new_text)  # Re-assemble the string once at the end
+                                text_chars[token.idx] = "I"
+                    text = "".join(text_chars)  # Re-assemble the string once at the end
                 except Exception as e:
                     logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
                     # If spaCy fails, do nothing. It's better to have a lowercase 'i'
@@ -287,14 +287,12 @@ class SmartCapitalizer:
         # Use simple string replacement to avoid regex complications
         for old, new in self.abbreviation_fixes.items():
             # Replace mid-text instances but preserve true sentence starts
-            old_text = text
             text = text.replace(f" {old}", f" {new}")
             text = text.replace(f": {old}", f": {new}")
             text = text.replace(f", {old}", f", {new}")
 
             # Fix at start only if not truly the beginning of input
             if text.startswith(old) and len(text) > len(old) + 5:
-                old_text = text
                 text = new + text[len(old) :]
 
         # Apply uppercase abbreviations (case-insensitive matching)
@@ -311,7 +309,7 @@ class SmartCapitalizer:
                 # Process in reverse order to maintain positions
                 for match in reversed(matches):
                     match_start, match_end = match.span()
-                    matched_text = text[match_start:match_end]
+                    # matched_text = text[match_start:match_end]  # Unused variable
 
                     # Check if this match overlaps with any protected entity
                     is_protected = any(
@@ -336,7 +334,7 @@ class SmartCapitalizer:
 
                     if not is_protected:
                         # Safe to replace this match
-                        old_text = text
+                        # old_text = text  # Unused variable
                         text = text[:match_start] + upper_abbrev + text[match_end:]
 
             else:
@@ -353,7 +351,7 @@ class SmartCapitalizer:
 
         return text
 
-    def _capitalize_proper_nouns(self, text: str, entities: List[Entity] = None, doc=None) -> str:
+    def _capitalize_proper_nouns(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
         """Capitalize proper nouns using spaCy NER and known patterns"""
         if not self.nlp:
             # No spaCy available, return text unchanged

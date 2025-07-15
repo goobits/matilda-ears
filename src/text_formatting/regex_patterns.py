@@ -12,6 +12,7 @@ explaining each component.
 import re
 from typing import List, Pattern, Optional
 from .constants import get_resources
+from .common import NumberParser
 
 
 # ==============================================================================
@@ -128,7 +129,6 @@ SPOKEN_FRACTION_PATTERN = re.compile(
 
 # Component-based numeric range pattern for better maintainability
 # Get the number words from a single source of truth
-from .common import NumberParser
 _number_parser_instance = NumberParser("en")  # Use English as default for pattern building
 _number_words_pattern = "(?:" + "|".join(_number_parser_instance.all_number_words) + ")"
 
@@ -230,7 +230,7 @@ FILLER_WORDS_PATTERN = re.compile(
     \b                          # Word boundary
     (?:                         # Non-capturing group for alternatives
         um | uh | er | ah |     # Basic hesitation sounds
-        umm | uhh |             # Extended hesitation sounds  
+        umm | uhh |             # Extended hesitation sounds
         hmm | huh |             # Thinking sounds
         mhm | mm-hmm |          # Agreement sounds
         uh-huh                  # Confirmation sound
@@ -698,7 +698,7 @@ def get_slash_command_pattern(language: str = "en") -> Pattern:
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
     slash_keywords = [k for k, v in code_keywords.items() if v == "/"]
     slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
-    
+
     return re.compile(
         rf"""
         \b(?:{slash_pattern})\s+([a-zA-Z][a-zA-Z0-9_-]*)
@@ -711,7 +711,7 @@ def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
     underscore_keywords = [k for k, v in code_keywords.items() if v == "_"]
     underscore_pattern = "|".join(re.escape(k) for k in underscore_keywords)
-    
+
     return re.compile(
         rf"""
         \b((?:{underscore_pattern}\s+)+)
@@ -747,16 +747,16 @@ def get_short_flag_pattern(language: str = "en") -> Pattern:
     """Builds the short command flag pattern dynamically and safely."""
     resources = get_resources(language)
     code_keywords = resources.get("spoken_keywords", {}).get("code", {})
-    
+
     # Get all keywords that map to "-"
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
-    
+
     # Sort by length to match longer phrases first (e.g., "dash dash" vs "dash")
     dash_keywords_sorted = sorted(dash_keywords, key=len, reverse=True)
-    
+
     # Create the pattern without any language-specific if-statements
     dash_pattern = "|".join(re.escape(k) for k in dash_keywords_sorted)
-    
+
     # This pattern now correctly handles "guión" in Spanish and "dash" in English
     # without special casing, as long as the JSON files are correct.
     return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
@@ -1360,10 +1360,6 @@ def build_slash_command_pattern(language: str = "en") -> Pattern:
     )
 
 
-# Build slash command pattern dynamically from centralized keywords
-def get_slash_command_pattern(language: str = "en") -> Pattern:
-    """Get the slash command pattern for the specified language."""
-    return build_slash_command_pattern(language)
 
 
 # Backward compatibility: default English pattern
@@ -1418,15 +1414,6 @@ def build_simple_underscore_pattern(language: str = "en") -> Pattern:
     )
 
 
-# Build underscore patterns dynamically from centralized keywords
-def get_underscore_delimiter_pattern(language: str = "en") -> Pattern:
-    """Get the underscore delimiter pattern for the specified language."""
-    return build_underscore_delimiter_pattern(language)
-
-
-def get_simple_underscore_pattern(language: str = "en") -> Pattern:
-    """Get the simple underscore pattern for the specified language."""
-    return build_simple_underscore_pattern(language)
 
 
 # Backward compatibility: default English patterns
@@ -1464,21 +1451,12 @@ def build_short_flag_pattern(language: str = "en") -> Pattern:
 
     # Create the pattern without any language-specific if-statements
     dash_pattern = "|".join(re.escape(k) for k in dash_keywords_sorted)
-    
+
     # This pattern now correctly handles all languages without special casing,
     # as long as the JSON files are correctly configured
     return re.compile(rf"\b(?:{dash_pattern})\s+([a-zA-Z0-9-]+)\b", re.IGNORECASE)
 
 
-# Build flag patterns dynamically from centralized keywords
-def get_long_flag_pattern(language: str = "en") -> Pattern:
-    """Get the long flag pattern for the specified language."""
-    return build_long_flag_pattern(language)
-
-
-def get_short_flag_pattern(language: str = "en") -> Pattern:
-    """Get the short flag pattern for the specified language."""
-    return build_short_flag_pattern(language)
 
 
 # Backward compatibility: default English patterns
@@ -1517,10 +1495,6 @@ def build_assignment_pattern(language: str = "en") -> Pattern:
     )
 
 
-# Build assignment pattern dynamically from centralized keywords
-def get_assignment_pattern(language: str = "en") -> Pattern:
-    """Get the assignment pattern for the specified language."""
-    return build_assignment_pattern(language)
 
 
 # Backward compatibility: default English pattern

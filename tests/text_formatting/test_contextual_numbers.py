@@ -1,6 +1,5 @@
 """Test contextual number handling to prevent unwanted conversions."""
 
-import pytest
 
 
 class TestContextualNumbers:
@@ -15,17 +14,17 @@ class TestContextualNumbers:
             ("one of us should go", "One of us should go"),
             ("which one do you prefer", "Which one do you prefer"),
             ("one or the other", "One or the other"),
-            
+
             # "two" in non-numeric contexts
             ("the two of us", "The two of us"),
             ("two can play that game", "Two can play that game"),
             ("between the two options", "Between the two options"),
-            
+
             # Mixed contexts
             ("one test for each of those two issues", "One test for each of those two issues"),
             ("create one or two examples", "Create one or two examples"),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
@@ -41,13 +40,13 @@ class TestContextualNumbers:
             ("multiply two times three", "Multiply 2 × 3"),
             ("version one point two", "Version 1.2"),
             ("page one of ten", "Page 1 of 10"),
-            
+
             # With units
             ("wait one second", "Wait 1s"),  # Time duration gets abbreviated
             ("two minutes remaining", "2min remaining"),  # Time duration gets abbreviated
             ("one dollar fifty", "$1 50"),  # Currency gets $ symbol
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
@@ -67,23 +66,23 @@ class TestContextualOrdinals:
             ("second generation iPhone", "2nd generation iPhone"),
             ("third party software", "3rd party software"),
             ("twenty first century technology", "21st century technology"),
-            
+
             # Rankings/Competition
             ("first place winner", "1st place winner"),
             ("second best performance", "2nd best performance"),
             ("third fastest time", "3rd fastest time"),
-            
+
             # Lists/Procedures
             ("first item on the agenda", "1st item on the agenda"),
             ("second step in the process", "2nd step in the process"),
             ("third option available", "3rd option available"),
-            
+
             # Dates
             ("January first meeting", "January 1st meeting"),
             ("March twenty third deadline", "March 23rd deadline"),
             ("May second conference", "May 2nd conference"),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
@@ -100,19 +99,19 @@ class TestContextualOrdinals:
             ("third time's the charm", "Third time's the charm"),
             ("first of all let me say", "First of all, let me say"),
             ("second thoughts about this", "Second thoughts about this"),
-            
+
             # Common expressions
             ("first things first", "First things first"),
             ("second to none", "Second to none"),
             ("third wheel in the group", "Third wheel in the group"),
             ("first come first served", "First come, first served"),
-            
+
             # Sentence beginnings (emphasis)
             ("first we need to discuss", "First, we need to discuss"),
             ("second the budget concerns", "Second, the budget concerns"),
             ("third implementation timeline", "Third, implementation timeline"),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
@@ -131,26 +130,26 @@ class TestStandaloneEntityPunctuation:
             ("slash compact.", "/compact"),
             ("slash help.", "/help"),
             ("slash status.", "/status"),
-            
+
             # Filenames
             ("config dot json.", "config.json"),
             ("readme dot md.", "README.md"),
             ("app dot py.", "app.py"),
-            
+
             # URLs (if detected as single entity)
             ("github dot com.", "github.com"),
             ("example dot org.", "example.org"),
-            
+
             # CLI commands
             ("git status.", "git status"),
             ("npm install.", "npm install"),
             ("docker run.", "docker run"),
-            
+
             # Version numbers
             ("version two point one.", "Version 2.1"),
             ("v one point zero.", "v1.0"),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             assert result == expected, \
@@ -167,7 +166,7 @@ class TestStandaloneEntityPunctuation:
             ("run git status to check", "Run git status to check"),
             ("we're using version two point one", "We're using version 2.1"),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             assert result == expected, \
@@ -185,10 +184,10 @@ class TestFillerWordPreservation:
             ("words like actually should be preserved", "Words like actually should be preserved"),
             ("I say things like actually or like", "I say things like actually or like"),
             ("he literally said literally", "He literally said literally"),
-            
+
             # In quoted contexts (once quote detection is implemented)
             # ("she said like three times", "She said like three times"),
-            
+
             # When they're meaningful
             ("I actually finished it", "I actually finished it"),
             ("basically correct", "Basically correct"),
@@ -198,7 +197,7 @@ class TestFillerWordPreservation:
             ("like, this is really cool", "This is really cool"),
             ("basically, we need this", "We need this"),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
@@ -214,12 +213,12 @@ class TestFillerWordPreservation:
             ("it was like really hot", "It was really hot"),
             ("you know what I mean", "What I mean"),
             ("basically we need to go", "We need to go"),
-            
+
             # Multiple fillers
             ("so like basically I think", "So I think"),
             ("actually like you know", ""),
         ]
-        
+
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end

@@ -217,11 +217,11 @@ def main() -> None:
     cert_dir.mkdir(parents=True, exist_ok=True)
 
     # Convert to absolute paths
-    cert_file = cert_dir / Path(cert_file).name
-    key_file = cert_dir / Path(key_file).name
+    cert_path = cert_dir / Path(cert_file).name
+    key_path = cert_dir / Path(key_file).name
 
     # Check if certificates already exist
-    if cert_file.exists() and key_file.exists():
+    if cert_path.exists() and key_path.exists():
         if args.overwrite:
             if not args.quiet:
                 print("Certificates exist - overwriting as requested")
@@ -236,8 +236,8 @@ def main() -> None:
             print("Certificates exist - overwriting for fresh install")
 
     print(f"📁 Certificate directory: {cert_dir}")
-    print(f"🔑 Private key file: {key_file}")
-    print(f"📜 Certificate file: {cert_file}")
+    print(f"🔑 Private key file: {key_path}")
+    print(f"📜 Certificate file: {cert_path}")
     print(f"⏰ Validity period: {validity_days} days")
     print()
 
@@ -245,17 +245,17 @@ def main() -> None:
     success = False
 
     if check_openssl_available():
-        success = generate_certificates_openssl(cert_dir, key_file, cert_file, validity_days)
+        success = generate_certificates_openssl(cert_dir, key_path, cert_path, validity_days)
 
     if not success:
         print("\nFalling back to Python cryptography library...")
-        success = generate_certificates_python(cert_dir, key_file, cert_file, validity_days)
+        success = generate_certificates_python(cert_dir, key_path, cert_path, validity_days)
 
     if success:
         # Set appropriate permissions
         try:
-            os.chmod(key_file, 0o600)  # Private key should be readable only by owner
-            os.chmod(cert_file, 0o644)  # Certificate can be readable by all
+            os.chmod(key_path, 0o600)  # Private key should be readable only by owner
+            os.chmod(cert_path, 0o644)  # Certificate can be readable by all
             print("🔒 Set secure permissions on certificate files")
         except Exception as e:
             print(f"⚠️  Warning: Could not set file permissions: {e}")

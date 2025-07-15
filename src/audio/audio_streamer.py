@@ -31,7 +31,7 @@ class AudioStreamer:
         self.encoder = OpusEncoder(sample_rate, channels, bitrate=24000)
 
         # Track active connections
-        self.connections: Set[web.WebSocketResponse] = weakref.WeakSet()
+        self.connections: weakref.WeakSet[web.WebSocketResponse] = weakref.WeakSet()
 
     async def add_connection(self, ws: web.WebSocketResponse):
         """Add a new WebSocket connection."""

@@ -8,10 +8,9 @@ converter for better maintainability and performance.
 """
 
 import re
-from typing import List, Optional, Dict, Any
+from typing import Optional
 from .common import Entity, EntityType, NumberParser
 from .constants import get_resources
-from .utils import is_inside_entity
 from ..core.config import get_config, setup_logging
 from . import regex_patterns
 
@@ -20,22 +19,22 @@ logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
 class PatternConverter:
     """Unified pattern converter handling all entity type conversions."""
-    
+
     def __init__(self, number_parser: NumberParser, language: str = "en"):
         self.number_parser = number_parser
         self.language = language
         self.config = get_config()
-        
+
         # Load language-specific resources
         self.resources = get_resources(language)
-        
+
         # Get URL keywords for web conversions
         self.url_keywords = self.resources["spoken_keywords"]["url"]
-        
+
         # Operator mappings for numeric conversions
         self.operators = {
             "plus": "+",
-            "minus": "-", 
+            "minus": "-",
             "times": "×",
             "divided by": "÷",
             "over": "/",  # Re-enabled with contextual checking
@@ -44,7 +43,7 @@ class PatternConverter:
             "minus minus": "--",
             "equals equals": "==",
         }
-        
+
         # Comprehensive converter mapping
         self.converters = {
             # Web converters
@@ -54,7 +53,7 @@ class PatternConverter:
             EntityType.PORT_NUMBER: self.convert_port_number,
             EntityType.URL: self.convert_url,
             EntityType.EMAIL: self.convert_email,
-            
+
             # Code converters
             EntityType.CLI_COMMAND: self.convert_cli_command,
             EntityType.PROGRAMMING_KEYWORD: self.convert_programming_keyword,
@@ -68,7 +67,7 @@ class PatternConverter:
             EntityType.SLASH_COMMAND: self.convert_slash_command,
             EntityType.UNDERSCORE_DELIMITER: self.convert_underscore_delimiter,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: self.convert_simple_underscore_variable,
-            
+
             # Numeric converters
             EntityType.MATH_EXPRESSION: self.convert_math_expression,
             EntityType.CURRENCY: self.convert_currency,
@@ -103,7 +102,7 @@ class PatternConverter:
     # ====================
     # WEB CONVERTERS
     # ====================
-    
+
     def _process_url_params(self, param_text: str) -> str:
         """Process URL parameters: 'a equals b and c equals 3' -> 'a=b&c=3'"""
         # Split on "and" or "ampersand"
@@ -135,11 +134,11 @@ class PatternConverter:
     def convert_spoken_protocol_url(self, entity: Entity) -> str:
         """Convert spoken protocol URLs like 'http colon slash slash www.google.com/path?query=value'"""
         text = entity.text.lower()
-        
+
         # Get language-specific keywords
         colon_keywords = [k for k, v in self.url_keywords.items() if v == ":"]
         slash_keywords = [k for k, v in self.url_keywords.items() if v == "/"]
-        
+
         # Try to find and replace "colon slash slash" pattern
         for colon_kw in colon_keywords:
             for slash_kw in slash_keywords:
@@ -150,7 +149,7 @@ class PatternConverter:
             else:
                 continue
             break
-        
+
         # The rest can be handled by the robust spoken URL converter
         return self.convert_spoken_url(Entity(start=0, end=len(text), text=text, type=EntityType.SPOKEN_URL), text)
 
@@ -270,9 +269,9 @@ class PatternConverter:
         # For clean SpaCy-detected emails, just return the text as-is
         return text + trailing_punct
 
-    def convert_spoken_email(self, entity: Entity, full_text: str = None) -> str:
+    def convert_spoken_email(self, entity: Entity, full_text: Optional[str] = None) -> str:
         """Convert 'user at example dot com' to 'user@example.com'.
-        
+
         Note: The entity text should contain only the email part, not action phrases.
         Action phrases are handled separately by the formatter.
         """
@@ -465,7 +464,7 @@ class PatternConverter:
         """Preserve the original text of a programming keyword."""
         return entity.text
 
-    def convert_filename(self, entity: Entity, full_text: str = None) -> str:
+    def convert_filename(self, entity: Entity, full_text: Optional[str] = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
 
@@ -536,14 +535,14 @@ class PatternConverter:
 
         # Otherwise, apply casing rules based on the config
         format_rule = self.config.get_filename_format(extension)
-        
+
         # Special handling for version patterns - treat "v<number>" as single units
         # Handle both "v1" and "v 1" patterns by collapsing them before splitting
-        
+
         # Collapse "v <number>" patterns into "v<number>" to treat as single units
         version_collapse_pattern = r'\bv\s+(\d+(?:\.\d+)*)\b'
         filename_part = re.sub(version_collapse_pattern, r'v\1', filename_part, flags=re.IGNORECASE)
-        
+
         # Now split on spaces, underscores, and hyphens
         casing_words = re.split(r"[ _-]", filename_part)
         casing_words = [w.lower() for w in casing_words if w]
@@ -649,7 +648,7 @@ class PatternConverter:
 
         # Use abbreviations from resources
         abbreviations = self.resources.get("abbreviations", {})
-        return abbreviations.get(text, text)
+        return str(abbreviations.get(text, text))
 
     def convert_assignment(self, entity: Entity) -> str:
         """Convert assignment patterns like 'a equals b' -> 'a=b' or 'let a equals b' -> 'let a=b'"""
@@ -741,7 +740,7 @@ class PatternConverter:
         """Process command parameters to convert number words and handle concatenation."""
         # Split parameters into words
         words = parameters.split()
-        result_words = []
+        result_words: list[str] = []
 
         for i, word in enumerate(words):
             # Check if this word is a number word
@@ -1622,7 +1621,7 @@ class PatternConverter:
             # Try to parse as a number
             try:
                 hour = int(hour_word)
-            except:
+            except (ValueError, TypeError):
                 return entity.text
 
         # Convert relative expression to time
@@ -1749,11 +1748,11 @@ class PatternConverter:
         """Convert numeric range expressions (ten to twenty -> 10-20)."""
         if not entity.metadata:
             return entity.text
-        
+
         start_word = entity.metadata.get("start_word", "")
         end_word = entity.metadata.get("end_word", "")
         unit = entity.metadata.get("unit") # The detector now provides this
-        
+
         start_num = self.number_parser.parse(start_word)
         end_num = self.number_parser.parse(end_word)
 
@@ -1780,7 +1779,7 @@ class PatternConverter:
                 if unit:
                     return f"{result} {unit}"
             return result
-        
+
         return entity.text
 
     def convert_version(self, entity: Entity) -> str:
@@ -2024,7 +2023,7 @@ class PatternConverter:
                         try:
                             num_value = float(parsed_num) + 0.5
                             number_str = str(num_value).rstrip("0").rstrip(".")
-                        except:
+                        except (ValueError, TypeError):
                             number_str = f"{parsed_num}.5"
                     else:
                         return entity.text  # Fallback if can't parse
@@ -2052,9 +2051,9 @@ class PatternConverter:
 
                 elif pattern_type == "feet_inches":
                     feet_part = match.group(1)
-                    feet_unit = match.group(2)  # "feet" or "foot"
+                    # feet_unit = match.group(2)  # "feet" or "foot" (unused)
                     inches_part = match.group(3)
-                    inches_unit = match.group(4)  # "inches" or "inch"
+                    # inches_unit = match.group(4)  # "inches" or "inch" (unused)
 
                     # Parse both parts
                     parsed_feet = self.number_parser.parse(feet_part)
@@ -2433,7 +2432,8 @@ class PatternConverter:
         if emoji:
             # The detection regex now captures trailing punctuation in the entity text
             # Preserve it after conversion.
-            trailing_punct = re.search(r"([.!?]*)$", entity.text).group(1)
+            match = re.search(r"([.!?]*)$", entity.text)
+            trailing_punct = match.group(1) if match else ""
             return emoji + trailing_punct
 
         return entity.text

@@ -42,7 +42,7 @@ def get_resources(language: str = "en") -> Dict[str, Any]:
         try:
             filepath = os.path.join(_RESOURCE_PATH, f"{language}.json")
             with open(filepath, encoding="utf-8") as f:
-                resources = json.load(f)
+                resources: Dict[str, Any] = json.load(f)
                 _RESOURCES[language] = resources
             return resources
         except FileNotFoundError:

@@ -51,7 +51,7 @@ class TestI18nResourceLoader:
         """Test fallback to English for invalid language file."""
         # Should fallback to English without raising an error
         resources = get_resources("invalid_lang")
-        
+
         # Should be the same as English resources
         en_resources = get_resources("en")
         assert resources == en_resources
