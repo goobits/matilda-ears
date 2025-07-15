@@ -8,10 +8,19 @@ from arecord, eliminating filesystem buffering issues entirely.
 import time
 import threading
 import subprocess
-import numpy as np
 import asyncio
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    # Create dummy for type annotations
+    class _DummyNumpy:
+        class ndarray: pass
+    np = _DummyNumpy()
 
 # Setup standardized logging
 try:

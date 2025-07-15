@@ -13,10 +13,19 @@ import asyncio
 import threading
 import time
 import json
-import numpy as np
 from typing import Optional, Dict, Any
 from pathlib import Path
 import sys
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    # Create dummy for type annotations
+    class _DummyNumpy:
+        class ndarray: pass
+    np = _DummyNumpy()
 
 # Add project root to path for imports
 current_dir = Path(__file__).parent.parent.parent.absolute()
@@ -65,6 +74,13 @@ class ConversationMode:
         # Threading
         self.processing_thread = None
         self.stop_event = threading.Event()
+        
+        # Check dependencies
+        if not NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is required for conversation mode. "
+                "Install with: pip install numpy"
+            )
         
         self.logger.info("Conversation mode initialized")
     

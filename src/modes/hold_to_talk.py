@@ -13,10 +13,19 @@ import asyncio
 import threading
 import time
 import json
-import numpy as np
 from typing import Optional, Dict, Any
 from pathlib import Path
 import sys
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    # Create dummy for type annotations
+    class _DummyNumpy:
+        class ndarray: pass
+    np = _DummyNumpy()
 
 # Add project root to path for imports
 current_dir = Path(__file__).parent.parent.parent.absolute()
@@ -62,6 +71,13 @@ class HoldToTalkMode:
         self.keyboard_listener = None
         self.target_key = None
         self.stop_event = threading.Event()
+        
+        # Check dependencies
+        if not NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is required for hold-to-talk mode. "
+                "Install with: pip install numpy"
+            )
         
         self.logger.info(f"Hold-to-talk mode initialized with hotkey: {self.hotkey}")
     

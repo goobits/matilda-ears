@@ -12,12 +12,21 @@ This mode provides automatic speech detection and transcription of a single utte
 import asyncio
 import time
 import json
-import numpy as np
 from typing import Optional, Dict, Any
 from pathlib import Path
 import sys
 import tempfile
 import wave
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    # Create dummy for type annotations
+    class _DummyNumpy:
+        class ndarray: pass
+    np = _DummyNumpy()
 
 # Add project root to path for imports
 current_dir = Path(__file__).parent.parent.parent.absolute()
@@ -65,6 +74,13 @@ class ListenOnceMode:
         
         # Whisper model
         self.model = None
+        
+        # Check dependencies
+        if not NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is required for listen-once mode. "
+                "Install with: pip install numpy"
+            )
         
         self.logger.info("Listen-once mode initialized")
     

@@ -12,10 +12,19 @@ import asyncio
 import threading
 import time
 import json
-import numpy as np
 from typing import Optional, Dict, Any
 from pathlib import Path
 import sys
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    # Create dummy for type annotations
+    class _DummyNumpy:
+        class ndarray: pass
+    np = _DummyNumpy()
 
 # Add project root to path for imports
 current_dir = Path(__file__).parent.parent.parent.absolute()
@@ -60,6 +69,13 @@ class TapToTalkMode:
         # Hotkey listener
         self.hotkey_listener = None
         self.stop_event = threading.Event()
+        
+        # Check dependencies
+        if not NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is required for tap-to-talk mode. "
+                "Install with: pip install numpy"
+            )
         
         self.logger.info(f"Tap-to-talk mode initialized with hotkey: {self.hotkey}")
     
