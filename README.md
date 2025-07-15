@@ -2,6 +2,29 @@
 
 A pure speech-to-text engine with multiple operation modes and advanced text formatting. Features real-time transcription, WebSocket server capabilities, and comprehensive text processing with internationalization support. Built on Whisper models for accurate transcription across various languages and use cases.
 
+## 🔗 Related Projects
+
+This project is part of the GOOBITS ecosystem:
+
+- **[GOOBITS TTS](https://github.com/goobits/tts)** - Text-to-Speech engine with natural voice synthesis
+- **[GOOBITS STT](https://github.com/goobits/stt)** - Speech-to-Text engine (this project)
+- **[GOOBITS TTT](https://github.com/goobits/ttt)** - Text-to-Text processing and transformation tools
+- **[Matilda](https://github.com/goobits/matilda)** - AI assistant for conversational interactions
+
+## 📋 Table of Contents
+
+- [Installation](#-installation)
+- [Basic Usage](#-basic-usage)
+- [Configuration](#️-configuration)
+- [Operation Modes](#-operation-modes)
+- [Performance Optimization](#-performance-optimization)
+- [Text Formatting Features](#-text-formatting-features)
+- [Server Deployment](#-server-deployment)
+- [Testing & Development](#-testing--development)
+- [Model Comparison](#-model-comparison)
+- [Audio Features](#️-audio-features)
+- [Tech Stack](#️-tech-stack)
+
 ## 📦 Installation
 
 ```bash
