@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Configuration loader that reads from config.json"""
 import json
+import logging
 import os
 import platform
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -70,23 +72,23 @@ class ConfigLoader:
 
     @property
     def websocket_port(self) -> int:
-        return self.get("server.websocket.port", 8769)
+        return int(self.get("server.websocket.port", 8769))
 
     @property
     def websocket_host(self) -> str:
-        return self.get("server.websocket.host", "localhost")
+        return str(self.get("server.websocket.host", "localhost"))
 
     @property
     def websocket_bind_host(self) -> str:
-        return self.get("server.websocket.bind_host", "0.0.0.0")
+        return str(self.get("server.websocket.bind_host", "0.0.0.0"))
 
     @property
     def websocket_connect_host(self) -> str:
-        return self.get("server.websocket.connect_host", "localhost")
+        return str(self.get("server.websocket.connect_host", "localhost"))
 
     @property
     def auth_token(self) -> str:
-        return self.get("server.websocket.auth_token", "matilda-2024")
+        return str(self.get("server.websocket.auth_token", "matilda-2024"))
 
     @property
     def jwt_secret_key(self) -> str:
@@ -99,7 +101,7 @@ class ConfigLoader:
             self._auto_update_jwt_secret(new_key)
             return new_key
 
-        return key
+        return str(key)
 
     def _generate_secret_key(self) -> str:
         """Generate a cryptographically secure secret key."""
@@ -135,15 +137,15 @@ class ConfigLoader:
 
     @property
     def whisper_model(self) -> str:
-        return self.get("whisper.model", "large-v3-turbo")
+        return str(self.get("whisper.model", "large-v3-turbo"))
 
     @property
     def whisper_device(self) -> str:
-        return self.get("whisper.device", "cuda")
+        return str(self.get("whisper.device", "cuda"))
 
     @property
     def whisper_compute_type(self) -> str:
-        return self.get("whisper.compute_type", "float16")
+        return str(self.get("whisper.compute_type", "float16"))
 
     def detect_cuda_support(self) -> tuple[bool, str]:
         """Detect if CUDA is available and supported by CTranslate2.
@@ -173,7 +175,7 @@ class ConfigLoader:
         configured_device = self.get("whisper.device", "auto")
 
         if configured_device != "auto":
-            return configured_device
+            return str(configured_device)
 
         cuda_available, reason = self.detect_cuda_support()
         if cuda_available:
@@ -187,7 +189,7 @@ class ConfigLoader:
         configured_compute_type = self.get("whisper.compute_type", "auto")
 
         if configured_compute_type != "auto":
-            return configured_compute_type
+            return str(configured_compute_type)
 
         if device == "cuda":
             return "float16"
@@ -201,19 +203,19 @@ class ConfigLoader:
         # Search for hotkey that matches the key_name on current platform
         for hotkey in hotkeys:
             if hotkey.get(platform_key, "").lower() == key_name.lower():
-                return hotkey
+                return dict(hotkey)
 
         # Fallback: search all platforms for the key
         for hotkey in hotkeys:
-            for platform in ["linux", "mac", "windows"]:
-                if hotkey.get(platform, "").lower() == key_name.lower():
-                    return hotkey
+            for platform_name in ["linux", "mac", "windows"]:
+                if hotkey.get(platform_name, "").lower() == key_name.lower():
+                    return dict(hotkey)
 
         return {}
 
     def get_all_hotkeys(self) -> List[Dict[str, Any]]:
         """Get all hotkey configurations"""
-        return self.get("hotkeys", [])
+        return list(self.get("hotkeys", []))
 
     def get_hotkeys_for_platform(self, platform: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get all hotkeys for a specific platform"""
@@ -242,9 +244,9 @@ class ConfigLoader:
             # Return first available tool
             for tool in tools:
                 # Could check if tool exists here
-                return tool
-            return tools[0]
-        return tools
+                return str(tool)
+            return str(tools[0])
+        return str(tools)
 
     def get_timing(self, name: str) -> float:
         """Get timing value with preset support"""
@@ -254,10 +256,10 @@ class ConfigLoader:
         if typing_speed != "custom" and name in ["typing_delay", "char_delay", "xdotool_delay"]:
             preset = self.get(f"typing_speed_presets.{typing_speed}")
             if preset and name in preset:
-                return preset[name]
+                return float(preset[name])
 
         # Fall back to custom timing values
-        return self.get(f"timing.{name}", 0.1)
+        return float(self.get(f"timing.{name}", 0.1))
 
     def get_file_path(self, file_type: str, key_name: str = "f8") -> str:
         """Get file path for a specific file type and key"""
@@ -276,23 +278,23 @@ class ConfigLoader:
             os.makedirs(log_dir, mode=0o755, exist_ok=True)
             return os.path.join(log_dir, filename)
 
-        return os.path.join(self.temp_dir, filename)
+        return str(os.path.join(self.temp_dir, filename))
 
     def get_filter_phrases(self) -> List[str]:
         """Get text filter phrases"""
-        return self.get("text_filtering.filter_phrases", [])
+        return list(self.get("text_filtering.filter_phrases", []))
 
     def get_exact_filter_phrases(self) -> List[str]:
         """Get exact match filter phrases"""
-        return self.get("text_filtering.exact_filter_phrases", [])
+        return list(self.get("text_filtering.exact_filter_phrases", []))
 
     def get_add_trailing_space(self) -> bool:
         """Get whether to add trailing space after text insertion"""
-        return self.get("text_insertion.add_trailing_space", True)
+        return bool(self.get("text_insertion.add_trailing_space", True))
 
     def get_typing_speed(self) -> str:
         """Get current typing speed setting"""
-        return self.get("text_insertion.typing_speed", "fast")
+        return str(self.get("text_insertion.typing_speed", "fast"))
 
     def get_available_typing_speeds(self) -> List[str]:
         """Get list of available typing speed presets"""
@@ -301,81 +303,84 @@ class ConfigLoader:
 
     def get_recording_controls_enabled(self) -> bool:
         """Get whether recording control keys are enabled"""
-        return self.get("recording_controls.enable_during_recording", True)
+        return bool(self.get("recording_controls.enable_during_recording", True))
 
     def get_cancel_key(self) -> str:
         """Get the configured cancel key (default: escape)"""
-        return self.get("recording_controls.cancel_key", "escape")
+        return str(self.get("recording_controls.cancel_key", "escape"))
 
     def get_end_with_enter_key(self) -> str:
         """Get the configured end-with-enter key (default: enter)"""
-        return self.get("recording_controls.end_with_enter_key", "enter")
+        return str(self.get("recording_controls.end_with_enter_key", "enter"))
 
     @property
     def ssl_enabled(self) -> bool:
-        return self.get("server.websocket.ssl.enabled", False)
+        return bool(self.get("server.websocket.ssl.enabled", False))
 
     @property
     def ssl_cert_file(self) -> str:
-        return self.get("server.websocket.ssl.cert_file", "ssl/server.crt")
+        return str(self.get("server.websocket.ssl.cert_file", "ssl/server.crt"))
 
     @property
     def ssl_key_file(self) -> str:
-        return self.get("server.websocket.ssl.key_file", "ssl/server.key")
+        return str(self.get("server.websocket.ssl.key_file", "ssl/server.key"))
 
     @property
     def ssl_verify_mode(self) -> str:
-        return self.get("server.websocket.ssl.verify_mode", "optional")
+        return str(self.get("server.websocket.ssl.verify_mode", "optional"))
 
     @property
     def ssl_auto_generate_certs(self) -> bool:
-        return self.get("server.websocket.ssl.auto_generate_certs", True)
+        return bool(self.get("server.websocket.ssl.auto_generate_certs", True))
 
     @property
     def ssl_cert_validity_days(self) -> int:
-        return self.get("server.websocket.ssl.cert_validity_days", 365)
+        return int(self.get("server.websocket.ssl.cert_validity_days", 365))
 
     # Audio streaming configuration
     @property
     def audio_streaming_enabled(self) -> bool:
         """Check if Opus audio streaming is enabled"""
-        return self.get("audio.streaming.enabled", False)
+        return bool(self.get("audio.streaming.enabled", False))
 
     @property
     def opus_bitrate(self) -> int:
         """Get Opus encoder bitrate"""
-        return self.get("audio.streaming.opus_bitrate", 24000)
+        return int(self.get("audio.streaming.opus_bitrate", 24000))
 
     @property
     def opus_frame_size(self) -> int:
         """Get Opus frame size in samples"""
-        return self.get("audio.streaming.frame_size", 960)
+        return int(self.get("audio.streaming.frame_size", 960))
 
     @property
     def streaming_buffer_ms(self) -> int:
         """Get client-side buffering in milliseconds"""
-        return self.get("audio.streaming.buffer_ms", 100)
+        return int(self.get("audio.streaming.buffer_ms", 100))
 
     @property
     def audio_sample_rate(self) -> int:
         """Get audio sample rate"""
-        return self.get("audio.sample_rate", 16000)
+        return int(self.get("audio.sample_rate", 16000))
 
     @property
     def audio_channels(self) -> int:
         """Get number of audio channels"""
-        return self.get("audio.channels", 1)
+        return int(self.get("audio.channels", 1))
 
     # Embedded server configuration
     @property
     def embedded_server_enabled(self) -> Union[bool, str]:
         """Get embedded server enabled setting"""
-        return self.get("server.embedded_server.enabled", "auto")
+        value = self.get("server.embedded_server.enabled", "auto")
+        if isinstance(value, bool):
+            return value
+        return str(value)
 
     @property
     def auto_detect_whisper(self) -> bool:
         """Get whether to auto-detect whisper for server mode"""
-        return self.get("server.embedded_server.auto_detect_whisper", True)
+        return bool(self.get("server.embedded_server.auto_detect_whisper", True))
 
     @property
     def visualizer_engine(self) -> str:
@@ -383,15 +388,15 @@ class ConfigLoader:
         # First check the new unified location
         engine = self.get("visualizer.engine")
         if engine is not None:
-            return engine
+            return str(engine)
 
         # Fallback to old location for backward compatibility
-        return self.get("visualizers.engine", "legacy")
+        return str(self.get("visualizers.engine", "legacy"))
 
     @property
     def visualizer_enabled(self) -> bool:
         """Get whether visualizer is enabled"""
-        return self.get("visualizer.enabled", True)
+        return bool(self.get("visualizer.enabled", True))
 
     # Additional properties needed for daemon functionality
     @property
@@ -445,7 +450,7 @@ class ConfigLoader:
     @property
     def filename_formats(self) -> Dict[str, str]:
         """Get filename formatting rules per extension"""
-        return self.get(
+        return dict(self.get(
             "text_formatting.filename_formats",
             {
                 "md": "UPPER_SNAKE",
@@ -454,7 +459,7 @@ class ConfigLoader:
                 "py": "lower_snake",
                 "*": "lower_snake",  # Default fallback
             },
-        )
+        ))
 
     def get_filename_format(self, extension: str) -> str:
         """Get formatting rule for a specific file extension"""
@@ -479,10 +484,6 @@ def get_config() -> ConfigLoader:
 
 
 # ========================= CENTRALIZED LOGGING SETUP =========================
-
-import logging
-import sys
-from pathlib import Path
 
 
 def setup_logging(

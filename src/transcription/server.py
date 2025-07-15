@@ -11,7 +11,6 @@ if os.environ.get("MATILDA_MANAGEMENT_TOKEN") != "managed-by-matilda-system":
     print("   Use: ./server.py start-ws")
     sys.exit(1)
 
-
 # Add project root to path for imports - cross-platform compatible
 def ensure_project_root_in_path():
     """Ensure the project root is in sys.path for imports to work."""
@@ -31,43 +30,34 @@ def ensure_project_root_in_path():
         sys.path.insert(0, fallback_root)
     return fallback_root
 
-
 ensure_project_root_in_path()
 
-# Import config after environment is set up for server
-import os
-
+# Environment setup for server
 if os.environ.get("WEBSOCKET_SERVER_IP"):
     os.environ["WEBSOCKET_SERVER_HOST"] = os.environ["WEBSOCKET_SERVER_IP"]
 
-from ..core.config import get_config, setup_logging
+# All imports after path and environment setup
+import asyncio  # noqa: E402
+import websockets  # noqa: E402
+import json  # noqa: E402
+import base64  # noqa: E402
+import tempfile  # noqa: E402
+import traceback  # noqa: E402
+import time  # noqa: E402
+from collections import defaultdict  # noqa: E402
+import uuid  # noqa: E402
+from typing import Tuple  # noqa: E402
+from faster_whisper import WhisperModel  # noqa: E402
+from ..core.config import get_config, setup_logging  # noqa: E402
+from ..core.token_manager import TokenManager  # noqa: E402
+from ..audio.decoder import OpusStreamDecoder  # noqa: E402
+from ..audio.opus_batch import OpusBatchDecoder  # noqa: E402
+from ..utils.ssl import create_ssl_context  # noqa: E402
+from ..text_formatting.formatter import format_transcription  # noqa: E402
 
-# Get config instance
+# Get config instance and setup logging
 config = get_config()
-
-# Import config before other imports that depend on it
-
-import asyncio
-import websockets
-import json
-import base64
-import tempfile
-from faster_whisper import WhisperModel
-import sys
-import traceback
-import time
-from collections import defaultdict
-import uuid
-from typing import Tuple
-from ..audio.decoder import OpusStreamDecoder
-from ..audio.opus_batch import OpusBatchDecoder
-from ..utils.ssl import create_ssl_context
-
-# Setup standardized logging for WebSocket server
 logger = setup_logging(__name__, log_filename="transcription.txt")
-
-# Import centralized formatting
-from ..text_formatting.formatter import format_transcription
 
 
 class MatildaWebSocketServer:
@@ -77,8 +67,6 @@ class MatildaWebSocketServer:
         self.port = config.websocket_port
         self.auth_token = config.auth_token  # Keep for backward compatibility
         # Initialize JWT token manager
-        from ..core.token_manager import TokenManager
-
         self.token_manager = TokenManager(config.jwt_secret_key)
         self.model = None
         self.device = config.whisper_device_auto
@@ -235,6 +223,8 @@ class MatildaWebSocketServer:
             loop = asyncio.get_event_loop()
 
             def transcribe_audio():
+                if self.model is None:
+                    raise RuntimeError("Model not loaded")
                 segments, info = self.model.transcribe(temp_path, beam_size=5, language="en")
                 return "".join([segment.text for segment in segments]).strip(), info
 

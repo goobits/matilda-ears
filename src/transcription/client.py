@@ -14,13 +14,11 @@ import base64
 import time
 import threading
 import wave
-from ..utils.ssl import create_ssl_context
 import ssl
 import numpy as np
 from enum import Enum
 from dataclasses import dataclass
 from typing import Optional, Any, Tuple, Callable, Dict
-
 
 # Add project root to path for imports - cross-platform compatible
 def ensure_project_root_in_path():
@@ -41,18 +39,15 @@ def ensure_project_root_in_path():
         sys.path.insert(0, fallback_root)
     return fallback_root
 
-
 ensure_project_root_in_path()
 
-from ..core.config import get_config, setup_logging
+from ..utils.ssl import create_ssl_context  # noqa: E402
+from ..core.config import get_config, setup_logging  # noqa: E402
+from ..audio.encoder import OpusEncoder  # noqa: E402
+from ..audio.opus_batch import OpusBatchEncoder  # noqa: E402
 
 # Get config instance
 config = get_config()
-
-# AudioFileMonitor removed - replaced with PipeBasedAudioStreamer for direct pipe streaming
-from ..audio.encoder import OpusEncoder
-from ..audio.opus_batch import OpusBatchEncoder
-
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
@@ -97,7 +92,7 @@ class CircuitBreaker:
         self.state = CircuitState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time = 0
+        self.last_failure_time = 0.0
 
     def can_execute(self) -> bool:
         """Check if operation should be allowed"""
@@ -200,8 +195,8 @@ class StreamingAudioClient:
         # Debug features with bounded collections
         self.debug_save_audio = debug_save_audio
         self.max_debug_chunks = max_debug_chunks
-        self.debug_raw_chunks = []
-        self.debug_opus_chunks = []
+        self.debug_raw_chunks: list[np.ndarray] = []
+        self.debug_opus_chunks: list[bytes] = []
         self.sent_opus_packets = 0
         self.debug_chunk_count = 0
 
@@ -248,6 +243,8 @@ class StreamingAudioClient:
             logger.info("Connected to WebSocket server")
 
             # Wait for welcome message
+            if self.websocket is None:
+                raise Exception("WebSocket connection failed")
             welcome = await self.websocket.recv()
             welcome_data = json.loads(welcome)
             logger.debug(f"Server welcome: {welcome_data}")
@@ -590,7 +587,7 @@ class TranscriptionClient:
     - Batch mode: Traditional transcription (record-then-transcribe)
     """
 
-    def __init__(self, websocket_host: str = None, debug_callback: Callable[[str], None] = None):
+    def __init__(self, websocket_host: Optional[str] = None, debug_callback: Optional[Callable[[str], None]] = None):
         """Initialize transcription client.
 
         Args:
@@ -599,7 +596,7 @@ class TranscriptionClient:
 
         """
         self.websocket_host = websocket_host or config.websocket_connect_host
-        self.debug_callback = debug_callback or (lambda msg: None)
+        self.debug_callback = debug_callback if debug_callback is not None else (lambda msg: None)
 
         # Circuit breaker for connection resilience
         self.circuit_breaker = CircuitBreaker(
@@ -621,7 +618,7 @@ class TranscriptionClient:
         self.mode_configs = self.transcription_config.get("modes", {})
 
         # Active streaming sessions for real-time mode
-        self.active_streaming_sessions = {}
+        self.active_streaming_sessions: dict[str, StreamingAudioClient] = {}
 
         self.debug_callback(f"TranscriptionClient initialized for {self.websocket_url}")
         self.debug_callback(f"Default transcription mode: {self.default_mode}")
@@ -639,7 +636,7 @@ class TranscriptionClient:
         return ssl_context
 
     async def send_batch_transcription(
-        self, audio_file_path: str, cancel_event: threading.Event = None, use_opus_compression: bool = True
+        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, use_opus_compression: bool = True
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Send batch transcription request.
 
@@ -745,7 +742,7 @@ class TranscriptionClient:
             return False, None, f"Transcription failed: {e}"
 
     async def transcribe_batch_mode(
-        self, audio_file_path: str, cancel_event: threading.Event = None, **batch_options
+        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, **batch_options
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Traditional batch transcription (record-then-transcribe).
 
@@ -791,9 +788,9 @@ class TranscriptionClient:
     async def transcribe_with_mode(
         self,
         audio_file_path: str,
-        mode: str = None,
-        session_id: str = None,
-        cancel_event: threading.Event = None,
+        mode: Optional[str] = None,
+        session_id: Optional[str] = None,
+        cancel_event: Optional[threading.Event] = None,
         **mode_options,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Transcribe using specified mode or default configuration.
@@ -871,7 +868,7 @@ class TranscriptionClient:
             streaming_client: The streaming client to clean up
 
         """
-        if streaming_client.session_id in self.active_streaming_sessions:
+        if streaming_client.session_id and streaming_client.session_id in self.active_streaming_sessions:
             del self.active_streaming_sessions[streaming_client.session_id]
 
         try:

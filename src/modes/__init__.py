@@ -8,20 +8,30 @@ This module contains different operation modes for the STT engine:
 - hold_to_talk: Push-to-talk recording
 """
 
+from typing import Optional, Type, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .conversation import ConversationMode as ConversationModeType
+    from .tap_to_talk import TapToTalkMode as TapToTalkModeType
+    from .hold_to_talk import HoldToTalkMode as HoldToTalkModeType
+
 # Import modes conditionally to avoid dependency issues
+ConversationMode: Optional[Type] = None
 try:
     from .conversation import ConversationMode
 except ImportError:
-    ConversationMode = None
+    pass
 
+TapToTalkMode: Optional[Type] = None
 try:
     from .tap_to_talk import TapToTalkMode
 except ImportError:
-    TapToTalkMode = None
+    pass
 
+HoldToTalkMode: Optional[Type] = None
 try:
     from .hold_to_talk import HoldToTalkMode
 except ImportError:
-    HoldToTalkMode = None
+    pass
 
 __all__ = ["ConversationMode", "TapToTalkMode", "HoldToTalkMode"]

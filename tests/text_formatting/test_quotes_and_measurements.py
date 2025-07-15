@@ -198,7 +198,7 @@ class TestMeasurementEdgeCases:
         assert format_transcription("the temperature is twenty degrees") == "The temperature is 20°"
         assert format_transcription("it weighs fifty kilograms") == "It weighs 50 kg"
         assert format_transcription("drive ten miles") == "Drive 10 mi"
-    
+
     def test_fraction_formatting_in_context(self, preloaded_formatter):
         """Test fraction formatting in descriptive text."""
         format_transcription = preloaded_formatter

@@ -78,7 +78,7 @@ class Entity:
     end: int
     text: str
     type: EntityType
-    metadata: Dict[str, Any] = None
+    metadata: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -165,7 +165,7 @@ class NumberParser:
             left_num_str = self.parse(parts[0])
             if left_num_str is None:
                 return None
-            
+
             right_digits = self.parse_as_digits(parts[1])
             if right_digits:
                 return f"{left_num_str}.{right_digits}"
@@ -174,7 +174,7 @@ class NumberParser:
         words = text.split()
         current_val = 0
         total_val = 0
-        
+
         # Check if no scale words are present - handle as sequence
         if not any(word in self.scales for word in words):
             parsed_sequence = self.parse_as_sequence(words)
@@ -199,7 +199,7 @@ class NumberParser:
                 current_val += int(word)
             elif word != "and":
                 return None
-        
+
         total_val += current_val
         return str(total_val) if total_val > 0 or text == "zero" else None
 
@@ -210,17 +210,17 @@ class NumberParser:
             if len(words) == 3 and all(w in self.tens for w in words[:2]) and words[2] in self.ones:
                 # Pattern: tens tens ones (e.g., twenty twenty four)
                 first_tens = self.tens[words[0]]
-                second_tens = self.tens[words[1]] 
+                second_tens = self.tens[words[1]]
                 ones = self.ones[words[2]]
                 # Construct as year: 20 + 20 + 4 -> 2024 (concatenation, not addition)
                 return f"{first_tens}{second_tens // 10}{ones}"
-            
+
             # Special case for "twenty twenty" -> "2020"
             if len(words) == 2 and all(w in self.tens for w in words):
                 first_tens = self.tens[words[0]]
                 second_tens = self.tens[words[1]]
                 return f"{first_tens}{second_tens // 10}0"
-            
+
             parts = []
             i = 0
             while i < len(words):
@@ -234,7 +234,7 @@ class NumberParser:
                         best_parse = parsed_chunk
                         best_j = j
                         break
-                
+
                 if best_parse is not None:
                     parts.append(str(best_parse))
                     i = best_j

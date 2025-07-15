@@ -176,7 +176,8 @@ class StreamHandler:
                 try:
                     # Use queue.join() for the most robust wait.
                     # It waits until task_done() is called for all items.
-                    await asyncio.wait_for(self.audio_queue.join(), timeout=10.0)
+                    if self.audio_queue is not None:
+                        await asyncio.wait_for(self.audio_queue.join(), timeout=10.0)
                     logger.info("Audio queue joined gracefully.")
                 except asyncio.TimeoutError:
                     logger.warning(f"Timeout waiting for chunk processor for {self.key_name}. Cancelling.")
@@ -284,7 +285,7 @@ class StreamHandler:
         """
         try:
             # Start pipe-based audio streaming
-            if not self.audio_streamer.start_recording():
+            if self.audio_streamer is None or not self.audio_streamer.start_recording():
                 logger.error(f"Failed to start pipe-based recording for {self.key_name}")
                 return False
 
@@ -306,6 +307,8 @@ class StreamHandler:
 
             while True:
                 # This is now a proper, efficient async operation
+                if self.audio_queue is None:
+                    break
                 audio_data = await self.audio_queue.get()  # np.ndarray of int16 samples
 
                 if audio_data is None:
@@ -322,9 +325,11 @@ class StreamHandler:
                     asyncio.create_task(self.visualizer_orchestrator.server.broadcast_audio_chunk(audio_data))
 
                 # Send to transcription server
-                await self.streaming_client.send_audio_chunk(audio_data)
+                if self.streaming_client is not None:
+                    await self.streaming_client.send_audio_chunk(audio_data)
                 self.chunks_processed += 1
-                self.audio_queue.task_done()  # Signal that this item is processed
+                if self.audio_queue is not None:
+                    self.audio_queue.task_done()  # Signal that this item is processed
         except Exception as e:
             logger.error(f"Error in chunk processor for {self.key_name}: {e}")
         finally:
@@ -468,7 +473,7 @@ async def run_streaming_session(key_name: str, websocket_url: str, auth_token: s
     handler = create_stream_handler(key_name, websocket_url, auth_token)
     try:
         # Start streaming in the background
-        streaming_task = asyncio.create_task(handler.run())
+        asyncio.create_task(handler.run())  # streaming_task not used
 
         # For this convenience function, we simulate waiting for a stop signal
         # In practice, the daemon would control the stop timing

@@ -10,7 +10,6 @@ This module tests the detection and formatting of:
 """
 
 import pytest
-from src.text_formatting.formatter import TextFormatter
 
 
 class TestSpanishSlashCommands:

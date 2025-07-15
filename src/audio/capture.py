@@ -19,7 +19,8 @@ except ImportError:
     NUMPY_AVAILABLE = False
     # Create dummy for type annotations
     class _DummyNumpy:
-        class ndarray: pass
+        class ndarray:
+            pass
     np = _DummyNumpy()
 
 # Setup standardized logging
@@ -46,7 +47,7 @@ class StreamingStats:
     total_duration: float = 0.0
     start_time: Optional[float] = None
 
-    def update_chunk(self, chunk_size: int, timestamp: float = None) -> None:
+    def update_chunk(self, chunk_size: int, timestamp: Optional[float] = None) -> None:
         """Update statistics with new chunk information."""
         if timestamp is None:
             timestamp = time.time()
@@ -97,8 +98,8 @@ class PipeBasedAudioStreamer:
         self.target_bytes_per_chunk = self.target_chunk_size * 2  # 16-bit samples
 
         # Process management
-        self.arecord_process = None
-        self.reader_thread = None
+        self.arecord_process: Optional[subprocess.Popen] = None
+        self.reader_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
         # Statistics
@@ -108,7 +109,8 @@ class PipeBasedAudioStreamer:
         self._audio_buffer = b""
 
         logger.info(
-            f"[PIPE-STREAM] Initialized: {chunk_duration_ms}ms chunks, {sample_rate}Hz, {self.target_chunk_size} samples/chunk"
+            f"[PIPE-STREAM] Initialized: {chunk_duration_ms}ms chunks, {sample_rate}Hz, "
+            f"{self.target_chunk_size} samples/chunk"
         )
 
     def start_recording(self) -> bool:
@@ -233,6 +235,11 @@ class PipeBasedAudioStreamer:
     def _read_pipe_loop(self):
         """Main loop for reading from arecord pipe."""
         logger.info("[PIPE-STREAM] Reader thread started")
+        
+        if self.arecord_process is None or self.arecord_process.stdout is None:
+            logger.error("[PIPE-STREAM] No arecord process or stdout available")
+            return
+            
         total_bytes_read = 0
 
         # Make pipe non-blocking to allow better control

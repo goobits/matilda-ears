@@ -71,12 +71,6 @@ exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "bui
 
 # Code Quality Tools Configuration
 [tool.ruff]
-select = ["E", "F", "W", "UP"]
-ignore = [
-    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # Missing docstrings
-]
-fixable = ["ALL"]
-unfixable = []
 exclude = [
     ".git",
     ".ruff_cache",
@@ -91,6 +85,14 @@ line-length = 120
 indent-width = 4
 target-version = "py38"
 
+[tool.ruff.lint]
+select = ["E", "F", "W", "UP"]
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # Missing docstrings
+]
+fixable = ["ALL"]
+unfixable = []
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -103,7 +105,7 @@ target-version = ['py38']
 include = '\.pyi?$'
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -124,5 +126,8 @@ module = [
     "opuslib.*",
     "silero_vad.*",
     "torchaudio.*",
+    "ctranslate2.*",
+    "numpy.*",
+    "pynput.*",
 ]
 ignore_missing_imports = true

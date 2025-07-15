@@ -4,7 +4,7 @@ GOOBITS STT - Pure speech-to-text engine with multiple operation modes
 
 Usage:
     stt --listen-once           # Single utterance with VAD
-    stt --conversation          # Always listening, interruption support  
+    stt --conversation          # Always listening, interruption support
     stt --tap-to-talk=f8        # Tap to start/stop recording
     stt --hold-to-talk=space    # Hold to record, release to stop
     stt --server --port=8769    # WebSocket server for remote clients
@@ -14,10 +14,7 @@ import argparse
 import asyncio
 import json
 import sys
-import os
-import time
 from pathlib import Path
-from typing import Optional
 
 # Add project root to path for imports
 current_dir = Path(__file__).parent.absolute()
@@ -25,7 +22,6 @@ if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
 # Import STT modules
-from src.core.config import get_config, setup_logging
 
 
 def create_parser():
@@ -65,12 +61,12 @@ Examples:
     output = parser.add_argument_group("Output Options")
     output.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
     output.add_argument("--no-formatting", action="store_true", help="Disable text formatting")
-    
+
     # Model options
     model = parser.add_argument_group("Model Options")
     model.add_argument("--model", default="base", help="Whisper model size (default: base)")
     model.add_argument("--language", help="Language code (e.g., 'en', 'es')")
-    
+
     # Audio options
     audio = parser.add_argument_group("Audio Options")
     audio.add_argument("--device", help="Audio input device")
@@ -156,11 +152,11 @@ async def run_server(args):
     """Run WebSocket server mode"""
     try:
         from src.transcription.server import MatildaWebSocketServer
-        
+
         # Create and start server
         server = MatildaWebSocketServer()
         await server.start_server(host=args.host, port=args.port)
-        
+
     except ImportError as e:
         error_msg = f"Server mode not available: {e}"
         if args.format == "json":

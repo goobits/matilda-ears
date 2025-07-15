@@ -38,7 +38,7 @@ class OpusEncoder:
         self.encoder = opuslib.Encoder(sample_rate, channels, opuslib.APPLICATION_AUDIO)
 
         # Audio buffer for accumulating samples
-        self.audio_buffer = []
+        self.audio_buffer: list[int] = []
         self.buffer_size = 0
 
         logger.info(f"Opus encoder initialized: {sample_rate}Hz, {channels} channel(s), {bitrate}bps")
@@ -74,7 +74,7 @@ class OpusEncoder:
             try:
                 encoded = self.encoder.encode(frame.tobytes(), self.frame_size)
                 logger.debug(f"Encoded frame: {self.frame_size} samples → {len(encoded)} bytes")
-                return encoded
+                return bytes(encoded)
             except Exception as e:
                 logger.error(f"Opus encoding error: {e}")
                 return None
@@ -98,7 +98,7 @@ class OpusEncoder:
         try:
             encoded = self.encoder.encode(frame.tobytes(), self.frame_size)
             logger.debug(f"Encoded final frame with {padding_needed} padding samples")
-            return encoded
+            return bytes(encoded)
         except Exception as e:
             logger.error(f"Opus encoding error on flush: {e}")
             return None
