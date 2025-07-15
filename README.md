@@ -4,12 +4,10 @@ A pure speech-to-text engine with multiple operation modes and advanced text for
 
 ## 🔗 Related Projects
 
-This project is part of the GOOBITS ecosystem:
-
-- **[GOOBITS TTS](https://github.com/goobits/tts)** - Text-to-Speech engine with natural voice synthesis
-- **[GOOBITS STT](https://github.com/goobits/stt)** - Speech-to-Text engine (this project)
-- **[GOOBITS TTT](https://github.com/goobits/ttt)** - Text-to-Text processing and transformation tools
-- **[Matilda](https://github.com/goobits/matilda)** - AI assistant for conversational interactions
+- **[Goobits TTS](https://github.com/goobits/tts)** - Text-to-Speech engine
+- **[Goobits STT](https://github.com/goobits/stt)** - Speech-to-Text engine (this project)
+- **[Goobits TTT](https://github.com/goobits/ttt)** - Text-to-Text processing
+- **[Matilda](https://github.com/goobits/matilda)** - AI assistant
 
 ## 📋 Table of Contents
 
