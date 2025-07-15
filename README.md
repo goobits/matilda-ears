@@ -139,3 +139,29 @@ Choose based on your speed/accuracy requirements and available system resources.
 - **Multiple input devices**: Support for various microphones and audio interfaces
 - **Hotkey integration**: System-wide keyboard shortcuts for hands-free operation
 - **Background operation**: Run as daemon with minimal resource usage
+
+## 🛠️ Tech Stack
+
+### Core Technologies
+- **🧠 AI/ML**: OpenAI Whisper (faster-whisper), CTranslate2, PyTorch
+- **🎙️ Audio**: OpusLib, NumPy, custom pipe-based audio capture
+- **⌨️ System**: pynput for global hotkeys, cross-platform support
+
+### Text Processing
+- **📝 NLP**: spaCy, deepmultilingualpunctuation
+- **🌍 i18n**: Multi-language entity detection and formatting
+- **🔧 Parsing**: pyparsing for complex text transformations
+- **📊 Output**: JSON/text formatting with rich entity support
+
+### Development & Testing
+- **🧪 Testing**: pytest with asyncio, xdist, custom plugins
+- **📊 Quality**: ruff (linting), black (formatting), mypy (typing)
+- **🔍 Security**: bandit for security analysis
+- **📦 Build**: setuptools, pyproject.toml configuration
+
+### Deployment
+- **🐳 Containerization**: Docker with CUDA 12.1 support
+- **🖥️ Interface**: FastAPI admin dashboard (Docker), responsive web UI
+- **🔒 Security**: JWT authentication, RSA+AES encryption (Docker)
+- **📈 Monitoring**: Structured logging, health checks
+- **☁️ Cloud**: Ready for production deployment with SSL/TLS
