@@ -237,6 +237,20 @@ class TestNumericRanges:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
+    def test_step_ranges(self, preloaded_formatter):
+        """Test step ranges with through pattern."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("go ahead with steps one through four", "Go ahead with steps 1-4"),
+            ("complete items two through six", "Complete items 2-6"),
+            ("follow steps five through ten", "Follow steps 5-10"),
+            ("review pages three through seven", "Review pages 3-7"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
 
 class TestFractions:
     """Test FRACTION entity detection and formatting."""
