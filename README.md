@@ -1,4 +1,4 @@
-# 🎙️ GOOBITS STT
+# 🎙️ Goobits STT
 
 A pure speech-to-text engine with multiple operation modes and advanced text formatting. Features real-time transcription, WebSocket server capabilities, and comprehensive text processing with internationalization support. Built on Whisper models for accurate transcription across various languages and use cases.
 

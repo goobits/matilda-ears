@@ -1,0 +1,12 @@
+import pytest
+import os
+import sys
+
+# Add src directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+@pytest.fixture
+def preloaded_formatter():
+    """Provide preloaded text formatter for tests."""
+    from text_formatting.formatter import format_transcription
+    return format_transcription
