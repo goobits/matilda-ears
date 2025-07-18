@@ -9,6 +9,9 @@ from rich.table import Table
 from rich.panel import Panel
 from typing import List, Tuple
 
+# CRITICAL: Set environment variable BEFORE any imports that might load models
+os.environ["STT_DISABLE_PUNCTUATION"] = "1"
+
 # Add the project root to the path for all tests
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -181,6 +184,10 @@ def assert_format(input_text: str, expected: str, actual: str, test_name: str = 
 @pytest.fixture(scope="session")
 def preloaded_nlp_models():
     """Preload NLP models once per test session to avoid repeated loading."""
+    # Enable no-punctuation mode for testing FIRST
+    import os
+    os.environ["STT_DISABLE_PUNCTUATION"] = "1"
+    
     print("\n🚀 Preloading NLP models for test session...")
     try:
         from src.text_formatting.nlp_provider import get_nlp, get_punctuator
@@ -201,6 +208,10 @@ def preloaded_formatter(preloaded_nlp_models):
     """Preload the formatter function with warmed-up NLP models and result caching."""
     # Enable no-punctuation mode for testing
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
+    
+    # Reset any cached models to ensure the environment variable takes effect
+    from src.text_formatting.nlp_provider import reset_models
+    reset_models()
 
     print("🚀 Preloading formatter function with caching (PUNCTUATION DISABLED)...")
     try:

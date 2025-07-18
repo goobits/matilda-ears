@@ -48,7 +48,7 @@ def get_punctuator():
     global _punctuator
 
     # Check for no-punctuation mode first
-    if os.environ.get("MATILDA_DISABLE_PUNCTUATION") == "1":
+    if os.environ.get("STT_DISABLE_PUNCTUATION") == "1":
         # Return a simple no-op function that does nothing
         class NoopPunctuator:
             def restore_punctuation(self, text, **kwargs):
