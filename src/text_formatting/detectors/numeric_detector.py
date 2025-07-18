@@ -291,7 +291,19 @@ class NumericalEntityDetector:
                     entity_type = None
                     # Determine entity type based on the unit found
                     if unit_lemma in currency_units:
-                        entity_type = EntityType.CURRENCY
+                        # Special handling for "pounds" - check context
+                        if unit_token.text.lower() in ["pound", "pounds"]:
+                            prefix_context = text[:number_tokens[0].idx].lower()
+                            currency_contexts = self.resources.get("context_words", {}).get("currency_contexts", [])
+                            weight_contexts = self.resources.get("context_words", {}).get("weight_contexts", [])
+                            
+                            # If it has clear weight context OR lacks currency context, treat as weight.
+                            if any(ctx in prefix_context for ctx in weight_contexts) or not any(ctx in prefix_context for ctx in currency_contexts):
+                                entity_type = EntityType.METRIC_WEIGHT # Treat as weight, will be converted to 'lbs'
+                            else:
+                                entity_type = EntityType.CURRENCY # It has currency context, so it's money
+                        else:
+                            entity_type = EntityType.CURRENCY
                     elif unit_lemma in percent_units:
                         entity_type = EntityType.PERCENT
                     elif unit_lemma in data_units:
@@ -459,7 +471,19 @@ class NumericalEntityDetector:
                         frequency_units = set(self.resources.get("units", {}).get("frequency_units", []))
 
                         if unit in currency_units:
-                            entity_type = EntityType.CURRENCY
+                            # Special handling for "pounds" - check context
+                            if unit.lower() in ["pound", "pounds"]:
+                                prefix_context = text[:match.start()].lower()
+                                currency_contexts = self.resources.get("context_words", {}).get("currency_contexts", [])
+                                weight_contexts = self.resources.get("context_words", {}).get("weight_contexts", [])
+                                
+                                # If it has clear weight context OR lacks currency context, treat as weight.
+                                if any(ctx in prefix_context for ctx in weight_contexts) or not any(ctx in prefix_context for ctx in currency_contexts):
+                                    entity_type = EntityType.METRIC_WEIGHT
+                                else:
+                                    entity_type = EntityType.CURRENCY
+                            else:
+                                entity_type = EntityType.CURRENCY
                         elif unit in percent_units:
                             entity_type = EntityType.PERCENT
                         elif unit in data_units:
@@ -778,36 +802,54 @@ class NumericalEntityDetector:
 
     def _detect_ordinals(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
         """Detect ordinal numbers (first, second, third, etc.)."""
+        # First, run the SpaCy analysis once if available.
+        doc = None
+        if self.nlp:
+            try:
+                doc = self.nlp(text)
+            except Exception as e:
+                logger.warning(f"SpaCy ordinal analysis failed: {e}")
+
         for match in regex_patterns.SPOKEN_ORDINAL_PATTERN.finditer(text):
+            # If we have a SpaCy doc, use it for grammatical context checking.
+            if doc:
+                ordinal_token = None
+                next_token = None
+                for token in doc:
+                    if token.idx == match.start():
+                        ordinal_token = token
+                        if token.i + 1 < len(doc):
+                            next_token = doc[token.i + 1]
+                        break
+                
+                # Check for specific idiomatic contexts
+                if ordinal_token and next_token:
+                    # Skip if it's an adjective followed by a specific idiomatic noun from our resources.
+                    if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
+                        # This is the key: we check our i18n file for specific exceptions.
+                        idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+                        if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
+                            logger.debug(f"Skipping ORDINAL '{match.group()}' due to idiomatic follower noun '{next_token.text}'.")
+                            continue
+                    
+                    # Skip if it's at sentence start and followed by comma ("First, we...")
+                    if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
+                        logger.debug(f"Skipping ORDINAL '{match.group()}' - sentence starter with comma")
+                        continue
+
+            # Your existing logic for checking overlaps is good. Keep it.
             check_entities = all_entities if all_entities else entities
-
-            # Check if this ordinal is part of an idiomatic phrase
-            ordinal_text = match.group().lower()
-            remaining_text = text[match.end() :].strip()
-
-            # Skip ordinals that are likely part of idiomatic phrases
-            if ordinal_text in ["sixth"] and remaining_text.startswith("sense"):
-                logger.debug(f"Skipping ordinal '{ordinal_text}' - part of idiomatic phrase 'sixth sense'")
-                continue
-            if ordinal_text in ["first"] and (remaining_text.startswith("class") or remaining_text.startswith("rate")):
-                logger.debug(f"Skipping ordinal '{ordinal_text}' - part of idiomatic phrase")
-                continue
-            if ordinal_text in ["second"] and remaining_text.startswith("nature"):
-                logger.debug(f"Skipping ordinal '{ordinal_text}' - part of idiomatic phrase 'second nature'")
-                continue
-
-            # Allow ordinals to override low-priority entities like CARDINAL
             overlaps_high_priority = False
             for existing in check_entities:
                 if not (match.end() <= existing.start or match.start() >= existing.end):
                     if existing.type not in [
                         EntityType.CARDINAL,
-                        EntityType.DATE,  # e.g. "July first"
+                        EntityType.DATE,
                         EntityType.QUANTITY,
                     ]:
                         overlaps_high_priority = True
                         break
-
+            
             if not overlaps_high_priority:
                 entities.append(
                     Entity(
@@ -815,7 +857,6 @@ class NumericalEntityDetector:
                         end=match.end(),
                         text=match.group(),
                         type=EntityType.ORDINAL,
-                        # Use group(0) to capture the full text of the ordinal, like "twenty third"
                         metadata={"ordinal_word": match.group(0)},
                     )
                 )

@@ -113,16 +113,40 @@ class EntityDetector:
 
                         # Skip ORDINAL entities that are specific idiomatic phrases
                         if ent.label_ == "ORDINAL":
-                            # Check for specific idiomatic phrases that shouldn't be converted
+                            # Find the corresponding token and next token
+                            ordinal_token = None
+                            next_token = None
+                            for token in doc:
+                                if token.idx == ent.start_char:
+                                    ordinal_token = token
+                                    if token.i + 1 < len(doc):
+                                        next_token = doc[token.i + 1]
+                                    break
+                            
+                            # Check for specific idiomatic contexts using POS tags
+                            if ordinal_token and next_token:
+                                # RULE 1: Skip if it's an adjective followed by a specific idiomatic noun from our resources.
+                                if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
+                                    # This is the key: we check our i18n file for specific exceptions.
+                                    idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+                                    if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
+                                        logger.debug(f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'.")
+                                        continue
+                                
+                                # RULE 2: Skip if it's at sentence start and followed by comma ("First, we...")
+                                if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
+                                    logger.debug(f"Skipping ORDINAL '{ent.text}' - sentence starter with comma")
+                                    continue
+
+                            # RULE 3: Check the i18n resource file for specific phrases as fallback
                             ordinal_text = ent.text.lower()
                             following_text = ""
-                            if ent.end < len(doc):
-                                following_text = doc[ent.end].text.lower()
+                            if next_token:
+                                following_text = next_token.text.lower()
 
-                            # Define specific idiomatic phrases to skip
                             idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
                             if ordinal_text in idiomatic_phrases and following_text in idiomatic_phrases[ordinal_text]:
-                                logger.debug(f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase")
+                                logger.debug(f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources")
                                 continue
 
                         entity_type = label_to_type[ent.label_]
@@ -279,8 +303,33 @@ class EntityDetector:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by unit '{next_word}'")
                 return True
 
-        # Note: Idiomatic "plus" and "times" filtering is now handled in NumericalEntityDetector
-        # The detector uses SpaCy POS tagging to determine if expressions are mathematical or idiomatic
+        # Note: Idiomatic "plus" and "times" filtering is handled here using SpaCy POS tagging.
+        # This prevents conversion of phrases like "five plus years" or "two times better".
+        entity_text_lower = ent.text.lower()
+        if self.nlp and (" plus " in entity_text_lower or " times " in entity_text_lower):
+            try:
+                doc = self.nlp(text) # Ensure we have the doc object
+                
+                # Find the first token that starts at or after the end of our entity.
+                next_token = None
+                for token in doc:
+                    if token.idx >= ent.end_char:
+                        next_token = token
+                        break
+
+                if next_token:
+                    # RULE: If a CARDINAL like "five plus" is followed by a NOUN ("years"), it's idiomatic.
+                    if next_token.pos_ == 'NOUN':
+                        logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}').")
+                        return True
+                    
+                    # RULE: If a CARDINAL like "two times" is followed by a comparative ("better"), it's idiomatic.
+                    if next_token.tag_ in ["JJR", "RBR"]: # JJR = Adj, Comparative; RBR = Adv, Comparative
+                         logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}').")
+                         return True
+
+            except Exception as e:
+                logger.warning(f"SpaCy idiomatic check failed for '{ent.text}': {e}")
 
         return False
 

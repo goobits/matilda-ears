@@ -313,20 +313,13 @@ class NumberParser:
             # Get the cardinal part of the text
             cardinal_part_text = " ".join(words[:-1])
             if cardinal_part_text:
-                cardinal_part_num = self.parse(cardinal_part_text)
-                if cardinal_part_num:
-                    # Check if it's a tens/hundreds boundary
-                    cardinal_value = int(cardinal_part_num)
+                cardinal_num_str = self.parse(cardinal_part_text)
+                if cardinal_num_str:
+                    cardinal_value = int(cardinal_num_str)
                     ordinal_value = int(special_ordinals[last_word])
 
-                    if cardinal_value % 10 == 0 and ordinal_value < 10:
-                        # It's a compound like "twenty first" (20 + 1)
-                        return str(cardinal_value + ordinal_value)
-                    if cardinal_value % 100 == 0 and ordinal_value < 100:
-                        # It's a compound like "one hundred first" (100 + 1)
-                        return str(cardinal_value + ordinal_value)
-                    if cardinal_value % 1000 == 0 and ordinal_value < 1000:
-                        # It's a compound like "one thousand first" (1000 + 1)
+                    # For any compound ordinal like "twenty-first" or "hundred-first", the value is the sum.
+                    if cardinal_value > 0 and cardinal_value % 10 == 0:
                         return str(cardinal_value + ordinal_value)
 
         # Fallback to cardinal parsing for the whole phrase if ordinal parsing fails
