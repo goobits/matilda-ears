@@ -239,7 +239,7 @@ class StreamHandler:
             transcription_config = getattr(config, "transcription", {})
             streaming_config = transcription_config.get("modes", {}).get("streaming", {})
 
-            chunk_duration_ms = streaming_config.get("chunk_duration_ms", 100)
+            chunk_duration_ms = streaming_config.get("chunk_duration_ms", 32)  # VAD compatible
             # min_chunk_size = streaming_config.get("min_chunk_size", 1600)
             # buffer_chunks = streaming_config.get("buffer_chunks", 1)
 

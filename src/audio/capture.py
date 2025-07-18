@@ -72,7 +72,7 @@ class PipeBasedAudioStreamer:
         self,
         loop: asyncio.AbstractEventLoop,
         queue: asyncio.Queue,
-        chunk_duration_ms: int = 100,
+        chunk_duration_ms: int = 32,
         sample_rate: int = 16000,
         audio_device: Optional[str] = None,
     ):
@@ -81,7 +81,7 @@ class PipeBasedAudioStreamer:
         Args:
             loop: asyncio event loop for thread-safe communication
             queue: asyncio.Queue to send audio chunks to
-            chunk_duration_ms: Target duration per chunk in milliseconds
+            chunk_duration_ms: Target duration per chunk in milliseconds (32ms = 512 samples at 16kHz for VAD compatibility)
             sample_rate: Audio sample rate
             audio_device: Optional specific audio device to use
 

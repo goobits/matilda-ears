@@ -1,0 +1,72 @@
+# Setup Configuration for STT
+# This file configures the generic setup framework for the STT project
+
+# Package information
+package_name: goobits-stt
+command_name: stt
+display_name: "GOOBITS STT - Speech-to-Text Engine"
+description: "A powerful speech-to-text engine with multiple operation modes"
+
+# Python requirements
+python:
+  minimum_version: "3.8"
+  maximum_version: ""  # Empty means no maximum
+
+# Dependencies
+dependencies:
+  required:
+    - git
+    - pipx
+  optional:
+    - curl  # For downloading models
+    - wget  # Alternative to curl
+
+# Installation settings
+installation:
+  # Name on PyPI
+  pypi_name: goobits-stt
+  # Relative to project root
+  development_path: "."
+  
+# Shell integration
+shell_integration:
+  enabled: false
+  # Short alias for the command (disabled since we provide actual stt command)
+  alias: "stt"
+  
+# Post-installation messages
+messages:
+  install_success: |
+    GOOBITS STT has been installed successfully!
+    You can now use 'stt' from your terminal.
+    
+    Quick start:
+      stt --listen-once          # Single utterance
+      stt --conversation         # Always listening
+      stt --tap-to-talk=f8       # Tap F8 to start/stop
+      stt --hold-to-talk=space   # Hold spacebar to record
+      stt --server --port=8769   # WebSocket server
+  
+  install_dev_success: |
+    GOOBITS STT has been installed in development mode!
+    Your local changes will be reflected immediately.
+    
+    Development tips:
+      - Run tests with: ./test.py tests/text_formatting/ --summary
+      - Format code with: ruff format src/
+      - Check types with: mypy src/
+  
+  upgrade_success: |
+    GOOBITS STT has been upgraded successfully!
+    Check out the latest features with: stt --version
+  
+  uninstall_success: |
+    GOOBITS STT has been uninstalled.
+    Thank you for using GOOBITS STT!
+
+# Validation rules
+validation:
+  # Don't require API keys during setup
+  check_api_keys: false
+  check_disk_space: true
+  minimum_disk_space_mb: 500  # STT models can be large

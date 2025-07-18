@@ -62,7 +62,7 @@ dev = [
 ]
 
 [project.scripts]
-stt = "stt:main"
+stt = "src.main:main"
 stt-server = "src.transcription.server:main"
 
 # Package discovery

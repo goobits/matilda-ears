@@ -165,7 +165,7 @@ class ConversationMode:
             self.audio_streamer = PipeBasedAudioStreamer(
                 loop=self.loop,
                 queue=self.audio_queue,
-                chunk_duration_ms=100,  # 100ms chunks for responsive VAD
+                chunk_duration_ms=32,  # 32ms chunks for VAD compatibility (512 samples at 16kHz)
                 sample_rate=self.args.sample_rate,
                 audio_device=self.args.device
             )
