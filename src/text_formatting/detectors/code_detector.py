@@ -56,10 +56,10 @@ class CodeEntityDetector:
         self._detect_programming_keywords(text, code_entities, all_entities)
         all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
 
-        self._detect_assignment_operators(text, code_entities, all_entities)
+        self._detect_spoken_operators(text, code_entities, all_entities)
         all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
 
-        self._detect_spoken_operators(text, code_entities, all_entities)
+        self._detect_assignment_operators(text, code_entities, all_entities)
         all_entities = entities[:] + code_entities  # Update with found entities (preserve cumulative state)
 
         self._detect_abbreviations(text, code_entities, all_entities)

@@ -748,10 +748,10 @@ class TextFormatter:
         # Define entity priority (higher number = higher priority)
         entity_priorities = {
             EntityType.MATH_EXPRESSION: 10,
-            EntityType.ASSIGNMENT: 9,
-            EntityType.FILENAME: 8,
-            EntityType.UNDERSCORE_DELIMITER: 7,
-            EntityType.COMPARISON: 5,
+            EntityType.COMPARISON: 9,
+            EntityType.ASSIGNMENT: 8,
+            EntityType.FILENAME: 7,
+            EntityType.UNDERSCORE_DELIMITER: 6,
             EntityType.TIME_AMPM: 4,  # Time entities should have priority
             EntityType.TIME: 4,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
@@ -1067,7 +1067,7 @@ class TextFormatter:
             return ""
 
         # Check if punctuation is disabled for testing
-        if os.environ.get("MATILDA_DISABLE_PUNCTUATION") == "1":
+        if os.environ.get("STT_DISABLE_PUNCTUATION") == "1":
             logger.debug("Punctuation disabled for testing, returning text unchanged")
             return text
 

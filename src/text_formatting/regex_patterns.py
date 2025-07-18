@@ -1480,16 +1480,14 @@ def build_assignment_pattern(language: str = "en") -> Pattern:
         rf"""
         \b                                  # Word boundary
         (?:(let|const|var)\s+)?             # Optional variable declaration keyword (capture group 1)
-        ((?!{equals_pattern}\b)[a-zA-Z_]\w*)  # Variable name (capture group 2) - not equals keyword
+        ([a-zA-Z_]\w*)                      # Variable name (capture group 2)
         \s+{equals_pattern}\s+              # Space, equals keyword, space
-        (?!{equals_pattern}\b)              # Negative lookahead: not followed by equals keyword (for ==)
-        (?!.*(?:                            # Negative lookahead: not followed by math terms
-            squared?|cubed?|                # Powers
-            times|plus|minus|               # Basic math operators
-            divided\s+by|over               # Division operators
-        ))
-        ((?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?)  # Value (capture group 3, non-greedy, stops at conjunctions)
-        (?=\s*$|\s*[.!?]|\s+(?:and|or|but|if|when|then|while|unless)\s+)  # Lookahead: end of string, punctuation, or conjunctions
+        (?!\s*{equals_pattern})             # Negative lookahead: not followed by another equals keyword (with optional space for ==)
+        (                                   # Value (capture group 3)
+            (?!.*\b(?:times|plus|minus|divided\s+by|over|squared?|cubed?)\b)  # Not a math expression
+            (?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?        # Stop at conjunctions
+        )
+        (?=\s*$|\s*[.!?]|\s+(?:and|or|but|if|when|then|while|unless)\s+|--|\+\+)  # Lookahead: end of string, punctuation, conjunctions, or operators
         """,
         re.VERBOSE | re.IGNORECASE,
     )

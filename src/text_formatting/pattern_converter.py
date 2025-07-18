@@ -662,8 +662,14 @@ class PatternConverter:
             if parsed_right:
                 right = parsed_right
 
-            # If the right side seems like a function call (multiple words), snake_case it.
-            if " " in right:
+            # Check if right side contains math expressions - if so, preserve them
+            has_math_operators = bool(re.search(r'\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b', right, re.IGNORECASE))
+            
+            if has_math_operators:
+                # Preserve math expressions as-is (they should be handled by math entity detection)
+                pass  # Don't modify math expressions
+            elif " " in right:
+                # If the right side seems like a function call (multiple words), snake_case it.
                 right = "_".join(right.lower().split())
             # For simple single word values, convert to lowercase unless they look like constants
             elif " " not in right and not any(c.isupper() for c in right[1:]) and not right.isupper():
