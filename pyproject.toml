@@ -48,16 +48,17 @@ dependencies = [
 dev = [
     "pytest>=6.0",
     "pytest-asyncio>=0.20.0",
-    "pytest-xdist>=3.0.0",
-    "pytest-sugar>=0.9.0",
-    "pytest-clarity>=1.0.0",
-    "pytest-html>=3.0.0",
-    "pytest-json-report>=1.5.0",
-    "rich>=13.0.0",
+    "pytest-xdist>=3.0.0",  # For parallel test execution
+    "pytest-sugar>=0.9.0",  # Beautiful test output with progress bar
+    "pytest-clarity>=1.0.0",  # Better assertion diffs
+    "pytest-html>=3.0.0",  # HTML test reports
+    "pytest-json-report>=1.5.0",  # JSON test reports for custom formatting
+    "rich>=13.0.0",  # Rich terminal formatting
     "ruff>=0.1.0",
     "black>=22.0.0",
     "mypy>=1.0.0",
     "bandit>=1.7.0",
+    "pyyaml>=6.0.0",  # For test summary YAML output
 ]
 
 [project.scripts]
@@ -71,27 +72,60 @@ exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "bui
 
 # Code Quality Tools Configuration
 [tool.ruff]
+# Enable comprehensive rule set
+select = ["E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+
+# Ignore specific rules that are too strict for this project
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # Missing docstrings
+    "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206",  # Type annotations
+    "S602", "S603", "S607",  # subprocess calls (we use these intentionally)
+    "PLR0913",  # Too many arguments
+    "PLR2004",  # Magic values
+    "FBT002",   # Boolean default positional argument
+    "COM812",   # Trailing comma (conflicts with formatter)
+    "ISC001",   # Implicit string concatenation (conflicts with formatter)
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
 exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
     ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
     ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
     "__pypackages__",
     "_build",
+    "buck-out",
     "build",
     "dist",
+    "node_modules",
     "venv",
+    # Project-specific exclusions
+    ".test_artifacts",
+    "logs",
+    "*.egg-info",
+    "docker",
     ".pytest_cache",
+    "/tmp",
 ]
+
 line-length = 120
 indent-width = 4
 target-version = "py38"
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "UP"]
-ignore = [
-    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # Missing docstrings
-]
-fixable = ["ALL"]
-unfixable = []
 
 [tool.ruff.format]
 quote-style = "double"
@@ -103,18 +137,50 @@ line-ending = "auto"
 line-length = 120
 target-version = ['py38']
 include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | venv
+  | \.test_artifacts
+  | logs
+  | .*\.egg-info
+  | docker
+  | \.pytest_cache
+  | tmp
+)/
+'''
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = false  # Start lenient, can tighten later
+disallow_incomplete_defs = false
 check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
 exclude = [
     "venv/",
+    ".test_artifacts/",
+    "logs/",
+    "docker/",
     ".pytest_cache/",
     "build/",
     "dist/",
+    "*.egg-info/",
 ]
 
 [[tool.mypy.overrides]]
@@ -131,3 +197,33 @@ module = [
     "pynput.*",
 ]
 ignore_missing_imports = true
+
+[tool.pylint]
+max-line-length = 120
+disable = [
+    "missing-docstring",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-locals",
+    "too-many-branches",
+    "too-many-statements",
+    "import-outside-toplevel",  # We do this intentionally for performance
+    "broad-except",  # Sometimes needed for robustness
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv"]
+skips = ["B602", "B603", "B607"]  # subprocess calls are intentional
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false

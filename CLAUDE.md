@@ -15,22 +15,31 @@ The project is built around Whisper models for transcription and includes advanc
 
 ## Development Commands
 
-### Testing
+### Testing (Primary workflow)
 ```bash
-# Run all tests
-pytest
+./test.py                                    # Show comprehensive help
+./test.py tests/text_formatting/ --summary  # Main testing workflow (YAML summary)
+./test.py tests/text_formatting/ --sequential  # Sequential mode for debugging
+./test.py --diff=-1                          # Check changes vs last run
+./test.py --history                          # View test run history
+./test.py --install                          # Install dependencies with verification
+```
 
-# Run tests with verbose output and parallel execution
-pytest -v -n auto
+### Advanced Testing Options
+```bash
+# Execution modes
+./test.py --parallel 4                       # Use 4 parallel workers
+./test.py --parallel off                     # Force sequential execution
 
-# Run specific test category
-pytest tests/text_formatting/
+# Analysis and tracking
+./test.py --detailed                         # Show detailed failure analysis
+./test.py --full-diff                        # Show full assertion diffs
+./test.py --track-diff                       # Auto-track changes vs last run
 
-# Run single test file
-pytest tests/text_formatting/test_basic_formatting.py
-
-# Generate test reports
-pytest --html=test_report.html --json-report --json-report-file=test_report.json
+# Direct pytest (if preferred)
+pytest tests/text_formatting/ --track-diff --sequential
+pytest tests/text_formatting/ -n 4 --detailed
+pytest tests/text_formatting/ --summary
 ```
 
 ### Code Quality

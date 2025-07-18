@@ -29,20 +29,22 @@ def check_dependency(module_name, description, allow_display_errors=False):
 
 def main():
     """Check all test dependencies"""
-    print("🔍 Verifying test setup dependencies...\n")
+    print("🔍 Verifying GOOBITS STT test setup dependencies...\n")
 
     dependencies = [
         # Core testing
         ("pytest", "Testing framework", False),
-        ("xdist", "Parallel test execution", False),  # Fixed: xdist not pytest_xdist
-        # Server dependencies (required for text formatting tests)
+        ("xdist", "Parallel test execution", False),
+        # STT dependencies (required for text formatting tests)
         ("spacy", "SpaCy NLP library", False),
         ("pyparsing", "Text parsing library", False),
         ("faster_whisper", "Whisper transcription", False),
         ("torch", "PyTorch ML framework", False),
-        # Visualizer dependencies (required for audio tests)
+        ("torchaudio", "PyTorch audio processing", False),
+        ("deepmultilingualpunctuation", "Punctuation restoration", False),
+        # Audio dependencies
         ("opuslib", "Opus audio codec", False),
-        ("PIL", "Pillow image library", False),
+        ("silero_vad", "Voice activity detection", False),
         # Development tools
         ("ruff", "Code linting", False),
         ("black", "Code formatting", False),
@@ -54,6 +56,7 @@ def main():
         ("aiohttp", "Async HTTP client", False),
         ("cryptography", "Cryptographic functions", False),
         ("requests", "HTTP requests", False),
+        ("pynput", "Keyboard/mouse input", False),
     ]
 
     passed = 0
@@ -72,13 +75,13 @@ def main():
         print("   Run: ./test.py tests/text_formatting/ --track-diff")
         return 0
     print(f"\n⚠️  {failed} dependencies missing. Install with:")
-    print('   pip install -e ".[dev,server,visualizer]"')
+    print('   pip install -e ".[dev]"')
     if any("opus" in str(dep[0]).lower() for dep in dependencies):
         print("\nFor system dependencies like Opus:")
-        print("   python scripts/install_system_deps.py  # Interactive")
-        print("   python scripts/install_system_deps.py --auto  # Auto-install")
-        print("   # Or manually:")
-        print("   sudo apt-get install libopus-dev libopus0  # Ubuntu/Debian")
+        print("   # Ubuntu/Debian:")
+        print("   sudo apt-get install libopus-dev libopus0")
+        print("   # macOS:")
+        print("   brew install opus")
     return 1
 
 
