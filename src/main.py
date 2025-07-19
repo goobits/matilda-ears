@@ -368,7 +368,7 @@ def run_stt_command(ctx, args):
     
     if modes_selected == 0:
         if RICH_AVAILABLE:
-            click.echo(ctx.get_help())
+            click.echo(ctx.get_help(), err=True)
         else:
             print("No operation mode selected. Use --help for options.", file=sys.stderr)
         sys.exit(0)
@@ -457,6 +457,10 @@ async def async_main():
 
 def main():
     """Entry point for the STT CLI"""
+    # Ensure stdout is unbuffered for piping
+    import sys
+    sys.stdout.reconfigure(line_buffering=True)
+    
     if RICH_AVAILABLE:
         # Use Rich-enhanced Click interface
         cli = create_rich_cli()

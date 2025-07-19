@@ -1,0 +1,135 @@
+2025-07-18 23:53:17 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-18 23:53:17 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-18 23:53:18 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-18 23:53:18 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-18 23:53:18 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-18 23:53:18 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-18 23:53:18 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-18 23:53:18 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-18 23:53:19 - ListenOnceMode - INFO - Transcribing 0.29s of audio (4608 samples)
+2025-07-18 23:53:20 - ListenOnceMode - INFO - Transcribed: '' (0 chars)
+2025-07-18 23:53:20 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-18 23:54:51 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-18 23:54:51 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-18 23:54:52 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-18 23:54:52 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-18 23:54:52 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-18 23:54:52 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-18 23:54:52 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-18 23:54:52 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-18 23:54:56 - ListenOnceMode - INFO - Transcribing 0.61s of audio (9728 samples)
+2025-07-18 23:54:57 - ListenOnceMode - INFO - Transcribed: 'testing.' (8 chars)
+2025-07-18 23:54:57 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-18 23:56:08 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-18 23:56:08 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-18 23:56:08 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-18 23:56:08 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-18 23:56:08 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-18 23:56:09 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-18 23:56:09 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-18 23:56:09 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-18 23:57:00 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-18 23:57:00 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-18 23:57:00 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-18 23:57:00 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-18 23:57:00 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-18 23:57:00 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-18 23:57:00 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-18 23:57:00 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:02:09 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-19 00:02:09 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-19 00:02:09 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-19 00:02:09 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-19 00:02:09 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-19 00:02:09 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-19 00:02:09 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-19 00:02:09 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:02:09 - ListenOnceMode - ERROR - Listen-once mode error: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/listen_once.py", line 85, in run
+    await self._send_status("listening", "Listening for speech...")
+  File "/home/miko/projects/utils/stt/src/modes/base_mode.py", line 180, in _send_status
+    print(f"[{status.upper()}] {message}", file=sys.stderr)
+BrokenPipeError: [Errno 32] Broken pipe
+2025-07-19 00:02:09 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-19 00:14:26 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-19 00:14:26 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-19 00:14:26 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-19 00:14:27 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-19 00:14:27 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-19 00:14:27 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-19 00:14:27 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-19 00:14:27 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:14:27 - ListenOnceMode - DEBUG - Speech detected (prob: 0.925)
+2025-07-19 00:14:28 - ListenOnceMode - DEBUG - Speech ended after 2.60s
+2025-07-19 00:14:28 - ListenOnceMode - INFO - Transcribing 0.83s of audio (13312 samples)
+2025-07-19 00:14:29 - ListenOnceMode - INFO - Transcribed: 'testing.' (8 chars)
+2025-07-19 00:14:29 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-19 00:21:37 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-19 00:21:37 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-19 00:21:37 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-19 00:21:38 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-19 00:21:38 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-19 00:21:38 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-19 00:21:38 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-19 00:21:38 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:21:40 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-19 00:21:40 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-19 00:21:40 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-19 00:21:41 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-19 00:21:41 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-19 00:21:41 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-19 00:21:41 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-19 00:21:41 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:21:43 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-19 00:21:43 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-19 00:21:44 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-19 00:21:44 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-19 00:21:44 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-19 00:21:44 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-19 00:21:44 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-19 00:21:44 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:21:46 - ListenOnceMode - INFO - ListenOnceMode initialized
+2025-07-19 00:21:46 - ListenOnceMode - INFO - VAD config: threshold=0.5, min_speech=0.3s, max_silence=0.8s, max_recording=30.0s
+2025-07-19 00:21:46 - ListenOnceMode - INFO - Loading Whisper model: base
+2025-07-19 00:21:47 - ListenOnceMode - INFO - Whisper model base loaded successfully
+2025-07-19 00:21:47 - ListenOnceMode - INFO - Initializing Silero VAD...
+2025-07-19 00:21:47 - ListenOnceMode - INFO - Silero VAD initialized successfully
+2025-07-19 00:21:47 - ListenOnceMode - INFO - Audio streamer setup completed
+2025-07-19 00:21:47 - ListenOnceMode - INFO - Audio streaming started successfully
+2025-07-19 00:22:10 - ListenOnceMode - DEBUG - Speech detected (prob: 0.618)
+2025-07-19 00:22:10 - ListenOnceMode - ERROR - Error capturing utterance: [Errno 32] Broken pipe
+2025-07-19 00:22:10 - ListenOnceMode - ERROR - Listen-once mode error: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/listen_once.py", line 94, in run
+    await self._send_error("No speech detected within timeout period")
+  File "/home/miko/projects/utils/stt/src/modes/base_mode.py", line 221, in _send_error
+    print(f"Error: {error_message}", file=sys.stderr)
+BrokenPipeError: [Errno 32] Broken pipe
+2025-07-19 00:22:10 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-19 00:22:10 - ListenOnceMode - DEBUG - Speech detected (prob: 0.798)
+2025-07-19 00:22:10 - ListenOnceMode - ERROR - Error capturing utterance: [Errno 32] Broken pipe
+2025-07-19 00:22:10 - ListenOnceMode - DEBUG - Speech detected (prob: 0.704)
+2025-07-19 00:22:10 - ListenOnceMode - ERROR - Listen-once mode error: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/listen_once.py", line 94, in run
+    await self._send_error("No speech detected within timeout period")
+  File "/home/miko/projects/utils/stt/src/modes/base_mode.py", line 221, in _send_error
+    print(f"Error: {error_message}", file=sys.stderr)
+BrokenPipeError: [Errno 32] Broken pipe
+2025-07-19 00:22:10 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-19 00:22:11 - ListenOnceMode - DEBUG - Speech ended after 2.60s
+2025-07-19 00:22:11 - ListenOnceMode - INFO - Transcribing 0.83s of audio (13312 samples)
+2025-07-19 00:22:11 - ListenOnceMode - INFO - Transcribed: 'Do you know what?' (17 chars)
+2025-07-19 00:22:11 - ListenOnceMode - INFO - ListenOnceMode cleanup completed
+2025-07-19 00:27:59 - ListenOnceMode - WARNING - Maximum recording duration reached
+2025-07-19 00:46:28 - ListenOnceMode - WARNING - Maximum recording duration reached
+2025-07-19 00:46:29 - ListenOnceMode - ERROR - Error during transcription processing: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/base_mode.py", line 258, in _process_and_transcribe_collected_audio
+    await self._send_transcription(result)
+  File "/home/miko/projects/utils/stt/src/modes/listen_once.py", line 249, in _send_transcription
+    await super()._send_transcription(result, extra)
+  File "/home/miko/projects/utils/stt/src/modes/base_mode.py", line 203, in _send_transcription
+    print(result["text"])
+BrokenPipeError: [Errno 32] Broken pipe

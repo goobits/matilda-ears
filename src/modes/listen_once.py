@@ -91,7 +91,14 @@ class ListenOnceMode(BaseMode):
                 # Process and transcribe
                 await self._process_utterance()
             else:
-                await self._send_error("No speech detected within timeout period")
+                # In piped mode, don't send error to avoid breaking the pipeline
+                # Just exit quietly if no speech detected
+                if not sys.stdout.isatty():
+                    # Piped mode - exit silently
+                    pass
+                else:
+                    # Interactive mode - show error
+                    await self._send_error("No speech detected within timeout period")
 
         except KeyboardInterrupt:
             await self._send_status("interrupted", "Listen-once mode stopped by user")
