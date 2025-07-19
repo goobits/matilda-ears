@@ -90,8 +90,7 @@ def main():
                        help='Parallel workers: "auto" (7), "off" (sequential), or number like "4"')
     parser.add_argument("--no-track", action="store_true",
                        help="Disable automatic diff tracking")
-    parser.add_argument("--detailed", action="store_true",
-                       help="Show detailed failure analysis")
+    # Removed --detailed for now as it's not implemented in pytest plugins
     parser.add_argument("--full-diff", action="store_true",
                        help="Show full assertion diffs")
     parser.add_argument("--history", nargs="?", const=True, 
@@ -120,13 +119,20 @@ def main():
         if not in_venv:
             print("⚠️  Not in a virtual environment!")
             
+            # Ensure .test_artifacts directory exists first
+            os.makedirs(".test_artifacts", exist_ok=True)
+            
             # Check if test-env already exists
             test_env_path = os.path.join(".test_artifacts", "test-env")
             if not os.path.exists(test_env_path):
                 print("\nCreating test environment...")
-                os.makedirs(".test_artifacts", exist_ok=True)
-                subprocess.run([sys.executable, "-m", "venv", test_env_path], check=True)
-                print(f"✅ Test environment created in {test_env_path}")
+                try:
+                    subprocess.run([sys.executable, "-m", "venv", test_env_path], check=True)
+                    print(f"✅ Test environment created in {test_env_path}")
+                except subprocess.CalledProcessError as e:
+                    print(f"❌ Failed to create test environment: {e}")
+                    print("   Try running: python3 -m venv .test_artifacts/test-env")
+                    return 1
             else:
                 print(f"✅ Using existing test environment in {test_env_path}")
             
@@ -148,6 +154,11 @@ def main():
         print("\n📦 Installing GOOBITS STT with all dependencies...")
         # Use the venv's python to ensure pip is available
         if not in_venv and 'python_exe' in locals():
+            # Verify the python executable exists before using it
+            if not os.path.exists(python_exe):
+                print(f"❌ Python executable not found at {python_exe}")
+                print("   Virtual environment creation may have failed.")
+                return 1
             install_cmd = [python_exe, "-m", "pip", "install", "-e", ".[dev]"]
         else:
             install_cmd = [sys.executable, "-m", "pip", "install", "-e", ".[dev]"]
@@ -261,9 +272,7 @@ def main():
     if not known_args.no_track and "--track-diff" not in pytest_args:
         cmd.append("--track-diff")
     
-    # Add detailed analysis if requested
-    if known_args.detailed and "--detailed" not in pytest_args:
-        cmd.append("--detailed")
+    # Detailed analysis removed for now (not implemented in pytest plugins)
     
     # Add full diff if requested
     if known_args.full_diff and "--full-diff" not in pytest_args:
