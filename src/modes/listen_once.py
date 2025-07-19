@@ -11,18 +11,14 @@ This mode provides automatic speech detection and transcription of a single utte
 
 import asyncio
 import time
-import json
 from typing import Dict, Any
 from pathlib import Path
 import sys
-import tempfile
-import wave
 
 # Add project root to path for local imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
-from src.core.config import get_config, setup_logging
-from src.audio.capture import PipeBasedAudioStreamer
+from .base_mode import BaseMode
 from src.audio.vad import SileroVAD
 
 try:
@@ -37,28 +33,21 @@ except ImportError:
     np = _DummyNumpy()
 
 
-class ListenOnceMode:
+class ListenOnceMode(BaseMode):
     """Single utterance capture mode with VAD-based detection."""
 
     def __init__(self, args):
-        self.args = args
-        self.config = get_config()
-        self.logger = setup_logging(__name__,
-                                  log_level="DEBUG" if args.debug else "INFO",
-                                  include_console=args.format != "json",
-                                  include_file=True)
-
-        # Audio processing
-        self.audio_queue = None
-        self.audio_streamer = None
-        self.loop = None
-
+        super().__init__(args)
+        
+        # Load VAD parameters from config
+        mode_config = self._get_mode_config()
+        
         # VAD and utterance detection
         self.vad = None
-        self.vad_threshold = 0.5
-        self.min_speech_duration = 0.3  # Shorter minimum for commands
-        self.max_silence_duration = 0.8  # Shorter silence for responsiveness
-        self.max_recording_duration = 30.0  # Maximum recording time
+        self.vad_threshold = mode_config.get("vad_threshold", 0.5)
+        self.min_speech_duration = mode_config.get("min_speech_duration_s", 0.3)
+        self.max_silence_duration = mode_config.get("max_silence_duration_s", 0.8)
+        self.max_recording_duration = mode_config.get("max_recording_duration_s", 30.0)
 
         # VAD state
         self.vad_state = "waiting"  # waiting, speech, trailing_silence
@@ -70,18 +59,11 @@ class ListenOnceMode:
         self.utterance_chunks = []
         self.speech_started = False
         self.recording_start_time = None
-
-        # Whisper model
-        self.model = None
-
-        # Check dependencies
-        if not NUMPY_AVAILABLE:
-            raise ImportError(
-                "NumPy is required for listen-once mode. "
-                "Install with: pip install numpy"
-            )
-
-        self.logger.info("Listen-once mode initialized")
+        
+        self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
+                        f"min_speech={self.min_speech_duration}s, "
+                        f"max_silence={self.max_silence_duration}s, "
+                        f"max_recording={self.max_recording_duration}s")
 
     async def run(self):
         """Main listen-once mode execution."""
@@ -119,24 +101,6 @@ class ListenOnceMode:
         finally:
             await self._cleanup()
 
-    async def _load_model(self):
-        """Load Whisper model asynchronously."""
-        try:
-            from faster_whisper import WhisperModel
-
-            self.logger.info(f"Loading Whisper model: {self.args.model}")
-
-            # Load in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None, lambda: WhisperModel(self.args.model, device="cpu", compute_type="int8")
-            )
-
-            self.logger.info(f"Whisper model {self.args.model} loaded successfully")
-
-        except Exception as e:
-            self.logger.error(f"Failed to load Whisper model: {e}")
-            raise
 
     async def _initialize_vad(self):
         """Initialize Silero VAD."""
@@ -167,17 +131,7 @@ class ListenOnceMode:
     async def _start_audio_streaming(self):
         """Initialize and start audio streaming."""
         try:
-            self.loop = asyncio.get_event_loop()
-            self.audio_queue = asyncio.Queue(maxsize=100)
-
-            # Create audio streamer
-            self.audio_streamer = PipeBasedAudioStreamer(
-                loop=self.loop,
-                queue=self.audio_queue,
-                chunk_duration_ms=32,  # 32ms chunks for VAD compatibility (512 samples at 16kHz)
-                sample_rate=self.args.sample_rate,
-                audio_device=self.args.device
-            )
+            await self._setup_audio_streamer(maxsize=100)
 
             # Start recording
             if not self.audio_streamer.start_recording():
@@ -265,118 +219,29 @@ class ListenOnceMode:
             await self._send_error("No audio data to transcribe")
             return
 
-        try:
-            await self._send_status("processing", "Processing speech...")
+        await self._send_status("processing", "Processing speech...")
+        # Directly pass the utterance_chunks to the flexible helper
+        await self._process_and_transcribe_collected_audio(self.utterance_chunks)
 
-            # Combine audio chunks
-            audio_array = np.concatenate(self.utterance_chunks)
-            duration = len(audio_array) / self.args.sample_rate
+    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
+        """Transcribe audio data using Whisper and include VAD stats."""
+        result = super()._transcribe_audio(audio_data)
+        
+        # Log VAD stats if available
+        if result["success"] and self.vad:
+            vad_stats = self.vad.get_stats()
+            self.logger.debug(f"VAD stats: {vad_stats}")
+            result["model"] = self.args.model
+        
+        return result
 
-            self.logger.info(f"Transcribing {duration:.2f}s of audio")
-
-            # Transcribe in executor
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._transcribe_audio, audio_array)
-
-            if result["success"]:
-                await self._send_transcription(result)
-            else:
-                await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
-
-        except Exception as e:
-            self.logger.exception(f"Error processing utterance: {e}")
-            await self._send_error(f"Processing error: {e}")
-
-    def _transcribe_audio(self, audio_data: np.ndarray) -> Dict[str, Any]:
-        """Transcribe audio data using Whisper."""
-        try:
-            # Save audio to temporary WAV file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                with wave.open(tmp_file.name, 'wb') as wav_file:
-                    wav_file.setnchannels(1)  # Mono
-                    wav_file.setsampwidth(2)  # 16-bit
-                    wav_file.setframerate(self.args.sample_rate)
-                    wav_file.writeframes(audio_data.astype(np.int16).tobytes())
-
-                # Transcribe
-                if self.model is None:
-                    raise RuntimeError("Model not loaded")
-                segments, info = self.model.transcribe(tmp_file.name, language=self.args.language)
-                text = "".join([segment.text for segment in segments]).strip()
-
-                self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
-
-                # Log VAD stats
-                if self.vad:
-                    vad_stats = self.vad.get_stats()
-                    self.logger.debug(f"VAD stats: {vad_stats}")
-
-                return {
-                    "success": True,
-                    "text": text,
-                    "language": info.language if hasattr(info, 'language') else 'en',
-                    "duration": len(audio_data) / self.args.sample_rate,
-                    "confidence": 0.95  # Placeholder
-                }
-
-        except Exception as e:
-            self.logger.error(f"Transcription error: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "text": "",
-                "duration": 0
-            }
-
-    async def _send_status(self, status: str, message: str):
-        """Send status message."""
-        if self.args.format == "json":
-            result = {
-                "type": "status",
-                "mode": "listen_once",
-                "status": status,
-                "message": message,
-                "timestamp": time.time()
-            }
-            print(json.dumps(result))
-        elif status == "listening":
-            # Only show listening message in text mode
-            print(message, file=sys.stderr)
 
     async def _send_transcription(self, result: Dict[str, Any]):
-        """Send transcription result."""
-        if self.args.format == "json":
-            output = {
-                "type": "transcription",
-                "mode": "listen_once",
-                "text": result["text"],
-                "language": result["language"],
-                "duration": result["duration"],
-                "confidence": result["confidence"],
-                "model": self.args.model,
-                "timestamp": time.time()
-            }
-            print(json.dumps(output))
-        else:
-            # Text mode - just print the transcribed text
-            print(result["text"])
+        """Send transcription result with model info."""
+        extra = {"model": self.args.model} if "model" in result else {}
+        await super()._send_transcription(result, extra)
 
-    async def _send_error(self, error_message: str):
-        """Send error message."""
-        if self.args.format == "json":
-            result = {
-                "type": "error",
-                "mode": "listen_once",
-                "error": error_message,
-                "timestamp": time.time()
-            }
-            print(json.dumps(result))
-        else:
-            print(f"Error: {error_message}", file=sys.stderr)
 
     async def _cleanup(self):
         """Clean up resources."""
-        if self.audio_streamer:
-            self.audio_streamer.stop_recording()
-
-        self.logger.info("Listen-once mode cleanup completed")
+        await super()._cleanup()
