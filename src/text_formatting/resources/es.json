@@ -199,34 +199,16 @@
       "noveno": ["entrada"],
       "décimo": ["enmienda"]
     },
-    "ordinal_words": ["primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo", "undécimo", "duodécimo", "decimotercero", "decimocuarto", "decimoquinto", "decimosexto", "decimoséptimo", "decimoctavo", "decimonoveno", "vigésimo", "trigésimo", "cuadragésimo", "quincuagésimo", "sexagésimo", "septuagésimo", "octogésimo", "nonagésimo", "centésimo", "milésimo"]
-  },
-  "technical": {
+    "ordinal_words": ["primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo", "undécimo", "duodécimo", "decimotercero", "decimocuarto", "decimoquinto", "decimosexto", "decimoséptimo", "decimoctavo", "decimonoveno", "vigésimo", "trigésimo", "cuadragésimo", "quincuagésimo", "sexagésimo", "septuagésimo", "octogésimo", "nonagésimo", "centésimo", "milésimo"],
     "uppercase_abbreviations": {
-      "asap": "ASAP",
-      "faq": "FAQ",
-      "ceo": "CEO",
-      "cto": "CTO",
-      "cfo": "CFO",
-      "fyi": "FYI",
-      "diy": "DIY",
-      "lol": "LOL",
-      "omg": "OMG",
-      "eeuu": "EEUU",
-      "reino unido": "Reino Unido",
-      "ue": "UE",
-      "usd": "USD",
-      "gbp": "GBP", 
-      "eur": "EUR",
-      "gps": "GPS",
-      "wifi": "WiFi",
       "api": "API",
       "url": "URL",
       "html": "HTML",
       "css": "CSS",
       "sql": "SQL",
-      "pdf": "PDF"
-    },
-    "common_abbreviations": ["es decir,", "p. ej.,", "etc.", "vs.", "cf."]
+      "pdf": "PDF",
+      "gps": "GPS",
+      "wifi": "WiFi"
+    }
   }
 }

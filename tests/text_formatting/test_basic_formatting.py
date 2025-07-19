@@ -238,8 +238,8 @@ class TestEntityProtection:
             # Variable 'i' should stay lowercase
             ("set i equals zero", "Set i = 0"),
             # Mixed case - pronoun I vs variable i
-            ("i think the variable is i", "I think the variable is i"),
-            ("when i write i equals zero", "When I write i = 0"),
+            ("i think the variable is i", "I think the variable is i."),
+            ("when i write i equals zero", "When I write i = 0."),
         ]
 
         for input_text, expected in test_cases:
