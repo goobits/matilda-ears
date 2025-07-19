@@ -6,6 +6,7 @@ GOOBITS STT - Pure speech-to-text engine with multiple operation modes
 import asyncio
 import json
 import sys
+import argparse
 from pathlib import Path
 
 try:
@@ -15,7 +16,6 @@ try:
     from rich.text import Text
     RICH_AVAILABLE = True
 except ImportError:
-    import argparse
     RICH_AVAILABLE = False
 
 # Add project root to path for imports
