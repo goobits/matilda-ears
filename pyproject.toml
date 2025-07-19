@@ -75,7 +75,7 @@ exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "bui
 
 # Include additional data files
 [tool.setuptools.package-data]
-src = ["*.json"]
+src = ["*.json", "text_formatting/resources/*.json"]
 
 # Code Quality Tools Configuration
 [tool.ruff]

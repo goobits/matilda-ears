@@ -65,6 +65,32 @@
       "max_recording_duration_s": 30.0
     }
   },
+  "streaming": {
+    "enable_partial_results": true,
+    "chunk_processing_interval_ms": 500,
+    "agreement_threshold": 2,
+    "context_window_s": 3,
+    "max_buffer_duration_s": 30,
+    "confidence_levels": ["confirmed", "provisional", "pending"],
+    "_performance_profiles": {
+      "_note": "Alternative configurations for different use cases",
+      "low_latency": {
+        "chunk_processing_interval_ms": 250,
+        "max_buffer_duration_s": 15,
+        "description": "Best for real-time applications, higher CPU usage"
+      },
+      "high_accuracy": {
+        "chunk_processing_interval_ms": 1000,
+        "max_buffer_duration_s": 60,
+        "description": "Best for long-form dictation, lower CPU usage"
+      },
+      "resource_constrained": {
+        "chunk_processing_interval_ms": 750,
+        "max_buffer_duration_s": 20,
+        "description": "For devices with limited CPU/memory"
+      }
+    }
+  },
   "text_formatting": {
     "filename_formats": {
       "md": "UPPER_SNAKE",

@@ -33,7 +33,8 @@ from .constants import get_resources
 
 # Setup config and logging
 config = get_config()
-logger = setup_logging(__name__, log_filename="text_formatting.txt")
+# Default to no console logging - will be overridden by modes if needed
+logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
 
 class EntityDetector:

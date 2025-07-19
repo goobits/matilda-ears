@@ -17,7 +17,7 @@ from . import regex_patterns
 from .constants import get_resources
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt")
+logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
 
 class SmartCapitalizer:

@@ -48,7 +48,7 @@ class BaseMode(ABC):
         self.logger = setup_logging(
             self.__class__.__name__,
             log_level="DEBUG" if args.debug else "WARNING",
-            include_console=args.debug,  # Only show console logs in debug mode
+            include_console=False,  # Never show logger output to console - use _send_* methods
             include_file=True
         )
         
@@ -123,8 +123,8 @@ class BaseMode(ABC):
             self.logger.error(f"Failed to setup audio streaming: {e}")
             raise
     
-    def _transcribe_audio(self, audio_data: np.ndarray) -> Dict[str, Any]:
-        """Transcribe audio data using Whisper."""
+    def _transcribe_audio(self, audio_data: np.ndarray, prompt: str = "") -> Dict[str, Any]:
+        """Transcribe audio data using Whisper with optional context prompt."""
         try:
             # Save audio to temporary WAV file
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
@@ -134,10 +134,19 @@ class BaseMode(ABC):
                     wav_file.setframerate(self.args.sample_rate)
                     wav_file.writeframes(audio_data.astype(np.int16).tobytes())
                 
-                # Transcribe
+                # Transcribe with optional prompt for context
                 if self.model is None:
                     raise RuntimeError("Model not loaded")
-                segments, info = self.model.transcribe(tmp_file.name, language=self.args.language)
+                
+                # Use prompt if provided to give Whisper context
+                transcribe_kwargs = {"language": self.args.language}
+                if prompt.strip():
+                    # Limit prompt to ~200 words for optimal performance
+                    prompt_words = prompt.split()[-200:]
+                    transcribe_kwargs["initial_prompt"] = " ".join(prompt_words)
+                    self.logger.debug(f"Using context prompt: '{transcribe_kwargs['initial_prompt'][:50]}...'")
+                
+                segments, info = self.model.transcribe(tmp_file.name, **transcribe_kwargs)
                 text = "".join([segment.text for segment in segments]).strip()
                 
                 self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
@@ -177,7 +186,7 @@ class BaseMode(ABC):
             # Send status messages to stderr to avoid interfering with pipeline output
             print(json.dumps(result), file=sys.stderr)
         elif self.args.debug:
-            # Only show status messages in text mode when debug is enabled
+            # Only show status messages in debug mode
             print(f"[{status.upper()}] {message}", file=sys.stderr)
     
     async def _send_transcription(self, result: Dict[str, Any], extra: Optional[Dict] = None):
@@ -200,7 +209,9 @@ class BaseMode(ABC):
             print(json.dumps(output))
         else:
             # Text mode - just print the transcribed text
-            print(result["text"])
+            # Skip partial results in non-debug mode to avoid clutter
+            if not result.get("is_partial", False) or self.args.debug:
+                print(result["text"])
     
     async def _send_error(self, error_message: str, extra: Optional[Dict] = None):
         """Send error message."""
@@ -219,7 +230,7 @@ class BaseMode(ABC):
             # Send errors to stderr to avoid interfering with pipeline output
             print(json.dumps(result), file=sys.stderr)
         elif self.args.debug:
-            # Only show errors in text mode when debug is enabled
+            # Only show errors in debug mode
             print(f"Error: {error_message}", file=sys.stderr)
     
     def _get_mode_name(self) -> str:
@@ -252,7 +263,7 @@ class BaseMode(ABC):
 
             # Transcribe in executor to avoid blocking
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._transcribe_audio, audio_array)
+            result = await loop.run_in_executor(None, lambda: self._transcribe_audio(audio_array))
 
             if result.get("success"):
                 await self._send_transcription(result)

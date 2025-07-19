@@ -14,7 +14,7 @@ from .constants import get_resources
 from ..core.config import get_config, setup_logging
 from . import regex_patterns
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt")
+logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
 
 class PatternConverter:

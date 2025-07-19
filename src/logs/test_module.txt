@@ -1,0 +1,1 @@
+2025-07-19 16:04:19 - test_module - WARNING - This should NOT appear on console

@@ -1,0 +1,211 @@
+2025-07-19 13:03:43 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:03:43 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Original text: 'So, um, I was looking at the API documentation, and it says we need to call getUserData function. But like, I'm not sure how to configure the endpoint properly. You know what I mean? It's supposed to return JSON data with user information.' (language: en)
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Code entities detected: 2 - ['EntityType.PROGRAMMING_KEYWORD:return', 'EntityType.PROGRAMMING_KEYWORD:function']
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:04:28 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: '# Header
+- List item
+```code```' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.nlp_provider - WARNING - ❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: 'um, so like, the API endpoint is, uh, slash users' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 1 - ['EntityType.SLASH_COMMAND:slash users']
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: '<h1>Title</h1><p>This is a paragraph.</p>' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: '{"name": "test", "value": 123}' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:09:24 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Original text: '<h1>Main Title</h1><p>This is <strong>bold</strong> text with <em>italic</em> words.</p><ul><li>Item 1</li><li>Item 2</li></ul>
+' (language: en)
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.nlp_provider - WARNING - ❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context
+2025-07-19 13:11:46 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:11:46 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: '# Header
+- List item
+```code```' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.nlp_provider - WARNING - ❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: 'um, so like, the API endpoint is, uh, slash users' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 1 - ['EntityType.SLASH_COMMAND:slash users']
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: '<h1>Title</h1><p>This is a paragraph.</p>' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: '{"name": "test", "value": 123}' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 14:10:50 - src.text_formatting.nlp_provider - INFO - SpaCy model loaded successfully (optimized: senter disabled)
+2025-07-19 14:10:50 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:10:59 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:10:59 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:10:59 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:00 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:06 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:07 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:45 - src.text_formatting.nlp_provider - INFO - SpaCy model loaded successfully (optimized: senter disabled)
+2025-07-19 14:11:45 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:45 - src.text_formatting.nlp_provider - INFO - SpaCy model loaded successfully (optimized: senter disabled)
+2025-07-19 14:11:45 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:45 - src.text_formatting.nlp_provider - INFO - SpaCy model loaded successfully (optimized: senter disabled)
+2025-07-19 14:11:45 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:45 - src.text_formatting.nlp_provider - INFO - SpaCy model loaded successfully (optimized: senter disabled)
+2025-07-19 14:11:45 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:47 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:48 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:49 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:50 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 14:11:50 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 15:36:43 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2025-07-19 15:36:43 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 15:36:47 - src.text_formatting.formatter - INFO - Original text: 'Well.' (language: en)
+2025-07-19 15:36:47 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 15:36:47 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 15:36:47 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 15:36:47 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 15:36:52 - src.text_formatting.formatter - INFO - Original text: 'Sure.' (language: en)
+2025-07-19 15:36:52 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 15:36:52 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 15:36:52 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 15:36:52 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 15:37:04 - src.text_formatting.formatter - INFO - Original text: 'Let's give it a go.' (language: en)
+2025-07-19 15:37:04 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 15:37:04 - src.text_formatting.formatter - INFO - Code entities detected: 1 - ['EntityType.PROGRAMMING_KEYWORD:Let']
+2025-07-19 15:37:04 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 15:37:04 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 15:40:55 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2025-07-19 15:40:55 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 15:41:12 - src.text_formatting.formatter - INFO - Original text: 'casting.' (language: en)
+2025-07-19 15:41:12 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 15:41:12 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 15:41:12 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 15:41:12 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 16:03:50 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'

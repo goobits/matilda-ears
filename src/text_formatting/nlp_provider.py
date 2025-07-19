@@ -8,7 +8,7 @@ import os
 import threading
 from ..core.config import setup_logging
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt")
+logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
 # Global model instances with thread-safe lazy loading
 _nlp = None

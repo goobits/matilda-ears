@@ -1,0 +1,200 @@
+2025-07-19 15:30:15 - ConversationMode - INFO - ConversationMode initialized
+2025-07-19 15:36:42 - ConversationMode - INFO - ConversationMode initialized
+2025-07-19 15:36:43 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-19 15:36:43 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-19 15:36:43 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-19 15:36:44 - ConversationMode - INFO - Loading Whisper model: base
+2025-07-19 15:36:44 - ConversationMode - INFO - Whisper model base loaded successfully
+2025-07-19 15:36:44 - ConversationMode - INFO - Initializing Silero VAD...
+2025-07-19 15:36:44 - ConversationMode - INFO - Silero VAD initialized successfully
+2025-07-19 15:36:44 - ConversationMode - INFO - Audio streamer setup completed
+2025-07-19 15:36:44 - ConversationMode - INFO - Audio streaming started successfully
+2025-07-19 15:36:46 - ConversationMode - DEBUG - Speech started (prob: 0.989)
+2025-07-19 15:36:47 - ConversationMode - INFO - Transcribed: 'Well.' (5 chars)
+2025-07-19 15:36:47 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:47 - ConversationMode - DEBUG - Updated context: 1 words
+2025-07-19 15:36:50 - ConversationMode - DEBUG - Speech started (prob: 0.674)
+2025-07-19 15:36:50 - ConversationMode - DEBUG - Using context prompt: 'Well....'
+2025-07-19 15:36:50 - ConversationMode - DEBUG - Cancelling previous final processing due to new speech
+2025-07-19 15:36:50 - ConversationMode - DEBUG - Speech started (prob: 0.997)
+2025-07-19 15:36:50 - ConversationMode - DEBUG - Final processing cancelled - graceful interruption handling
+2025-07-19 15:36:51 - ConversationMode - INFO - Transcribed: 'I'm not...' (10 chars)
+2025-07-19 15:36:51 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:51 - ConversationMode - DEBUG - Using context prompt: 'Well....'
+2025-07-19 15:36:52 - ConversationMode - INFO - Transcribed: 'Sure.' (5 chars)
+2025-07-19 15:36:52 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:52 - ConversationMode - DEBUG - Updated context: 2 words
+2025-07-19 15:36:54 - ConversationMode - DEBUG - Speech started (prob: 0.921)
+2025-07-19 15:36:54 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure....'
+2025-07-19 15:36:55 - ConversationMode - DEBUG - Cancelling previous final processing due to new speech
+2025-07-19 15:36:55 - ConversationMode - DEBUG - Speech started (prob: 0.990)
+2025-07-19 15:36:55 - ConversationMode - DEBUG - Final processing cancelled - graceful interruption handling
+2025-07-19 15:36:55 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure....'
+2025-07-19 15:36:56 - ConversationMode - INFO - Transcribed: 'Okay.' (5 chars)
+2025-07-19 15:36:56 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:56 - ConversationMode - INFO - Transcribed: 'Let's give a...' (15 chars)
+2025-07-19 15:36:56 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:56 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure....'
+2025-07-19 15:36:57 - ConversationMode - INFO - Transcribed: 'Let's give legal.' (17 chars)
+2025-07-19 15:36:57 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:57 - ConversationMode - DEBUG - Advanced agreement: 'Let's give ' (from 'Let's give a......' + 'Let's give legal....')
+2025-07-19 15:36:57 - ConversationMode - DEBUG - Error processing partial utterance: 'text'
+2025-07-19 15:36:57 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give...'
+2025-07-19 15:36:58 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:36:58 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:58 - ConversationMode - DEBUG - Advanced agreement: 'Let's give ' (from 'Let's give a......' + 'Let's give it a go....')
+2025-07-19 15:36:58 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give...'
+2025-07-19 15:36:58 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:36:58 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:58 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:36:58 - ConversationMode - DEBUG - Error processing partial utterance: 'text'
+2025-07-19 15:36:58 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:36:59 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:36:59 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:36:59 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:36:59 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:00 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:00 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:00 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:00 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:00 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:00 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:00 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:00 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:01 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:01 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:01 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:01 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:02 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:02 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:02 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:02 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:02 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:02 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:02 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:02 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:03 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:03 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:03 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:03 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:04 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:04 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:04 - ConversationMode - DEBUG - Advanced agreement: 'Let's give it a go.' (from 'Let's give it a go....' + 'Let's give it a go....')
+2025-07-19 15:37:04 - ConversationMode - DEBUG - Using context prompt: 'Well. Sure. Let's give it a go....'
+2025-07-19 15:37:04 - ConversationMode - INFO - Transcribed: 'Let's give it a go.' (19 chars)
+2025-07-19 15:37:04 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:37:04 - ConversationMode - DEBUG - Updated context: 7 words
+2025-07-19 15:37:05 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-19 15:40:54 - ConversationMode - INFO - ConversationMode initialized
+2025-07-19 15:40:55 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-19 15:40:55 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-19 15:40:55 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-19 15:40:55 - ConversationMode - INFO - Loading Whisper model: base
+2025-07-19 15:40:55 - ConversationMode - INFO - Whisper model base loaded successfully
+2025-07-19 15:40:55 - ConversationMode - INFO - Initializing Silero VAD...
+2025-07-19 15:40:56 - ConversationMode - INFO - Silero VAD initialized successfully
+2025-07-19 15:40:56 - ConversationMode - INFO - Audio streamer setup completed
+2025-07-19 15:40:56 - ConversationMode - INFO - Audio streaming started successfully
+2025-07-19 15:41:06 - ConversationMode - DEBUG - Speech started (prob: 0.977)
+2025-07-19 15:41:07 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:07 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:09 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:09 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:09 - ConversationMode - DEBUG - Advanced agreement: 'casting.' (from 'casting....' + 'casting....')
+2025-07-19 15:41:09 - ConversationMode - DEBUG - Confirmed: 'casting.', Provisional: ''
+2025-07-19 15:41:09 - ConversationMode - DEBUG - Using context prompt: 'casting....'
+2025-07-19 15:41:09 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:09 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:09 - ConversationMode - DEBUG - Advanced agreement: 'casting.' (from 'casting....' + 'casting....')
+2025-07-19 15:41:09 - ConversationMode - DEBUG - Using context prompt: 'casting....'
+2025-07-19 15:41:10 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:10 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:10 - ConversationMode - DEBUG - Advanced agreement: 'casting.' (from 'casting....' + 'casting....')
+2025-07-19 15:41:10 - ConversationMode - DEBUG - Using context prompt: 'casting....'
+2025-07-19 15:41:11 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:11 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:11 - ConversationMode - DEBUG - Advanced agreement: 'casting.' (from 'casting....' + 'casting....')
+2025-07-19 15:41:11 - ConversationMode - DEBUG - Using context prompt: 'casting....'
+2025-07-19 15:41:11 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:11 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:11 - ConversationMode - DEBUG - Advanced agreement: 'casting.' (from 'casting....' + 'casting....')
+2025-07-19 15:41:11 - ConversationMode - DEBUG - Using context prompt: 'casting....'
+2025-07-19 15:41:12 - ConversationMode - INFO - Transcribed: 'casting.' (8 chars)
+2025-07-19 15:41:12 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:12 - ConversationMode - DEBUG - Updated context: 1 words
+2025-07-19 15:41:15 - ConversationMode - DEBUG - Speech started (prob: 0.752)
+2025-07-19 15:41:15 - ConversationMode - DEBUG - Using context prompt: 'Casting....'
+2025-07-19 15:41:16 - ConversationMode - INFO - Transcribed: 'This is a.' (10 chars)
+2025-07-19 15:41:16 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:16 - ConversationMode - DEBUG - Using context prompt: 'Casting....'
+2025-07-19 15:41:17 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:17 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:17 - ConversationMode - DEBUG - Advanced agreement: 'This is a' (from 'This is a....' + 'This is a test....')
+2025-07-19 15:41:17 - ConversationMode - DEBUG - Confirmed: 'This is a', Provisional: ' test.'
+2025-07-19 15:41:17 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a...'
+2025-07-19 15:41:17 - ConversationMode - INFO - Transcribed: 'This is a touch.' (16 chars)
+2025-07-19 15:41:17 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:17 - ConversationMode - DEBUG - Advanced agreement: 'This is a t' (from 'This is a test....' + 'This is a touch....')
+2025-07-19 15:41:17 - ConversationMode - DEBUG - Confirmed: 'This is a t', Provisional: 'ouch.'
+2025-07-19 15:41:17 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a t...'
+2025-07-19 15:41:18 - ConversationMode - INFO - Transcribed: 'This is a touch . . .' (21 chars)
+2025-07-19 15:41:18 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:18 - ConversationMode - DEBUG - Advanced agreement: 'This is a touch' (from 'This is a touch....' + 'This is a touch . . ...')
+2025-07-19 15:41:18 - ConversationMode - DEBUG - Confirmed: 'This is a touch', Provisional: ' . . .'
+2025-07-19 15:41:18 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:18 - ConversationMode - INFO - Transcribed: 'This is a touch' (15 chars)
+2025-07-19 15:41:18 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:18 - ConversationMode - DEBUG - Advanced agreement: 'This is a touch' (from 'This is a touch . . ...' + 'This is a touch...')
+2025-07-19 15:41:18 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:19 - ConversationMode - INFO - Transcribed: '. This is a test . . .' (22 chars)
+2025-07-19 15:41:19 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:19 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 15:41:19 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:21 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:21 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:21 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 15:41:21 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:21 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:21 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:21 - ConversationMode - DEBUG - Advanced agreement: 'This is a test.' (from 'This is a test....' + 'This is a test....')
+2025-07-19 15:41:21 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:22 - ConversationMode - INFO - Transcribed: '. . . . . . . . . . . .' (23 chars)
+2025-07-19 15:41:22 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:22 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 15:41:22 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:23 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:23 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:23 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 15:41:23 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:23 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:23 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:23 - ConversationMode - DEBUG - Advanced agreement: 'This is a test.' (from 'This is a test....' + 'This is a test....')
+2025-07-19 15:41:23 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:24 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:24 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:24 - ConversationMode - DEBUG - Advanced agreement: 'This is a test.' (from 'This is a test....' + 'This is a test....')
+2025-07-19 15:41:24 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:25 - ConversationMode - INFO - Transcribed: '. This is a test . . .' (22 chars)
+2025-07-19 15:41:25 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:25 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 15:41:25 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:25 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:25 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:25 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 15:41:25 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:26 - ConversationMode - INFO - Transcribed: 'This is a test.' (15 chars)
+2025-07-19 15:41:26 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:26 - ConversationMode - DEBUG - Advanced agreement: 'This is a test.' (from 'This is a test....' + 'This is a test....')
+2025-07-19 15:41:26 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:27 - ConversationMode - INFO - Transcribed: 'This is a test of' (17 chars)
+2025-07-19 15:41:27 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:27 - ConversationMode - DEBUG - Advanced agreement: 'This is a test' (from 'This is a test....' + 'This is a test of...')
+2025-07-19 15:41:27 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a touch...'
+2025-07-19 15:41:27 - ConversationMode - INFO - Transcribed: 'This is a test of- This is a test of-' (37 chars)
+2025-07-19 15:41:27 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 15:41:27 - ConversationMode - DEBUG - Advanced agreement: 'This is a test of' (from 'This is a test of...' + 'This is a test of- T...')
+2025-07-19 15:41:27 - ConversationMode - DEBUG - Confirmed: 'This is a test of', Provisional: '- This is a test of-'
+2025-07-19 15:41:27 - ConversationMode - DEBUG - Using context prompt: 'Casting. This is a test of...'
+2025-07-19 15:41:28 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-19 15:41:28 - ConversationMode - INFO - Transcribed: 'this is a test of it.' (21 chars)
+2025-07-19 15:41:28 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
