@@ -56,7 +56,10 @@
       "vad_threshold": 0.5,
       "min_speech_duration_s": 0.5,
       "max_silence_duration_s": 1.0,
-      "speech_pad_duration_s": 0.3
+      "speech_pad_duration_s": 0.3,
+      "pre_buffer_duration_s": 5.0,
+      "segment_max_duration_s": 25.0,
+      "segment_overlap_duration_s": 5.0
     },
     "listen_once": {
       "vad_threshold": 0.5,
