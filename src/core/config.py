@@ -92,16 +92,29 @@ class ConfigLoader:
 
     @property
     def jwt_secret_key(self) -> str:
-        """Get JWT secret key, auto-generating if needed."""
-        key = self.get("server.websocket.jwt_secret_key")
-
-        # Auto-generate secret key if placeholder, missing, or weak
-        if not key or key == "GENERATE_RANDOM_SECRET_HERE" or not self._validate_secret_key(key):
-            new_key = self._generate_secret_key()
-            self._auto_update_jwt_secret(new_key)
-            return new_key
-
-        return str(key)
+        """Get JWT secret key with security-first approach.
+        
+        Priority order:
+        1. Environment variable STT_JWT_SECRET (production)
+        2. Config file value (development)
+        3. Auto-generated temporary secret (fallback)
+        """
+        # 1. Environment variable (highest priority - production use)
+        env_key = os.environ.get("STT_JWT_SECRET")
+        if env_key and self._validate_secret_key(env_key):
+            return env_key
+        
+        # 2. Config file (fallback for development)
+        config_key = self.get("server.websocket.jwt_secret_key")
+        if config_key and config_key != "GENERATE_RANDOM_SECRET_HERE" and self._validate_secret_key(config_key):
+            return str(config_key)
+        
+        # 3. Auto-generate in memory only (no file modification)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("No valid JWT secret found in environment or config. Generating temporary secret for this session.")
+        logger.info("For production, set STT_JWT_SECRET environment variable with a secure 32+ character secret.")
+        return self._generate_secret_key()
 
     def _generate_secret_key(self) -> str:
         """Generate a cryptographically secure secret key."""
@@ -118,22 +131,6 @@ class ConfigLoader:
             return False
         return True
 
-    def _auto_update_jwt_secret(self, new_secret: str):
-        """Auto-update JWT secret in config file."""
-        try:
-            config_path = Path(self.config_file)
-            if config_path.exists():
-                content = config_path.read_text()
-                # Replace the placeholder with actual secret
-                updated_content = content.replace(
-                    '"jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE"', f'"jwt_secret_key": "{new_secret}"'
-                )
-                if updated_content != content:
-                    config_path.write_text(updated_content)
-                    self._config["server"]["websocket"]["jwt_secret_key"] = new_secret
-        except Exception:
-            # If file update fails, just use the generated key in memory
-            pass
 
     @property
     def whisper_model(self) -> str:
