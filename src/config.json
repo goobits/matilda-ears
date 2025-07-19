@@ -1,0 +1,90 @@
+{
+  "whisper": {
+    "model": "base",
+    "device": "auto",
+    "compute_type": "auto"
+  },
+  "server": {
+    "websocket": {
+      "port": 8769,
+      "host": "localhost",
+      "bind_host": "0.0.0.0",
+      "connect_host": "localhost",
+      "auth_token": "stt-2024",
+      "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
+      "ssl": {
+        "enabled": false,
+        "cert_file": "ssl/server.crt",
+        "key_file": "ssl/server.key",
+        "verify_mode": "none",
+        "auto_generate_certs": true,
+        "cert_validity_days": 365
+      }
+    }
+  },
+  "audio": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "streaming": {
+      "enabled": false,
+      "opus_bitrate": 24000,
+      "frame_size": 960,
+      "buffer_ms": 100
+    }
+  },
+  "tools": {
+    "audio": {
+      "linux": "arecord",
+      "darwin": "arecord",
+      "windows": "ffmpeg"
+    }
+  },
+  "paths": {
+    "venv": {
+      "linux": "venv/bin/python",
+      "darwin": "venv/bin/python", 
+      "windows": "venv\\Scripts\\python.exe"
+    },
+    "temp_dir": {
+      "linux": "/tmp/goobits-stt",
+      "darwin": "/tmp/goobits-stt",
+      "windows": "%TEMP%\\goobits-stt"
+    }
+  },
+  "modes": {
+    "conversation": {
+      "vad_threshold": 0.5,
+      "min_speech_duration_s": 0.5,
+      "max_silence_duration_s": 1.0,
+      "speech_pad_duration_s": 0.3
+    },
+    "listen_once": {
+      "vad_threshold": 0.5,
+      "min_speech_duration_s": 0.3,
+      "max_silence_duration_s": 0.8,
+      "max_recording_duration_s": 30.0
+    }
+  },
+  "text_formatting": {
+    "filename_formats": {
+      "md": "UPPER_SNAKE",
+      "json": "lower_snake",
+      "py": "lower_snake",
+      "js": "camelCase",
+      "jsx": "camelCase",
+      "ts": "PascalCase",
+      "tsx": "PascalCase",
+      "java": "PascalCase",
+      "cs": "PascalCase",
+      "css": "kebab-case",
+      "scss": "kebab-case",
+      "sass": "kebab-case",
+      "less": "kebab-case",
+      "*": "lower_snake"
+    }
+  },
+  "timing": {
+    "server_startup_delay": 1.0,
+    "server_stop_delay": 1.0
+  }
+}

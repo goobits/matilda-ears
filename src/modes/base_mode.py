@@ -47,8 +47,8 @@ class BaseMode(ABC):
         self.config = get_config()
         self.logger = setup_logging(
             self.__class__.__name__,
-            log_level="DEBUG" if args.debug else "INFO",
-            include_console=args.format != "json",
+            log_level="DEBUG" if args.debug else "WARNING",
+            include_console=args.debug,  # Only show console logs in debug mode
             include_file=True
         )
         
@@ -175,10 +175,9 @@ class BaseMode(ABC):
         
         if self.args.format == "json":
             print(json.dumps(result))
-        else:
-            # Only show certain statuses in text mode
-            if status in ["listening", "ready", "recording"]:
-                print(f"[{status.upper()}] {message}", file=sys.stderr)
+        elif self.args.debug:
+            # Only show status messages in text mode when debug is enabled
+            print(f"[{status.upper()}] {message}", file=sys.stderr)
     
     async def _send_transcription(self, result: Dict[str, Any], extra: Optional[Dict] = None):
         """Send transcription result."""
@@ -217,7 +216,8 @@ class BaseMode(ABC):
         
         if self.args.format == "json":
             print(json.dumps(result))
-        else:
+        elif self.args.debug:
+            # Only show errors in text mode when debug is enabled
             print(f"Error: {error_message}", file=sys.stderr)
     
     def _get_mode_name(self) -> str:

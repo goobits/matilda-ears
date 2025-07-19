@@ -73,6 +73,10 @@ stt-server = "src.transcription.server:main"
 include = ["src*", "stt*"]
 exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist"]
 
+# Include additional data files
+[tool.setuptools.package-data]
+src = ["*.json"]
+
 # Code Quality Tools Configuration
 [tool.ruff]
 # Enable comprehensive rule set
