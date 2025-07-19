@@ -184,6 +184,11 @@ class SmartCapitalizer:
                             else:
                                 logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
                             # Otherwise, allow normal capitalization for CLI commands at sentence start
+                        # Special rule for versions starting with 'v' (e.g., v1.2)
+                        elif entity.type == EntityType.VERSION and entity.text.startswith('v'):
+                            logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
+                            should_capitalize = False
+                            break
                         # Special case: Allow capitalization of sentence-starting programming keywords
                         elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
                             logger.debug(
@@ -215,12 +220,19 @@ class SmartCapitalizer:
                     for token in doc_to_use:
                         # Find standalone 'i' tokens that are pronouns
                         if token.text == "i" and token.pos_ == "PRON":
+                            # NEW: Add context check for variable 'i'
+                            is_variable_context = False
+                            if token.i > 0:
+                                prev_token = doc_to_use[token.i - 1]
+                                if prev_token.lemma_ in ["variable", "letter", "iterator", "counter", "character"]:
+                                    is_variable_context = True
+
                             # Check if this 'i' is inside a protected entity (like a filename)
                             is_protected = False
                             if entities:
                                 is_protected = any(entity.start <= token.idx < entity.end for entity in entities)
 
-                            if not is_protected:
+                            if not is_protected and not is_variable_context:  # <-- ADDED CHECK
                                 # Safely replace the character at the correct index
                                 text_chars[token.idx] = "I"
                     text = "".join(text_chars)  # Re-assemble the string once at the end
@@ -247,7 +259,7 @@ class SmartCapitalizer:
                 # Add context check for variable 'i'
                 preceding_text = text[max(0, start - 25) : start].lower()
                 is_variable_context = any(
-                    keyword in preceding_text for keyword in ["variable is", "counter is", "iterator is", "for i in"]
+                    keyword in preceding_text for keyword in ["variable is", "counter is", "iterator is", "for i in", "variable i", "letter i"]
                 )
 
                 if not is_protected and not is_part_of_identifier and not is_variable_context:

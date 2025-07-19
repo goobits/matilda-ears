@@ -2210,6 +2210,8 @@ class PatternConverter:
             "metric tons": "t",
             "tonne": "t",
             "tonnes": "t",
+            "pound": "lbs",     # Imperial weight unit
+            "pounds": "lbs",    # Imperial weight unit
             # Volume
             "milliliter": "mL",
             "milliliters": "mL",

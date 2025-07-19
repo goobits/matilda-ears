@@ -185,7 +185,12 @@ class NumberParser:
             if word in self.ones:
                 current_val += self.ones[word]
             elif word in self.tens:
-                current_val += self.tens[word]
+                # Handle cases like "three fifty" -> three hundred + fifty
+                if current_val > 0 and current_val < 10 and self.tens[word] >= 50:
+                    # Convert single digit to hundreds (e.g., 3 -> 300) then add tens
+                    current_val = current_val * 100 + self.tens[word]
+                else:
+                    current_val += self.tens[word]
             elif word in self.scales:
                 scale_val = self.scales[word]
                 # If current_val is 0, it implies a standalone scale word
@@ -253,7 +258,12 @@ class NumberParser:
             if word in self.ones:
                 current_val += self.ones[word]
             elif word in self.tens:
-                current_val += self.tens[word]
+                # Handle cases like "three fifty" -> three hundred + fifty
+                if current_val > 0 and current_val < 10 and self.tens[word] >= 50:
+                    # Convert single digit to hundreds (e.g., 3 -> 300) then add tens
+                    current_val = current_val * 100 + self.tens[word]
+                else:
+                    current_val += self.tens[word]
             elif word == "hundred":
                 current_val *= 100
             elif word != "and":
