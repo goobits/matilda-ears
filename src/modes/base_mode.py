@@ -174,7 +174,8 @@ class BaseMode(ABC):
             result.update(extra)
         
         if self.args.format == "json":
-            print(json.dumps(result))
+            # Send status messages to stderr to avoid interfering with pipeline output
+            print(json.dumps(result), file=sys.stderr)
         elif self.args.debug:
             # Only show status messages in text mode when debug is enabled
             print(f"[{status.upper()}] {message}", file=sys.stderr)
@@ -215,7 +216,8 @@ class BaseMode(ABC):
             result.update(extra)
         
         if self.args.format == "json":
-            print(json.dumps(result))
+            # Send errors to stderr to avoid interfering with pipeline output
+            print(json.dumps(result), file=sys.stderr)
         elif self.args.debug:
             # Only show errors in text mode when debug is enabled
             print(f"Error: {error_message}", file=sys.stderr)
