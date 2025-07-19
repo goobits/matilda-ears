@@ -1,0 +1,9 @@
+{
+    "title": "API Response",
+    "status": "success",
+    "features": ["Fast", "Reliable", "Secure"],
+    "config": {
+        "timeout": 5000,
+        "retries": 3
+    }
+}

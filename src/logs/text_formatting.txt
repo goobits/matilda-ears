@@ -1,0 +1,66 @@
+2025-07-19 13:03:43 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:03:43 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Original text: 'So, um, I was looking at the API documentation, and it says we need to call getUserData function. But like, I'm not sure how to configure the endpoint properly. You know what I mean? It's supposed to return JSON data with user information.' (language: en)
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Code entities detected: 2 - ['EntityType.PROGRAMMING_KEYWORD:return', 'EntityType.PROGRAMMING_KEYWORD:function']
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:03:43 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:04:28 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: '# Header
+- List item
+```code```' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.nlp_provider - WARNING - ❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: 'um, so like, the API endpoint is, uh, slash users' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 1 - ['EntityType.SLASH_COMMAND:slash users']
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: '<h1>Title</h1><p>This is a paragraph.</p>' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Original text: '{"name": "test", "value": 123}' (language: en)
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:04:28 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:09:24 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Original text: '<h1>Main Title</h1><p>This is <strong>bold</strong> text with <em>italic</em> words.</p><ul><li>Item 1</li><li>Item 2</li></ul>
+' (language: en)
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:09:24 - src.text_formatting.nlp_provider - WARNING - ❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context
+2025-07-19 13:11:46 - src.text_formatting.nlp_provider - WARNING - Failed to load SpaCy model: No module named 'spacy'
+2025-07-19 13:11:46 - src.text_formatting.detectors.numeric_detector - INFO - Math expression parser initialized with pyparsing
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: '# Header
+- List item
+```code```' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.nlp_provider - WARNING - ❌ FORMATTER IMPORT FAILED: deepmultilingualpunctuation not found in this context
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: 'um, so like, the API endpoint is, uh, slash users' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 1 - ['EntityType.SLASH_COMMAND:slash users']
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: '<h1>Title</h1><p>This is a paragraph.</p>' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Original text: '{"name": "test", "value": 123}' (language: en)
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Web entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Code entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Numeric entities detected: 0 - []
+2025-07-19 13:11:46 - src.text_formatting.formatter - INFO - Base SpaCy entities detected: 0 - []

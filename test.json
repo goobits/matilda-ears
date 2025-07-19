@@ -1,0 +1,9 @@
+{
+    "product": "Widget Pro",
+    "price": 29.99,
+    "features": ["Fast", "Reliable", "Secure"],
+    "specs": {
+        "weight": "2.5kg", 
+        "dimensions": "10x5x3cm"
+    }
+}

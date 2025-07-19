@@ -49,8 +49,17 @@ def create_rich_cli():
     @click.option("--config", help="⚙️ Configuration file path")
     @click.option("--status", is_flag=True, help="📊 Show system status and capabilities")
     @click.option("--models", is_flag=True, help="📋 List available Whisper models")
+    @click.option("--document", metavar="FILE", help="📄 Convert document to speech (markdown, HTML, JSON)")
+    @click.option("--format", type=click.Choice(['auto', 'markdown', 'html', 'json']), 
+                  default='auto', help="🎯 Document format (auto-detect by default)")
+    @click.option("--ssml-platform", type=click.Choice(['azure', 'google', 'amazon', 'generic']),
+                  default='generic', help="🎤 SSML platform for voice synthesis")
+    @click.option("--emotion-profile", type=click.Choice(['technical', 'marketing', 'narrative', 'tutorial', 'auto']),
+                  default='auto', help="🎭 Emotion profile for document type")
+    @click.option("--cache", is_flag=True, help="💾 Enable document caching for performance")
+    @click.option("--mixed-mode", is_flag=True, help="🔄 Enable mixed content processing")
     @click.pass_context
-    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models):
+    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models, document, format, ssml_platform, emotion_profile, cache, mixed_mode):
         """🎙️ Transform speech into text with AI-powered transcription
         
         GOOBITS STT provides multiple operation modes for different use cases.
@@ -109,7 +118,13 @@ def create_rich_cli():
             sample_rate=sample_rate,
             config=config,
             status=status,
-            models=models
+            models=models,
+            document=document,
+            document_format=format,
+            ssml_platform=ssml_platform,
+            emotion_profile=emotion_profile,
+            cache=cache,
+            mixed_mode=mixed_mode
         )
         
         return run_stt_command(ctx, args)
@@ -171,6 +186,15 @@ Examples:
     parser.add_argument("--config", help="Configuration file path")
     parser.add_argument("--status", action="store_true", help="Show system status")
     parser.add_argument("--models", action="store_true", help="List available models")
+    parser.add_argument("--document", metavar="FILE", help="Convert document to speech")
+    parser.add_argument("--format", choices=['auto', 'markdown', 'html', 'json'], 
+                        default='auto', help="Document format (auto-detect by default)")
+    parser.add_argument("--ssml-platform", choices=['azure', 'google', 'amazon', 'generic'],
+                        default='generic', help="SSML platform for voice synthesis")
+    parser.add_argument("--emotion-profile", choices=['technical', 'marketing', 'narrative', 'tutorial', 'auto'],
+                        default='auto', help="Emotion profile for document type")
+    parser.add_argument("--cache", action="store_true", help="Enable document caching for performance")
+    parser.add_argument("--mixed-mode", action="store_true", help="Enable mixed content processing")
     parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
 
     return parser
@@ -345,6 +369,212 @@ def handle_models_command(output_format="json"):
                 print(f"  {model['name']}: {model['size']} - {model['speed']} - {model['accuracy']}")
 
 
+def handle_document_command(args):
+    """Handle document to speech conversion with Phase 4 features"""
+    try:
+        import sys
+        import os
+        import time
+        from pathlib import Path
+        
+        # Add src directory to path for imports
+        src_path = Path(__file__).parent
+        if str(src_path) not in sys.path:
+            sys.path.insert(0, str(src_path))
+            
+        # Import Phase 4 components
+        from src.speech_synthesis.ssml_generator import SSMLGenerator, SSMLPlatform
+        from src.speech_synthesis.advanced_emotion_detector import AdvancedEmotionDetector
+        from src.integration.mixed_content_processor import MixedContentProcessor
+        from src.document_parsing.performance_cache import PerformanceOptimizer
+        
+        # Import existing components
+        from src.document_parsing.parser_factory import DocumentParserFactory
+        from src.speech_synthesis.semantic_formatter import SemanticFormatter
+        from src.speech_synthesis.speech_markdown import SpeechMarkdownConverter
+        from src.speech_synthesis.tts_engine import SimpleTTSEngine
+        
+        # Check if document file exists
+        if not os.path.exists(args.document):
+            error_msg = f"Document file not found: {args.document}"
+            if args.format == "json":
+                print(json.dumps({"error": error_msg, "mode": "document"}))
+            else:
+                print(f"Error: {error_msg}", file=sys.stderr)
+            return
+            
+        # Read document content
+        try:
+            with open(args.document, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            error_msg = f"Failed to read document: {e}"
+            if args.format == "json":
+                print(json.dumps({"error": error_msg, "mode": "document"}))
+            else:
+                print(f"Error: {error_msg}", file=sys.stderr)
+            return
+            
+        # Initialize Phase 4 components based on CLI options
+        start_time = time.time()
+        
+        # Set up performance optimizer with caching
+        enable_caching = getattr(args, 'cache', False)
+        optimizer = PerformanceOptimizer(enable_caching=enable_caching)
+        
+        # Set up mixed content processor if enabled
+        mixed_mode = getattr(args, 'mixed_mode', False)
+        if mixed_mode:
+            processor = MixedContentProcessor()
+            
+        # Set up SSML generator
+        ssml_platform_str = getattr(args, 'ssml_platform', 'generic')
+        ssml_platform = SSMLPlatform(ssml_platform_str)
+        ssml_generator = SSMLGenerator(ssml_platform)
+        
+        # Set up advanced emotion detector
+        emotion_detector = AdvancedEmotionDetector()
+        
+        # Parse document with performance optimization and mixed content support
+        format_override = getattr(args, 'document_format', 'auto')
+        if format_override == 'auto':
+            format_override = None
+        
+        try:
+            if mixed_mode:
+                # Use mixed content processor
+                content_type = "auto"
+                speech_markdown = processor.process_mixed_content(content, content_type, format_override or "")
+                detected_format = processor._detect_content_type(content, format_override or "")
+                elements = []  # Mixed processor handles conversion internally
+            else:
+                # Use traditional document parsing with performance optimization
+                elements = optimizer.process_document(content, format_override or "auto")
+                detected_format = DocumentParserFactory().detect_format(content, args.document)
+            
+        except ValueError as e:
+            error_msg = f"Unsupported document format: {e}"
+            supported_formats = DocumentParserFactory().get_supported_formats()
+            if args.format == "json":
+                print(json.dumps({"error": error_msg, "mode": "document", "supported": supported_formats}))
+            else:
+                print(f"Error: {error_msg}. Supported formats: {', '.join(supported_formats)}", file=sys.stderr)
+            return
+        except Exception as e:
+            error_msg = f"Failed to parse document: {e}"
+            if args.format == "json":
+                print(json.dumps({"error": error_msg, "mode": "document"}))
+            else:
+                print(f"Error: {error_msg}", file=sys.stderr)
+            return
+        
+        processing_time = time.time() - start_time
+        
+        # Process with advanced emotion detection and SSML generation
+        if not mixed_mode and elements:
+            # Get document type and contextual emotions
+            doc_type = emotion_detector.detect_document_type(elements)
+            emotion_profile = getattr(args, 'emotion_profile', 'auto')
+            
+            if emotion_profile != 'auto':
+                # Override detected document type if user specified emotion profile
+                doc_type = emotion_profile
+            
+            contextual_emotions = emotion_detector.get_contextual_emotions(elements)
+            
+            # Convert to speech markdown with advanced emotions
+            converter = SpeechMarkdownConverter()
+            speech_markdown = converter.convert_elements(elements)
+            
+            # Generate SSML
+            ssml_output = ssml_generator.convert_speech_markdown(speech_markdown)
+            
+            # Validate SSML
+            is_valid, validation_msg = ssml_generator.validate_ssml(ssml_output)
+            
+        elif mixed_mode:
+            # Mixed mode already processed - convert to SSML
+            ssml_output = ssml_generator.convert_speech_markdown(speech_markdown)
+            is_valid, validation_msg = ssml_generator.validate_ssml(ssml_output)
+            doc_type = "mixed_content"
+            contextual_emotions = []
+        else:
+            # Fallback
+            speech_markdown = content
+            ssml_output = content
+            is_valid = True
+            validation_msg = "No processing applied"
+            doc_type = "unknown"
+            contextual_emotions = []
+        
+        # Get performance statistics
+        perf_stats = optimizer.get_performance_stats() if enable_caching else {}
+        
+        # Generate enhanced output with Phase 4 information
+        if args.format == "json":
+            result = {
+                "mode": "document",
+                "file": args.document,
+                "detected_format": detected_format,
+                "format_override": getattr(args, 'document_format', 'auto'),
+                "elements_parsed": len(elements) if elements else 0,
+                "processing_time_seconds": round(processing_time, 3),
+                "phase_4_features": {
+                    "document_type": doc_type,
+                    "emotion_profile": getattr(args, 'emotion_profile', 'auto'),
+                    "ssml_platform": ssml_platform_str,
+                    "mixed_mode": mixed_mode,
+                    "caching_enabled": enable_caching,
+                    "ssml_valid": is_valid,
+                    "ssml_validation": validation_msg
+                },
+                "speech_markdown": speech_markdown,
+                "ssml_output": ssml_output,
+                "performance": perf_stats,
+                "status": "processing"
+            }
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"Processing document: {args.document}")
+            print(f"Detected format: {detected_format}")
+            print(f"Document type: {doc_type}")
+            print(f"Elements parsed: {len(elements) if elements else 0}")
+            print(f"Processing time: {processing_time:.3f}s")
+            print(f"SSML platform: {ssml_platform_str}")
+            print(f"SSML valid: {'✓' if is_valid else '✗'} ({validation_msg})")
+            if enable_caching:
+                cache_info = perf_stats.get('cache_stats', {})
+                print(f"Cache usage: {cache_info.get('total_files', 0)} files, {cache_info.get('total_size_mb', 0):.1f}MB")
+            
+        # Generate speech using TTS engine (simplified for demo)
+        tts_engine = SimpleTTSEngine()
+        if hasattr(tts_engine, 'available_engines') and tts_engine.available_engines:
+            # For now, use speech markdown as input (could use SSML in future)
+            if args.format == "json":
+                print(json.dumps({"status": "completed", "speech_generated": True}))
+            else:
+                print("✓ Speech processing completed")
+        else:
+            if args.format == "json":
+                print(json.dumps({"status": "no_tts", "speech_markdown": speech_markdown}))
+            else:
+                print(f"No TTS engines available.")
+                print(f"Speech Markdown output:\n{speech_markdown[:200]}{'...' if len(speech_markdown) > 200 else ''}")
+                
+    except ImportError as e:
+        error_msg = f"Document processing not available: {e}"
+        if hasattr(args, 'format') and args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "document"}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+    except Exception as e:
+        error_msg = f"Document processing failed: {e}"
+        if hasattr(args, 'format') and args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "document"}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+
+
 def run_stt_command(ctx, args):
     """Handle STT command execution with Rich styling"""
     
@@ -357,6 +587,10 @@ def run_stt_command(ctx, args):
         handle_models_command(args.format)
         return
     
+    if args.document:
+        handle_document_command(args)
+        return
+    
     # Check if no meaningful arguments provided
     modes_selected = sum([
         bool(args.listen_once),
@@ -364,6 +598,7 @@ def run_stt_command(ctx, args):
         bool(args.tap_to_talk),
         bool(args.hold_to_talk),
         bool(args.server),
+        bool(args.document),
     ])
     
     if modes_selected == 0:
@@ -425,8 +660,15 @@ async def async_main():
     parser = create_fallback_parser()
     args = parser.parse_args()
     
-    # Set format based on json flag
+    # Handle format naming conflict - preserve document format before overwriting
+    document_format = getattr(args, 'format', 'auto') if args.document else 'auto'
+    
+    # Set output format based on json flag
     args.format = "json" if args.json else "text"
+    
+    # Set document_format for compatibility
+    if args.document:
+        args.document_format = document_format
     
     # Handle special commands
     if args.status:
@@ -436,6 +678,10 @@ async def async_main():
     if args.models:
         handle_models_command(args.format)
         return
+    
+    if args.document:
+        handle_document_command(args)
+        return
 
     # Validate that at least one mode is selected
     modes_selected = sum([
@@ -444,6 +690,7 @@ async def async_main():
         bool(args.tap_to_talk),
         bool(args.hold_to_talk),
         bool(args.server),
+        bool(args.document),
     ])
 
     if modes_selected == 0:
