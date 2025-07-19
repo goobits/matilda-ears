@@ -19,9 +19,9 @@ except ImportError:
     RICH_AVAILABLE = False
 
 # Add project root to path for imports
-current_dir = Path(__file__).parent.absolute()
-if str(current_dir) not in sys.path:
-    sys.path.insert(0, str(current_dir))
+project_root = Path(__file__).parent.parent.absolute()
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 # Import STT modules
 
@@ -39,18 +39,18 @@ def create_rich_cli():
     @click.option("--server", is_flag=True, help="🌐 Run as WebSocket server for remote clients")
     @click.option("--port", type=int, default=8769, help="🔌 Server port (default: 8769)")
     @click.option("--host", default="0.0.0.0", help="🏠 Server host (default: 0.0.0.0)")
-    @click.option("--format", type=click.Choice(["json", "text"]), default="json", help="📄 Output format (json or text)")
+    @click.option("--json", is_flag=True, help="📄 Output JSON format (default: simple text)")
+    @click.option("--debug", is_flag=True, help="🐛 Enable detailed debug logging")
     @click.option("--no-formatting", is_flag=True, help="🚫 Disable advanced text formatting")
     @click.option("--model", default="base", help="🤖 Whisper model size (tiny, base, small, medium, large)")
     @click.option("--language", help="🌍 Language code (e.g., 'en', 'es', 'fr')")
     @click.option("--device", help="🎤 Audio input device name or index")
     @click.option("--sample-rate", type=int, default=16000, help="🔊 Audio sample rate in Hz")
     @click.option("--config", help="⚙️ Configuration file path")
-    @click.option("--debug", is_flag=True, help="🐛 Enable detailed debug logging")
     @click.option("--status", is_flag=True, help="📊 Show system status and capabilities")
     @click.option("--models", is_flag=True, help="📋 List available Whisper models")
     @click.pass_context
-    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, format, no_formatting, model, language, device, sample_rate, config, debug, status, models):
+    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models):
         """🎙️ Transform speech into text with AI-powered transcription
         
         GOOBITS STT provides multiple operation modes for different use cases.
@@ -99,14 +99,15 @@ def create_rich_cli():
             server=server,
             port=port,
             host=host,
-            format=format,
+            format="json" if json else "text",
+            json=json,
+            debug=debug,
             no_formatting=no_formatting,
             model=model,
             language=language,
             device=device,
             sample_rate=sample_rate,
             config=config,
-            debug=debug,
             status=status,
             models=models
         )
@@ -152,7 +153,8 @@ Examples:
 
     # Output options
     output = parser.add_argument_group("Output Options")
-    output.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    output.add_argument("--json", action="store_true", help="Output JSON format (default: simple text)")
+    output.add_argument("--debug", action="store_true", help="Enable debug logging")
     output.add_argument("--no-formatting", action="store_true", help="Disable text formatting")
 
     # Model options
@@ -167,7 +169,6 @@ Examples:
 
     # System options
     parser.add_argument("--config", help="Configuration file path")
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--status", action="store_true", help="Show system status")
     parser.add_argument("--models", action="store_true", help="List available models")
     parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
@@ -423,6 +424,9 @@ async def async_main():
     """Fallback main for argparse mode"""
     parser = create_fallback_parser()
     args = parser.parse_args()
+    
+    # Set format based on json flag
+    args.format = "json" if args.json else "text"
     
     # Handle special commands
     if args.status:

@@ -14,11 +14,7 @@ class ConfigLoader:
 
     def __init__(self, config_path: Optional[Union[str, Path]] = None) -> None:
         if config_path is None:
-            # Find project root by looking for config.jsonc or config.json
-            current = Path(__file__).parent.parent.parent  # Go up 3 levels now: core -> lib -> project root
-            config_path = current / "config.jsonc"
-            if not config_path.exists():
-                config_path = current / "config.json"
+            config_path = self._find_config_file()
 
         # Store config file path for later use
         self.config_file = str(config_path)
@@ -42,6 +38,144 @@ class ConfigLoader:
         # Cache commonly used values
         self.project_dir = str(Path(config_path).parent)
         self._setup_paths()
+
+    def _find_config_file(self) -> Path:
+        """Find config file in multiple locations"""
+        
+        # Method 1: Try package data (for installed packages)
+        try:
+            import importlib.resources
+            try:
+                # Python 3.9+ syntax
+                package_data = importlib.resources.files("src") / "config.json"
+                if package_data.is_file():
+                    return package_data
+            except AttributeError:
+                # Python 3.8 fallback
+                with importlib.resources.path("src", "config.json") as config_path:
+                    if config_path.exists():
+                        return config_path
+        except (ImportError, FileNotFoundError, ModuleNotFoundError):
+            pass
+        
+        # Method 2: Try relative to source code (development mode)
+        current = Path(__file__).parent.parent.parent  # Go up 3 levels: core -> src -> project root
+        for filename in ["config.jsonc", "config.json"]:
+            config_path = current / filename
+            if config_path.exists():
+                return config_path
+        
+        # Method 3: Try current working directory
+        for filename in ["config.jsonc", "config.json"]:
+            config_path = Path.cwd() / filename
+            if config_path.exists():
+                return config_path
+        
+        # Method 4: Create a default config
+        return self._create_default_config()
+
+    def _create_default_config(self) -> Path:
+        """Create a default config file in temp directory"""
+        import tempfile
+        import json
+        
+        default_config = {
+            "whisper": {
+                "model": "base",
+                "device": "auto",
+                "compute_type": "auto"
+            },
+            "server": {
+                "websocket": {
+                    "port": 8769,
+                    "host": "localhost",
+                    "bind_host": "0.0.0.0",
+                    "connect_host": "localhost",
+                    "auth_token": "stt-2024",
+                    "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
+                    "ssl": {
+                        "enabled": False,
+                        "cert_file": "ssl/server.crt",
+                        "key_file": "ssl/server.key",
+                        "verify_mode": "none",
+                        "auto_generate_certs": True,
+                        "cert_validity_days": 365
+                    }
+                }
+            },
+            "audio": {
+                "sample_rate": 16000,
+                "channels": 1,
+                "streaming": {
+                    "enabled": False,
+                    "opus_bitrate": 24000,
+                    "frame_size": 960,
+                    "buffer_ms": 100
+                }
+            },
+            "tools": {
+                "audio": {
+                    "linux": "arecord",
+                    "darwin": "arecord",
+                    "windows": "ffmpeg"
+                }
+            },
+            "paths": {
+                "venv": {
+                    "linux": "venv/bin/python",
+                    "darwin": "venv/bin/python",
+                    "windows": "venv\\Scripts\\python.exe"
+                },
+                "temp_dir": {
+                    "linux": "/tmp/goobits-stt",
+                    "darwin": "/tmp/goobits-stt",
+                    "windows": "%TEMP%\\goobits-stt"
+                }
+            },
+            "modes": {
+                "conversation": {
+                    "vad_threshold": 0.5,
+                    "min_speech_duration_s": 0.5,
+                    "max_silence_duration_s": 1.0,
+                    "speech_pad_duration_s": 0.3
+                },
+                "listen_once": {
+                    "vad_threshold": 0.5,
+                    "min_speech_duration_s": 0.3,
+                    "max_silence_duration_s": 0.8,
+                    "max_recording_duration_s": 30.0
+                }
+            },
+            "text_formatting": {
+                "filename_formats": {
+                    "md": "UPPER_SNAKE",
+                    "json": "lower_snake",
+                    "py": "lower_snake",
+                    "js": "camelCase",
+                    "jsx": "camelCase",
+                    "ts": "PascalCase",
+                    "tsx": "PascalCase",
+                    "java": "PascalCase",
+                    "cs": "PascalCase",
+                    "css": "kebab-case",
+                    "scss": "kebab-case",
+                    "sass": "kebab-case",
+                    "less": "kebab-case",
+                    "*": "lower_snake"
+                }
+            },
+            "timing": {
+                "server_startup_delay": 1.0,
+                "server_stop_delay": 1.0
+            }
+        }
+        
+        # Create temporary config file
+        temp_config = Path(tempfile.gettempdir()) / "goobits-stt-config.json"
+        with open(temp_config, 'w') as f:
+            json.dump(default_config, f, indent=2)
+        
+        return temp_config
 
     def _setup_paths(self) -> None:
         """Setup platform-specific paths"""
@@ -519,6 +653,9 @@ def setup_logging(
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
+    
+    # Prevent propagation to root logger to avoid duplicate console output
+    logger.propagate = False
 
     # File handler
     if include_file:
