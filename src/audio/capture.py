@@ -9,7 +9,7 @@ import time
 import threading
 import subprocess
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 
 try:
@@ -93,6 +93,13 @@ class PipeBasedAudioStreamer:
         self.sample_rate = sample_rate
         self.audio_device = audio_device
 
+        # Get config for cross-platform audio tools
+        try:
+            from ..core.config import get_config
+            self.config = get_config()
+        except ImportError:
+            self.config = None
+
         # Calculate chunk size
         self.target_chunk_size = int(sample_rate * chunk_duration_ms / 1000)
         self.target_bytes_per_chunk = self.target_chunk_size * 2  # 16-bit samples
@@ -113,46 +120,72 @@ class PipeBasedAudioStreamer:
             f"{self.target_chunk_size} samples/chunk"
         )
 
-    def start_recording(self) -> bool:
-        """Start recording with direct pipe streaming."""
-        try:
-            # Build arecord command for pipe output with minimal buffering
+    def _build_audio_command(self) -> List[str]:
+        """Build platform-specific audio capture command."""
+        # Get audio tool from config (uses existing get_audio_tool method)
+        audio_tool = "arecord"  # Default fallback
+        if self.config:
+            audio_tool = self.config.get_audio_tool()
+
+        if audio_tool == "ffmpeg":
+            # Windows/cross-platform ffmpeg command
+            cmd = [
+                "ffmpeg",
+                "-f", "dshow",
+                "-i", f"audio={self.audio_device or 'default'}",
+                "-ar", str(self.sample_rate),
+                "-ac", "1",
+                "-f", "s16le",
+                "-"  # Output to stdout
+            ]
+        else:
+            # Linux/macOS arecord command (existing logic)
             cmd = [
                 "arecord",
-                "-f",
-                "S16_LE",  # 16-bit little-endian
-                "-r",
-                str(self.sample_rate),  # Sample rate
-                "-c",
-                "1",  # Mono
-                "-t",
-                "raw",  # Raw output (no WAV header for pipes)
-                # Removed low-latency flags that were causing audio loss
-                # Standard buffering should work like batch mode
+                "-f", "S16_LE",
+                "-r", str(self.sample_rate),
+                "-c", "1",
+                "-t", "raw"
             ]
-
-            # Add device if specified
             if self.audio_device:
                 cmd.extend(["-D", self.audio_device])
 
-            logger.info(f"[PIPE-STREAM] Starting arecord: {' '.join(cmd)}")
+        return cmd
 
-            # Start arecord process with pipe - use line buffering for stderr but no buffering for stdout
-            # Also use stdbuf to disable C library buffering in arecord itself
-            cmd_with_stdbuf = ["stdbuf", "-o0", "-e0"] + cmd
+    def start_recording(self) -> bool:
+        """Start recording with direct pipe streaming."""
+        try:
+            # Build platform-specific audio command
+            cmd = self._build_audio_command()
 
-            try:
-                # Try with stdbuf first (to disable arecord's internal buffering)
+            logger.info(f"[PIPE-STREAM] Starting audio capture: {' '.join(cmd)}")
+
+            # Get audio tool to determine if we should use stdbuf
+            audio_tool = "arecord"  # Default fallback
+            if self.config:
+                audio_tool = self.config.get_audio_tool()
+
+            # Only use stdbuf with arecord (Unix tools), not with ffmpeg
+            if audio_tool == "arecord":
+                cmd_with_stdbuf = ["stdbuf", "-o0", "-e0"] + cmd
+                try:
+                    # Try with stdbuf first (to disable arecord's internal buffering)
+                    self.arecord_process = subprocess.Popen(
+                        cmd_with_stdbuf, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+                    )
+                    logger.info("[PIPE-STREAM] Started with stdbuf for unbuffered output")
+                except FileNotFoundError:
+                    # Fall back to regular command if stdbuf not available
+                    self.arecord_process = subprocess.Popen(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+                    )
+                    logger.info("[PIPE-STREAM] Started without stdbuf")
+            else:
+                # For ffmpeg and other tools, start directly without stdbuf
                 self.arecord_process = subprocess.Popen(
-                    cmd_with_stdbuf, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0  # No buffering
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
                 )
-                logger.info("[PIPE-STREAM] Started with stdbuf for unbuffered output")
-            except FileNotFoundError:
-                # Fall back to regular command if stdbuf not available
-                self.arecord_process = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0  # No buffering
-                )
-                logger.info("[PIPE-STREAM] Started without stdbuf")
+                logger.info(f"[PIPE-STREAM] Started {audio_tool} directly")
 
             # Start reader thread
             self._stop_event.clear()
@@ -242,14 +275,20 @@ class PipeBasedAudioStreamer:
             
         total_bytes_read = 0
 
-        # Make pipe non-blocking to allow better control
-        import fcntl
-        import os
-        import select
-
-        fd = self.arecord_process.stdout.fileno()
-        flags = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+        # Make pipe non-blocking to allow better control (Unix only)
+        try:
+            import fcntl
+            import os
+            import select
+            
+            fd = self.arecord_process.stdout.fileno()
+            flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+            use_select = True
+        except ImportError:
+            # Windows - fcntl/select not available, use blocking reads
+            logger.info("[PIPE-STREAM] Using blocking read mode (Windows)")
+            use_select = False
 
         try:
             empty_reads = 0
@@ -262,37 +301,55 @@ class PipeBasedAudioStreamer:
                         logger.info(f"[PIPE-STREAM] Pipe drained after {total_bytes_read} bytes")
                         break
 
-                # Use select with short timeout to avoid blocking forever
-                ready_to_read, _, _ = select.select([self.arecord_process.stdout], [], [], 0.05)
-
-                if ready_to_read:
+                if use_select:
+                    # Unix: Use select with short timeout to avoid blocking forever
+                    ready_to_read, _, _ = select.select([self.arecord_process.stdout], [], [], 0.05)
+                    
+                    if ready_to_read:
+                        try:
+                            # Read available data (up to 64KB at once)
+                            data = self.arecord_process.stdout.read(65536)
+                            if data:
+                                empty_reads = 0  # Reset counter
+                                total_bytes_read += len(data)
+                                self._audio_buffer += data
+                                self._process_buffered_chunks()
+                            else:
+                                # Empty read - could be EOF
+                                empty_reads += 1
+                                if empty_reads >= 3 or self.arecord_process.poll() is not None:
+                                    logger.info(f"[PIPE-STREAM] EOF on pipe after {total_bytes_read} bytes")
+                                    break
+                        except BlockingIOError:
+                            # No data available right now
+                            empty_reads += 1
+                        except Exception as e:
+                            logger.error(f"[PIPE-STREAM] Read error: {e}")
+                            break
+                    else:
+                        # No data ready
+                        empty_reads += 1
+                        if self._stop_event.is_set() or self.arecord_process.poll() is not None:
+                            if empty_reads >= 3:
+                                logger.info(f"[PIPE-STREAM] No more data after {total_bytes_read} bytes")
+                                break
+                else:
+                    # Windows: Simple blocking read with smaller chunks
                     try:
-                        # Read available data (up to 64KB at once)
-                        data = self.arecord_process.stdout.read(65536)
+                        data = self.arecord_process.stdout.read(4096)
                         if data:
-                            empty_reads = 0  # Reset counter
+                            empty_reads = 0
                             total_bytes_read += len(data)
                             self._audio_buffer += data
                             self._process_buffered_chunks()
                         else:
-                            # Empty read - could be EOF
                             empty_reads += 1
                             if empty_reads >= 3 or self.arecord_process.poll() is not None:
                                 logger.info(f"[PIPE-STREAM] EOF on pipe after {total_bytes_read} bytes")
                                 break
-                    except BlockingIOError:
-                        # No data available right now
-                        empty_reads += 1
                     except Exception as e:
                         logger.error(f"[PIPE-STREAM] Read error: {e}")
                         break
-                else:
-                    # No data ready
-                    empty_reads += 1
-                    if self._stop_event.is_set() or self.arecord_process.poll() is not None:
-                        if empty_reads >= 3:
-                            logger.info(f"[PIPE-STREAM] No more data after {total_bytes_read} bytes")
-                            break
 
         except Exception as e:
             logger.error(f"[PIPE-STREAM] Reader thread error: {e}")

@@ -32,6 +32,13 @@
       "buffer_ms": 100
     }
   },
+  "tools": {
+    "audio": {
+      "linux": "arecord",
+      "darwin": "arecord",
+      "windows": "ffmpeg"
+    }
+  },
   "paths": {
     "venv": {
       "linux": "venv/bin/python",
