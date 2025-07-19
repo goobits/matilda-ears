@@ -63,6 +63,7 @@ logs/*.log
 .coverage
 htmlcov/
 test-results/
+.test_artifacts/
 
 # Environment variables
 .env
