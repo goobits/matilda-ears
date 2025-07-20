@@ -198,3 +198,1043 @@
 2025-07-19 15:41:28 - ConversationMode - INFO - ConversationMode cleanup completed
 2025-07-19 15:41:28 - ConversationMode - INFO - Transcribed: 'this is a test of it.' (21 chars)
 2025-07-19 15:41:28 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:43:44 - ConversationMode - INFO - ConversationMode initialized
+2025-07-19 16:43:45 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-19 16:43:45 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-19 16:43:45 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-19 16:43:46 - ConversationMode - INFO - Loading Whisper model: base
+2025-07-19 16:43:46 - ConversationMode - INFO - Whisper model base loaded successfully
+2025-07-19 16:43:46 - ConversationMode - INFO - Initializing Silero VAD...
+2025-07-19 16:43:46 - ConversationMode - INFO - Silero VAD initialized successfully
+2025-07-19 16:43:46 - ConversationMode - INFO - Audio streamer setup completed
+2025-07-19 16:43:46 - ConversationMode - INFO - Audio streaming started successfully
+2025-07-19 16:43:47 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.989)
+2025-07-19 16:43:47 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-19 16:43:47 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-19 16:43:48 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.36s) - Processing final result...
+2025-07-19 16:43:48 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-19 16:43:48 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-19 16:43:48 - ConversationMode - INFO - Transcribed: 'Testing' (7 chars)
+2025-07-19 16:43:48 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:43:49 - ConversationMode - INFO - Transcribed: 'Testing.' (8 chars)
+2025-07-19 16:43:49 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:43:49 - ConversationMode - DEBUG - Updated context: 1 words
+2025-07-19 16:43:51 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.997)
+2025-07-19 16:43:51 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-19 16:43:51 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-19 16:43:51 - ConversationMode - DEBUG - 📊 Buffer check: 5.0s (50 chunks)
+2025-07-19 16:43:51 - ConversationMode - DEBUG - Using context prompt: 'Testing....'
+2025-07-19 16:43:52 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:43:52 - ConversationMode - INFO - Transcribed: 'So testing. So I-' (17 chars)
+2025-07-19 16:43:52 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:43:52 - ConversationMode - DEBUG - Using context prompt: 'Testing....'
+2025-07-19 16:43:53 - ConversationMode - DEBUG - 📊 Buffer check: 10.0s (100 chunks)
+2025-07-19 16:43:53 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:43:53 - ConversationMode - INFO - Transcribed: 'So testing. So I am looking at myself.' (38 chars)
+2025-07-19 16:43:53 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:43:53 - ConversationMode - DEBUG - Advanced agreement: 'So testing. So I' (from 'So testing. So I-...' + 'So testing. So I am ...')
+2025-07-19 16:43:53 - ConversationMode - DEBUG - Confirmed: 'So testing. So I', Provisional: ' am looking at myself.'
+2025-07-19 16:43:54 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (3.01s) - Processing final result...
+2025-07-19 16:43:54 - ConversationMode - DEBUG - Using context prompt: 'Testing. So testing. So I...'
+2025-07-19 16:43:54 - ConversationMode - INFO - Transcribed: 'am looking at myself in the mirror.' (35 chars)
+2025-07-19 16:43:54 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:43:54 - ConversationMode - DEBUG - Updated context: 8 words
+2025-07-19 16:44:00 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.645)
+2025-07-19 16:44:00 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-19 16:44:00 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-19 16:44:00 - ConversationMode - DEBUG - 📊 Buffer check: 15.0s (150 chunks)
+2025-07-19 16:44:00 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror....'
+2025-07-19 16:44:01 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:01 - ConversationMode - INFO - Transcribed: 'So, I am looking at myself in the mirror. The arco-' (51 chars)
+2025-07-19 16:44:01 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:01 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror....'
+2025-07-19 16:44:02 - ConversationMode - DEBUG - 📊 Buffer check: 20.0s (200 chunks)
+2025-07-19 16:44:02 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:02 - ConversationMode - INFO - Transcribed: 'So, I am looking at myself in the mirror. The arco-texture doc.' (63 chars)
+2025-07-19 16:44:02 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:02 - ConversationMode - DEBUG - Advanced agreement: 'So, I am looking at myself in the mirror. The arco-' (from 'So, I am looking at ...' + 'So, I am looking at ...')
+2025-07-19 16:44:02 - ConversationMode - DEBUG - Confirmed: 'So, I am looking at myself in the mirror. The arco-', Provisional: 'texture doc.'
+2025-07-19 16:44:02 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:03 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:03 - ConversationMode - INFO - Transcribed: 'The so testing. So, I am looking at myself in the mirror. The arco-texture doc mentions this is a' (97 chars)
+2025-07-19 16:44:03 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:03 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:44:03 - ConversationMode - DEBUG - 📊 Buffer check: 25.0s (250 chunks)
+2025-07-19 16:44:03 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 25.1s (251 chunks > 250)
+2025-07-19 16:44:03 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:44:03 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:44:03 - ConversationMode - INFO -    🧠 Context for segment: ' Testing. Am looking at myself in the mirror. ...'
+2025-07-19 16:44:03 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror....'
+2025-07-19 16:44:03 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:04 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:04 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:05 - ConversationMode - INFO - Transcribed: 'So testing. So I am looking at myself in the mirror. The architecture doc mentions this is a training wheels version.' (117 chars)
+2025-07-19 16:44:05 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:05 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'So testing. So I am looking at myself in the mirror. The arc...'
+2025-07-19 16:44:05 - ConversationMode - INFO -    📊 Total accumulated segments: 1
+2025-07-19 16:44:05 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 94 chunks remaining (9.4s)
+2025-07-19 16:44:05 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:05 - ConversationMode - DEBUG - 📊 Buffer check: 10.0s (100 chunks)
+2025-07-19 16:44:05 - ConversationMode - INFO - Transcribed: 'I am looking at myself in the mirror. The arco-texture doc mentions this is a training wheels version.' (102 chars)
+2025-07-19 16:44:05 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:05 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:44:05 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:06 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:06 - ConversationMode - INFO - Transcribed: 'This is a training wheels version. Test file notes about needing more-' (70 chars)
+2025-07-19 16:44:06 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:06 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:44:06 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:06 - ConversationMode - DEBUG - 📊 Buffer check: 15.0s (150 chunks)
+2025-07-19 16:44:07 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:07 - ConversationMode - INFO - Transcribed: 'This is a training wheels version test file notes about needing more complex mocking.' (85 chars)
+2025-07-19 16:44:07 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:07 - ConversationMode - DEBUG - Advanced agreement: 'This is a training wheels version' (from 'This is a training w...' + 'This is a training w...')
+2025-07-19 16:44:07 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:08 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:08 - ConversationMode - DEBUG - 📊 Buffer check: 20.0s (200 chunks)
+2025-07-19 16:44:08 - ConversationMode - INFO - Transcribed: 'This is a training wheels version. Test file notes about needing more complex mocking. Various notes feel' (105 chars)
+2025-07-19 16:44:08 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:08 - ConversationMode - DEBUG - Advanced agreement: 'This is a training wheels version' (from 'This is a training w...' + 'This is a training w...')
+2025-07-19 16:44:08 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:09 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:09 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:09 - ConversationMode - INFO - Transcribed: 'this is a training wheels version. Test file notes about needing more complex mocking. Various notes, fields in JSONs.' (118 chars)
+2025-07-19 16:44:09 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:09 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:44:09 - ConversationMode - DEBUG - 📊 Buffer check: 25.0s (250 chunks)
+2025-07-19 16:44:10 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So, I...'
+2025-07-19 16:44:10 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:11 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:11 - ConversationMode - INFO - Transcribed: 'this is a training wheels version. Test file notes about needing more complex marking. Various notes filled in JSON schemas and responses. The' (142 chars)
+2025-07-19 16:44:11 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:11 - ConversationMode - DEBUG - Advanced agreement: 'this is a training wheels version. Test file notes about needing more complex m' (from 'this is a training w...' + 'this is a training w...')
+2025-07-19 16:44:11 - ConversationMode - DEBUG - Confirmed: 'this is a training wheels version. Test file notes about needing more complex m', Provisional: 'arking. Various notes filled in JSON schemas and responses. The'
+2025-07-19 16:44:11 - ConversationMode - DEBUG - 📊 Buffer check: 30.0s (300 chunks)
+2025-07-19 16:44:11 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.1s (301 chunks > 250)
+2025-07-19 16:44:11 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:44:11 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #2 (25.0s, 250 chunks)
+2025-07-19 16:44:11 - ConversationMode - INFO -    🧠 Context for segment: ' Testing. Am looking at myself in the mirror. So testing. So I am looking at myself in the mirror. T...'
+2025-07-19 16:44:11 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So te...'
+2025-07-19 16:44:11 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:12 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:12 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:13 - ConversationMode - INFO - Transcribed: 'Test file notes about needing more complex mocking. Various notes filled in JSON schemas and responses.' (103 chars)
+2025-07-19 16:44:13 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:13 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'Test file notes about needing more complex mocking. Various ...'
+2025-07-19 16:44:13 - ConversationMode - INFO -    📊 Total accumulated segments: 2
+2025-07-19 16:44:13 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 144 chunks remaining (14.4s)
+2025-07-19 16:44:13 - ConversationMode - INFO - Transcribed: 'and this is a training wheels version. Test file notes about needing more complex marking, various notes, fields in JSON schemas and responses, the V2 codebase is very' (167 chars)
+2025-07-19 16:44:13 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:13 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:44:13 - ConversationMode - DEBUG - 📊 Buffer check: 15.0s (150 chunks)
+2025-07-19 16:44:13 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:13 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:14 - ConversationMode - INFO - Transcribed: 'on schemas and responses. The V2 codebase is very clean with zero.' (66 chars)
+2025-07-19 16:44:14 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:14 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:44:14 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:14 - ConversationMode - DEBUG - 📊 Buffer check: 20.0s (200 chunks)
+2025-07-19 16:44:14 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:15 - ConversationMode - INFO - Transcribed: 'on schemas and responses. The V2 codebase is very clean with zero to do fixed-me items.' (87 chars)
+2025-07-19 16:44:15 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:15 - ConversationMode - DEBUG - Advanced agreement: 'on schemas and responses. The V2 codebase is very clean with zero' (from 'on schemas and respo...' + 'on schemas and respo...')
+2025-07-19 16:44:15 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:15 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:16 - ConversationMode - DEBUG - 📊 Buffer check: 25.0s (250 chunks)
+2025-07-19 16:44:16 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:16 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 25.3s (253 chunks > 250)
+2025-07-19 16:44:16 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:44:16 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #3 (25.0s, 250 chunks)
+2025-07-19 16:44:16 - ConversationMode - INFO -    🧠 Context for segment: ' Testing. Am looking at myself in the mirror. So testing. So I am looking at myself in the mirror. T...'
+2025-07-19 16:44:16 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So te...'
+2025-07-19 16:44:16 - ConversationMode - INFO - Transcribed: 'on schemas and responses. The V2 code base is very clean with zero to do fixed the items. The only notable limit.' (113 chars)
+2025-07-19 16:44:16 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:16 - ConversationMode - DEBUG - Advanced agreement: 'on schemas and responses. The V2 code' (from 'on schemas and respo...' + 'on schemas and respo...')
+2025-07-19 16:44:17 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:17 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:18 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:18 - ConversationMode - DEBUG - 📊 Buffer check: 30.0s (300 chunks)
+2025-07-19 16:44:18 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.0s (300 chunks > 250)
+2025-07-19 16:44:18 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:44:18 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #4 (25.0s, 250 chunks)
+2025-07-19 16:44:18 - ConversationMode - INFO -    🧠 Context for segment: ' Testing. Am looking at myself in the mirror. So testing. So I am looking at myself in the mirror. T...'
+2025-07-19 16:44:18 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. So te...'
+2025-07-19 16:44:18 - ConversationMode - INFO - Transcribed: 'The V2 codebase is very clean, with 0 to do fixed-me items. The only notable limitation is the inability.' (105 chars)
+2025-07-19 16:44:18 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:18 - ConversationMode - WARNING -    ✅ SEGMENT #4 TRANSCRIBED: 'The V2 codebase is very clean, with 0 to do fixed-me items. ...'
+2025-07-19 16:44:18 - ConversationMode - INFO -    📊 Total accumulated segments: 3
+2025-07-19 16:44:18 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 100 chunks remaining (10.0s)
+2025-07-19 16:44:18 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:44:18 - ConversationMode - INFO - Transcribed: 'on schemas and responses. The V2 codebase is very clean with 0 to do fixed-me items. The only notable limitation is the inability to pass.' (138 chars)
+2025-07-19 16:44:18 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:18 - ConversationMode - DEBUG - Advanced agreement: 'on schemas and responses. The V2 code' (from 'on schemas and respo...' + 'on schemas and respo...')
+2025-07-19 16:44:19 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:19 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (19.53s) - Processing final result...
+2025-07-19 16:44:19 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-19 16:44:19 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-19 16:44:19 - ConversationMode - DEBUG - Using context prompt: 'Testing. Am looking at myself in the mirror. this ...'
+2025-07-19 16:44:21 - ConversationMode - INFO - Transcribed: 'The V2 codebase is very clean, with 0 to do fixed-me items. The only notable limitation is the inability.' (105 chars)
+2025-07-19 16:44:21 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:21 - ConversationMode - WARNING -    ✅ SEGMENT #4 TRANSCRIBED: 'The V2 codebase is very clean, with 0 to do fixed-me items. ...'
+2025-07-19 16:44:21 - ConversationMode - INFO -    📊 Total accumulated segments: 4
+2025-07-19 16:44:21 - ConversationMode - WARNING -    ♾️  Trimmed buffer: -55 chunks remaining (-5.5s)
+2025-07-19 16:44:21 - ConversationMode - INFO - Transcribed: 'limitation is the inability to pass tools through the CLI for inspection.' (73 chars)
+2025-07-19 16:44:21 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:21 - ConversationMode - INFO - Transcribed: 'limitation is the inability to pass tools through the CLI for inspection.' (73 chars)
+2025-07-19 16:44:21 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:44:21 - ConversationMode - DEBUG - Updated context: 20 words
+2025-07-19 16:44:41 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-19 16:44:54 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 25.3s (253 chunks > 250)
+2025-07-19 16:44:54 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:44:54 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:44:56 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'Let's put our training wheels on. The V2 codebase is very cl...'
+2025-07-19 16:44:56 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 96 chunks remaining (9.6s)
+2025-07-19 16:44:56 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (9.67s) - Processing final result...
+2025-07-19 16:45:02 - ConversationMode - INFO - ConversationMode initialized
+2025-07-19 16:45:03 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-19 16:45:03 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-19 16:45:03 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-19 16:45:03 - ConversationMode - INFO - Loading Whisper model: base
+2025-07-19 16:45:03 - ConversationMode - INFO - Whisper model base loaded successfully
+2025-07-19 16:45:03 - ConversationMode - INFO - Initializing Silero VAD...
+2025-07-19 16:45:04 - ConversationMode - INFO - Silero VAD initialized successfully
+2025-07-19 16:45:04 - ConversationMode - INFO - Audio streamer setup completed
+2025-07-19 16:45:04 - ConversationMode - INFO - Audio streaming started successfully
+2025-07-19 16:45:04 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.983)
+2025-07-19 16:45:04 - ConversationMode - INFO -    📊 Merged 1 pre-buffer chunks
+2025-07-19 16:45:04 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-19 16:45:05 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:05 - ConversationMode - INFO - Transcribed: 'Let's test this.' (16 chars)
+2025-07-19 16:45:05 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:05 - ConversationMode - DEBUG - 📊 Buffer check: 5.0s (50 chunks)
+2025-07-19 16:45:06 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:06 - ConversationMode - INFO - Transcribed: 'Let's test this. The V2.' (24 chars)
+2025-07-19 16:45:06 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:06 - ConversationMode - DEBUG - Advanced agreement: 'Let's test this.' (from 'Let's test this....' + 'Let's test this. The...')
+2025-07-19 16:45:06 - ConversationMode - DEBUG - Confirmed: 'Let's test this.', Provisional: ' The V2.'
+2025-07-19 16:45:06 - ConversationMode - DEBUG - Using context prompt: 'Let's test this....'
+2025-07-19 16:45:07 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:07 - ConversationMode - DEBUG - 📊 Buffer check: 10.0s (100 chunks)
+2025-07-19 16:45:07 - ConversationMode - INFO - Transcribed: 'Let's test this. The V2 codebase is very clean.' (47 chars)
+2025-07-19 16:45:07 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:07 - ConversationMode - DEBUG - Advanced agreement: 'Let's test this. The V2' (from 'Let's test this. The...' + 'Let's test this. The...')
+2025-07-19 16:45:07 - ConversationMode - DEBUG - Confirmed: 'Let's test this. The V2', Provisional: ' codebase is very clean.'
+2025-07-19 16:45:07 - ConversationMode - DEBUG - Using context prompt: 'Let's test this. The V2...'
+2025-07-19 16:45:08 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:08 - ConversationMode - INFO - Transcribed: 'codebase is very clean with 0 to 2 or 2.' (40 chars)
+2025-07-19 16:45:08 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:08 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:45:08 - ConversationMode - DEBUG - Using context prompt: 'Let's test this. The V2...'
+2025-07-19 16:45:09 - ConversationMode - DEBUG - 📊 Buffer check: 15.0s (150 chunks)
+2025-07-19 16:45:09 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:09 - ConversationMode - INFO - Transcribed: 'codebase is very clean with zero to do or fix me items.' (55 chars)
+2025-07-19 16:45:09 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:09 - ConversationMode - DEBUG - Advanced agreement: 'codebase is very clean with ' (from 'codebase is very cle...' + 'codebase is very cle...')
+2025-07-19 16:45:09 - ConversationMode - DEBUG - Confirmed: 'codebase is very clean with ', Provisional: 'zero to do or fix me items.'
+2025-07-19 16:45:09 - ConversationMode - DEBUG - Using context prompt: 'codebase is very clean with...'
+2025-07-19 16:45:10 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:10 - ConversationMode - INFO - Transcribed: 'zero to do or fix me items, the only notable' (44 chars)
+2025-07-19 16:45:10 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:10 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:45:10 - ConversationMode - DEBUG - 📊 Buffer check: 20.0s (200 chunks)
+2025-07-19 16:45:10 - ConversationMode - DEBUG - Using context prompt: 'codebase is very clean with...'
+2025-07-19 16:45:11 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:11 - ConversationMode - INFO - Transcribed: 'zero to do or fix me items. The only notable limitation is the inability to...' (78 chars)
+2025-07-19 16:45:11 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:11 - ConversationMode - DEBUG - Advanced agreement: 'zero to do or fix me items' (from 'zero to do or fix me...' + 'zero to do or fix me...')
+2025-07-19 16:45:11 - ConversationMode - DEBUG - Using context prompt: 'codebase is very clean with...'
+2025-07-19 16:45:12 - ConversationMode - DEBUG - 📊 Buffer check: 25.0s (250 chunks)
+2025-07-19 16:45:12 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:12 - ConversationMode - INFO - Transcribed: 'zero to do or fix me items. The only notable limitation is the inability to pass tools' (86 chars)
+2025-07-19 16:45:12 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:12 - ConversationMode - DEBUG - Advanced agreement: 'zero to do or fix me items. The only notable limitation is the inability to' (from 'zero to do or fix me...' + 'zero to do or fix me...')
+2025-07-19 16:45:12 - ConversationMode - DEBUG - Confirmed: 'zero to do or fix me items. The only notable limitation is the inability to', Provisional: ' pass tools'
+2025-07-19 16:45:12 - ConversationMode - DEBUG - Using context prompt: 'zero to do or fix me items. The only notable limit...'
+2025-07-19 16:45:13 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:13 - ConversationMode - INFO - Transcribed: 'pass tools through the CLI for violence.' (40 chars)
+2025-07-19 16:45:13 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:13 - ConversationMode - DEBUG - Fallback to commonprefix: ''
+2025-07-19 16:45:13 - ConversationMode - DEBUG - 📊 Buffer check: 30.0s (300 chunks)
+2025-07-19 16:45:13 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.0s (300 chunks > 250)
+2025-07-19 16:45:13 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:45:13 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:45:13 - ConversationMode - INFO -    🧠 Context for segment: ' ...'
+2025-07-19 16:45:13 - ConversationMode - DEBUG - Using context prompt: 'zero to do or fix me items. The only notable limit...'
+2025-07-19 16:45:14 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:14 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:15 - ConversationMode - INFO - Transcribed: 'pass tools through the CLI file inspection, which appears to be' (63 chars)
+2025-07-19 16:45:15 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:15 - ConversationMode - DEBUG - Advanced agreement: 'pass tools through the CLI f' (from 'pass tools through t...' + 'pass tools through t...')
+2025-07-19 16:45:15 - ConversationMode - DEBUG - 📊 Buffer check: 35.0s (350 chunks)
+2025-07-19 16:45:15 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 35.1s (351 chunks > 250)
+2025-07-19 16:45:15 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:45:15 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #2 (25.0s, 250 chunks)
+2025-07-19 16:45:15 - ConversationMode - INFO -    🧠 Context for segment: ' ...'
+2025-07-19 16:45:15 - ConversationMode - DEBUG - Using context prompt: 'zero to do or fix me items. The only notable limit...'
+2025-07-19 16:45:15 - ConversationMode - INFO - Transcribed: 'test list. The V2 codebase is very clean with zero to do or fix me items. The only notable limitation is the inability to pass tools through with the CI.' (153 chars)
+2025-07-19 16:45:15 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:15 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'test list. The V2 codebase is very clean with zero to do or ...'
+2025-07-19 16:45:15 - ConversationMode - INFO -    📊 Total accumulated segments: 1
+2025-07-19 16:45:15 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 167 chunks remaining (16.7s)
+2025-07-19 16:45:16 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-19 16:45:16 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (12.61s) - Processing final result...
+2025-07-19 16:45:16 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-19 16:45:16 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-19 16:45:16 - ConversationMode - DEBUG - Using context prompt: 'zero to do or fix me items. The only notable limit...'
+2025-07-19 16:45:17 - ConversationMode - INFO - Transcribed: 'pass tools through the CLI file inspection, which appears to be a no-and-constraint rather than' (95 chars)
+2025-07-19 16:45:17 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:17 - ConversationMode - INFO - Transcribed: 'test list. The V2 codebase is very clean with zero to do or fix me items. The only notable limitation is the inability to pass tools through with the CI.' (153 chars)
+2025-07-19 16:45:17 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:17 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'test list. The V2 codebase is very clean with zero to do or ...'
+2025-07-19 16:45:17 - ConversationMode - INFO -    📊 Total accumulated segments: 2
+2025-07-19 16:45:17 - ConversationMode - WARNING -    ♾️  Trimmed buffer: -12 chunks remaining (-1.2s)
+2025-07-19 16:45:18 - ConversationMode - INFO - Transcribed: 'to pass tools through the CLI file inspection which appears to be a knowing constraint rather than a big to fix.' (112 chars)
+2025-07-19 16:45:18 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-19 16:45:18 - ConversationMode - DEBUG - Updated context: 21 words
+2025-07-19 16:45:25 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-19 16:45:42 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.2s (302 chunks > 250)
+2025-07-19 16:45:42 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:45:42 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:45:44 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'Let's test this. The V2 codebase is very clean with zero to ...'
+2025-07-19 16:45:44 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 145 chunks remaining (14.5s)
+2025-07-19 16:45:46 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (12.62s) - Processing final result...
+2025-07-19 16:52:08 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.73s) - Processing final result...
+2025-07-19 16:52:08 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.5s)
+2025-07-19 16:52:08 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:52:08 - ConversationMode - WARNING -    📊 Remaining buffer: 53 chunks (5.3s)
+2025-07-19 16:52:08 - ConversationMode - WARNING -    📝 Processing final buffer segment (5.3s)...
+2025-07-19 16:52:10 - ConversationMode - WARNING -    ✅ Final segment: 'based on my analysis...'
+2025-07-19 16:52:10 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:52:10 - ConversationMode - WARNING -    Length: 20 characters
+2025-07-19 16:52:10 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:52:10 - ConversationMode - WARNING -    Text: 'based on my analysis...'
+2025-07-19 16:52:14 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Based on my analysis....'
+2025-07-19 16:52:26 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (3.40s) - Processing final result...
+2025-07-19 16:52:26 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 3.2s)
+2025-07-19 16:52:26 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:52:26 - ConversationMode - WARNING -    📊 Remaining buffer: 102 chunks (10.2s)
+2025-07-19 16:52:26 - ConversationMode - WARNING -    📝 Processing final buffer segment (10.2s)...
+2025-07-19 16:52:27 - ConversationMode - WARNING -    ✅ Final segment: 'Using existing sessions in Fractal Code V2....'
+2025-07-19 16:52:27 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:52:27 - ConversationMode - WARNING -    Length: 43 characters
+2025-07-19 16:52:27 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:52:27 - ConversationMode - WARNING -    Text: 'Using existing sessions in Fractal Code V2....'
+2025-07-19 16:52:27 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Using existing sessions in Fractal Code V2....'
+2025-07-19 16:52:35 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (5.83s) - Processing final result...
+2025-07-19 16:52:35 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 5.6s)
+2025-07-19 16:52:35 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:52:35 - ConversationMode - WARNING -    📊 Remaining buffer: 285 chunks (28.5s)
+2025-07-19 16:52:35 - ConversationMode - WARNING -    📝 Processing final buffer segment (28.5s)...
+2025-07-19 16:52:36 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.1s (301 chunks > 250)
+2025-07-19 16:52:36 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:52:36 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:52:37 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 35.0s (350 chunks > 250)
+2025-07-19 16:52:37 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:52:37 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #2 (25.0s, 250 chunks)
+2025-07-19 16:52:39 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (3.91s) - Processing final result...
+2025-07-19 16:52:39 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 3.7s)
+2025-07-19 16:52:39 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:52:39 - ConversationMode - WARNING -    📊 Remaining buffer: 406 chunks (40.6s)
+2025-07-19 16:52:39 - ConversationMode - WARNING -    📝 Processing final buffer segment (40.6s)...
+2025-07-19 16:52:40 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 45.1s (451 chunks > 250)
+2025-07-19 16:52:40 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:52:40 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:52:43 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'Using existing sessions in Fractal Code V2. The system orche...'
+2025-07-19 16:52:43 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 348 chunks remaining (34.8s)
+2025-07-19 16:52:44 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 35.2s (352 chunks > 250)
+2025-07-19 16:52:44 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:52:44 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #2 (25.0s, 250 chunks)
+2025-07-19 16:52:44 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'Using existing sessions in Fractal Code V2. The system orche...'
+2025-07-19 16:52:44 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 156 chunks remaining (15.6s)
+2025-07-19 16:52:45 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (6.21s) - Processing final result...
+2025-07-19 16:52:45 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 6.0s)
+2025-07-19 16:52:45 - ConversationMode - WARNING -    📊 Accumulated segments: 2
+2025-07-19 16:52:45 - ConversationMode - WARNING -    📊 Remaining buffer: 201 chunks (20.1s)
+2025-07-19 16:52:45 - ConversationMode - WARNING -    📝 Processing final buffer segment (20.1s)...
+2025-07-19 16:52:45 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'Using existing sessions in Fractal Code V2. The system orche...'
+2025-07-19 16:52:45 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 1 chunks remaining (0.1s)
+2025-07-19 16:52:46 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'creates, raises, the developer implements them and the code ...'
+2025-07-19 16:52:46 - ConversationMode - WARNING -    ♾️  Trimmed buffer: -199 chunks remaining (-19.9s)
+2025-07-19 16:52:47 - ConversationMode - WARNING -    ✅ Final segment: 'Completion before proceeding, looking at the Fractal Code V2...'
+2025-07-19 16:52:47 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:52:47 - ConversationMode - WARNING -    Length: 356 characters
+2025-07-19 16:52:47 - ConversationMode - WARNING -    Parts: 3 segments
+2025-07-19 16:52:47 - ConversationMode - WARNING -    Text: 'Using existing sessions in Fractal Code V2. The system orchestrates AI agents in a structured workfl...'
+2025-07-19 16:52:47 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Using existing sessions in Fractal Code V2. The system orchestrates AI agents in a structured workfl...'
+2025-07-19 16:53:00 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.48s) - Processing final result...
+2025-07-19 16:53:00 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.3s)
+2025-07-19 16:53:00 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:00 - ConversationMode - WARNING -    📊 Remaining buffer: 45 chunks (4.5s)
+2025-07-19 16:53:00 - ConversationMode - WARNING -    📝 Processing final buffer segment (4.5s)...
+2025-07-19 16:53:01 - ConversationMode - WARNING -    ✅ Final segment: 'Does it keep adding?...'
+2025-07-19 16:53:01 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:01 - ConversationMode - WARNING -    Length: 20 characters
+2025-07-19 16:53:01 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:53:01 - ConversationMode - WARNING -    Text: 'Does it keep adding?...'
+2025-07-19 16:53:01 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Does it keep adding?...'
+2025-07-19 16:53:06 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.74s) - Processing final result...
+2025-07-19 16:53:06 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.5s)
+2025-07-19 16:53:06 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:06 - ConversationMode - WARNING -    📊 Remaining buffer: 102 chunks (10.2s)
+2025-07-19 16:53:06 - ConversationMode - WARNING -    📝 Processing final buffer segment (10.2s)...
+2025-07-19 16:53:07 - ConversationMode - WARNING -    ✅ Final segment: 'Does it keep adding? It seems to work pretty great now....'
+2025-07-19 16:53:07 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:07 - ConversationMode - WARNING -    Length: 55 characters
+2025-07-19 16:53:07 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:53:07 - ConversationMode - WARNING -    Text: 'Does it keep adding? It seems to work pretty great now....'
+2025-07-19 16:53:07 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Does it keep adding? It seems to work pretty great now....'
+2025-07-19 16:53:12 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (3.14s) - Processing final result...
+2025-07-19 16:53:12 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.9s)
+2025-07-19 16:53:12 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:12 - ConversationMode - WARNING -    📊 Remaining buffer: 201 chunks (20.1s)
+2025-07-19 16:53:12 - ConversationMode - WARNING -    📝 Processing final buffer segment (20.1s)...
+2025-07-19 16:53:15 - ConversationMode - WARNING -    ✅ Final segment: 'But for some reason, it repeats the previous sentence someti...'
+2025-07-19 16:53:15 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:15 - ConversationMode - WARNING -    Length: 64 characters
+2025-07-19 16:53:15 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:53:15 - ConversationMode - WARNING -    Text: 'But for some reason, it repeats the previous sentence sometimes....'
+2025-07-19 16:53:15 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'But for some reason, it repeats the previous sentence sometimes....'
+2025-07-19 16:53:17 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.35s) - Processing final result...
+2025-07-19 16:53:17 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.2s)
+2025-07-19 16:53:17 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:17 - ConversationMode - WARNING -    📊 Remaining buffer: 242 chunks (24.2s)
+2025-07-19 16:53:17 - ConversationMode - WARNING -    📝 Processing final buffer segment (24.2s)...
+2025-07-19 16:53:18 - ConversationMode - WARNING -    ✅ Final segment: 'I wonder why that is....'
+2025-07-19 16:53:18 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:18 - ConversationMode - WARNING -    Length: 21 characters
+2025-07-19 16:53:18 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:53:18 - ConversationMode - WARNING -    Text: 'I wonder why that is....'
+2025-07-19 16:53:18 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'I wonder why that is....'
+2025-07-19 16:53:20 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 25.2s (252 chunks > 250)
+2025-07-19 16:53:20 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:53:20 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:53:21 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'It seems to work pretty great now. But for some reason, it r...'
+2025-07-19 16:53:21 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 91 chunks remaining (9.1s)
+2025-07-19 16:53:22 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.25s) - Processing final result...
+2025-07-19 16:53:22 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.0s)
+2025-07-19 16:53:22 - ConversationMode - WARNING -    📊 Accumulated segments: 1
+2025-07-19 16:53:22 - ConversationMode - WARNING -    📊 Remaining buffer: 114 chunks (11.4s)
+2025-07-19 16:53:22 - ConversationMode - WARNING -    📝 Processing final buffer segment (11.4s)...
+2025-07-19 16:53:28 - ConversationMode - WARNING -    ✅ Final segment: 'It seems to work pretty great now. It seems to work pretty g...'
+2025-07-19 16:53:28 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:28 - ConversationMode - WARNING -    Length: 191 characters
+2025-07-19 16:53:28 - ConversationMode - WARNING -    Parts: 2 segments
+2025-07-19 16:53:28 - ConversationMode - WARNING -    Text: 'It seems to work pretty great now. But for some reason, it repeats the previous sentence sometimes. ...'
+2025-07-19 16:53:28 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'It seems to work pretty great now. But for some reason, it repeats the previous sentence sometimes. ...'
+2025-07-19 16:53:37 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.74s) - Processing final result...
+2025-07-19 16:53:37 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.5s)
+2025-07-19 16:53:37 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:37 - ConversationMode - WARNING -    📊 Remaining buffer: 172 chunks (17.2s)
+2025-07-19 16:53:37 - ConversationMode - WARNING -    📝 Processing final buffer segment (17.2s)...
+2025-07-19 16:53:38 - ConversationMode - WARNING -    ✅ Final segment: 'I wonder why that is. It seems to work pretty great now. It ...'
+2025-07-19 16:53:38 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:38 - ConversationMode - WARNING -    Length: 91 characters
+2025-07-19 16:53:38 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:53:38 - ConversationMode - WARNING -    Text: 'I wonder why that is. It seems to work pretty great now. It seems to work pretty great now....'
+2025-07-19 16:53:38 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'I wonder why that is. It seems to work pretty great now. It seems to work pretty great now....'
+2025-07-19 16:53:45 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.63s) - Processing final result...
+2025-07-19 16:53:45 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.4s)
+2025-07-19 16:53:45 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:45 - ConversationMode - WARNING -    📊 Remaining buffer: 251 chunks (25.1s)
+2025-07-19 16:53:45 - ConversationMode - WARNING -    📝 Processing final buffer segment (25.1s)...
+2025-07-19 16:53:46 - ConversationMode - WARNING -    ✅ Final segment: 'I wonder why that is. It seems to work pretty great now. It ...'
+2025-07-19 16:53:46 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:53:46 - ConversationMode - WARNING -    Length: 91 characters
+2025-07-19 16:53:46 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:53:46 - ConversationMode - WARNING -    Text: 'I wonder why that is. It seems to work pretty great now. It seems to work pretty great now....'
+2025-07-19 16:53:46 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'I wonder why that is. It seems to work pretty great now. It seems to work pretty great now....'
+2025-07-19 16:53:56 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.86s) - Processing final result...
+2025-07-19 16:53:57 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 35.3s (353 chunks > 250)
+2025-07-19 16:53:57 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 16:53:57 - ConversationMode - WARNING -    📝 PROCESSING SEGMENT #1 (25.0s, 250 chunks)
+2025-07-19 16:53:58 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.25s) - Processing final result...
+2025-07-19 16:53:58 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.0s)
+2025-07-19 16:53:58 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:53:58 - ConversationMode - WARNING -    📊 Remaining buffer: 378 chunks (37.8s)
+2025-07-19 16:53:58 - ConversationMode - WARNING -    📝 Processing final buffer segment (37.8s)...
+2025-07-19 16:54:02 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'I wonder why that is. It seems to work pretty great now. It ...'
+2025-07-19 16:54:02 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 178 chunks remaining (17.8s)
+2025-07-19 16:54:02 - ConversationMode - WARNING -    ✅ Final segment: 'I wonder why that is. It seems to work pretty great now. It ...'
+2025-07-19 16:54:02 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:54:02 - ConversationMode - WARNING -    Length: 126 characters
+2025-07-19 16:54:02 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:54:02 - ConversationMode - WARNING -    Text: 'I wonder why that is. It seems to work pretty great now. It seems to work pretty great now. It seems...'
+2025-07-19 16:54:02 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'I wonder why that is. It seems to work pretty great now. It seems to work pretty great now. It seems...'
+2025-07-19 16:54:09 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.10s) - Processing final result...
+2025-07-19 16:54:09 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.9s)
+2025-07-19 16:54:09 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:54:09 - ConversationMode - WARNING -    📊 Remaining buffer: 215 chunks (21.5s)
+2025-07-19 16:54:09 - ConversationMode - WARNING -    📝 Processing final buffer segment (21.5s)...
+2025-07-19 16:54:10 - ConversationMode - WARNING -    ✅ Final segment: 'It seems to work pretty great now. It seems to work pretty g...'
+2025-07-19 16:54:10 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:54:10 - ConversationMode - WARNING -    Length: 69 characters
+2025-07-19 16:54:10 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:54:10 - ConversationMode - WARNING -    Text: 'It seems to work pretty great now. It seems to work pretty great now....'
+2025-07-19 16:54:10 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'It seems to work pretty great now. It seems to work pretty great now....'
+2025-07-19 16:54:13 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.09s) - Processing final result...
+2025-07-19 16:54:13 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.9s)
+2025-07-19 16:54:13 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:54:13 - ConversationMode - WARNING -    📊 Remaining buffer: 248 chunks (24.8s)
+2025-07-19 16:54:13 - ConversationMode - WARNING -    📝 Processing final buffer segment (24.8s)...
+2025-07-19 16:54:14 - ConversationMode - WARNING -    ✅ Final segment: 'It seems to work pretty great now. It seems to work pretty g...'
+2025-07-19 16:54:14 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 16:54:14 - ConversationMode - WARNING -    Length: 104 characters
+2025-07-19 16:54:14 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 16:54:14 - ConversationMode - WARNING -    Text: 'It seems to work pretty great now. It seems to work pretty great now. It seems to work pretty great ...'
+2025-07-19 16:54:14 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'It seems to work pretty great now. It seems to work pretty great now. It seems to work pretty great ...'
+2025-07-19 16:54:16 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.10s) - Processing final result...
+2025-07-19 16:54:16 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.9s)
+2025-07-19 16:54:16 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 16:54:16 - ConversationMode - WARNING -    📊 Remaining buffer: 280 chunks (28.0s)
+2025-07-19 16:54:16 - ConversationMode - WARNING -    📝 Processing final buffer segment (28.0s)...
+2025-07-19 17:00:44 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.49s) - Processing final result...
+2025-07-19 17:00:44 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.3s)
+2025-07-19 17:00:44 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:00:44 - ConversationMode - WARNING -    📊 Remaining buffer: 40 chunks (4.0s)
+2025-07-19 17:00:44 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:00:44 - ConversationMode - WARNING -    📝 Processing final buffer segment (4.0s)...
+2025-07-19 17:00:45 - ConversationMode - WARNING -    ✅ Final segment: 'Hey there, can you hear me?...'
+2025-07-19 17:00:45 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:00:45 - ConversationMode - WARNING -    Length: 27 characters
+2025-07-19 17:00:45 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:00:45 - ConversationMode - WARNING -    Text: 'Hey there, can you hear me?...'
+2025-07-19 17:00:45 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Hey there, can you hear me?...'
+2025-07-19 17:00:50 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.89s) - Processing final result...
+2025-07-19 17:00:50 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.7s)
+2025-07-19 17:00:50 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:00:50 - ConversationMode - WARNING -    📊 Remaining buffer: 131 chunks (13.1s)
+2025-07-19 17:00:50 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:00:50 - ConversationMode - WARNING -    📝 Processing final buffer segment (13.1s)...
+2025-07-19 17:00:51 - ConversationMode - WARNING -    ✅ Final segment: 'I have to code V2 already does exactly this....'
+2025-07-19 17:00:51 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:00:51 - ConversationMode - WARNING -    Length: 44 characters
+2025-07-19 17:00:51 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:00:51 - ConversationMode - WARNING -    Text: 'I have to code V2 already does exactly this....'
+2025-07-19 17:00:51 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'I have to code V2 already does exactly this....'
+2025-07-19 17:01:18 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.85s) - Processing final result...
+2025-07-19 17:01:18 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.7s)
+2025-07-19 17:01:18 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:18 - ConversationMode - WARNING -    📊 Remaining buffer: 221 chunks (22.1s)
+2025-07-19 17:01:18 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:18 - ConversationMode - WARNING -    📝 Processing final buffer segment (22.1s)...
+2025-07-19 17:01:21 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.76s) - Processing final result...
+2025-07-19 17:01:21 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.6s)
+2025-07-19 17:01:21 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:21 - ConversationMode - WARNING -    📊 Remaining buffer: 308 chunks (30.8s)
+2025-07-19 17:01:21 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:21 - ConversationMode - WARNING -    📝 Processing final buffer segment (30.8s)...
+2025-07-19 17:01:23 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.61s) - Processing final result...
+2025-07-19 17:01:23 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.4s)
+2025-07-19 17:01:23 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:23 - ConversationMode - WARNING -    📊 Remaining buffer: 355 chunks (35.5s)
+2025-07-19 17:01:23 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:23 - ConversationMode - WARNING -    📝 Processing final buffer segment (35.5s)...
+2025-07-19 17:01:24 - ConversationMode - WARNING -    ✅ Final segment: 'But it only uses one cloud flow session, right? How would we...'
+2025-07-19 17:01:24 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:24 - ConversationMode - WARNING -    Length: 130 characters
+2025-07-19 17:01:24 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:01:24 - ConversationMode - WARNING -    Text: 'But it only uses one cloud flow session, right? How would we get it to have two cloud flow sessions ...'
+2025-07-19 17:01:24 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'But it only uses 1 cloud flow session, right? How would we get it to have 2 cloud flow sessions comm...'
+2025-07-19 17:01:27 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.12s) - Processing final result...
+2025-07-19 17:01:27 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.9s)
+2025-07-19 17:01:27 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:27 - ConversationMode - WARNING -    📊 Remaining buffer: 390 chunks (39.0s)
+2025-07-19 17:01:27 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:27 - ConversationMode - WARNING -    📝 Processing final buffer segment (39.0s)...
+2025-07-19 17:01:28 - ConversationMode - WARNING -    ✅ Final segment: 'Can you hear me? I have to code V2 already does exactly this...'
+2025-07-19 17:01:28 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:28 - ConversationMode - WARNING -    Length: 204 characters
+2025-07-19 17:01:28 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:01:28 - ConversationMode - WARNING -    Text: 'Can you hear me? I have to code V2 already does exactly this. But it only uses 1 cloud flow session,...'
+2025-07-19 17:01:31 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Can you hear me? I have to code. V2 already does exactly this, But it only uses 1 cloud flow session...'
+2025-07-19 17:01:31 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 42.1s (421 chunks > 250)
+2025-07-19 17:01:31 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 17:01:31 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-19 17:01:31 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-19 17:01:32 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 45.3s (453 chunks > 250)
+2025-07-19 17:01:32 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 17:01:32 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #2 (no VAD timing)
+2025-07-19 17:01:32 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-19 17:01:32 - ConversationMode - WARNING -    ✅ SEGMENT #2 TRANSCRIBED: 'Can you hear me? I have to code. V2 already does exactly  th...'
+2025-07-19 17:01:32 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 260 chunks remaining (26.0s)
+2025-07-19 17:01:33 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.20s) - Processing final result...
+2025-07-19 17:01:33 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.0s)
+2025-07-19 17:01:33 - ConversationMode - WARNING -    📊 Accumulated segments: 1
+2025-07-19 17:01:33 - ConversationMode - WARNING -    📊 Remaining buffer: 283 chunks (28.3s)
+2025-07-19 17:01:33 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:33 - ConversationMode - WARNING -    📝 Processing final buffer segment (28.3s)...
+2025-07-19 17:01:33 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.3s (303 chunks > 250)
+2025-07-19 17:01:33 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 17:01:33 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-19 17:01:33 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-19 17:01:34 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'Can you hear me? I have to code. V2 already does exactly  th...'
+2025-07-19 17:01:34 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 111 chunks remaining (11.1s)
+2025-07-19 17:01:35 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'Can you please-? Can you please-? Ensure-?...'
+2025-07-19 17:01:35 - ConversationMode - WARNING -    ♾️  Trimmed buffer: -30 chunks remaining (-3.0s)
+2025-07-19 17:01:36 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (3.66s) - Processing final result...
+2025-07-19 17:01:36 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 3.5s)
+2025-07-19 17:01:36 - ConversationMode - WARNING -    📊 Accumulated segments: 2
+2025-07-19 17:01:36 - ConversationMode - WARNING -    📊 Remaining buffer: 31 chunks (3.1s)
+2025-07-19 17:01:36 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:36 - ConversationMode - WARNING -    📝 Processing final buffer segment (3.1s)...
+2025-07-19 17:01:37 - ConversationMode - WARNING -    ✅ Final segment: 'Can you hear what you think?...'
+2025-07-19 17:01:37 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:37 - ConversationMode - WARNING -    Length: 196 characters
+2025-07-19 17:01:37 - ConversationMode - WARNING -    Parts: 3 segments
+2025-07-19 17:01:37 - ConversationMode - WARNING -    Text: 'Can you hear me? I have to code. V2 already does exactly  this. But it only uses 1 cloud flow sessio...'
+2025-07-19 17:01:37 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Can you hear me? I have to code. V2 already does exactly this. But it only uses 1 cloud flow session...'
+2025-07-19 17:01:42 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (0.71s) - Processing final result...
+2025-07-19 17:01:42 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.5s)
+2025-07-19 17:01:42 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:42 - ConversationMode - WARNING -    📊 Remaining buffer: 51 chunks (5.1s)
+2025-07-19 17:01:42 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:42 - ConversationMode - WARNING -    📝 Processing final buffer segment (5.1s)...
+2025-07-19 17:01:43 - ConversationMode - WARNING -    ✅ Final segment: 'Can you hear what you think? Yeah....'
+2025-07-19 17:01:43 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:43 - ConversationMode - WARNING -    Length: 34 characters
+2025-07-19 17:01:43 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:01:43 - ConversationMode - WARNING -    Text: 'Can you hear what you think? Yeah....'
+2025-07-19 17:01:43 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Can you hear what you think? Yeah....'
+2025-07-19 17:01:48 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.86s) - Processing final result...
+2025-07-19 17:01:48 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.7s)
+2025-07-19 17:01:48 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:48 - ConversationMode - WARNING -    📊 Remaining buffer: 108 chunks (10.8s)
+2025-07-19 17:01:48 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:48 - ConversationMode - WARNING -    📝 Processing final buffer segment (10.8s)...
+2025-07-19 17:01:49 - ConversationMode - WARNING -    ✅ Final segment: 'What do you think? Yeah. What do you think?...'
+2025-07-19 17:01:49 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:49 - ConversationMode - WARNING -    Length: 43 characters
+2025-07-19 17:01:49 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:01:49 - ConversationMode - WARNING -    Text: 'What do you think? Yeah. What do you think?...'
+2025-07-19 17:01:49 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'What do you think? Yeah. What do you think?...'
+2025-07-19 17:01:51 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.61s) - Processing final result...
+2025-07-19 17:01:51 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.4s)
+2025-07-19 17:01:51 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:51 - ConversationMode - WARNING -    📊 Remaining buffer: 154 chunks (15.4s)
+2025-07-19 17:01:51 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:51 - ConversationMode - WARNING -    📝 Processing final buffer segment (15.4s)...
+2025-07-19 17:01:52 - ConversationMode - WARNING -    ✅ Final segment: 'What do you think? What do you think? What do you think?...'
+2025-07-19 17:01:52 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:52 - ConversationMode - WARNING -    Length: 56 characters
+2025-07-19 17:01:52 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:01:52 - ConversationMode - WARNING -    Text: 'What do you think? What do you think? What do you think?...'
+2025-07-19 17:01:52 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'What do you think? What do you think? What do you think?...'
+2025-07-19 17:01:56 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.61s) - Processing final result...
+2025-07-19 17:01:56 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.4s)
+2025-07-19 17:01:56 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:01:56 - ConversationMode - WARNING -    📊 Remaining buffer: 208 chunks (20.8s)
+2025-07-19 17:01:56 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:01:56 - ConversationMode - WARNING -    📝 Processing final buffer segment (20.8s)...
+2025-07-19 17:01:57 - ConversationMode - WARNING -    ✅ Final segment: 'What do you think? What do you think? What do you think? Wha...'
+2025-07-19 17:01:57 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:01:57 - ConversationMode - WARNING -    Length: 85 characters
+2025-07-19 17:01:57 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:01:57 - ConversationMode - WARNING -    Text: 'What do you think? What do you think? What do you think? What is the meaning of life?...'
+2025-07-19 17:01:57 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'What do you think? What do you think? What do you think? What is the meaning of life?...'
+2025-07-19 17:02:00 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.35s) - Processing final result...
+2025-07-19 17:02:00 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.2s)
+2025-07-19 17:02:00 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:00 - ConversationMode - WARNING -    📊 Remaining buffer: 249 chunks (24.9s)
+2025-07-19 17:02:00 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:00 - ConversationMode - WARNING -    📝 Processing final buffer segment (24.9s)...
+2025-07-19 17:02:01 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.22s) - Processing final result...
+2025-07-19 17:02:01 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.0s)
+2025-07-19 17:02:01 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:01 - ConversationMode - WARNING -    📊 Remaining buffer: 290 chunks (29.0s)
+2025-07-19 17:02:01 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:01 - ConversationMode - WARNING -    📝 Processing final buffer segment (29.0s)...
+2025-07-19 17:02:03 - ConversationMode - WARNING -    ✅ Final segment: 'What do you think? What do you think? What do you think? Wha...'
+2025-07-19 17:02:03 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:02:03 - ConversationMode - WARNING -    Length: 118 characters
+2025-07-19 17:02:03 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:02:03 - ConversationMode - WARNING -    Text: 'What do you think? What do you think? What do you think? What is the meaning of life? What is the me...'
+2025-07-19 17:02:03 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'What do you think? What do you think? What do you think? What is the meaning of life? What is the me...'
+2025-07-19 17:02:04 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.1s (301 chunks > 250)
+2025-07-19 17:02:04 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 17:02:04 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-19 17:02:04 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-19 17:02:06 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'What do you think? What do you think? What do you think? Wha...'
+2025-07-19 17:02:06 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 144 chunks remaining (14.4s)
+2025-07-19 17:02:06 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.12s) - Processing final result...
+2025-07-19 17:02:06 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.9s)
+2025-07-19 17:02:06 - ConversationMode - WARNING -    📊 Accumulated segments: 1
+2025-07-19 17:02:06 - ConversationMode - WARNING -    📊 Remaining buffer: 160 chunks (16.0s)
+2025-07-19 17:02:06 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:06 - ConversationMode - WARNING -    📝 Processing final buffer segment (16.0s)...
+2025-07-19 17:02:07 - ConversationMode - WARNING -    ✅ Final segment: 'What is the meaning of stashios? Who is the meaning of stash...'
+2025-07-19 17:02:07 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:02:07 - ConversationMode - WARNING -    Length: 183 characters
+2025-07-19 17:02:07 - ConversationMode - WARNING -    Parts: 2 segments
+2025-07-19 17:02:07 - ConversationMode - WARNING -    Text: 'What do you think? What do you think? What do you think? What is the meaning of life? What is the me...'
+2025-07-19 17:02:07 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'What do you think? What do you think? What do you think? What is the meaning of life? What is the me...'
+2025-07-19 17:02:16 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.3s (303 chunks > 250)
+2025-07-19 17:02:16 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 17:02:16 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-19 17:02:16 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-19 17:02:18 - ConversationMode - WARNING -    ✅ SEGMENT #1 TRANSCRIBED: 'I think that we should check this out. I don't think that-...'
+2025-07-19 17:02:18 - ConversationMode - WARNING -    ♾️  Trimmed buffer: 142 chunks remaining (14.2s)
+2025-07-19 17:02:20 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (8.52s) - Processing final result...
+2025-07-19 17:02:20 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 8.3s)
+2025-07-19 17:02:20 - ConversationMode - WARNING -    📊 Accumulated segments: 1
+2025-07-19 17:02:20 - ConversationMode - WARNING -    📊 Remaining buffer: 224 chunks (22.4s)
+2025-07-19 17:02:20 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:20 - ConversationMode - WARNING -    📝 Processing final buffer segment (22.4s)...
+2025-07-19 17:02:29 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (0.72s) - Processing final result...
+2025-07-19 17:02:29 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.5s)
+2025-07-19 17:02:29 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:29 - ConversationMode - WARNING -    📊 Remaining buffer: 248 chunks (24.8s)
+2025-07-19 17:02:29 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:29 - ConversationMode - WARNING -    📝 Processing final buffer segment (24.8s)...
+2025-07-19 17:02:30 - ConversationMode - WARNING -    ✅ Final segment: 'Yeah, close out. I don't think that it works just right. We ...'
+2025-07-19 17:02:30 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-19 17:02:30 - ConversationMode - WARNING -    Length: 152 characters
+2025-07-19 17:02:30 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-19 17:02:30 - ConversationMode - WARNING -    Text: 'Yeah, close out. I don't think that it works just right. We should think about this a little bit mor...'
+2025-07-19 17:02:30 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Yeah, close out. I don't think that it works just right. We should think about this a little bit mor...'
+2025-07-19 17:02:37 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.10s) - Processing final result...
+2025-07-19 17:02:37 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.9s)
+2025-07-19 17:02:37 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:37 - ConversationMode - WARNING -    📊 Remaining buffer: 282 chunks (28.2s)
+2025-07-19 17:02:37 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:37 - ConversationMode - WARNING -    📝 Processing final buffer segment (28.2s)...
+2025-07-19 17:02:42 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 30.0s (300 chunks > 250)
+2025-07-19 17:02:42 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-19 17:02:42 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-19 17:02:43 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-19 17:02:44 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.74s) - Processing final result...
+2025-07-19 17:02:44 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.5s)
+2025-07-19 17:02:44 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:44 - ConversationMode - WARNING -    📊 Remaining buffer: 339 chunks (33.9s)
+2025-07-19 17:02:44 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:44 - ConversationMode - WARNING -    📝 Processing final buffer segment (33.9s)...
+2025-07-19 17:02:51 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (0.58s) - Processing final result...
+2025-07-19 17:02:51 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.4s)
+2025-07-19 17:02:51 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:51 - ConversationMode - WARNING -    📊 Remaining buffer: 358 chunks (35.8s)
+2025-07-19 17:02:51 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:51 - ConversationMode - WARNING -    📝 Processing final buffer segment (35.8s)...
+2025-07-19 17:02:53 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (0.84s) - Processing final result...
+2025-07-19 17:02:53 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.6s)
+2025-07-19 17:02:53 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-19 17:02:53 - ConversationMode - WARNING -    📊 Remaining buffer: 385 chunks (38.5s)
+2025-07-19 17:02:53 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-19 17:02:53 - ConversationMode - WARNING -    📝 Processing final buffer segment (38.5s)...
+2025-07-20 00:27:57 - ConversationMode - INFO - ConversationMode initialized
+2025-07-20 00:27:57 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-20 00:27:57 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-20 00:27:57 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-20 00:33:51 - ConversationMode - INFO - ConversationMode initialized
+2025-07-20 00:33:51 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-20 00:33:51 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-20 00:33:51 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-20 00:33:51 - ConversationMode - ERROR - Failed to load Whisper model: No module named 'faster_whisper'
+2025-07-20 00:33:51 - ConversationMode - ERROR - Conversation mode error: No module named 'faster_whisper'
+Traceback (most recent call last):
+  File "/workspace/src/modes/conversation.py", line 160, in run
+    await self._load_model()
+  File "/workspace/src/modes/base_mode.py", line 89, in _load_model
+    from faster_whisper import WhisperModel
+ModuleNotFoundError: No module named 'faster_whisper'
+2025-07-20 00:33:51 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-20 00:34:13 - ConversationMode - INFO - ConversationMode initialized
+2025-07-20 00:34:13 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-20 00:34:13 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-20 00:34:13 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-20 00:34:13 - ConversationMode - ERROR - Failed to load Whisper model: No module named 'faster_whisper'
+2025-07-20 00:34:13 - ConversationMode - ERROR - Conversation mode error: No module named 'faster_whisper'
+Traceback (most recent call last):
+  File "/workspace/src/modes/conversation.py", line 160, in run
+    await self._load_model()
+  File "/workspace/src/modes/base_mode.py", line 89, in _load_model
+    from faster_whisper import WhisperModel
+ModuleNotFoundError: No module named 'faster_whisper'
+2025-07-20 00:34:13 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-20 02:53:21 - ConversationMode - INFO - ConversationMode initialized
+2025-07-20 02:53:23 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-20 02:53:23 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-20 02:53:23 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-20 02:53:23 - ConversationMode - INFO - Loading Whisper model: base
+2025-07-20 02:53:24 - ConversationMode - INFO - Whisper model base loaded successfully
+2025-07-20 02:53:24 - ConversationMode - INFO - Initializing Silero VAD...
+2025-07-20 02:53:24 - ConversationMode - INFO - Silero VAD initialized successfully
+2025-07-20 02:53:24 - ConversationMode - INFO - Audio streamer setup completed
+2025-07-20 02:53:24 - ConversationMode - INFO - Audio streaming started successfully
+2025-07-20 02:53:24 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.947)
+2025-07-20 02:53:24 - ConversationMode - INFO -    📊 Merged 1 pre-buffer chunks
+2025-07-20 02:53:24 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:53:25 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (0.84s) - Processing final result...
+2025-07-20 02:53:25 - ConversationMode - INFO -    📍 Speech ended at buffer index 20
+2025-07-20 02:53:25 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.6s)
+2025-07-20 02:53:25 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:53:25 - ConversationMode - WARNING -    📊 Remaining buffer: 20 chunks (2.0s)
+2025-07-20 02:53:25 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:53:25 - ConversationMode - WARNING -    📝 Processing final buffer segment (2.0s)...
+2025-07-20 02:53:25 - ConversationMode - INFO -    🧠 Final context: ' ...'
+2025-07-20 02:53:27 - ConversationMode - INFO - Transcribed: 'you' (3 chars)
+2025-07-20 02:53:27 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:27 - ConversationMode - WARNING -    ✅ Final segment: 'you...'
+2025-07-20 02:53:27 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-20 02:53:27 - ConversationMode - WARNING -    Length: 3 characters
+2025-07-20 02:53:27 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-20 02:53:27 - ConversationMode - WARNING -    Text: 'you...'
+2025-07-20 02:53:31 - ConversationMode - DEBUG - Updated context: 1 words
+2025-07-20 02:53:31 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'You....'
+2025-07-20 02:53:31 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.980)
+2025-07-20 02:53:31 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:53:31 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:53:31 - ConversationMode - DEBUG - Speech too short (0.20s), ignoring
+2025-07-20 02:53:31 - ConversationMode - INFO - ❌ UTTERANCE TOO SHORT (0.20s < 0.5s) - Discarding
+2025-07-20 02:53:35 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.947)
+2025-07-20 02:53:35 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:53:35 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:53:36 - ConversationMode - DEBUG - Using context prompt: 'You....'
+2025-07-20 02:53:36 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:36 - ConversationMode - INFO - Transcribed: 'Yo, Joe.' (8 chars)
+2025-07-20 02:53:36 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:36 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.61s) - Processing final result...
+2025-07-20 02:53:36 - ConversationMode - INFO -    📍 Speech ended at buffer index 49
+2025-07-20 02:53:36 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.4s)
+2025-07-20 02:53:36 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:53:36 - ConversationMode - WARNING -    📊 Remaining buffer: 49 chunks (4.9s)
+2025-07-20 02:53:36 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:53:36 - ConversationMode - WARNING -    📝 Processing final buffer segment (4.9s)...
+2025-07-20 02:53:36 - ConversationMode - INFO -    🧠 Final context: ' You. ...'
+2025-07-20 02:53:36 - ConversationMode - DEBUG - Using context prompt: 'You....'
+2025-07-20 02:53:37 - ConversationMode - INFO - Transcribed: 'Yo Jarvis.' (10 chars)
+2025-07-20 02:53:37 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:37 - ConversationMode - WARNING -    ✅ Final segment: 'Yo Jarvis....'
+2025-07-20 02:53:37 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-20 02:53:37 - ConversationMode - WARNING -    Length: 10 characters
+2025-07-20 02:53:37 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-20 02:53:37 - ConversationMode - WARNING -    Text: 'Yo Jarvis....'
+2025-07-20 02:53:37 - ConversationMode - DEBUG - Updated context: 3 words
+2025-07-20 02:53:37 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Yo Jarvis....'
+2025-07-20 02:53:42 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.879)
+2025-07-20 02:53:42 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:53:42 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:53:43 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis....'
+2025-07-20 02:53:43 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:44 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.48s) - Processing final result...
+2025-07-20 02:53:44 - ConversationMode - INFO -    📍 Speech ended at buffer index 95
+2025-07-20 02:53:44 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-20 02:53:44 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-20 02:53:44 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.3s)
+2025-07-20 02:53:44 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:53:44 - ConversationMode - WARNING -    📊 Remaining buffer: 95 chunks (9.5s)
+2025-07-20 02:53:44 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:53:44 - ConversationMode - WARNING -    📝 Processing final buffer segment (9.5s)...
+2025-07-20 02:53:44 - ConversationMode - INFO -    🧠 Final context: ' You. Yo Jarvis. ...'
+2025-07-20 02:53:44 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis....'
+2025-07-20 02:53:44 - ConversationMode - INFO - Transcribed: 'Yo Jarvis. Yo.' (14 chars)
+2025-07-20 02:53:44 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:44 - ConversationMode - INFO - Transcribed: 'Yo Jarvis. Yo, what's up?' (25 chars)
+2025-07-20 02:53:44 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:44 - ConversationMode - WARNING -    ✅ Final segment: 'Yo Jarvis. Yo, what's up?...'
+2025-07-20 02:53:44 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-20 02:53:44 - ConversationMode - WARNING -    Length: 25 characters
+2025-07-20 02:53:44 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-20 02:53:44 - ConversationMode - WARNING -    Text: 'Yo Jarvis. Yo, what's up?...'
+2025-07-20 02:53:44 - ConversationMode - DEBUG - Updated context: 8 words
+2025-07-20 02:53:44 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Yo Jarvis. Yo, what's up?...'
+2025-07-20 02:53:47 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.970)
+2025-07-20 02:53:47 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:53:47 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:53:47 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up?...'
+2025-07-20 02:53:48 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:48 - ConversationMode - INFO - Transcribed: 'Yo Jarvis. Yo, what's up? Hey there.' (36 chars)
+2025-07-20 02:53:48 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:48 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.74s) - Processing final result...
+2025-07-20 02:53:48 - ConversationMode - INFO -    📍 Speech ended at buffer index 148
+2025-07-20 02:53:48 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.5s)
+2025-07-20 02:53:48 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:53:48 - ConversationMode - WARNING -    📊 Remaining buffer: 148 chunks (14.8s)
+2025-07-20 02:53:48 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:53:48 - ConversationMode - WARNING -    📝 Processing final buffer segment (14.8s)...
+2025-07-20 02:53:48 - ConversationMode - INFO -    🧠 Final context: ' You. Yo Jarvis. Yo Jarvis. Yo, what's up? ...'
+2025-07-20 02:53:48 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up?...'
+2025-07-20 02:53:49 - ConversationMode - INFO - Transcribed: 'Yo Jarvis. Yo, what's up? Hey there. How's it going?' (52 chars)
+2025-07-20 02:53:49 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:49 - ConversationMode - WARNING -    ✅ Final segment: 'Yo Jarvis. Yo, what's up? Hey there. How's it going?...'
+2025-07-20 02:53:49 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-20 02:53:49 - ConversationMode - WARNING -    Length: 52 characters
+2025-07-20 02:53:49 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-20 02:53:49 - ConversationMode - WARNING -    Text: 'Yo Jarvis. Yo, what's up? Hey there. How's it going?...'
+2025-07-20 02:53:49 - ConversationMode - DEBUG - Updated context: 18 words
+2025-07-20 02:53:49 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'Yo Jarvis. Yo, what's up? Hey there. How's it going?...'
+2025-07-20 02:53:51 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.952)
+2025-07-20 02:53:51 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:53:51 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:53:51 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:53:52 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:52 - ConversationMode - INFO - Transcribed: 'I can yo Jarvis. Yo, what's up? Hey there. How's it going? I'm just wondering...' (80 chars)
+2025-07-20 02:53:52 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:52 - ConversationMode - DEBUG - 📊 Buffer check: 20.0s (200 chunks)
+2025-07-20 02:53:52 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:53:53 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:53 - ConversationMode - INFO - Transcribed: 'I'm just wondering if we should-' (32 chars)
+2025-07-20 02:53:53 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:53 - ConversationMode - DEBUG - Fallback to commonprefix: 'I'
+2025-07-20 02:53:53 - ConversationMode - DEBUG - Confirmed: 'I', Provisional: ''m just wondering if we should-'
+2025-07-20 02:53:53 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:53:54 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:54 - ConversationMode - DEBUG - 📊 Buffer check: 25.0s (250 chunks)
+2025-07-20 02:53:54 - ConversationMode - INFO - Transcribed: 'I'm just wondering if we should talk about something.' (53 chars)
+2025-07-20 02:53:54 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:54 - ConversationMode - DEBUG - Advanced agreement: 'I'm just wondering if we should' (from 'I'm just wondering i...' + 'I'm just wondering i...')
+2025-07-20 02:53:54 - ConversationMode - DEBUG - Confirmed: 'I'm just wondering if we should', Provisional: ' talk about something.'
+2025-07-20 02:53:54 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:53:55 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:53:55 - ConversationMode - INFO - Transcribed: 'I'm just wondering if we should talk about something. We're looking at the depth of-' (84 chars)
+2025-07-20 02:53:55 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:55 - ConversationMode - DEBUG - Advanced agreement: 'I'm just wondering if we should talk about something.' (from 'I'm just wondering i...' + 'I'm just wondering i...')
+2025-07-20 02:53:55 - ConversationMode - DEBUG - Confirmed: 'I'm just wondering if we should talk about something.', Provisional: ' We're looking at the depth of-'
+2025-07-20 02:53:55 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:53:56 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (5.19s) - Processing final result...
+2025-07-20 02:53:56 - ConversationMode - INFO -    📍 Speech ended at buffer index 308
+2025-07-20 02:53:56 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-20 02:53:56 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-20 02:53:56 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 5.0s)
+2025-07-20 02:53:56 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:53:56 - ConversationMode - WARNING -    📊 Remaining buffer: 308 chunks (30.8s)
+2025-07-20 02:53:56 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:53:56 - ConversationMode - WARNING -    📝 Processing final buffer segment (30.8s)...
+2025-07-20 02:53:56 - ConversationMode - INFO -    🧠 Final context: ' You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvis. Yo, what's up? Hey there. How's it going? ...'
+2025-07-20 02:53:56 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:53:57 - ConversationMode - INFO - Transcribed: 'I'm just wondering if we should talk about something we're looking at the deprecation of the world.' (99 chars)
+2025-07-20 02:53:57 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:57 - ConversationMode - INFO - Transcribed: 'I'm just wondering if we should talk about something we're looking at the deprecation of the world.' (99 chars)
+2025-07-20 02:53:57 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:53:57 - ConversationMode - WARNING -    ✅ Final segment: 'I'm just wondering if we should talk about something we're l...'
+2025-07-20 02:53:57 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-20 02:53:57 - ConversationMode - WARNING -    Length: 99 characters
+2025-07-20 02:53:57 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-20 02:53:57 - ConversationMode - WARNING -    Text: 'I'm just wondering if we should talk about something we're looking at the deprecation of the world....'
+2025-07-20 02:53:57 - ConversationMode - DEBUG - Updated context: 35 words
+2025-07-20 02:53:57 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'I'm just wondering if we should talk about something we're looking at the deprecation of the world....'
+2025-07-20 02:54:02 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.838)
+2025-07-20 02:54:02 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:54:02 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:54:02 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:03 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:03 - ConversationMode - DEBUG - 📊 Buffer check: 35.0s (350 chunks)
+2025-07-20 02:54:03 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 35.0s (350 chunks > 250)
+2025-07-20 02:54:03 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-20 02:54:03 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-20 02:54:03 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-20 02:54:03 - ConversationMode - INFO -    🧠 Context for segment: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm j...'
+2025-07-20 02:54:03 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:03 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.86s) - Processing final result...
+2025-07-20 02:54:03 - ConversationMode - INFO -    📍 Speech ended at buffer index 364
+2025-07-20 02:54:03 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-20 02:54:03 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-20 02:54:03 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 1.7s)
+2025-07-20 02:54:03 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:54:03 - ConversationMode - WARNING -    📊 Remaining buffer: 364 chunks (36.4s)
+2025-07-20 02:54:03 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:54:03 - ConversationMode - WARNING -    📝 Processing final buffer segment (36.4s)...
+2025-07-20 02:54:03 - ConversationMode - INFO -    🧠 Final context: ' You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm ...'
+2025-07-20 02:54:03 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:11 - ConversationMode - DEBUG - Cancelling previous final processing due to new speech
+2025-07-20 02:54:11 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.843)
+2025-07-20 02:54:11 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:54:11 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:54:11 - ConversationMode - DEBUG - Final processing cancelled - graceful interruption handling
+2025-07-20 02:54:12 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:12 - ConversationMode - DEBUG - 📊 Buffer check: 40.0s (400 chunks)
+2025-07-20 02:54:12 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 40.2s (402 chunks > 250)
+2025-07-20 02:54:12 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-20 02:54:12 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #1 (no VAD timing)
+2025-07-20 02:54:12 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-20 02:54:12 - ConversationMode - INFO -    🧠 Context for segment: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm j...'
+2025-07-20 02:54:12 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:12 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:13 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:13 - ConversationMode - INFO - Transcribed: 'Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm just wondering if we should talk about something we're looking at the deprecation of the world. What's the full transcription?' (183 chars)
+2025-07-20 02:54:13 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:13 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:14 - ConversationMode - DEBUG - 📊 Buffer check: 45.0s (450 chunks)
+2025-07-20 02:54:14 - ConversationMode - WARNING - 🚨 LONG UTTERANCE DETECTED: 45.3s (453 chunks > 250)
+2025-07-20 02:54:14 - ConversationMode - WARNING -    ✂️  Segmenting buffer to prevent overflow...
+2025-07-20 02:54:14 - ConversationMode - WARNING -    📝 REGULAR SEGMENT #2 (no VAD timing)
+2025-07-20 02:54:14 - ConversationMode - WARNING -    📏 Segment size: 25.0s, 250 chunks
+2025-07-20 02:54:14 - ConversationMode - INFO -    🧠 Context for segment: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm j...'
+2025-07-20 02:54:14 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:14 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:14 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (3.40s) - Processing final result...
+2025-07-20 02:54:14 - ConversationMode - INFO -    📍 Speech ended at buffer index 470
+2025-07-20 02:54:14 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-20 02:54:14 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-20 02:54:14 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 3.2s)
+2025-07-20 02:54:14 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:54:14 - ConversationMode - WARNING -    📊 Remaining buffer: 470 chunks (47.0s)
+2025-07-20 02:54:14 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:54:14 - ConversationMode - WARNING -    📝 Processing final buffer segment (47.0s)...
+2025-07-20 02:54:14 - ConversationMode - INFO -    🧠 Final context: ' You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm ...'
+2025-07-20 02:54:14 - ConversationMode - DEBUG - Using context prompt: 'You. Yo Jarvis. Yo Jarvis. Yo, what's up? Yo Jarvi...'
+2025-07-20 02:54:17 - ConversationMode - INFO - Transcribed: 'What. Yo Jarvis. Yo, what's up? Hey there. How's it going? I'm just wondering if we should talk about something we're looking at the deprecation of the world. What's the s—.' (173 chars)
+2025-07-20 02:54:17 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:18 - ConversationMode - DEBUG - Cancelling final processing task during cleanup
+2025-07-20 02:54:18 - ConversationMode - DEBUG - Final processing cancelled - graceful interruption handling
+2025-07-20 02:54:18 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-20 02:54:18 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-20 02:54:32 - ConversationMode - INFO - ConversationMode initialized
+2025-07-20 02:54:33 - ConversationMode - INFO - Text formatting enabled for streaming results
+2025-07-20 02:54:33 - ConversationMode - INFO - VAD config: threshold=0.5, min_speech=0.5s, max_silence=1.0s
+2025-07-20 02:54:33 - ConversationMode - INFO - Streaming config: interval=500ms, buffer=30s, partial_enabled=True
+2025-07-20 02:54:34 - ConversationMode - INFO - Loading Whisper model: base
+2025-07-20 02:54:34 - ConversationMode - INFO - Whisper model base loaded successfully
+2025-07-20 02:54:34 - ConversationMode - INFO - Initializing Silero VAD...
+2025-07-20 02:54:34 - ConversationMode - INFO - Silero VAD initialized successfully
+2025-07-20 02:54:34 - ConversationMode - INFO - Audio streamer setup completed
+2025-07-20 02:54:34 - ConversationMode - INFO - Audio streaming started successfully
+2025-07-20 02:54:34 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.969)
+2025-07-20 02:54:34 - ConversationMode - INFO -    📊 Merged 2 pre-buffer chunks
+2025-07-20 02:54:34 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:54:35 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:36 - ConversationMode - INFO - Transcribed: 'we can.' (7 chars)
+2025-07-20 02:54:36 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:36 - ConversationMode - DEBUG - 📊 Buffer check: 5.0s (50 chunks)
+2025-07-20 02:54:36 - ConversationMode - DEBUG - Skipping partial processing - another task in progress
+2025-07-20 02:54:37 - ConversationMode - INFO - Transcribed: 'we can look at the' (18 chars)
+2025-07-20 02:54:37 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:37 - ConversationMode - DEBUG - Advanced agreement: 'we can' (from 'we can....' + 'we can look at the...')
+2025-07-20 02:54:37 - ConversationMode - DEBUG - Confirmed: 'we can', Provisional: ' look at the'
+2025-07-20 02:54:37 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (2.89s) - Processing final result...
+2025-07-20 02:54:37 - ConversationMode - INFO -    📍 Speech ended at buffer index 84
+2025-07-20 02:54:37 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 2.7s)
+2025-07-20 02:54:37 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:54:37 - ConversationMode - WARNING -    📊 Remaining buffer: 84 chunks (8.4s)
+2025-07-20 02:54:37 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:54:37 - ConversationMode - WARNING -    📝 Processing final buffer segment (8.4s)...
+2025-07-20 02:54:37 - ConversationMode - INFO -    🧠 Final context: ' ...'
+2025-07-20 02:54:37 - ConversationMode - DEBUG - Cancelling previous final processing due to new speech
+2025-07-20 02:54:37 - ConversationMode - INFO - 🎤 NEW UTTERANCE STARTED (prob: 0.998)
+2025-07-20 02:54:37 - ConversationMode - INFO -    📊 Merged 5 pre-buffer chunks
+2025-07-20 02:54:37 - ConversationMode - INFO -    🔧 Reset accumulated segments, starting fresh tracking
+2025-07-20 02:54:37 - ConversationMode - DEBUG - Final processing cancelled - graceful interruption handling
+2025-07-20 02:54:38 - ConversationMode - DEBUG - 📊 Buffer check: 10.0s (100 chunks)
+2025-07-20 02:54:38 - ConversationMode - INFO - Transcribed: 'if we can look at the world through.' (36 chars)
+2025-07-20 02:54:38 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:38 - ConversationMode - WARNING - 🛑 UTTERANCE COMPLETE (1.10s) - Processing final result...
+2025-07-20 02:54:38 - ConversationMode - INFO -    📍 Speech ended at buffer index 120
+2025-07-20 02:54:38 - ConversationMode - DEBUG - Cancelling previous partial processing task
+2025-07-20 02:54:38 - ConversationMode - DEBUG - Partial processing cancelled gracefully
+2025-07-20 02:54:38 - ConversationMode - WARNING - 🏁 FINALIZING UTTERANCE (duration: 0.9s)
+2025-07-20 02:54:38 - ConversationMode - WARNING -    📊 Accumulated segments: 0
+2025-07-20 02:54:38 - ConversationMode - WARNING -    📊 Remaining buffer: 120 chunks (12.0s)
+2025-07-20 02:54:38 - ConversationMode - WARNING -    ⚠️  VAD timing unavailable, using entire buffer
+2025-07-20 02:54:38 - ConversationMode - WARNING -    📝 Processing final buffer segment (12.0s)...
+2025-07-20 02:54:38 - ConversationMode - INFO -    🧠 Final context: ' ...'
+2025-07-20 02:54:39 - ConversationMode - INFO - Transcribed: 'We can look at the world through their eyes.' (44 chars)
+2025-07-20 02:54:39 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:39 - ConversationMode - INFO - Transcribed: 'We can look at the world through their eyes.' (44 chars)
+2025-07-20 02:54:39 - ConversationMode - DEBUG - VAD stats: {'sample_rate': 16000, 'threshold': 0.5, 'model_type': 'ONNX', 'speech_segments': 0, 'is_speaking': False}
+2025-07-20 02:54:39 - ConversationMode - WARNING -    ✅ Final segment: 'We can look at the world through their eyes....'
+2025-07-20 02:54:39 - ConversationMode - WARNING - 🏆 COMPLETE UTTERANCE ASSEMBLED:
+2025-07-20 02:54:39 - ConversationMode - WARNING -    Length: 44 characters
+2025-07-20 02:54:39 - ConversationMode - WARNING -    Parts: 1 segments
+2025-07-20 02:54:39 - ConversationMode - WARNING -    Text: 'We can look at the world through their eyes....'
+2025-07-20 02:54:39 - ConversationMode - DEBUG - Updated context: 9 words
+2025-07-20 02:54:39 - ConversationMode - WARNING - ✅ FINAL RESULT SENT: 'We can look at the world through their eyes....'
+2025-07-20 02:54:44 - ConversationMode - INFO - ConversationMode cleanup completed
+2025-07-20 02:54:44 - ConversationMode - INFO - ConversationMode cleanup completed

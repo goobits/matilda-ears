@@ -68,6 +68,18 @@
       "max_recording_duration_s": 30.0
     }
   },
+  "wake_word": {
+    "_comment": "Porcupine access key should be set via PORCUPINE_ACCESS_KEY environment variable or .env file for security",
+    "engine": "porcupine",
+    "keyword": "jarvis",
+    "confidence_threshold": 0.7,
+    "model_path": null,
+    "exit_phrases": [
+      "goodbye jarvis",
+      "stop listening",
+      "sleep jarvis"
+    ]
+  },
   "streaming": {
     "enable_partial_results": true,
     "chunk_processing_interval_ms": 500,

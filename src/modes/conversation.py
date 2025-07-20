@@ -14,7 +14,7 @@ import collections
 import difflib
 import threading
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pathlib import Path
 import sys
 
@@ -46,8 +46,18 @@ except ImportError:
 class ConversationMode(BaseMode):
     """Continuous conversation mode with VAD-based utterance detection."""
 
-    def __init__(self, args):
+    def __init__(self, args, wake_word_callback=None):
         super().__init__(args)
+        
+        # Wake word integration
+        self.wake_word_callback = wake_word_callback
+        # Load exit phrases from wake_word config if available, otherwise use defaults
+        wake_word_config = self.config.get("wake_word", {})
+        self.exit_phrases = wake_word_config.get("exit_phrases", [
+            "goodbye jarvis", 
+            "stop listening", 
+            "sleep jarvis"
+        ])
         
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
@@ -776,6 +786,30 @@ class ConversationMode(BaseMode):
 
 
 
+
+    def _contains_exit_phrase(self, text: str) -> bool:
+        """Check if text contains any exit phrases for wake word mode."""
+        if not self.wake_word_callback:
+            return False
+            
+        text_lower = text.lower().strip()
+        for phrase in self.exit_phrases:
+            if phrase.lower() in text_lower:
+                return True
+        return False
+
+    async def _send_transcription(self, result: Dict[str, Any], extra: Optional[Dict] = None):
+        """Enhanced transcription sender with exit phrase detection."""
+        # Send the original transcription
+        await super()._send_transcription(result, extra)
+        
+        # Check for exit phrases if we have a wake word callback
+        if self.wake_word_callback:
+            text = result.get("text", "").strip()
+            if text and self._contains_exit_phrase(text):
+                self.logger.info(f"👋 Exit phrase detected: '{text}' - triggering wake word callback")
+                # Use asyncio.create_task to avoid blocking the transcription flow
+                asyncio.create_task(self.wake_word_callback())
 
     async def _cleanup(self):
         """Clean up resources."""

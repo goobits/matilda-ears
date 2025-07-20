@@ -34,6 +34,7 @@ def create_rich_cli():
     @click.version_option(version="1.0.0", prog_name="stt")
     @click.option("--listen-once", is_flag=True, help="🎯 Single utterance capture with VAD")
     @click.option("--conversation", is_flag=True, help="💬 Always listening with interruption support")
+    @click.option("--wake-word", is_flag=True, help="🎤 Wake word detection mode with Porcupine")
     @click.option("--tap-to-talk", metavar="KEY", help="⚡ Tap KEY to start/stop recording")
     @click.option("--hold-to-talk", metavar="KEY", help="🔘 Hold KEY to record, release to stop")
     @click.option("--server", is_flag=True, help="🌐 Run as WebSocket server for remote clients")
@@ -50,7 +51,7 @@ def create_rich_cli():
     @click.option("--status", is_flag=True, help="📊 Show system status and capabilities")
     @click.option("--models", is_flag=True, help="📋 List available Whisper models")
     @click.pass_context
-    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models):
+    def main(ctx, listen_once, conversation, wake_word, tap_to_talk, hold_to_talk, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models):
         """🎙️ Transform speech into text with AI-powered transcription
         
         GOOBITS STT provides multiple operation modes for different use cases.
@@ -94,6 +95,7 @@ def create_rich_cli():
         args = SimpleNamespace(
             listen_once=listen_once,
             conversation=conversation,
+            wake_word=wake_word,
             tap_to_talk=tap_to_talk,
             hold_to_talk=hold_to_talk,
             server=server,
@@ -126,6 +128,7 @@ def create_fallback_parser():
 Operation Modes:
   --listen-once         Single utterance capture with VAD
   --conversation        Always listening with interruption support
+  --wake-word           Wake word detection with Porcupine
   --tap-to-talk KEY     Tap KEY to start/stop recording
   --hold-to-talk KEY    Hold KEY to record, release to stop
   --server              Run as WebSocket server
@@ -142,6 +145,7 @@ Examples:
     modes = parser.add_argument_group("Operation Modes")
     modes.add_argument("--listen-once", action="store_true", help="Single utterance with VAD")
     modes.add_argument("--conversation", action="store_true", help="Always listening mode")
+    modes.add_argument("--wake-word", action="store_true", help="Wake word detection with Porcupine")
     modes.add_argument("--tap-to-talk", metavar="KEY", help="Tap to start/stop recording")
     modes.add_argument("--hold-to-talk", metavar="KEY", help="Hold to record")
 
@@ -214,6 +218,31 @@ async def run_conversation(args):
             print(json.dumps({"error": error_msg, "mode": "conversation"}))
         else:
             print(f"Error: {error_msg}", file=sys.stderr)
+
+
+async def run_wake_word(args):
+    """Run wake word detection mode"""
+    try:
+        from src.modes.wake_word import WakeWordMode
+        mode = WakeWordMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"Wake word mode not available: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "wake_word"}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+    except Exception as e:
+        error_result = {
+            "error": str(e),
+            "status": "failed",
+            "mode": "wake_word"
+        }
+        if args.format == "json":
+            print(json.dumps(error_result))
+        else:
+            print(f"Error: {e}", file=sys.stderr)
+        raise
 
 
 async def run_tap_to_talk(args):
@@ -361,6 +390,7 @@ def run_stt_command(ctx, args):
     modes_selected = sum([
         bool(args.listen_once),
         bool(args.conversation),
+        bool(args.wake_word),
         bool(args.tap_to_talk),
         bool(args.hold_to_talk),
         bool(args.server),
@@ -391,6 +421,8 @@ async def async_main_worker(args):
             await run_listen_once(args)
         elif args.conversation:
             await run_conversation(args)
+        elif args.wake_word:
+            await run_wake_word(args)
         elif args.tap_to_talk and args.hold_to_talk:
             # Combined mode
             print(json.dumps({
@@ -441,6 +473,7 @@ async def async_main():
     modes_selected = sum([
         bool(args.listen_once),
         bool(args.conversation),
+        bool(args.wake_word),
         bool(args.tap_to_talk),
         bool(args.hold_to_talk),
         bool(args.server),

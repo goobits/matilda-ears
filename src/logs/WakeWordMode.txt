@@ -1,0 +1,190 @@
+2025-07-20 00:22:50 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:22:50 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:23:04 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:23:04 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:23:04 - WakeWordMode - INFO - Loading wake word model: /workspace/models/hey_jarvis.onnx
+2025-07-20 00:23:05 - WakeWordMode - ERROR - Failed to load wake word model: AudioFeatures.__init__() got an unexpected keyword argument 'wakeword_models'
+2025-07-20 00:23:05 - WakeWordMode - ERROR - Wake word mode failed: AudioFeatures.__init__() got an unexpected keyword argument 'wakeword_models'
+Traceback (most recent call last):
+  File "/workspace/src/modes/wake_word.py", line 100, in run
+    await self._load_wake_word_model()
+  File "/workspace/src/modes/wake_word.py", line 131, in _load_wake_word_model
+    self.wake_word_model = await loop.run_in_executor(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/src/modes/wake_word.py", line 132, in <lambda>
+    None, lambda: WakeWordModel(wakeword_models=[str(model_path)])
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vagrant/.local/lib/python3.12/site-packages/openwakeword/model.py", line 139, in __init__
+    self.preprocessor = AudioFeatures(**kwargs)
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: AudioFeatures.__init__() got an unexpected keyword argument 'wakeword_models'
+2025-07-20 00:23:05 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 00:23:05 - WakeWordMode - INFO - WakeWordMode cleanup completed
+2025-07-20 00:23:29 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:23:29 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:23:29 - WakeWordMode - INFO - Loading wake word model: /workspace/models/hey_jarvis.onnx
+2025-07-20 00:23:29 - WakeWordMode - INFO - Wake word model loaded successfully
+2025-07-20 00:23:29 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 00:23:29 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 00:23:29 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 00:27:49 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:27:49 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:28:03 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:28:03 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:28:03 - WakeWordMode - INFO - Loading wake word model: /workspace/models/hey_jarvis.onnx
+2025-07-20 00:28:03 - WakeWordMode - INFO - Wake word model loaded successfully
+2025-07-20 00:28:03 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 00:28:03 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 00:28:03 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 00:31:29 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:31:29 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:31:29 - WakeWordMode - INFO - Loading wake word model: /workspace/models/hey_jarvis.onnx
+2025-07-20 00:31:29 - WakeWordMode - INFO - Wake word model loaded successfully
+2025-07-20 00:31:29 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 00:31:29 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 00:31:29 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 00:32:04 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:32:04 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:32:04 - WakeWordMode - INFO - Loading wake word model: /workspace/models/hey_jarvis.onnx
+2025-07-20 00:32:04 - WakeWordMode - INFO - Wake word model loaded successfully
+2025-07-20 00:32:04 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 00:32:04 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 00:32:04 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 00:33:29 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 00:33:29 - WakeWordMode - INFO - WakeWordMode initialized - model: models/hey_jarvis.onnx, threshold: 0.7
+2025-07-20 00:33:29 - WakeWordMode - INFO - Loading wake word model: /workspace/models/hey_jarvis.onnx
+2025-07-20 00:33:30 - WakeWordMode - INFO - Wake word model loaded successfully
+2025-07-20 00:33:30 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 00:33:30 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 00:33:30 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 01:22:28 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 01:45:55 - WakeWordMode - ERROR - Failed to load Porcupine model: Porcupine access_key is required in wake_word config
+2025-07-20 01:45:55 - WakeWordMode - ERROR - Wake word mode failed: Porcupine access_key is required in wake_word config
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 99, in run
+    await self._load_wake_word_model()
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 117, in _load_wake_word_model
+    raise ValueError("Porcupine access_key is required in wake_word config")
+ValueError: Porcupine access_key is required in wake_word config
+2025-07-20 01:46:31 - WakeWordMode - ERROR - Failed to load Porcupine model: Porcupine access_key is required in wake_word config
+2025-07-20 01:46:31 - WakeWordMode - ERROR - Wake word mode failed: Porcupine access_key is required in wake_word config
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 99, in run
+    await self._load_wake_word_model()
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 117, in _load_wake_word_model
+    raise ValueError("Porcupine access_key is required in wake_word config")
+ValueError: Porcupine access_key is required in wake_word config
+2025-07-20 01:46:35 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 01:46:35 - WakeWordMode - INFO - WakeWordMode initialized - keyword: jarvis, threshold: 0.7
+2025-07-20 01:46:35 - WakeWordMode - ERROR - Failed to load Porcupine model: Porcupine access_key is required in wake_word config
+2025-07-20 01:46:35 - WakeWordMode - ERROR - Wake word mode failed: Porcupine access_key is required in wake_word config
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 99, in run
+    await self._load_wake_word_model()
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 117, in _load_wake_word_model
+    raise ValueError("Porcupine access_key is required in wake_word config")
+ValueError: Porcupine access_key is required in wake_word config
+2025-07-20 01:46:35 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 01:46:35 - WakeWordMode - INFO - WakeWordMode cleanup completed
+2025-07-20 02:15:39 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:15:39 - WakeWordMode - INFO - WakeWordMode initialized - keyword: jarvis, threshold: 0.7
+2025-07-20 02:15:39 - WakeWordMode - ERROR - Failed to load Porcupine model: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+2025-07-20 02:15:39 - WakeWordMode - ERROR - Wake word mode failed: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 132, in run
+    await self._load_wake_word_model()
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 150, in _load_wake_word_model
+    raise ValueError(
+ValueError: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+2025-07-20 02:15:39 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 02:15:39 - WakeWordMode - INFO - WakeWordMode cleanup completed
+2025-07-20 02:16:06 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:16:32 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:16:32 - WakeWordMode - INFO - Using Porcupine access key from environment variable
+2025-07-20 02:21:48 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:21:48 - WakeWordMode - INFO - WakeWordMode initialized - keyword: jarvis, threshold: 0.7
+2025-07-20 02:21:48 - WakeWordMode - ERROR - Failed to load Porcupine model: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+2025-07-20 02:21:48 - WakeWordMode - ERROR - Wake word mode failed: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 132, in run
+    await self._load_wake_word_model()
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 150, in _load_wake_word_model
+    raise ValueError(
+ValueError: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+2025-07-20 02:21:48 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 02:21:48 - WakeWordMode - INFO - WakeWordMode cleanup completed
+2025-07-20 02:22:44 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:22:44 - WakeWordMode - INFO - WakeWordMode initialized - keyword: jarvis, threshold: 0.7
+2025-07-20 02:22:44 - WakeWordMode - ERROR - Failed to load Porcupine model: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+2025-07-20 02:22:44 - WakeWordMode - ERROR - Wake word mode failed: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+Traceback (most recent call last):
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 132, in run
+    await self._load_wake_word_model()
+  File "/home/miko/projects/utils/stt/src/modes/wake_word.py", line 150, in _load_wake_word_model
+    raise ValueError(
+ValueError: Porcupine access key is required. Set it using one of these methods:
+1. Environment variable: export PORCUPINE_ACCESS_KEY='your_key_here'
+2. Create .env file: echo 'PORCUPINE_ACCESS_KEY="your_key_here"' > .env
+3. Add to config.json (not recommended for production)
+Get your free access key at: https://console.picovoice.ai/
+2025-07-20 02:22:44 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 02:22:44 - WakeWordMode - INFO - WakeWordMode cleanup completed
+2025-07-20 02:53:18 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:53:18 - WakeWordMode - INFO - Using Porcupine access key from .env file
+2025-07-20 02:53:18 - WakeWordMode - INFO - WakeWordMode initialized - keyword: jarvis, threshold: 0.7
+2025-07-20 02:53:18 - WakeWordMode - INFO - Loading Porcupine model with keyword: jarvis
+2025-07-20 02:53:19 - WakeWordMode - INFO - Porcupine model loaded successfully
+2025-07-20 02:53:19 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 02:53:19 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 02:53:19 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 02:53:21 - WakeWordMode - INFO - 🎤 Wake word detected: 'jarvis' (index: 0)
+2025-07-20 02:53:23 - WakeWordMode - INFO - 🗣️ Conversation mode activated
+2025-07-20 02:54:18 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 02:54:18 - WakeWordMode - INFO - WakeWordMode cleanup completed
+2025-07-20 02:54:25 - WakeWordMode - INFO - WakeWordMode initialized
+2025-07-20 02:54:25 - WakeWordMode - INFO - Using Porcupine access key from .env file
+2025-07-20 02:54:25 - WakeWordMode - INFO - WakeWordMode initialized - keyword: jarvis, threshold: 0.7
+2025-07-20 02:54:25 - WakeWordMode - INFO - Loading Porcupine model with keyword: jarvis
+2025-07-20 02:54:25 - WakeWordMode - INFO - Porcupine model loaded successfully
+2025-07-20 02:54:25 - WakeWordMode - INFO - Audio streamer setup completed
+2025-07-20 02:54:25 - WakeWordMode - INFO - Audio streaming started for wake word detection
+2025-07-20 02:54:25 - WakeWordMode - INFO - Starting wake word detection loop
+2025-07-20 02:54:32 - WakeWordMode - INFO - 🎤 Wake word detected: 'jarvis' (index: 0)
+2025-07-20 02:54:33 - WakeWordMode - INFO - 🗣️ Conversation mode activated
+2025-07-20 02:54:44 - WakeWordMode - INFO - Wake word mode cleanup completed
+2025-07-20 02:54:44 - WakeWordMode - INFO - WakeWordMode cleanup completed
