@@ -280,8 +280,9 @@ async def async_main_worker(args):
                 os.environ["WEBSOCKET_SERVER_PORT"] = str(args.port)
             os.environ["MATILDA_MANAGEMENT_TOKEN"] = "managed-by-matilda-system"
             
-            from src.transcription.server import main as server_main
-            server_main()
+            from src.transcription.server import MatildaWebSocketServer
+            server = MatildaWebSocketServer()
+            await server.start_server()
             return
         
         # Select appropriate mode
