@@ -681,6 +681,11 @@ def get_logger(module_name: str) -> logging.Logger:
     return setup_logging(module_name)
 
 
+def load_config(config_path: Optional[Union[str, Path]] = None) -> ConfigLoader:
+    """Load configuration from config file (alias for creating ConfigLoader)."""
+    return ConfigLoader(config_path)
+
+
 if __name__ == "__main__":
     # Test the config loader
     logger = get_logger(__name__)

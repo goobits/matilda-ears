@@ -65,13 +65,23 @@ dev = [
     "pyyaml>=6.0.0",  # For test summary YAML output
 ]
 
+# Enhanced audio features (optional, requires system dependencies)
+audio = [
+    "webrtc-audio-processing>=0.1.0",  # Echo cancellation (needs swig)
+    "pygame>=2.1.0",  # Audio playback
+    "pyaudio>=0.2.11",  # Alternative audio interface (needs portaudio-dev)
+    "pydub>=0.25.1",  # Enhanced audio format support
+]
+
+
 [project.scripts]
 stt = "src.main:main"
 stt-server = "src.transcription.server:main"
+smart-voice-demo = "examples.smart_voice_demo:cli_main"
 
 # Package discovery
 [tool.setuptools.packages.find]
-include = ["src*", "stt*"]
+include = ["src*", "examples*"]
 exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist"]
 
 # Include additional data files
