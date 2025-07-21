@@ -204,6 +204,28 @@ class ConfigLoader:
 
         return value
 
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set a value in the config dictionary to support item assignment"""
+        self._config[key] = value
+
+    def __getitem__(self, key: str) -> Any:
+        """Get a value from the config dictionary to support item access"""
+        return self._config[key]
+
+    def set(self, key_path: str, value: Any) -> None:
+        """Set a value using dot notation (e.g., 'server.websocket.port')"""
+        keys = key_path.split(".")
+        target = self._config
+        
+        # Navigate to the parent of the target key
+        for key in keys[:-1]:
+            if key not in target:
+                target[key] = {}
+            target = target[key]
+        
+        # Set the final value
+        target[keys[-1]] = value
+
     @property
     def websocket_port(self) -> int:
         return int(self.get("server.websocket.port", 8769))
@@ -597,6 +619,12 @@ class ConfigLoader:
         formats = self.filename_formats
         # Try exact match first, then fallback to wildcard
         return formats.get(extension.lower(), formats.get("*", "lower_snake"))
+
+    def save(self) -> None:
+        """Save the current configuration back to the config file"""
+        import json
+        with open(self.config_file, 'w') as f:
+            json.dump(self._config, f, indent=2)
 
 
 # Create a global instance for backward compatibility

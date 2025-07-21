@@ -12,6 +12,20 @@ click.rich_click.STYLE_COMMAND = "#50fa7b"     # Dracula Green - for subcommands
 click.rich_click.STYLE_USAGE = "#bd93f9"       # Dracula Purple - for "Usage:" line
 click.rich_click.STYLE_HELPTEXT = "#b3b8c0"    # Light gray - for help descriptions
 
+# Configure rich-click command groups and sections
+click.rich_click.COMMAND_GROUPS = {
+    "goobits-stt": [
+        {
+            "name": "Core Commands",
+            "commands": ["listen", "live", "serve"],
+        },
+        {
+            "name": "System & Model Commands", 
+            "commands": ["config", "status", "models"],
+        },
+    ]
+}
+
 """
 GOOBITS STT - Pure speech-to-text engine with multiple operation modes
 """
@@ -20,6 +34,7 @@ import asyncio
 import json
 import sys
 import argparse
+import os
 from pathlib import Path
 
 RICH_AVAILABLE = True
@@ -41,110 +56,61 @@ def create_rich_cli():
     """Create Rich-enhanced Click CLI interface"""
     console = Console()
     
-    @click.command(context_settings={"allow_extra_args": False})
+    @click.group()
     @click.version_option(version="1.0.0", prog_name="GOOBITS STT")
-    @click.option("--config", help=" ⚙️  Configuration file path")
-    @click.option("--conversation", is_flag=True, help=" 💬 Always listening with interruption support")
-    @click.option("--debug", is_flag=True, help=" 🐛 Enable detailed debug logging")
-    @click.option("--device", help=" 🎤 Audio input device name or index")
-    @click.option("--hold-to-talk", metavar="KEY", help=" 🔘 Hold KEY to record, release to stop")
-    @click.option("--host", default="0.0.0.0", help=" 🏠 Server host (default: 0.0.0.0)")
-    @click.option("--json", is_flag=True, help=" 📄 Output JSON format (default: simple text)")
-    @click.option("--language", help=" 🌍 Language code (e.g., 'en', 'es', 'fr')")
-    @click.option("--listen-once", is_flag=True, help=" 🎯 Single utterance capture with VAD")
-    @click.option("--model", default="base", help=" 🤖 Whisper model size (tiny, base, small, medium, large)")
-    @click.option("--models", is_flag=True, help=" 📋 List available Whisper models")
-    @click.option("--no-formatting", is_flag=True, help=" 🚫 Disable advanced text formatting")
-    @click.option("--port", type=int, default=8769, help=" 🔌 Server port (default: 8769)")
-    @click.option("--sample-rate", type=int, default=16000, help=" 🔊 Audio sample rate in Hz")
-    @click.option("--server", is_flag=True, help=" 🌐 Run as WebSocket server for remote clients")
-    @click.option("--status", is_flag=True, help=" 📊 Show system status and capabilities")
-    @click.option("--tap-to-talk", metavar="KEY", help=" ⚡ Tap KEY to start/stop recording")
-    @click.option("--wake-word", is_flag=True, help=" 🎤 Wake word detection mode with Porcupine")
     @click.pass_context
-    def main(ctx, config, conversation, debug, device, hold_to_talk, host, json, language, listen_once, model, models, no_formatting, port, sample_rate, server, status, tap_to_talk, wake_word):
-        """🎙️ [bold cyan]GOOBITS STT v1.0.0[/bold cyan] - Transform speech into text with AI-powered transcription
+    def main(ctx):
+        """🎙️ [bold cyan]STT - Transform speech into text with AI-powered transcription.[/bold cyan]
+        
+        From quick voice notes to always-on conversation monitoring,
+        stt brings the power of Whisper to your terminal.
 
         \b
-        Multiple operation modes for different use cases, from quick voice notes 
-        to always-on conversation monitoring with advanced text formatting.
+        [bold yellow]💡 Quick Start:[/bold yellow]
+        \b
+          [green]stt listen[/green]                         [italic]# Capture a single speech utterance[/italic]
+          [green]stt live[/green]                           [italic]# Start always-on "live" transcription[/italic] 
+          [green]stt listen --hold-to-talk=space[/green]    [italic]# Hold spacebar to record[/italic]
+          [green]stt serve --port=8769[/green]              [italic]# Run as a WebSocket server for other apps[/italic]
 
         \b
-        [bold yellow]🎯 Quick Start:[/bold yellow]
+        [bold yellow]🔑 First-time Setup:[/bold yellow]
         \b
-          [green]stt --listen-once[/green]                    [italic]# Capture single speech utterance[/italic]
-          [green]stt --conversation[/green]                   [italic]# Always listening mode[/italic]
-          [green]stt --tap-to-talk=f8[/green]                 [italic]# Toggle recording with F8 key[/italic]
-          [green]stt --hold-to-talk=space[/green]             [italic]# Hold spacebar to record[/italic]
+          1. Check system status:  [green]stt status[/green]
+          2. Choose a default model: [green]stt config set model base[/green]
+          3. Test your microphone:  [green]stt listen --debug[/green]
+          4. Start transcribing:   [green]stt live[/green]
 
         \b
-        [bold yellow]🌐 Server & Integration:[/bold yellow]
-        \b
-          [green]stt --server --port=8769[/green]             [italic]# WebSocket server for remote clients[/italic]
-          [green]stt --listen-once | jq -r '.text'[/green]    [italic]# Pipeline JSON output[/italic]
-          [green]stt --conversation | llm-chat[/green]        [italic]# Feed transcriptions to AI assistant[/italic]
-
-        \b
-        [bold yellow]🎤 Audio Configuration:[/bold yellow]
-        \b
-          [green]stt --device="USB Microphone"[/green]        [italic]# Specific audio input device[/italic]
-          [green]stt --model=small --language=es[/green]      [italic]# Spanish with small Whisper model[/italic]
-          [green]stt --sample-rate=44100[/green]              [italic]# High-quality audio sampling[/italic]
-
-        \b
-        [bold yellow]✨ Advanced Features:[/bold yellow]
-        \b
-          [green]stt --wake-word[/green]                      [italic]# Porcupine wake word detection[/italic]
-          [green]stt --json --no-formatting[/green]           [italic]# Raw JSON output without formatting[/italic]
-          [green]stt --debug[/green]                          [italic]# Detailed logging for troubleshooting[/italic]
-
-        \b
-        [bold yellow]🔧 System Commands:[/bold yellow]
-        \b
-          [green]stt --status[/green]                         [italic]# Check system health and capabilities[/italic]
-          [green]stt --models[/green]                         [italic]# List available Whisper models[/italic]
-
-        \b
-        [bold yellow]🔑 Setup:[/bold yellow]
-        \b
-          1. Check system status:  [green]stt --status[/green]
-          2. Choose a model:       [green]stt --models[/green]
-          3. Test microphone:      [green]stt --listen-once --debug[/green]
-          4. Start transcribing:   [green]stt --conversation[/green]
-
-        \b
-        📚 For detailed help on options, run: [green]stt --help[/green]
+        📚 For detailed help on a command, run: [green]stt [COMMAND] --help[/green]
         """
-        # Check if any operation mode is selected
-        modes_selected = any([
-            listen_once,
-            conversation,
-            wake_word,
-            tap_to_talk,
-            hold_to_talk,
-            server,
-            status,
-            models
-        ])
-        
-        if not modes_selected:
-            # No mode selected, show help
-            click.echo(ctx.get_help())
-            return
-        
-        # Create args object from parameters
+        pass
+    
+    # Core Commands
+    @main.command()
+    @click.option("--device", help="🎤 Audio input device name or index")
+    @click.option("--language", help="🌍 Language code (e.g., 'en', 'es')")
+    @click.option("--model", default="base", help="🤖 Whisper model size (tiny, base, small, medium, large)")
+    @click.option("--hold-to-talk", metavar="KEY", help="🔘 Hold KEY to record, release to stop")
+    @click.option("--json", is_flag=True, help="📄 Output JSON format (default: simple text)")
+    @click.option("--debug", is_flag=True, help="🐛 Enable detailed debug logging")
+    @click.option("--config", help="⚙️ Configuration file path")
+    @click.option("--no-formatting", is_flag=True, help="🚫 Disable advanced text formatting")
+    @click.option("--sample-rate", type=int, default=16000, help="🔊 Audio sample rate in Hz")
+    def listen(device, language, model, hold_to_talk, json, debug, config, no_formatting, sample_rate):
+        """🎯 Transcribe a single utterance."""
         from types import SimpleNamespace
         args = SimpleNamespace(
-            listen_once=listen_once,
-            conversation=conversation,
-            wake_word=wake_word,
-            tap_to_talk=tap_to_talk,
+            listen_once=True,
+            conversation=False,
+            wake_word=False,
+            tap_to_talk=None,
             hold_to_talk=hold_to_talk,
-            server=server,
-            port=port,
-            host=host,
+            server=False,
+            port=8769,
+            host="0.0.0.0",
             json=json,
-            format="json" if json else "text",  # Add format attribute based on json flag
+            format="json" if json else "text",
             debug=debug,
             no_formatting=no_formatting,
             model=model,
@@ -152,11 +118,135 @@ def create_rich_cli():
             device=device,
             sample_rate=sample_rate,
             config=config,
-            status=status,
-            models=models
+            status=False,
+            models=False
         )
-        
-        # Run the async main function
+        asyncio.run(async_main_worker(args))
+
+    @main.command()
+    @click.option("--device", help="🎤 Audio input device name or index")
+    @click.option("--language", help="🌍 Language code (e.g., 'en', 'es')")
+    @click.option("--model", default="base", help="🤖 Whisper model size (tiny, base, small, medium, large)")
+    @click.option("--tap-to-talk", metavar="KEY", help="⚡ Tap KEY to start/stop recording")
+    @click.option("--json", is_flag=True, help="📄 Output JSON format (default: simple text)")
+    @click.option("--debug", is_flag=True, help="🐛 Enable detailed debug logging")
+    @click.option("--config", help="⚙️ Configuration file path")
+    @click.option("--no-formatting", is_flag=True, help="🚫 Disable advanced text formatting")
+    @click.option("--sample-rate", type=int, default=16000, help="🔊 Audio sample rate in Hz")
+    def live(device, language, model, tap_to_talk, json, debug, config, no_formatting, sample_rate):
+        """💬 Continuous "live" transcription mode."""
+        from types import SimpleNamespace
+        args = SimpleNamespace(
+            listen_once=False,
+            conversation=True,
+            wake_word=False,
+            tap_to_talk=tap_to_talk,
+            hold_to_talk=None,
+            server=False,
+            port=8769,
+            host="0.0.0.0",
+            json=json,
+            format="json" if json else "text",
+            debug=debug,
+            no_formatting=no_formatting,
+            model=model,
+            language=language,
+            device=device,
+            sample_rate=sample_rate,
+            config=config,
+            status=False,
+            models=False
+        )
+        asyncio.run(async_main_worker(args))
+
+    @main.command()
+    @click.option("--port", type=int, default=8769, help="🔌 Server port (default: 8769)")
+    @click.option("--host", default="0.0.0.0", help="🏠 Server host (default: 0.0.0.0)")
+    @click.option("--debug", is_flag=True, help="🐛 Enable detailed debug logging")
+    @click.option("--config", help="⚙️ Configuration file path")
+    def serve(port, host, debug, config):
+        """🌐 Run as a WebSocket server."""
+        from types import SimpleNamespace
+        args = SimpleNamespace(
+            listen_once=False,
+            conversation=False,
+            wake_word=False,
+            tap_to_talk=None,
+            hold_to_talk=None,
+            server=True,
+            port=port,
+            host=host,
+            json=False,
+            format="text",
+            debug=debug,
+            no_formatting=False,
+            model="base",
+            language=None,
+            device=None,
+            sample_rate=16000,
+            config=config,
+            status=False,
+            models=False
+        )
+        asyncio.run(async_main_worker(args))
+
+    # System & Model Commands
+    @main.group()
+    def config():
+        """⚙️ Manage default settings."""
+        pass
+
+    @config.command()
+    @click.argument('key')
+    @click.argument('value')
+    def set(key, value):
+        """Set a configuration value."""
+        from src.core.config import get_config
+        config_loader = get_config()
+        config_loader.set(key, value)
+        config_loader.save()
+        click.echo(f"Set {key} = {value}")
+
+    @config.command()
+    @click.argument('key')
+    def get(key):
+        """Get a configuration value."""
+        from src.core.config import get_config
+        config_loader = get_config()
+        value = config_loader.get(key)
+        if value is not None:
+            click.echo(value)
+        else:
+            click.echo(f"Configuration key '{key}' not found", err=True)
+
+    @config.command()
+    def list():
+        """List all configuration settings."""
+        from src.core.config import get_config
+        import json
+        config_loader = get_config()
+        click.echo(json.dumps(config_loader._config, indent=2))
+
+    @main.command()
+    def status():
+        """📊 Show system status and capabilities."""
+        from types import SimpleNamespace
+        args = SimpleNamespace(
+            status=True,
+            models=False,
+            debug=False
+        )
+        asyncio.run(async_main_worker(args))
+
+    @main.command()
+    def models():
+        """📋 List available Whisper models."""
+        from types import SimpleNamespace
+        args = SimpleNamespace(
+            status=False,
+            models=True,
+            debug=False
+        )
         asyncio.run(async_main_worker(args))
     
     return main

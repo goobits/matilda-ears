@@ -9,282 +9,311 @@ This file contains all valid command combinations for testing the GOOBITS STT CL
 stt
 stt --help
 stt --version
-stt --status
-stt --models
+stt status
+stt models
 
 # Basic Operation Modes
-stt --listen-once
-stt --conversation
-stt --wake-word
-stt --tap-to-talk=f8
-stt --tap-to-talk=space
-stt --tap-to-talk=ctrl
-stt --hold-to-talk=f8
-stt --hold-to-talk=space
-stt --hold-to-talk=ctrl
-stt --server
+stt listen
+stt live
+stt serve
+
+# Config Management
+stt config --help
+stt config list
+stt config get model
+stt config set model base
 ```
 
 ## Output Format Combinations
 
 ```bash
 # JSON Output
-stt --listen-once --json
-stt --conversation --json
-stt --wake-word --json
-stt --tap-to-talk=f8 --json
-stt --hold-to-talk=space --json
-stt --server --json
+stt listen --json
+stt live --json
+stt listen --hold-to-talk=space --json
+stt live --tap-to-talk=f8 --json
 
 # Disable Formatting
-stt --listen-once --no-formatting
-stt --conversation --no-formatting
-stt --wake-word --no-formatting
-stt --tap-to-talk=f8 --no-formatting
-stt --hold-to-talk=space --no-formatting
+stt listen --no-formatting
+stt live --no-formatting
+stt listen --hold-to-talk=space --no-formatting
+stt live --tap-to-talk=f8 --no-formatting
 
 # JSON + No Formatting
-stt --listen-once --json --no-formatting
-stt --conversation --json --no-formatting
-stt --wake-word --json --no-formatting
-stt --tap-to-talk=f8 --json --no-formatting
-stt --hold-to-talk=space --json --no-formatting
+stt listen --json --no-formatting
+stt live --json --no-formatting
+stt listen --hold-to-talk=space --json --no-formatting
+stt live --tap-to-talk=f8 --json --no-formatting
 ```
 
 ## Debug Mode Combinations
 
 ```bash
 # Debug with each mode
-stt --listen-once --debug
-stt --conversation --debug
-stt --wake-word --debug
-stt --tap-to-talk=f8 --debug
-stt --hold-to-talk=space --debug
-stt --server --debug
-stt --status --debug
-stt --models --debug
+stt listen --debug
+stt live --debug
+stt listen --hold-to-talk=space --debug
+stt live --tap-to-talk=f8 --debug
+stt serve --debug
+stt status --debug
+stt models --debug
 
 # Debug + JSON
-stt --listen-once --debug --json
-stt --conversation --debug --json
-stt --wake-word --debug --json
-stt --tap-to-talk=f8 --debug --json
-stt --hold-to-talk=space --debug --json
+stt listen --debug --json
+stt live --debug --json
+stt listen --hold-to-talk=space --debug --json
+stt live --tap-to-talk=f8 --debug --json
 
 # Debug + No Formatting
-stt --listen-once --debug --no-formatting
-stt --conversation --debug --no-formatting
-stt --wake-word --debug --no-formatting
+stt listen --debug --no-formatting
+stt live --debug --no-formatting
+stt listen --hold-to-talk=space --debug --no-formatting
 
 # Debug + JSON + No Formatting
-stt --listen-once --debug --json --no-formatting
-stt --conversation --debug --json --no-formatting
-stt --wake-word --debug --json --no-formatting
+stt listen --debug --json --no-formatting
+stt live --debug --json --no-formatting
+stt listen --hold-to-talk=space --debug --json --no-formatting
 ```
 
 ## Audio Configuration
 
 ```bash
 # Different Whisper Models
-stt --listen-once --model=tiny
-stt --listen-once --model=base
-stt --listen-once --model=small
-stt --listen-once --model=medium
-stt --listen-once --model=large
+stt listen --model=tiny
+stt listen --model=base
+stt listen --model=small
+stt listen --model=medium
+stt listen --model=large
 
-stt --conversation --model=tiny
-stt --conversation --model=base
-stt --conversation --model=small
-stt --conversation --model=medium
-stt --conversation --model=large
+stt live --model=tiny
+stt live --model=base
+stt live --model=small
+stt live --model=medium
+stt live --model=large
 
 # Language Codes
-stt --listen-once --language=en
-stt --listen-once --language=es
-stt --listen-once --language=fr
-stt --listen-once --language=de
-stt --listen-once --language=it
+stt listen --language=en
+stt listen --language=es
+stt listen --language=fr
+stt listen --language=de
+stt listen --language=it
 
-stt --conversation --language=en
-stt --conversation --language=es
-stt --conversation --language=fr
-stt --conversation --language=de
-stt --conversation --language=it
+stt live --language=en
+stt live --language=es
+stt live --language=fr
+stt live --language=de
+stt live --language=it
 
 # Audio Devices
-stt --listen-once --device="USB Microphone"
-stt --listen-once --device="Built-in Microphone"
-stt --listen-once --device=0
-stt --listen-once --device=1
-stt --conversation --device="USB Microphone"
-stt --conversation --device="Built-in Microphone"
+stt listen --device="USB Microphone"
+stt listen --device="Built-in Microphone"
+stt listen --device=0
+stt listen --device=1
+stt live --device="USB Microphone"
+stt live --device="Built-in Microphone"
 
 # Sample Rates
-stt --listen-once --sample-rate=16000
-stt --listen-once --sample-rate=22050
-stt --listen-once --sample-rate=44100
-stt --listen-once --sample-rate=48000
-stt --conversation --sample-rate=16000
-stt --conversation --sample-rate=22050
-stt --conversation --sample-rate=44100
-stt --conversation --sample-rate=48000
+stt listen --sample-rate=16000
+stt listen --sample-rate=22050
+stt listen --sample-rate=44100
+stt listen --sample-rate=48000
+stt live --sample-rate=16000
+stt live --sample-rate=22050
+stt live --sample-rate=44100
+stt live --sample-rate=48000
+
+# Configuration-based settings (alternative to command-line options)
+stt config set whisper.model small
+stt config set audio.sample_rate 44100
+stt config set whisper.language es
+stt config set audio.device "USB Microphone"
 ```
 
 ## Model + Language Combinations
 
 ```bash
 # English with different models
-stt --listen-once --model=tiny --language=en
-stt --listen-once --model=base --language=en
-stt --listen-once --model=small --language=en
-stt --listen-once --model=medium --language=en
-stt --listen-once --model=large --language=en
+stt listen --model=tiny --language=en
+stt listen --model=base --language=en
+stt listen --model=small --language=en
+stt listen --model=medium --language=en
+stt listen --model=large --language=en
 
 # Spanish with different models
-stt --conversation --model=tiny --language=es
-stt --conversation --model=base --language=es
-stt --conversation --model=small --language=es
-stt --conversation --model=medium --language=es
-stt --conversation --model=large --language=es
+stt live --model=tiny --language=es
+stt live --model=base --language=es
+stt live --model=small --language=es
+stt live --model=medium --language=es
+stt live --model=large --language=es
 
-# French with different models
-stt --wake-word --model=tiny --language=fr
-stt --wake-word --model=base --language=fr
-stt --wake-word --model=small --language=fr
-stt --wake-word --model=medium --language=fr
-stt --wake-word --model=large --language=fr
+# French with hold-to-talk
+stt listen --hold-to-talk=space --model=tiny --language=fr
+stt listen --hold-to-talk=space --model=base --language=fr
+stt listen --hold-to-talk=space --model=small --language=fr
+stt listen --hold-to-talk=space --model=medium --language=fr
+stt listen --hold-to-talk=space --model=large --language=fr
 ```
 
 ## Server Mode Combinations
 
 ```bash
 # Basic Server
-stt --server
-stt --server --debug
-stt --server --json
+stt serve
+stt serve --debug
 
 # Custom Ports
-stt --server --port=8769
-stt --server --port=9000
-stt --server --port=8080
-stt --server --port=3000
+stt serve --port=8769
+stt serve --port=9000
+stt serve --port=8080
+stt serve --port=3000
 
 # Custom Hosts
-stt --server --host=localhost
-stt --server --host=127.0.0.1
-stt --server --host=0.0.0.0
+stt serve --host=localhost
+stt serve --host=127.0.0.1
+stt serve --host=0.0.0.0
 
 # Server with Port + Host
-stt --server --port=8769 --host=localhost
-stt --server --port=9000 --host=127.0.0.1
-stt --server --port=8080 --host=0.0.0.0
+stt serve --port=8769 --host=localhost
+stt serve --port=9000 --host=127.0.0.1
+stt serve --port=8080 --host=0.0.0.0
 
 # Server with Debug
-stt --server --port=8769 --debug
-stt --server --host=localhost --debug
-stt --server --port=9000 --host=127.0.0.1 --debug
+stt serve --port=8769 --debug
+stt serve --host=localhost --debug
+stt serve --port=9000 --host=127.0.0.1 --debug
+
+# Configuration-based server settings
+stt config set server.websocket.port 9000
+stt config set server.websocket.host localhost
+stt serve  # Uses config settings
 ```
 
 ## Complex Audio Combinations
 
 ```bash
 # Model + Language + Device
-stt --listen-once --model=small --language=es --device="USB Microphone"
-stt --conversation --model=base --language=en --device="Built-in Microphone"
-stt --wake-word --model=medium --language=fr --device=0
+stt listen --model=small --language=es --device="USB Microphone"
+stt live --model=base --language=en --device="Built-in Microphone"
+stt listen --hold-to-talk=space --model=medium --language=fr --device=0
 
 # Model + Language + Sample Rate
-stt --listen-once --model=small --language=es --sample-rate=44100
-stt --conversation --model=base --language=en --sample-rate=48000
-stt --wake-word --model=medium --language=fr --sample-rate=22050
+stt listen --model=small --language=es --sample-rate=44100
+stt live --model=base --language=en --sample-rate=48000
+stt listen --hold-to-talk=space --model=medium --language=fr --sample-rate=22050
 
 # Model + Language + Device + Sample Rate
-stt --listen-once --model=small --language=es --device="USB Microphone" --sample-rate=44100
-stt --conversation --model=base --language=en --device="Built-in Microphone" --sample-rate=48000
-stt --wake-word --model=medium --language=fr --device=0 --sample-rate=22050
+stt listen --model=small --language=es --device="USB Microphone" --sample-rate=44100
+stt live --model=base --language=en --device="Built-in Microphone" --sample-rate=48000
+stt listen --hold-to-talk=space --model=medium --language=fr --device=0 --sample-rate=22050
+
+# Using tap-to-talk with complex options
+stt live --tap-to-talk=f8 --model=small --language=es --device="USB Microphone" --sample-rate=44100
+stt live --tap-to-talk=space --model=base --language=en --device="Built-in Microphone" --sample-rate=48000
 ```
 
 ## Maximum Complexity Combinations
 
 ```bash
-# Everything with listen-once
-stt --listen-once --model=small --language=es --device="USB Microphone" --sample-rate=44100 --json --debug --no-formatting
+# Everything with listen
+stt listen --model=small --language=es --device="USB Microphone" --sample-rate=44100 --json --debug --no-formatting
 
-# Everything with conversation
-stt --conversation --model=base --language=en --device="Built-in Microphone" --sample-rate=48000 --json --debug --no-formatting
-
-# Everything with wake-word
-stt --wake-word --model=medium --language=fr --device=0 --sample-rate=22050 --json --debug --no-formatting
-
-# Everything with tap-to-talk
-stt --tap-to-talk=f8 --model=large --language=de --device="USB Microphone" --sample-rate=44100 --json --debug --no-formatting
+# Everything with live
+stt live --model=base --language=en --device="Built-in Microphone" --sample-rate=48000 --json --debug --no-formatting
 
 # Everything with hold-to-talk
-stt --hold-to-talk=space --model=tiny --language=it --device=1 --sample-rate=16000 --json --debug --no-formatting
+stt listen --hold-to-talk=space --model=medium --language=fr --device=0 --sample-rate=22050 --json --debug --no-formatting
+
+# Everything with tap-to-talk
+stt live --tap-to-talk=f8 --model=large --language=de --device="USB Microphone" --sample-rate=44100 --json --debug --no-formatting
 
 # Everything with server
-stt --server --port=9000 --host=localhost --json --debug
+stt serve --port=9000 --host=localhost --debug
+
+# Using configuration + command options (config overridden by command line)
+stt config set whisper.model base
+stt config set whisper.language en
+stt listen --model=small --language=es  # Overrides config settings
 ```
 
 ## Key Combinations for Tap/Hold-to-Talk
 
 ```bash
-# Common Keys
-stt --tap-to-talk=space
-stt --tap-to-talk=enter
-stt --tap-to-talk=ctrl
-stt --tap-to-talk=alt
-stt --tap-to-talk=shift
-stt --tap-to-talk=tab
-stt --tap-to-talk=esc
+# Common Keys with live mode (tap-to-talk)
+stt live --tap-to-talk=space
+stt live --tap-to-talk=enter
+stt live --tap-to-talk=ctrl
+stt live --tap-to-talk=alt
+stt live --tap-to-talk=shift
+stt live --tap-to-talk=tab
+stt live --tap-to-talk=esc
 
-stt --hold-to-talk=space
-stt --hold-to-talk=enter
-stt --hold-to-talk=ctrl
-stt --hold-to-talk=alt
-stt --hold-to-talk=shift
-stt --hold-to-talk=tab
-stt --hold-to-talk=esc
+# Common Keys with listen mode (hold-to-talk)
+stt listen --hold-to-talk=space
+stt listen --hold-to-talk=enter
+stt listen --hold-to-talk=ctrl
+stt listen --hold-to-talk=alt
+stt listen --hold-to-talk=shift
+stt listen --hold-to-talk=tab
+stt listen --hold-to-talk=esc
 
 # Function Keys
-stt --tap-to-talk=f1
-stt --tap-to-talk=f2
-stt --tap-to-talk=f8
-stt --tap-to-talk=f12
+stt live --tap-to-talk=f1
+stt live --tap-to-talk=f2
+stt live --tap-to-talk=f8
+stt live --tap-to-talk=f12
 
-stt --hold-to-talk=f1
-stt --hold-to-talk=f2
-stt --hold-to-talk=f8
-stt --hold-to-talk=f12
+stt listen --hold-to-talk=f1
+stt listen --hold-to-talk=f2
+stt listen --hold-to-talk=f8
+stt listen --hold-to-talk=f12
 ```
 
-## Configuration File Tests
+## Configuration Management Tests
 
 ```bash
-# Custom config paths
-stt --listen-once --config=/path/to/config.json
-stt --conversation --config=./custom-config.json
-stt --server --config=/etc/stt/config.json
-stt --wake-word --config=~/.stt/config.json
+# Config management commands
+stt config list
+stt config get whisper.model
+stt config get server.websocket.port
+stt config get audio.sample_rate
+stt config set whisper.model small
+stt config set server.websocket.port 9000
+stt config set whisper.language es
+stt config set audio.device "USB Microphone"
+
+# Custom config file paths with commands
+stt listen --config=/path/to/config.json
+stt live --config=./custom-config.json
+stt serve --config=/etc/stt/config.json
+stt listen --hold-to-talk=space --config=~/.stt/config.json
 
 # Config with other options
-stt --listen-once --config=/path/to/config.json --debug
-stt --conversation --config=./custom-config.json --json
-stt --server --config=/etc/stt/config.json --port=9000 --debug
+stt listen --config=/path/to/config.json --debug
+stt live --config=./custom-config.json --json
+stt serve --config=/etc/stt/config.json --port=9000 --debug
+
+# Testing config precedence (command line overrides config file)
+stt config set whisper.model base
+stt listen --model=small  # Should use 'small', not 'base'
+stt config get whisper.model  # Should still show 'base'
 ```
 
 ## Pipeline Examples (JSON Output)
 
 ```bash
 # Basic pipelines
-stt --listen-once --json | jq .
-stt --conversation --json | jq -r '.text'
-stt --wake-word --json | head -10
+stt listen --json | jq .
+stt live --json | jq -r '.text'
+stt listen --hold-to-talk=space --json | head -10
 
 # Complex pipelines
-stt --listen-once --model=small --language=es --json | jq -r '.text' | wc -w
-stt --conversation --model=base --json --debug | tee conversation.log
-stt --server --port=8769 --json > server.log 2>&1
+stt listen --model=small --language=es --json | jq -r '.text' | wc -w
+stt live --model=base --json --debug | tee conversation.log
+stt serve --port=8769 --debug > server.log 2>&1
+
+# Configuration pipelines
+stt config list | jq '.whisper.model'
+stt config get whisper.model | xargs -I {} stt listen --model={}
 ```
 
 ## Error Testing (Should Show Help)
@@ -292,16 +321,52 @@ stt --server --port=8769 --json > server.log 2>&1
 ```bash
 # These should all show help/error messages
 stt --invalid-option
-stt --listen-once --conversation  # Multiple modes
-stt --server --wake-word          # Multiple modes
-stt --tap-to-talk                 # Missing key argument
-stt --hold-to-talk                # Missing key argument
-stt --port=8769                   # Port without server
-stt --host=localhost              # Host without server
+stt listen live                   # Multiple subcommands not allowed
+stt serve listen                  # Multiple subcommands not allowed
+stt --port=8769                   # Port without serve command
+stt --host=localhost              # Host without serve command
+stt listen --tap-to-talk=f8       # Tap-to-talk with listen (should be live)
+stt live --hold-to-talk=space     # Hold-to-talk with live (should be listen)
+
+# Config errors
+stt config                        # Missing subcommand
+stt config set                    # Missing arguments
+stt config set key               # Missing value
+stt config get                   # Missing key
+stt config get nonexistent.key   # Should show error or null
 ```
 
 ---
 
-**Total Valid Combinations: ~200+**
+**Total Valid Combinations: ~150+**
+
+## New Configuration-First Workflow
+
+```bash
+# Set up defaults once
+stt config set whisper.model small
+stt config set whisper.language es  
+stt config set audio.device "USB Microphone"
+stt config set server.websocket.port 9000
+
+# Then use simple commands (will use config defaults)
+stt listen
+stt live
+stt serve
+
+# Override config when needed
+stt listen --model=large --language=en
+stt serve --port=8080
+```
 
 Note: Some combinations may require actual hardware (microphones, audio devices) to test fully. Server mode combinations may require network connectivity testing.
+
+## Key Changes from Old CLI
+
+- **Before**: `stt --listen-once` → **After**: `stt listen`
+- **Before**: `stt --conversation` → **After**: `stt live`  
+- **Before**: `stt --server` → **After**: `stt serve`
+- **Before**: `stt --status` → **After**: `stt status`
+- **Before**: `stt --models` → **After**: `stt models`
+- **NEW**: `stt config set/get/list` for persistent settings
+- **NEW**: Configuration-driven workflow with command-line overrides
