@@ -32,6 +32,7 @@ dependencies = [
     "aiohttp>=3.8.0",
     # CLI and UI
     "click>=8.0.0",
+    "rich-click>=1.7.0",
     "rich>=13.0.0",
     # STT-specific
     "faster-whisper>=1.0.0",

@@ -8,6 +8,9 @@ set -e
 export LC_ALL=C
 export LANG=C
 
+# Prevent Python bytecode generation during development
+export PYTHONDONTWRITEBYTECODE=1
+
 # Core configuration
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
