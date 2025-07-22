@@ -140,8 +140,10 @@ class ConversationMode(BaseMode):
         self.text_formatter = None
         if TEXT_FORMATTING_AVAILABLE:
             try:
-                self.text_formatter = TextFormatter(language='en')  # TODO: get from config
-                self.logger.info("Text formatting enabled for streaming results")
+                text_formatting_config = self.config.get("text_formatting", {})
+                language = text_formatting_config.get("language", "en")
+                self.text_formatter = TextFormatter(language=language)
+                self.logger.info(f"Text formatting enabled for streaming results (language: {language})")
             except Exception as e:
                 self.logger.warning(f"Text formatting initialization failed: {e}")
                 self.text_formatter = None

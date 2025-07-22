@@ -106,6 +106,7 @@
     }
   },
   "text_formatting": {
+    "language": "en",
     "filename_formats": {
       "md": "UPPER_SNAKE",
       "json": "lower_snake",
