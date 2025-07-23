@@ -118,67 +118,35 @@ set_cached_value() {
     echo "$key=$value" >> "$CACHE_FILE"
 }
 
-# Parse YAML configuration
+# Parse YAML configuration using Python and PyYAML
 parse_yaml() {
     local yaml_file="$1"
-    local prefix="${2:-}"
-    
-    # Use a simple grep/sed approach for basic YAML parsing
-    # This avoids complex Python escaping issues
     
     log_debug "Starting parse_yaml for file: $yaml_file"
     
-    # Parse top-level key-value pairs
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^([a-zA-Z_][a-zA-Z0-9_]*):' '*\"?([^\"]*)\"?$ ]]; then
-            key="${BASH_REMATCH[1]}"
-            value="${BASH_REMATCH[2]}"
-            value="${value%\"}"  # Remove trailing quote if present
-            value="${value#\"}"  # Remove leading quote if present
-            
-            # Skip multiline values (they end with |)
-            if [[ "$value" == "|" ]]; then
-                log_debug "Skipping multiline value for key: $key"
-                continue
-            fi
-            
-            if [[ -n "$value" && ! "$value" =~ ^[[:space:]]*$ ]]; then
-                if [[ -n "$prefix" ]]; then
-                    export "${prefix}_${key}=${value}"
-                    log_debug "Exported: ${prefix}_${key}=${value}"
-                else
-                    export "${key}=${value}"
-                    log_debug "Exported: ${key}=${value}"
-                fi
-            fi
-        fi
-    done < "$yaml_file"
+    # Check if PyYAML is available
+    if ! python3 -c "import yaml" 2>/dev/null; then
+        log_error "PyYAML not found. Please install it to continue."
+        echo
+        echo "To install PyYAML, run one of:"
+        echo "  pip install PyYAML"
+        echo "  pip3 install PyYAML"
+        echo "  python3 -m pip install PyYAML"
+        echo
+        return 1
+    fi
     
-    # Parse nested values (one level deep) - specifically for python section
-    local in_section=""
-    while IFS= read -r line; do
-        # Check for section headers
-        if [[ "$line" =~ ^([a-zA-Z_][a-zA-Z0-9_]*):$ ]]; then
-            in_section="${BASH_REMATCH[1]}"
-        # Check for indented key-value pairs
-        elif [[ -n "$in_section" && "$line" =~ ^[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*):' '*\"?([^\"]*)\"?$ ]]; then
-            key="${BASH_REMATCH[1]}"
-            value="${BASH_REMATCH[2]}"
-            value="${value%\"}"  # Remove trailing quote if present
-            value="${value#\"}"  # Remove leading quote if present
-            
-            if [[ -n "$value" && ! "$value" =~ ^[[:space:]]*$ ]]; then
-                if [[ -n "$prefix" ]]; then
-                    export "${prefix}_${in_section}_${key}=${value}"
-                else
-                    export "${in_section}_${key}=${value}"
-                fi
-            fi
-        # Reset section if we hit a non-indented line
-        elif [[ ! "$line" =~ ^[[:space:]] ]]; then
-            in_section=""
-        fi
-    done < "$yaml_file"
+    # Convert YAML to JSON using Python
+    local json_output
+    if ! json_output=$(python3 -c 'import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin)))' < "$yaml_file" 2>&1); then
+        log_error "Failed to parse YAML file: $yaml_file"
+        log_debug "Error output: $json_output"
+        return 1
+    fi
+    
+    # Return the JSON output
+    echo "$json_output"
+    return 0
 }
 
 # Load configuration
@@ -188,14 +156,60 @@ load_config() {
         exit 1
     fi
     
+    # Check for jq before proceeding
+    if ! command -v jq &> /dev/null; then
+        check_jq
+        exit 1
+    fi
+    
     log_info "Loading configuration from $CONFIG_FILE"
     log_debug "Config file path: $CONFIG_FILE"
     
-    # Parse YAML and export variables
-    parse_yaml "$CONFIG_FILE" "CONFIG" || {
+    # Parse YAML to JSON
+    local config_json
+    if ! config_json=$(parse_yaml "$CONFIG_FILE"); then
         log_error "Failed to parse configuration file"
         exit 1
+    fi
+    
+    # Export top-level keys as CONFIG_* variables
+    local keys
+    keys=$(echo "$config_json" | jq -r 'keys[]' 2>/dev/null) || {
+        log_error "Failed to extract keys from configuration"
+        exit 1
     }
+    
+    # Process each key
+    while IFS= read -r key; do
+        local value
+        value=$(echo "$config_json" | jq -r --arg k "$key" '.[$k]' 2>/dev/null)
+        
+        # Skip null, arrays, and objects (handle them separately)
+        if [[ "$value" != "null" && "$value" != "["* && "$value" != "{"* ]]; then
+            export "CONFIG_${key}=${value}"
+            log_debug "Exported: CONFIG_${key}=${value}"
+        fi
+        
+        # Handle nested objects (one level deep)
+        local value_type
+        value_type=$(echo "$config_json" | jq -r --arg k "$key" '.[$k] | type' 2>/dev/null)
+        
+        if [[ "$value_type" == "object" ]]; then
+            local nested_keys
+            nested_keys=$(echo "$config_json" | jq -r --arg k "$key" '.[$k] | keys[]' 2>/dev/null) || continue
+            
+            while IFS= read -r nested_key; do
+                local nested_value
+                nested_value=$(echo "$config_json" | jq -r --arg k "$key" --arg nk "$nested_key" '.[$k][$nk]' 2>/dev/null)
+                
+                # Only export non-null, non-object, non-array values
+                if [[ "$nested_value" != "null" && "$nested_value" != "["* && "$nested_value" != "{"* ]]; then
+                    export "CONFIG_${key}_${nested_key}=${nested_value}"
+                    log_debug "Exported: CONFIG_${key}_${nested_key}=${nested_value}"
+                fi
+            done <<< "$nested_keys"
+        fi
+    done <<< "$keys"
     
     # Debug: Show loaded configuration
     if [[ "${DEBUG:-}" == "1" ]]; then
@@ -286,6 +300,32 @@ check_git() {
     return 0
 }
 
+check_jq() {
+    log_info "Checking for jq"
+    
+    if ! command -v jq &> /dev/null; then
+        log_error "jq is not installed"
+        echo
+        echo "jq is required for JSON processing."
+        echo
+        echo "To install jq:"
+        echo "  Option 1 (Ubuntu/Debian):"
+        echo "    sudo apt update"
+        echo "    sudo apt install jq"
+        echo
+        echo "  Option 2 (macOS with Homebrew):"
+        echo "    brew install jq"
+        echo
+        echo "  Option 3 (Download binary):"
+        echo "    Visit: https://stedolan.github.io/jq/download/"
+        echo
+        return 1
+    fi
+    
+    log_success "jq is installed"
+    return 0
+}
+
 check_disk_space() {
     local required_mb="${CONFIG_validation_minimum_disk_space_mb:-100}"
     
@@ -308,6 +348,268 @@ check_disk_space() {
         log_success "Sufficient disk space: ${available_mb}MB available"
     else
         log_warning "Could not check disk space - continuing anyway"
+    fi
+    
+    return 0
+}
+
+# Local dependency management functions
+
+# Validates that a given path is a valid, installable Python project
+validate_local_repo() {
+    local repo_path="$1"
+    if [[ ! -d "$repo_path" || (! -f "$repo_path/pyproject.toml" && ! -f "$repo_path/setup.py") ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Auto-detects local repositories based on the development_dependencies config
+auto_detect_local_repos() {
+    log_info "Auto-detecting local repositories..."
+    
+    local config_json
+    if ! config_json=$(parse_yaml "$CONFIG_FILE"); then
+        log_error "Failed to parse configuration for local repo detection"
+        return 1
+    fi
+    
+    # Check if development_dependencies section exists
+    local dev_deps_exist
+    dev_deps_exist=$(echo "$config_json" | jq -r 'has("development_dependencies")' 2>/dev/null)
+    
+    if [[ "$dev_deps_exist" != "true" ]]; then
+        log_debug "No development_dependencies section found in config"
+        return 0
+    fi
+    
+    # Get list of dependency names
+    local dep_names
+    dep_names=$(echo "$config_json" | jq -r '.development_dependencies | keys[]' 2>/dev/null) || {
+        log_debug "No development dependencies configured"
+        return 0
+    }
+    
+    local found_repos=()
+    local missing_repos=()
+    
+    # Process each dependency
+    while IFS= read -r dep_name; do
+        local local_path
+        local_path=$(echo "$config_json" | jq -r --arg dep "$dep_name" '.development_dependencies[$dep].local_path' 2>/dev/null)
+        
+        if [[ "$local_path" != "null" && -n "$local_path" ]]; then
+            # Convert relative path to absolute if needed
+            if [[ ! "$local_path" =~ ^/ ]]; then
+                local_path="$PROJECT_DIR/$local_path"
+            fi
+            
+            log_debug "Checking for $dep_name at: $local_path"
+            
+            if validate_local_repo "$local_path"; then
+                log_success "Found local repo: $dep_name at $local_path"
+                found_repos+=("$dep_name:$local_path")
+            else
+                log_warning "Missing local repo: $dep_name (expected at $local_path)"
+                missing_repos+=("$dep_name")
+            fi
+        fi
+    done <<< "$dep_names"
+    
+    # Export results for use by other functions
+    export FOUND_LOCAL_REPOS="${found_repos[@]}"
+    export MISSING_LOCAL_REPOS="${missing_repos[@]}"
+    
+    if [[ ${#found_repos[@]} -gt 0 ]]; then
+        log_info "Found ${#found_repos[@]} local repositories"
+    fi
+    
+    if [[ ${#missing_repos[@]} -gt 0 ]]; then
+        log_info "Missing ${#missing_repos[@]} local repositories"
+        return 2  # Special return code to indicate missing repos
+    fi
+    
+    return 0
+}
+
+# Interactively handles missing local repositories
+handle_missing_repos() {
+    local missing_repos_list="$1"
+    
+    if [[ -z "$missing_repos_list" ]]; then
+        return 0
+    fi
+    
+    echo
+    echo "=== Missing Local Repositories ==="
+    echo "The following local repositories were not found:"
+    echo
+    
+    local repos_array=($missing_repos_list)
+    for repo in "${repos_array[@]}"; do
+        echo "  • $repo"
+    done
+    
+    echo
+    echo "What would you like to do?"
+    echo "  1) Clone missing repositories automatically"
+    echo "  2) Use PyPI versions instead (fallback)"
+    echo "  3) Continue without these dependencies"
+    echo "  4) Exit and handle manually"
+    echo
+    
+    local choice
+    while true; do
+        read -p "Please choose (1-4): " choice
+        case $choice in
+            1)
+                log_info "Will clone missing repositories..."
+                export CLONE_MISSING_REPOS="${missing_repos_list}"
+                return 0
+                ;;
+            2)
+                log_info "Will use PyPI versions for missing repositories"
+                return 0
+                ;;
+            3)
+                log_warning "Continuing without missing dependencies"
+                return 0
+                ;;
+            4)
+                log_info "Exiting for manual handling"
+                exit 0
+                ;;
+            *)
+                echo "Invalid choice. Please select 1-4."
+                ;;
+        esac
+    done
+}
+
+# Clones repositories from git URLs defined in the config
+clone_missing_repos() {
+    local repos_to_clone="$1"
+    
+    if [[ -z "$repos_to_clone" ]]; then
+        return 0
+    fi
+    
+    local config_json
+    if ! config_json=$(parse_yaml "$CONFIG_FILE"); then
+        log_error "Failed to parse configuration for repo cloning"
+        return 1
+    fi
+    
+    local repos_array=($repos_to_clone)
+    local cloned_repos=()
+    
+    for repo in "${repos_array[@]}"; do
+        log_info "Cloning $repo..."
+        
+        local git_url
+        git_url=$(echo "$config_json" | jq -r --arg dep "$repo" '.development_dependencies[$dep].git_url' 2>/dev/null)
+        
+        local local_path
+        local_path=$(echo "$config_json" | jq -r --arg dep "$repo" '.development_dependencies[$dep].local_path' 2>/dev/null)
+        
+        if [[ "$git_url" == "null" || -z "$git_url" ]]; then
+            log_error "No git_url configured for $repo"
+            continue
+        fi
+        
+        if [[ "$local_path" == "null" || -z "$local_path" ]]; then
+            log_error "No local_path configured for $repo"
+            continue
+        fi
+        
+        # Convert relative path to absolute if needed
+        if [[ ! "$local_path" =~ ^/ ]]; then
+            local_path="$PROJECT_DIR/$local_path"
+        fi
+        
+        # Create parent directory if needed
+        local parent_dir
+        parent_dir=$(dirname "$local_path")
+        if [[ ! -d "$parent_dir" ]]; then
+            log_info "Creating directory: $parent_dir"
+            mkdir -p "$parent_dir" || {
+                log_error "Failed to create directory: $parent_dir"
+                continue
+            }
+        fi
+        
+        # Clone the repository
+        if git clone "$git_url" "$local_path"; then
+            log_success "Cloned $repo to $local_path"
+            cloned_repos+=("$repo:$local_path")
+        else
+            log_error "Failed to clone $repo from $git_url"
+        fi
+    done
+    
+    # Update found repos list with newly cloned repos
+    if [[ ${#cloned_repos[@]} -gt 0 ]]; then
+        export FOUND_LOCAL_REPOS="${FOUND_LOCAL_REPOS} ${cloned_repos[@]}"
+    fi
+    
+    return 0
+}
+
+# Prepares all development dependencies found via auto-detection
+prepare_dev_dependencies() {
+    local auto_detect="${1:-false}"
+    local explicit_deps="${2:-}"
+    
+    log_debug "Preparing development dependencies (auto_detect=$auto_detect)"
+    
+    if [[ "$auto_detect" == "true" ]]; then
+        auto_detect_local_repos
+        local detect_result=$?
+        
+        if [[ $detect_result -eq 2 ]]; then
+            # Missing repos found
+            handle_missing_repos "$MISSING_LOCAL_REPOS"
+            
+            # Clone repos if user chose to
+            if [[ -n "${CLONE_MISSING_REPOS:-}" ]]; then
+                clone_missing_repos "$CLONE_MISSING_REPOS"
+            fi
+        fi
+    fi
+    
+    # Process explicit dependencies if provided
+    if [[ -n "$explicit_deps" ]]; then
+        log_info "Processing explicit local dependencies: $explicit_deps"
+        # Parse comma-separated paths
+        IFS=',' read -ra DEP_PATHS <<< "$explicit_deps"
+        for path in "${DEP_PATHS[@]}"; do
+            path=$(echo "$path" | xargs) # trim whitespace
+            if validate_local_repo "$path"; then
+                log_success "Valid local repo: $path"
+                export FOUND_LOCAL_REPOS="${FOUND_LOCAL_REPOS} explicit:$path"
+            else
+                log_error "Invalid local repo: $path (missing pyproject.toml or setup.py)"
+                return 1
+            fi
+        done
+    fi
+    
+    # Build pip arguments for found repositories
+    if [[ -n "${FOUND_LOCAL_REPOS:-}" ]]; then
+        local pip_args=""
+        local repos_array=($FOUND_LOCAL_REPOS)
+        
+        for repo_entry in "${repos_array[@]}"; do
+            local repo_path="${repo_entry#*:}"  # Extract path after colon
+            pip_args+="--editable \"$repo_path\" "
+        done
+        
+        # Remove trailing space
+        pip_args="${pip_args% }"
+        
+        log_info "Prepared pip arguments for local dependencies"
+        log_debug "PIPX_CUSTOM_PIP_ARGS: $pip_args"
+        export PIPX_CUSTOM_PIP_ARGS="$pip_args"
     fi
     
     return 0
@@ -351,7 +653,29 @@ install_with_pipx() {
             fi
         fi
         
-        if ! pipx install --editable "$install_dir" 2>&1 | tee /tmp/pipx_install_dev.log; then
+        # Build pipx command with custom pip args if set
+        local pipx_cmd_array=("pipx" "install")
+        local pip_args_string=""
+        
+        # Combine default and custom pip args
+        if [[ -n "${PIPX_DEFAULT_PIP_ARGS:-}" ]]; then
+            pip_args_string+="${PIPX_DEFAULT_PIP_ARGS} "
+        fi
+        if [[ -n "${PIPX_CUSTOM_PIP_ARGS:-}" ]]; then
+            pip_args_string+="${PIPX_CUSTOM_PIP_ARGS}"
+        fi
+        
+        # Add to the command array if the string is not empty
+        if [[ -n "$pip_args_string" ]]; then
+            # Remove trailing space
+            pip_args_string="${pip_args_string% }"
+            pipx_cmd_array+=("--pip-args=${pip_args_string}")
+        fi
+        
+        pipx_cmd_array+=("--editable" "$install_dir")
+        
+        # Execute the command safely using the array
+        if ! "${pipx_cmd_array[@]}" 2>&1 | tee /tmp/pipx_install_dev.log; then
             log_error "Failed to install ${CONFIG_package_name} in development mode"
             
             # Check for common development installation errors
@@ -661,6 +985,8 @@ verify_installation() {
 # Command handlers
 cmd_install() {
     local dev_mode=false
+    local auto_detect_local=false
+    local explicit_local_deps=""
     
     # Parse install options
     while [[ $# -gt 0 ]]; do
@@ -668,6 +994,24 @@ cmd_install() {
             --dev)
                 dev_mode=true
                 shift
+                ;;
+            --auto-detect-local)
+                auto_detect_local=true
+                shift
+                ;;
+            --local-deps=*)
+                explicit_local_deps="${1#*=}"
+                shift
+                ;;
+            --local-deps)
+                if [[ $# -gt 1 ]]; then
+                    explicit_local_deps="$2"
+                    shift 2
+                else
+                    log_error "--local-deps requires a value"
+                    show_usage
+                    exit 1
+                fi
                 ;;
             *)
                 log_error "Unknown option: $1"
@@ -680,7 +1024,17 @@ cmd_install() {
     # Run system checks
     check_python_version || exit 1
     check_git || exit 1
+    check_jq || exit 1
     check_disk_space || exit 1
+    
+    # Prepare development dependencies if in dev mode with local repo flags
+    if [[ "$dev_mode" == "true" && ("$auto_detect_local" == "true" || -n "$explicit_local_deps") ]]; then
+        log_info "Preparing local development dependencies..."
+        if ! prepare_dev_dependencies "$auto_detect_local" "$explicit_local_deps"; then
+            log_error "Failed to prepare development dependencies"
+            exit 1
+        fi
+    fi
     
     # Perform installation
     if install_with_pipx "$dev_mode"; then
@@ -736,14 +1090,28 @@ Global Options:
 Commands:
     install               Install ${CONFIG_package_name:-the package} with pipx
     install --dev         Install in development mode (editable)
+    install --dev --auto-detect-local
+                          Install in dev mode with auto-detected local repos
+    install --dev --local-deps="path1,path2"
+                          Install in dev mode with explicit local dependency paths
     upgrade               Upgrade to the latest version
     uninstall             Remove the installation
     status                Check installation status
     help                  Show this help message
 
+Local Development Options (require --dev):
+    --auto-detect-local   Automatically detect and use local repositories
+                          defined in the development_dependencies config
+    --local-deps=PATHS    Comma-separated list of local repository paths
+                          to install as editable dependencies
+
 Examples:
     ./setup.sh install              # Install from PyPI
     ./setup.sh install --dev        # Install in development mode
+    ./setup.sh install --dev --auto-detect-local
+                                    # Install with local repo auto-detection
+    ./setup.sh install --dev --local-deps="../stt,../ttt"
+                                    # Install with specific local repos
     ./setup.sh --debug install      # Install with debug output
     ./setup.sh upgrade              # Upgrade to latest version
     ./setup.sh uninstall            # Remove installation
