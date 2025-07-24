@@ -23,7 +23,7 @@ audio = [ "webrtc-audio-processing>=0.1.0", "pygame>=2.1.0", "pyaudio>=0.2.11", 
 
 [project.scripts]
 stt = "stt.cli:cli_entry"
-stt-server = "src.transcription.server:main"
+stt-server = "goobits_stt.transcription.server:main"
 smart-voice-demo = "examples.smart_voice_demo:cli_main"
 
 [tool.ruff]
@@ -76,7 +76,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.setuptools.package-data]
-src = [ "*.json", "text_formatting/resources/*.json",]
+"goobits_stt" = ["*.json", "text_formatting/resources/*.json"]
 
 [tool.coverage.run]
 source = [ "src",]
@@ -88,5 +88,6 @@ show_missing = true
 skip_covered = false
 
 [tool.setuptools.packages.find]
-include = [ "src*", "examples*",]
-exclude = [ "tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist",]
+where = ["src"]
+include = ["goobits_stt*", "examples*"]
+exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist"]
