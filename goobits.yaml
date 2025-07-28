@@ -1,270 +1,259 @@
-# Goobits configuration for Speech-to-Text CLI
-package_name: goobits-stt
-command_name: stt
-display_name: "Speech-to-Text CLI"
-description: "High-quality real-time speech transcription tool"
+# Goobits configuration for STT (Speech to Text)
+# This file replaces the old setup-config.yaml and defines everything needed for the build command
+
+# Setup fields for setup.sh
+package_name: "goobits-stt"
+command_name: "stt"
+display_name: "STT - Speech to Text"
+description: "Real-time speech transcription powered by Whisper"
 
 # CLI generation configuration
 cli_output_path: "src/goobits_stt/cli.py"
 hooks_path: "src/goobits_stt/app_hooks.py"
 
-# Python requirements
 python:
   minimum_version: "3.8"
   maximum_version: "3.13"
 
-# Dependencies
 dependencies:
   required:
     - git
     - pipx
-    - type: system_package
-      name: portaudio19-dev
-      description: "PortAudio development headers for audio recording"
-      ubuntu: libportaudio2-dev
-      debian: libportaudio2-dev
-      centos: portaudio-devel
-      fedora: portaudio-devel
-      macos: portaudio
-      check_method: pkg_config
-      check_args: ["--exists", "portaudio-2.0"]
-      install_instructions:
-        ubuntu: "sudo apt update && sudo apt install libportaudio2-dev"
-        debian: "sudo apt update && sudo apt install libportaudio2-dev"
-        centos: "sudo yum install portaudio-devel"
-        fedora: "sudo dnf install portaudio-devel"
-        macos: "brew install portaudio"
   optional:
-    - ffmpeg
+    - ffmpeg  # For audio processing
+    - portaudio  # For microphone input
+  development:
+    - ruff    # Modern Python linter and formatter
+    - mypy    # Static type checker
+    - black   # Code formatter
+    - pytest  # Testing framework
 
-# Installation settings
 installation:
-  pypi_name: goobits-stt
+  pypi_name: "goobits-stt"
   development_path: "."
 
-# Shell integration
 shell_integration:
-  enabled: true
+  enabled: false
   alias: "stt"
 
-# Validation rules
 validation:
   check_api_keys: false
   check_disk_space: true
   minimum_disk_space_mb: 500
 
-# Messages
 messages:
   install_success: |
-    🎤 Speech-to-Text CLI installed successfully!
-    
+    STT has been installed successfully!
+    You can now use 'stt' from your terminal.
+
     Quick start:
       stt listen              # Record and transcribe once
-      stt conversation        # Interactive mode
-      stt server             # Start WebSocket server
-    
-    Run 'stt --help' for more options.
-  
+      stt live                # Interactive conversation mode
+      stt serve               # Start WebSocket server
+
   install_dev_success: |
-    🔧 STT installed in development mode!
-    Your changes will be reflected immediately.
-  
+    STT has been installed in development mode!
+    ✅ Your local changes will be reflected immediately - no reinstalling needed!
+
+    Development workflow:
+      - Edit code in src/goobits_stt/ directory
+      - Test immediately with: stt listen
+      - Run tests with: ./test.py
+      - Format code with: ruff format src/goobits_stt/
+      - Check types with: mypy src/goobits_stt/
+
+    💡 No need to run ./setup.sh upgrade after code changes!
+
   upgrade_success: |
-    ⬆️  STT has been upgraded successfully!
-  
+    STT has been upgraded successfully!
+    Check out the latest features with: stt --version
+
   uninstall_success: |
     STT has been uninstalled.
+    Thank you for using STT!
 
-# CLI Configuration
+# CLI fields for cli.py generation
 cli:
-  name: stt
-  tagline: "Real-time speech-to-text transcription"
-  version_command: true
-  rich_help: true
-  
-  # Help sections
-  help:
-    examples: |
-      # Basic usage
-      $ stt listen
-      $ stt conversation
-      
-      # With options
-      $ stt listen --model large --language es
-      $ stt server --port 9000
-      
-      # Batch processing
-      $ stt batch audio1.wav audio2.mp3
-    
-    setup: |
-      1. Install with: ./setup.sh install
-      2. For development: ./setup.sh install --dev
-      3. Ensure microphone permissions are granted
-  
-  # Global options (apply to all commands)
-  options:
-    - name: "model"
-      type: "str"
-      default: "base"
-      desc: "Whisper model size to use"
-      choices: ["tiny", "base", "small", "medium", "large"]
-    - name: "language"
-      type: "str"
-      default: "en"
-      desc: "Language code for transcription"
-    - name: "device"
-      type: "str"
-      default: "cpu"
-      desc: "Compute device to use"
-      choices: ["cpu", "cuda", "mps"]
-    - name: "no-formatting"
-      type: "flag"
-      desc: "Disable text formatting and punctuation"
-    - name: "json"
-      type: "flag"
-      desc: "Output results in JSON format"
-    - name: "debug"
-      type: "flag"
-      desc: "Enable debug logging"
-    - name: "config"
-      type: "str"
-      desc: "Path to configuration file"
-    - name: "sample-rate"
-      type: "int"
-      default: 16000
-      desc: "Audio sample rate in Hz"
-  
-  # Command groups
-  groups:
+  name: "GOOBITS STT CLI"
+  version: "1.0.0"
+  display_version: true
+  tagline: "Speech to Text"
+  description: "Real-time speech transcription powered by Whisper"
+  icon: "🎤"
+  enable_recursive_help: true
+  enable_help_json: true
+
+  header_sections:
+    - title: "💡 Quick Start"
+      items:
+        - { item: "stt listen", desc: "Record once and transcribe", style: "example" }
+        - { item: "stt live", desc: "Interactive conversation mode", style: "example" }
+        - { item: "stt serve", desc: "Start WebSocket server", style: "example" }
+        - { item: "stt models", desc: "List available Whisper models", style: "example" }
+
+    - title: "🔑 Initial Setup"
+      items:
+        - { item: "1. Check status", desc: "stt status", style: "setup" }
+        - { item: "2. Select model", desc: "stt config set model base", style: "setup" }
+        - { item: "3. Start listening", desc: "stt listen", style: "setup" }
+
+  footer_note: "📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6]"
+
+  command_groups:
     - name: "Recording Modes"
-      commands: [listen, live]
+      commands: ["listen", "live"]
     - name: "Server & Processing"
-      commands: [serve]
+      commands: ["serve"]
     - name: "System"
-      commands: [status, models]
+      commands: ["status", "models"]
     - name: "Configuration"
-      commands: [config]
+      commands: ["config"]
   
-  # Commands
   commands:
-    # Recording modes
     listen:
       desc: "Record once and transcribe"
-      category: "Recording Modes"
+      icon: "🎙️"
       options:
-        - name: "device"
-          type: "str"
-          desc: "Audio input device to use"
-        - name: "language"
-          type: "str"
-          desc: "Language code for transcription"
         - name: "model"
+          short: "m"
           type: "str"
-          default: "base"
-          desc: "Whisper model to use"
+          desc: "Whisper model size"
           choices: ["tiny", "base", "small", "medium", "large"]
+          default: "base"
+        - name: "language"
+          short: "l"
+          type: "str"
+          desc: "Language code (e.g., en, es, fr)"
+        - name: "device"
+          short: "d"
+          type: "str"
+          desc: "Audio input device name"
         - name: "hold-to-talk"
           type: "str"
-          desc: "Hold key to record"
+          desc: "Hold key to record (e.g., space, f8)"
+        - name: "no-formatting"
+          type: "bool"
+          desc: "Disable text formatting"
+          default: false
+        - name: "sample-rate"
+          type: "int"
+          desc: "Audio sample rate in Hz"
+          default: 16000
         - name: "json"
           type: "flag"
           desc: "Output as JSON"
         - name: "debug"
           type: "flag"
-          desc: "Enable debug output"
+          desc: "Enable debug logging"
         - name: "config"
           type: "str"
           desc: "Path to config file"
-        - name: "no-formatting"
-          type: "flag"
-          desc: "Disable text formatting"
-        - name: "sample-rate"
-          type: "int"
-          default: 16000
-          desc: "Audio sample rate"
-    
+
     live:
-      desc: "Live conversation mode"
-      category: "Recording Modes"
+      desc: "Interactive conversation mode"
+      icon: "💬"
       options:
-        - name: "device"
-          type: "str"
-          desc: "Audio input device to use"
-        - name: "language"
-          type: "str"
-          desc: "Language code for transcription"
         - name: "model"
+          short: "m"
           type: "str"
-          default: "base"
-          desc: "Whisper model to use"
+          desc: "Whisper model size"
           choices: ["tiny", "base", "small", "medium", "large"]
+          default: "base"
+        - name: "language"
+          short: "l"
+          type: "str"
+          desc: "Language code (e.g., en, es, fr)"
+        - name: "device"
+          short: "d"
+          type: "str"
+          desc: "Audio input device name"
         - name: "tap-to-talk"
           type: "str"
-          desc: "Key to tap for push-to-talk"
+          desc: "Key to tap for push-to-talk (e.g., f8)"
+        - name: "no-formatting"
+          type: "bool"
+          desc: "Disable text formatting"
+          default: false
+        - name: "sample-rate"
+          type: "int"
+          desc: "Audio sample rate in Hz"
+          default: 16000
         - name: "json"
           type: "flag"
           desc: "Output as JSON"
         - name: "debug"
           type: "flag"
-          desc: "Enable debug output"
+          desc: "Enable debug logging"
         - name: "config"
           type: "str"
           desc: "Path to config file"
-        - name: "no-formatting"
-          type: "flag"
-          desc: "Disable text formatting"
-        - name: "sample-rate"
-          type: "int"
-          default: 16000
-          desc: "Audio sample rate"
-    
-    # Server and processing
+
     serve:
       desc: "Start transcription server"
-      category: "Server & Processing"
+      icon: "🌐"
       options:
         - name: "port"
+          short: "p"
           type: "int"
-          default: 8769
           desc: "Port to run server on"
+          default: 8769
         - name: "host"
+          short: "h"
           type: "str"
-          default: "0.0.0.0"
           desc: "Host to bind to"
+          default: "0.0.0.0"
         - name: "debug"
           type: "flag"
-          desc: "Enable debug output"
+          desc: "Enable debug logging"
         - name: "config"
           type: "str"
           desc: "Path to config file"
-    
-    # System commands
+
     status:
-      desc: "Show system status and capabilities"
-      category: "System"
-    
+      desc: "Check system and device status"
+      icon: "✅"
+      options:
+        - name: "json"
+          type: "flag"
+          desc: "Output as JSON"
+
     models:
       desc: "List available Whisper models"
-      category: "System"
-    
-    # Configuration
+      icon: "📦"
+      options:
+        - name: "json"
+          type: "flag"
+          desc: "Output as JSON"
+
     config:
-      desc: "Manage STT configuration"
-      category: "Configuration"
+      desc: "Manage configuration"
+      icon: "⚙️"
       subcommands:
-        list:
-          desc: "List all configuration settings"
-        
+        show:
+          desc: "Show all configuration"
+          options:
+            - name: "json"
+              type: "flag"
+              desc: "Output as JSON"
         get:
-          desc: "Get specific configuration value"
+          desc: "Get configuration value"
           args:
             - name: "key"
-              desc: "Configuration key to retrieve"
-        
+              desc: "Configuration key"
+              required: true
         set:
           desc: "Set configuration value"
           args:
             - name: "key"
               desc: "Configuration key"
+              required: true
             - name: "value"
               desc: "Configuration value"
+              required: true
+
+  config:
+    rich_help_panel: true
+    show_metavars_column: false
+    append_metavars_help: true
+    style_errors_suggestion: true
+    max_width: 120

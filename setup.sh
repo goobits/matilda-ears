@@ -60,8 +60,8 @@ fi
 # Project-specific configuration
 readonly PACKAGE_NAME="goobits-stt"
 readonly COMMAND_NAME="stt"
-readonly DISPLAY_NAME="Speech-to-Text CLI"
-readonly DESCRIPTION="High-quality real-time speech transcription tool"
+readonly DISPLAY_NAME="STT - Speech to Text"
+readonly DESCRIPTION="Real-time speech transcription powered by Whisper"
 readonly PYPI_NAME="goobits-stt"
 readonly DEVELOPMENT_PATH="."
 readonly REQUIRED_VERSION="3.8"
@@ -69,16 +69,16 @@ readonly MAXIMUM_VERSION="3.13"
 readonly CHECK_API_KEYS="False"
 readonly CHECK_DISK_SPACE="True"
 readonly REQUIRED_MB="500"
-readonly SHELL_INTEGRATION="True"
+readonly SHELL_INTEGRATION="False"
 readonly SHELL_ALIAS="stt"
 
 # Dependencies (legacy format for backward compatibility)
-readonly REQUIRED_DEPS=("git" "pipx" "portaudio19-dev")
-readonly OPTIONAL_DEPS=("ffmpeg")
+readonly REQUIRED_DEPS=("git" "pipx")
+readonly OPTIONAL_DEPS=("ffmpeg" "portaudio")
 
 # Enhanced dependency data (JSON format for complex dependencies)
-readonly REQUIRED_DEPS_JSON='[{"type": "command", "name": "git", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "command", "name": "pipx", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "system_package", "name": "portaudio19-dev", "description": "PortAudio development headers for audio recording", "ubuntu": "libportaudio2-dev", "debian": "libportaudio2-dev", "centos": "portaudio-devel", "fedora": "portaudio-devel", "macos": "portaudio", "windows": null, "check_method": "pkg_config", "check_args": ["--exists", "portaudio-2.0"], "install_instructions": {"ubuntu": "sudo apt update && sudo apt install libportaudio2-dev", "debian": "sudo apt update && sudo apt install libportaudio2-dev", "centos": "sudo yum install portaudio-devel", "fedora": "sudo dnf install portaudio-devel", "macos": "brew install portaudio"}}]'
-readonly OPTIONAL_DEPS_JSON='[{"type": "command", "name": "ffmpeg", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}]'
+readonly REQUIRED_DEPS_JSON='[{"type": "command", "name": "git", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "command", "name": "pipx", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}]'
+readonly OPTIONAL_DEPS_JSON='[{"type": "command", "name": "ffmpeg", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}, {"type": "command", "name": "portaudio", "description": null, "ubuntu": null, "debian": null, "centos": null, "fedora": null, "macos": null, "windows": null, "check_method": null, "check_args": null, "install_instructions": null}]'
 
 # Tree view helper functions
 tree_start() {
@@ -807,29 +807,38 @@ uninstall_package() {
 # Message display functions
 show_install_success_message() {
     echo
-    echo "🎤 Speech-to-Text CLI installed successfully!
+    echo "STT has been installed successfully!
+You can now use 'stt' from your terminal.
 
 Quick start:
   stt listen              # Record and transcribe once
-  stt conversation        # Interactive mode
-  stt server             # Start WebSocket server
-
-Run 'stt --help' for more options.
+  stt live                # Interactive conversation mode
+  stt serve               # Start WebSocket server
 "
     echo
 }
 
 show_dev_success_message() {
     echo
-    echo "🔧 STT installed in development mode!
-Your changes will be reflected immediately.
+    echo "STT has been installed in development mode!
+✅ Your local changes will be reflected immediately - no reinstalling needed!
+
+Development workflow:
+  - Edit code in src/goobits_stt/ directory
+  - Test immediately with: stt listen
+  - Run tests with: ./test.py
+  - Format code with: ruff format src/goobits_stt/
+  - Check types with: mypy src/goobits_stt/
+
+💡 No need to run ./setup.sh upgrade after code changes!
 "
     echo
 }
 
 show_upgrade_success_message() {
     echo
-    echo "⬆️  STT has been upgraded successfully!
+    echo "STT has been upgraded successfully!
+Check out the latest features with: stt --version
 "
     echo
 }
@@ -837,6 +846,7 @@ show_upgrade_success_message() {
 show_uninstall_success_message() {
     echo
     echo "STT has been uninstalled.
+Thank you for using STT!
 "
     echo
 }

@@ -226,34 +226,51 @@ def on_models(**kwargs) -> int:
     return 0
 
 
-def on_config_list(**kwargs) -> int:
-    """List all configuration settings"""
-    from goobits_stt.core.config import Config
-    
-    config = Config()
-    print("Current Configuration:")
-    for k, v in config.config.items():
-        if k not in ['jwt_secret']:  # Don't show secrets
-            print(f"  {k}: {v}")
-    return 0
+def on_config_show(json: bool = False, **kwargs) -> int:
+    """Show all configuration settings"""
+    try:
+        from goobits_stt.core.config import Config
+        config = Config()
+        
+        if json:
+            import json as j
+            # Filter out secrets
+            safe_config = {k: v for k, v in config.config.items() if k not in ['jwt_secret']}
+            print(j.dumps(safe_config, indent=2))
+        else:
+            print("🔧 Current Configuration")
+            print("=" * 40)
+            for k, v in config.config.items():
+                if k not in ['jwt_secret']:  # Don't show secrets
+                    print(f"  {k}: {v}")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 def on_config_get(key: str, **kwargs) -> int:
     """Get specific configuration value"""
-    from goobits_stt.core.config import Config
-    
-    config = Config()
-    value = config.get(key)
-    print(f"{key}: {value}")
-    return 0
+    try:
+        from goobits_stt.core.config import Config
+        config = Config()
+        value = config.get(key)
+        print(f"{key}: {value}")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 def on_config_set(key: str, value: str, **kwargs) -> int:
     """Set configuration value"""
-    from goobits_stt.core.config import Config
-    
-    config = Config()
-    config.set(key, value)
-    config.save()
-    print(f"Set {key} = {value}")
-    return 0
+    try:
+        from goobits_stt.core.config import Config
+        config = Config()
+        config.set(key, value)
+        config.save()
+        print(f"✅ Set {key} = {value}")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1

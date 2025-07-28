@@ -48,21 +48,46 @@ click.rich_click.STYLE_COMMAND = "#50fa7b"            # Dracula Green - for comm
 click.rich_click.STYLE_COMMANDS_TABLE_COLUMN_WIDTH_RATIO = (1, 3)  # Command:Description ratio (1/4 : 3/4)
 
 
+# Command groups will be set after main function is defined
+
 
 # Hooks system - try to import app_hooks module
 app_hooks = None
 try:
-    # Try to import app_hooks from same directory as CLI
-    script_dir = Path(__file__).parent
-    hooks_path = script_dir / "app_hooks.py"
+
+    # Use configured hooks path
+    hooks_path = Path("src/goobits_stt/app_hooks.py")
+    if not hooks_path.is_absolute():
+        # Make relative to the CLI file's directory
+        script_dir = Path(__file__).parent
+        # Calculate relative path from CLI location to hooks
+        cli_parts = Path("src/goobits_stt/cli.py").parts
+        cli_depth = len([p for p in cli_parts if p not in ['.', '..']])
+        hooks_path = script_dir / ('/'.join(['..'] * (cli_depth - 1))) / "src/goobits_stt/app_hooks.py"
     
     if hooks_path.exists():
         spec = importlib.util.spec_from_file_location("app_hooks", hooks_path)
         app_hooks = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(app_hooks)
     else:
-        # Try to import from Python path
-        import app_hooks
+        # Fallback: try multiple common locations
+        script_dir = Path(__file__).parent
+        possible_locations = [
+            script_dir / "app_hooks.py",  # Same directory as generated CLI
+            script_dir.parent.parent.parent / "app_hooks.py",  # Project root
+            script_dir.parent / "app_hooks.py",  # One level up
+        ]
+        
+        for fallback_path in possible_locations:
+            if fallback_path.exists():
+                spec = importlib.util.spec_from_file_location("app_hooks", fallback_path)
+                app_hooks = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(app_hooks)
+                break
+        else:
+            # Try to import from Python path
+            import app_hooks
+
 except (ImportError, FileNotFoundError):
     # No hooks module found, use default behavior
     pass
@@ -70,13 +95,13 @@ except (ImportError, FileNotFoundError):
 # Built-in commands
 
 def builtin_upgrade_command(check_only=False, pre=False, version=None, dry_run=False):
-    """Built-in upgrade function for Speech-to-Text CLI - uses enhanced setup.sh script."""
+    """Built-in upgrade function for STT - Speech to Text - uses enhanced setup.sh script."""
     import subprocess
     import sys
     from pathlib import Path
 
     if check_only:
-        print(f"Checking for updates to Speech-to-Text CLI...")
+        print(f"Checking for updates to STT - Speech to Text...")
         print("Update check not yet implemented. Run without --check to upgrade.")
         return
 
@@ -99,7 +124,7 @@ def builtin_upgrade_command(check_only=False, pre=False, version=None, dry_run=F
     
     if setup_script is None:
         # Fallback to basic upgrade if setup.sh not found
-        print(f"Enhanced setup script not found. Using basic upgrade for Speech-to-Text CLI...")
+        print(f"Enhanced setup script not found. Using basic upgrade for STT - Speech to Text...")
         import shutil
         
         package_name = "goobits-stt"
@@ -116,7 +141,7 @@ def builtin_upgrade_command(check_only=False, pre=False, version=None, dry_run=F
         
         result = subprocess.run(cmd)
         if result.returncode == 0:
-            print(f"✅ Speech-to-Text CLI upgraded successfully!")
+            print(f"✅ STT - Speech to Text upgraded successfully!")
             print(f"Run 'stt --version' to verify the new version.")
         else:
             print(f"❌ Upgrade failed with exit code {result.returncode}")
@@ -133,7 +158,7 @@ def load_plugins(cli_group):
     # Define plugin directories to search
     plugin_dirs = [
         # User-specific plugin directory
-        Path.home() / ".config" / "goobits" / "stt" / "plugins",
+        Path.home() / ".config" / "goobits" / "GOOBITS STT CLI" / "plugins",
         # Local plugin directory (same as script)
         Path(__file__).parent / "plugins",
     ]
@@ -205,6 +230,463 @@ def get_version():
     return "1.0.0"
 
 
+def show_help_json(ctx, param, value):
+    """Callback for --help-json option."""
+    if not value or ctx.resilient_parsing:
+        return
+    # The triple quotes are important to correctly handle the multi-line JSON string
+    click.echo('''{
+  "name": "GOOBITS STT CLI",
+  "version": "1.0.0",
+  "display_version": true,
+  "tagline": "Speech to Text",
+  "description": "Real-time speech transcription powered by Whisper",
+  "icon": "🎤",
+  "header_sections": [
+    {
+      "title": "💡 Quick Start",
+      "icon": null,
+      "items": [
+        {
+          "item": "stt listen",
+          "desc": "Record once and transcribe",
+          "style": "example"
+        },
+        {
+          "item": "stt live",
+          "desc": "Interactive conversation mode",
+          "style": "example"
+        },
+        {
+          "item": "stt serve",
+          "desc": "Start WebSocket server",
+          "style": "example"
+        },
+        {
+          "item": "stt models",
+          "desc": "List available Whisper models",
+          "style": "example"
+        }
+      ]
+    },
+    {
+      "title": "🔑 Initial Setup",
+      "icon": null,
+      "items": [
+        {
+          "item": "1. Check status",
+          "desc": "stt status",
+          "style": "setup"
+        },
+        {
+          "item": "2. Select model",
+          "desc": "stt config set model base",
+          "style": "setup"
+        },
+        {
+          "item": "3. Start listening",
+          "desc": "stt listen",
+          "style": "setup"
+        }
+      ]
+    }
+  ],
+  "footer_note": "📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6]",
+  "options": [],
+  "commands": {
+    "listen": {
+      "desc": "Record once and transcribe",
+      "icon": "🎙️",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [],
+      "options": [
+        {
+          "name": "model",
+          "short": "m",
+          "type": "str",
+          "desc": "Whisper model size",
+          "default": "base",
+          "choices": [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large"
+          ],
+          "multiple": false
+        },
+        {
+          "name": "language",
+          "short": "l",
+          "type": "str",
+          "desc": "Language code (e.g., en, es, fr)",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "device",
+          "short": "d",
+          "type": "str",
+          "desc": "Audio input device name",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "hold-to-talk",
+          "short": null,
+          "type": "str",
+          "desc": "Hold key to record (e.g., space, f8)",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "no-formatting",
+          "short": null,
+          "type": "bool",
+          "desc": "Disable text formatting",
+          "default": false,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "sample-rate",
+          "short": null,
+          "type": "int",
+          "desc": "Audio sample rate in Hz",
+          "default": 16000,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "json",
+          "short": null,
+          "type": "flag",
+          "desc": "Output as JSON",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "debug",
+          "short": null,
+          "type": "flag",
+          "desc": "Enable debug logging",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "config",
+          "short": null,
+          "type": "str",
+          "desc": "Path to config file",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        }
+      ],
+      "subcommands": null
+    },
+    "live": {
+      "desc": "Interactive conversation mode",
+      "icon": "💬",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [],
+      "options": [
+        {
+          "name": "model",
+          "short": "m",
+          "type": "str",
+          "desc": "Whisper model size",
+          "default": "base",
+          "choices": [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large"
+          ],
+          "multiple": false
+        },
+        {
+          "name": "language",
+          "short": "l",
+          "type": "str",
+          "desc": "Language code (e.g., en, es, fr)",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "device",
+          "short": "d",
+          "type": "str",
+          "desc": "Audio input device name",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "tap-to-talk",
+          "short": null,
+          "type": "str",
+          "desc": "Key to tap for push-to-talk (e.g., f8)",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "no-formatting",
+          "short": null,
+          "type": "bool",
+          "desc": "Disable text formatting",
+          "default": false,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "sample-rate",
+          "short": null,
+          "type": "int",
+          "desc": "Audio sample rate in Hz",
+          "default": 16000,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "json",
+          "short": null,
+          "type": "flag",
+          "desc": "Output as JSON",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "debug",
+          "short": null,
+          "type": "flag",
+          "desc": "Enable debug logging",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "config",
+          "short": null,
+          "type": "str",
+          "desc": "Path to config file",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        }
+      ],
+      "subcommands": null
+    },
+    "serve": {
+      "desc": "Start transcription server",
+      "icon": "🌐",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [],
+      "options": [
+        {
+          "name": "port",
+          "short": "p",
+          "type": "int",
+          "desc": "Port to run server on",
+          "default": 8769,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "host",
+          "short": "h",
+          "type": "str",
+          "desc": "Host to bind to",
+          "default": "0.0.0.0",
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "debug",
+          "short": null,
+          "type": "flag",
+          "desc": "Enable debug logging",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "config",
+          "short": null,
+          "type": "str",
+          "desc": "Path to config file",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        }
+      ],
+      "subcommands": null
+    },
+    "status": {
+      "desc": "Check system and device status",
+      "icon": "✅",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [],
+      "options": [
+        {
+          "name": "json",
+          "short": null,
+          "type": "flag",
+          "desc": "Output as JSON",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        }
+      ],
+      "subcommands": null
+    },
+    "models": {
+      "desc": "List available Whisper models",
+      "icon": "📦",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [],
+      "options": [
+        {
+          "name": "json",
+          "short": null,
+          "type": "flag",
+          "desc": "Output as JSON",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        }
+      ],
+      "subcommands": null
+    },
+    "config": {
+      "desc": "Manage configuration",
+      "icon": "⚙️",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [],
+      "options": [],
+      "subcommands": {
+        "show": {
+          "desc": "Show all configuration",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [],
+          "options": [
+            {
+              "name": "json",
+              "short": null,
+              "type": "flag",
+              "desc": "Output as JSON",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            }
+          ],
+          "subcommands": null
+        },
+        "get": {
+          "desc": "Get configuration value",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [
+            {
+              "name": "key",
+              "desc": "Configuration key",
+              "nargs": null,
+              "choices": null,
+              "required": true
+            }
+          ],
+          "options": [],
+          "subcommands": null
+        },
+        "set": {
+          "desc": "Set configuration value",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [
+            {
+              "name": "key",
+              "desc": "Configuration key",
+              "nargs": null,
+              "choices": null,
+              "required": true
+            },
+            {
+              "name": "value",
+              "desc": "Configuration value",
+              "nargs": null,
+              "choices": null,
+              "required": true
+            }
+          ],
+          "options": [],
+          "subcommands": null
+        }
+      }
+    }
+  },
+  "command_groups": [
+    {
+      "name": "Recording Modes",
+      "commands": [
+        "listen",
+        "live"
+      ],
+      "icon": null
+    },
+    {
+      "name": "Server & Processing",
+      "commands": [
+        "serve"
+      ],
+      "icon": null
+    },
+    {
+      "name": "System",
+      "commands": [
+        "status",
+        "models"
+      ],
+      "icon": null
+    },
+    {
+      "name": "Configuration",
+      "commands": [
+        "config"
+      ],
+      "icon": null
+    }
+  ],
+  "config": {
+    "rich_help_panel": true,
+    "show_metavars_column": false,
+    "append_metavars_help": true,
+    "style_errors_suggestion": true,
+    "max_width": 120
+  },
+  "enable_recursive_help": true,
+  "enable_help_json": true
+}''')
+    ctx.exit()
+
 
 
 
@@ -227,93 +709,98 @@ def get_version():
 
 @click.group(cls=RichGroup, context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 120})
 
-@click.version_option(version=get_version(), prog_name="stt")
+@click.version_option(version=get_version(), prog_name="GOOBITS STT CLI")
 @click.pass_context
 
+@click.option('--help-json', is_flag=True, callback=show_help_json, is_eager=True, help='Output CLI structure as JSON.', hidden=True)
 
 
-
-@click.option("--model",
-    type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
-    default="base",
-    help="Whisper model size to use"
-)
-
-@click.option("--language",
-    type=str,
-    default="en",
-    help="Language code for transcription"
-)
-
-@click.option("--device",
-    type=click.Choice(['cpu', 'cuda', 'mps']),
-    default="cpu",
-    help="Compute device to use"
-)
-
-@click.option("--no-formatting",
-    is_flag=True,
-    help="Disable text formatting and punctuation"
-)
-
-@click.option("--json",
-    is_flag=True,
-    help="Output results in JSON format"
-)
-
-@click.option("--debug",
-    is_flag=True,
-    help="Enable debug logging"
-)
-
-@click.option("--config",
-    type=str,
-    help="Path to configuration file"
-)
-
-@click.option("--sample-rate",
-    type=int,
-    default=16000,
-    help="Audio sample rate in Hz"
-)
+@click.option('--help-all', is_flag=True, is_eager=True, help='Show help for all commands.', hidden=True)
 
 
-def main(ctx, model=None, language=None, device=None, no_formatting=False, json=False, debug=False, config=None, sample_rate=None):
-    """[bold color(6)]stt v1.0.0[/bold color(6)] - Real-time speech-to-text transcription
+def main(ctx, help_json=False, help_all=False):
+    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.0[/bold color(6)] - Speech to Text
 
+    
+    \b
+    [#B3B8C0]Real-time speech transcription powered by Whisper[/#B3B8C0]
     
 
     
     \b
+    [bold yellow]💡 Quick Start:[/bold yellow]
+    [green]stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic]
+    [green]stt live    [/green] [italic][#B3B8C0]# Interactive conversation mode[/#B3B8C0][/italic]
+    [green]stt serve   [/green] [italic][#B3B8C0]# Start WebSocket server[/#B3B8C0][/italic]
+    [green]stt models  [/green] [italic][#B3B8C0]# List available Whisper models[/#B3B8C0][/italic]
+    
+    \b
+    [bold yellow]🔑 Initial Setup:[/bold yellow]
+    1. Check status:    [green]stt status[/green]
+    2. Select model:    [green]stt config set model base[/green]
+    3. Start listening: [green]stt listen[/green]
+    
+    \b
+    
+       [#B3B8C0]📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6][/#B3B8C0]
     """
 
+    
+    if help_all:
+        # Print main help
+        click.echo(ctx.get_help())
+        click.echo() # Add a blank line for spacing
+
+        # Get a list of all command names
+        commands_to_show = sorted(ctx.command.list_commands(ctx))
+
+        for cmd_name in commands_to_show:
+            command = ctx.command.get_command(ctx, cmd_name)
+
+            # Create a new context for the subcommand
+            sub_ctx = click.Context(command, info_name=cmd_name, parent=ctx)
+
+            # Print a separator and the subcommand's help
+            click.echo("="*20 + f" HELP FOR: {cmd_name} " + "="*20)
+            click.echo(sub_ctx.get_help())
+            click.echo() # Add a blank line for spacing
+
+        # Exit after printing all help
+        ctx.exit()
     
     
     # Store global options in context for use by commands
     
-    if ctx.obj is None:
-        ctx.obj = {}
-    
-    ctx.obj['model'] = model
-    
-    ctx.obj['language'] = language
-    
-    ctx.obj['device'] = device
-    
-    ctx.obj['no-formatting'] = no_formatting
-    
-    ctx.obj['json'] = json
-    
-    ctx.obj['debug'] = debug
-    
-    ctx.obj['config'] = config
-    
-    ctx.obj['sample-rate'] = sample_rate
-    
-    
 
     pass
 
+
+# Set command groups after main function is defined
+click.rich_click.COMMAND_GROUPS = {
+    "main": [
+        
+        {
+            "name": "Recording Modes",
+            "commands": ['listen', 'live'],
+        },
+        
+        {
+            "name": "Server & Processing",
+            "commands": ['serve'],
+        },
+        
+        {
+            "name": "System",
+            "commands": ['status', 'models'],
+        },
+        
+        {
+            "name": "Configuration",
+            "commands": ['config'],
+        },
+        
+    ]
+}
 
 
 # Built-in upgrade command (enabled by default)
@@ -324,7 +811,7 @@ def main(ctx, model=None, language=None, device=None, no_formatting=False, json=
 @click.option('--pre', is_flag=True, help='Include pre-release versions')
 @click.option('--dry-run', is_flag=True, help='Show what would be done without doing it')
 def upgrade(check, version, pre, dry_run):
-    """Upgrade Speech-to-Text CLI to the latest version."""
+    """Upgrade STT - Speech to Text to the latest version."""
     builtin_upgrade_command(check_only=check, version=version, pre=pre, dry_run=dry_run)
 
 
@@ -334,25 +821,37 @@ def upgrade(check, version, pre, dry_run):
 @click.pass_context
 
 
-@click.option("--device",
-    type=str,
-    help="Audio input device to use"
-)
-
-@click.option("--language",
-    type=str,
-    help="Language code for transcription"
-)
-
-@click.option("--model",
+@click.option("-m", "--model",
     type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
     default="base",
-    help="Whisper model to use"
+    help="Whisper model size"
+)
+
+@click.option("-l", "--language",
+    type=str,
+    help="Language code (e.g., en, es, fr)"
+)
+
+@click.option("-d", "--device",
+    type=str,
+    help="Audio input device name"
 )
 
 @click.option("--hold-to-talk",
     type=str,
-    help="Hold key to record"
+    help="Hold key to record (e.g., space, f8)"
+)
+
+@click.option("--no-formatting",
+    type=bool,
+    default=False,
+    help="Disable text formatting"
+)
+
+@click.option("--sample-rate",
+    type=int,
+    default=16000,
+    help="Audio sample rate in Hz"
 )
 
 @click.option("--json",
@@ -362,7 +861,7 @@ def upgrade(check, version, pre, dry_run):
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable debug output"
+    help="Enable debug logging"
 )
 
 @click.option("--config",
@@ -370,19 +869,8 @@ def upgrade(check, version, pre, dry_run):
     help="Path to config file"
 )
 
-@click.option("--no-formatting",
-    is_flag=True,
-    help="Disable text formatting"
-)
-
-@click.option("--sample-rate",
-    type=int,
-    default=16000,
-    help="Audio sample rate"
-)
-
-def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_formatting, sample_rate):
-    """Record once and transcribe"""
+def listen(ctx, model, language, device, hold_to_talk, no_formatting, sample_rate, json, debug, config):
+    """🎙️  Record once and transcribe"""
     
     # Check for built-in commands first
     
@@ -401,7 +889,7 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
         
         
         
-        kwargs['device'] = device
+        kwargs['model'] = model
         
         
         
@@ -411,12 +899,22 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
         
         
         
-        kwargs['model'] = model
+        kwargs['device'] = device
         
         
         
         
         kwargs['hold_to_talk'] = hold_to_talk
+        
+        
+        
+        
+        kwargs['no_formatting'] = no_formatting
+        
+        
+        
+        
+        kwargs['sample_rate'] = sample_rate
         
         
         
@@ -435,36 +933,7 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
         
         
         
-        
-        kwargs['no_formatting'] = no_formatting
-        
-        
-        
-        
-        kwargs['sample_rate'] = sample_rate
-        
-        
-        
         # Add global options from context
-        
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
         
         
         result = hook_func(**kwargs)
@@ -475,23 +944,23 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
         
         
         
-        click.echo(f"  device: {device}")
+        click.echo(f"  model: {model}")
         
         click.echo(f"  language: {language}")
         
-        click.echo(f"  model: {model}")
+        click.echo(f"  device: {device}")
         
         click.echo(f"  hold-to-talk: {hold_to_talk}")
+        
+        click.echo(f"  no-formatting: {no_formatting}")
+        
+        click.echo(f"  sample-rate: {sample_rate}")
         
         click.echo(f"  json: {json}")
         
         click.echo(f"  debug: {debug}")
         
         click.echo(f"  config: {config}")
-        
-        click.echo(f"  no-formatting: {no_formatting}")
-        
-        click.echo(f"  sample-rate: {sample_rate}")
         
         
     
@@ -504,25 +973,37 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
 @click.pass_context
 
 
-@click.option("--device",
-    type=str,
-    help="Audio input device to use"
-)
-
-@click.option("--language",
-    type=str,
-    help="Language code for transcription"
-)
-
-@click.option("--model",
+@click.option("-m", "--model",
     type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
     default="base",
-    help="Whisper model to use"
+    help="Whisper model size"
+)
+
+@click.option("-l", "--language",
+    type=str,
+    help="Language code (e.g., en, es, fr)"
+)
+
+@click.option("-d", "--device",
+    type=str,
+    help="Audio input device name"
 )
 
 @click.option("--tap-to-talk",
     type=str,
-    help="Key to tap for push-to-talk"
+    help="Key to tap for push-to-talk (e.g., f8)"
+)
+
+@click.option("--no-formatting",
+    type=bool,
+    default=False,
+    help="Disable text formatting"
+)
+
+@click.option("--sample-rate",
+    type=int,
+    default=16000,
+    help="Audio sample rate in Hz"
 )
 
 @click.option("--json",
@@ -532,7 +1013,7 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable debug output"
+    help="Enable debug logging"
 )
 
 @click.option("--config",
@@ -540,19 +1021,8 @@ def listen(ctx, device, language, model, hold_to_talk, json, debug, config, no_f
     help="Path to config file"
 )
 
-@click.option("--no-formatting",
-    is_flag=True,
-    help="Disable text formatting"
-)
-
-@click.option("--sample-rate",
-    type=int,
-    default=16000,
-    help="Audio sample rate"
-)
-
-def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_formatting, sample_rate):
-    """Live conversation mode"""
+def live(ctx, model, language, device, tap_to_talk, no_formatting, sample_rate, json, debug, config):
+    """💬 Interactive conversation mode"""
     
     # Check for built-in commands first
     
@@ -571,7 +1041,7 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
         
         
         
-        kwargs['device'] = device
+        kwargs['model'] = model
         
         
         
@@ -581,12 +1051,22 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
         
         
         
-        kwargs['model'] = model
+        kwargs['device'] = device
         
         
         
         
         kwargs['tap_to_talk'] = tap_to_talk
+        
+        
+        
+        
+        kwargs['no_formatting'] = no_formatting
+        
+        
+        
+        
+        kwargs['sample_rate'] = sample_rate
         
         
         
@@ -605,36 +1085,7 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
         
         
         
-        
-        kwargs['no_formatting'] = no_formatting
-        
-        
-        
-        
-        kwargs['sample_rate'] = sample_rate
-        
-        
-        
         # Add global options from context
-        
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
         
         
         result = hook_func(**kwargs)
@@ -645,23 +1096,23 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
         
         
         
-        click.echo(f"  device: {device}")
+        click.echo(f"  model: {model}")
         
         click.echo(f"  language: {language}")
         
-        click.echo(f"  model: {model}")
+        click.echo(f"  device: {device}")
         
         click.echo(f"  tap-to-talk: {tap_to_talk}")
+        
+        click.echo(f"  no-formatting: {no_formatting}")
+        
+        click.echo(f"  sample-rate: {sample_rate}")
         
         click.echo(f"  json: {json}")
         
         click.echo(f"  debug: {debug}")
         
         click.echo(f"  config: {config}")
-        
-        click.echo(f"  no-formatting: {no_formatting}")
-        
-        click.echo(f"  sample-rate: {sample_rate}")
         
         
     
@@ -674,13 +1125,13 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
 @click.pass_context
 
 
-@click.option("--port",
+@click.option("-p", "--port",
     type=int,
     default=8769,
     help="Port to run server on"
 )
 
-@click.option("--host",
+@click.option("-h", "--host",
     type=str,
     default="0.0.0.0",
     help="Host to bind to"
@@ -688,7 +1139,7 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable debug output"
+    help="Enable debug logging"
 )
 
 @click.option("--config",
@@ -697,7 +1148,7 @@ def live(ctx, device, language, model, tap_to_talk, json, debug, config, no_form
 )
 
 def serve(ctx, port, host, debug, config):
-    """Start transcription server"""
+    """🌐 Start transcription server"""
     
     # Check for built-in commands first
     
@@ -737,25 +1188,6 @@ def serve(ctx, port, host, debug, config):
         
         # Add global options from context
         
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
-        
         
         result = hook_func(**kwargs)
         return result
@@ -784,8 +1216,13 @@ def serve(ctx, port, host, debug, config):
 @click.pass_context
 
 
-def status(ctx):
-    """Show system status and capabilities"""
+@click.option("--json",
+    is_flag=True,
+    help="Output as JSON"
+)
+
+def status(ctx, json):
+    """✅ Check system and device status"""
     
     # Check for built-in commands first
     
@@ -801,26 +1238,14 @@ def status(ctx):
         
         
         
-        # Add global options from context
         
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
+        
+        
+        kwargs['json'] = json
+        
+        
+        
+        # Add global options from context
         
         
         result = hook_func(**kwargs)
@@ -828,6 +1253,10 @@ def status(ctx):
     else:
         # Default placeholder behavior
         click.echo(f"Executing status command...")
+        
+        
+        
+        click.echo(f"  json: {json}")
         
         
     
@@ -840,8 +1269,13 @@ def status(ctx):
 @click.pass_context
 
 
-def models(ctx):
-    """List available Whisper models"""
+@click.option("--json",
+    is_flag=True,
+    help="Output as JSON"
+)
+
+def models(ctx, json):
+    """📦 List available Whisper models"""
     
     # Check for built-in commands first
     
@@ -857,26 +1291,14 @@ def models(ctx):
         
         
         
-        # Add global options from context
         
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
+        
+        
+        kwargs['json'] = json
+        
+        
+        
+        # Add global options from context
         
         
         result = hook_func(**kwargs)
@@ -884,6 +1306,10 @@ def models(ctx):
     else:
         # Default placeholder behavior
         click.echo(f"Executing models command...")
+        
+        
+        
+        click.echo(f"  json: {json}")
         
         
     
@@ -894,7 +1320,7 @@ def models(ctx):
 
 @main.group()
 def config():
-    """Manage STT configuration"""
+    """⚙️  Manage configuration"""
     pass
 
 
@@ -902,47 +1328,41 @@ def config():
 @click.pass_context
 
 
-def list(ctx):
-    """List all configuration settings"""
+@click.option("--json",
+    is_flag=True,
+    help="Output as JSON"
+)
+
+def show(ctx, json):
+    """Show all configuration"""
     # Check if hook function exists
-    hook_name = f"on_config_list"
+    hook_name = f"on_config_show"
     if app_hooks and hasattr(app_hooks, hook_name):
         # Call the hook with all parameters
         hook_func = getattr(app_hooks, hook_name)
         
         # Prepare arguments including global options
         kwargs = {}
-        kwargs['command_name'] = 'list'  # Pass command name for all commands
+        kwargs['command_name'] = 'show'  # Pass command name for all commands
+        
+        
+        
+        kwargs['json'] = json
         
         
         
         # Add global options from context
-        
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
         
         
         result = hook_func(**kwargs)
         return result
     else:
         # Default placeholder behavior
-        click.echo(f"Executing list command...")
+        click.echo(f"Executing show command...")
+        
+        
+        
+        click.echo(f"  json: {json}")
         
         
 
@@ -955,7 +1375,7 @@ def list(ctx):
 
 
 def get(ctx, key):
-    """Get specific configuration value"""
+    """Get configuration value"""
     # Check if hook function exists
     hook_name = f"on_config_get"
     if app_hooks and hasattr(app_hooks, hook_name):
@@ -973,25 +1393,6 @@ def get(ctx, key):
         
         
         # Add global options from context
-        
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
         
         
         result = hook_func(**kwargs)
@@ -1039,25 +1440,6 @@ def set(ctx, key, value):
         
         
         # Add global options from context
-        
-        if ctx.obj:
-            
-            kwargs['model'] = ctx.obj.get('model')
-            
-            kwargs['language'] = ctx.obj.get('language')
-            
-            kwargs['device'] = ctx.obj.get('device')
-            
-            kwargs['no_formatting'] = ctx.obj.get('no-formatting')
-            
-            kwargs['json'] = ctx.obj.get('json')
-            
-            kwargs['debug'] = ctx.obj.get('debug')
-            
-            kwargs['config'] = ctx.obj.get('config')
-            
-            kwargs['sample_rate'] = ctx.obj.get('sample-rate')
-            
         
         
         result = hook_func(**kwargs)
