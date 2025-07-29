@@ -32,8 +32,8 @@ installation:
   pypi_name: "goobits-stt"
   development_path: "."
   extras:
-    python: ["audio"]  # Python extras including pyaudio
-    apt: ["libportaudio2-dev", "ffmpeg"]  # System packages for audio support
+    python: ["audio"]
+    apt: ["libportaudio2-dev", "ffmpeg"]
 
 shell_integration:
   enabled: false
@@ -49,9 +49,6 @@ messages:
     STT has been installed successfully!
     You can now use 'stt' from your terminal.
 
-    ⚠️  IMPORTANT: For audio device support, install with:
-       pipx install goobits-stt[audio] --force
-
     Quick start:
       stt listen              # Record and transcribe once
       stt live                # Interactive conversation mode
@@ -60,9 +57,6 @@ messages:
   install_dev_success: |
     STT has been installed in development mode!
     ✅ Your local changes will be reflected immediately - no reinstalling needed!
-
-    ⚠️  IMPORTANT: For audio device support, install with:
-       cd /workspace/stt && pipx install -e .[audio] --force
 
     Development workflow:
       - Edit code in src/goobits_stt/ directory
