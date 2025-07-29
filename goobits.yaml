@@ -33,7 +33,7 @@ installation:
   development_path: "."
   extras:
     python: ["audio"]
-    apt: ["libportaudio2-dev", "ffmpeg"]
+    apt: ["portaudio19-dev", "ffmpeg", "swig"]
 
 shell_integration:
   enabled: false
@@ -78,7 +78,7 @@ messages:
 # CLI fields for cli.py generation
 cli:
   name: "GOOBITS STT CLI"
-  version: "1.0.0"
+  version: "1.0.1"
   display_version: true
   tagline: "Speech to Text"
   description: "Real-time speech transcription powered by Whisper"

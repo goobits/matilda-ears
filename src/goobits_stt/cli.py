@@ -204,7 +204,7 @@ def get_version():
         pass
         
     # Final fallback
-    return "1.0.0"
+    return "1.0.1"
 
 
 def show_help_json(ctx, param, value):
@@ -214,7 +214,7 @@ def show_help_json(ctx, param, value):
     # The triple quotes are important to correctly handle the multi-line JSON string
     click.echo('''{
   "name": "GOOBITS STT CLI",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "display_version": true,
   "tagline": "Speech to Text",
   "description": "Real-time speech transcription powered by Whisper",
@@ -696,7 +696,7 @@ def show_help_json(ctx, param, value):
 
 
 def main(ctx, help_json=False, help_all=False):
-    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.0[/bold color(6)] - Speech to Text
+    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.1[/bold color(6)] - Speech to Text
 
     
     \b
@@ -705,20 +705,10 @@ def main(ctx, help_json=False, help_all=False):
 
     
     \b
-    [bold yellow]💡 Quick Start:[/bold yellow]
-    [green]stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic]
-    [green]stt live    [/green] [italic][#B3B8C0]# Interactive conversation mode[/#B3B8C0][/italic]
-    [green]stt serve   [/green] [italic][#B3B8C0]# Start WebSocket server[/#B3B8C0][/italic]
-    [green]stt models  [/green] [italic][#B3B8C0]# List available Whisper models[/#B3B8C0][/italic]
-    
+    [bold yellow]💡 Quick Start:[/bold yellow][green]stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic][green]stt live    [/green] [italic][#B3B8C0]# Interactive conversation mode[/#B3B8C0][/italic][green]stt serve   [/green] [italic][#B3B8C0]# Start WebSocket server[/#B3B8C0][/italic][green]stt models  [/green] [italic][#B3B8C0]# List available Whisper models[/#B3B8C0][/italic]
     \b
-    [bold yellow]🔑 Initial Setup:[/bold yellow]
-    1. Check status:    [green]stt status[/green]
-    2. Select model:    [green]stt config set model base[/green]
-    3. Start listening: [green]stt listen[/green]
-    
+    [bold yellow]🔑 Initial Setup:[/bold yellow]1. Check status:    [green]stt status[/green]2. Select model:    [green]stt config set model base[/green]3. Start listening: [green]stt listen[/green]
     \b
-    
        [#B3B8C0]📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6][/#B3B8C0]
     """
 

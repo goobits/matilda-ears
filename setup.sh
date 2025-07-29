@@ -668,6 +668,11 @@ install_with_pipx() {
         tree_sub_node "info" "Using pipx for isolated environment"
 
         
+        # Install system dependencies BEFORE Python packages
+        install_system_dependencies
+        
+
+        
         (cd "$PROJECT_DIR" && pipx install --editable "$DEVELOPMENT_PATH[audio]" --force) &
         
         local install_pid=$!
@@ -680,8 +685,6 @@ install_with_pipx() {
         if [[ $exit_code -eq 0 ]]; then
             tree_sub_node "success" "Development installation completed" "" "true"
             
-            install_additional_extras
-            
             show_dev_success_message
         else
             tree_sub_node "error" "Development installation failed" "" "true"
@@ -690,6 +693,11 @@ install_with_pipx() {
     else
         tree_node "info" "Installing from PyPI" "$(update_progress)"
         tree_sub_node "info" "Using pipx for isolated environment"
+
+        
+        # Install system dependencies BEFORE Python packages
+        install_system_dependencies
+        
 
         
         pipx install "$PYPI_NAME[audio]" --force &
@@ -704,8 +712,6 @@ install_with_pipx() {
         if [[ $exit_code -eq 0 ]]; then
             tree_sub_node "success" "Installation completed" "" "true"
             
-            install_additional_extras
-            
             show_install_success_message
         else
             tree_sub_node "error" "Installation failed" "" "true"
@@ -719,6 +725,11 @@ install_with_pip() {
 
     tree_sub_node "warning" "Using pip instead of pipx (not recommended)"
 
+    
+    # Install system dependencies BEFORE Python packages
+    install_system_dependencies
+    
+
     if [[ "$install_dev" == "true" ]]; then
         tree_sub_node "progress" "Installing in development mode with pip..."
         
@@ -730,6 +741,7 @@ install_with_pip() {
 
         if [[ $exit_code -eq 0 ]]; then
             tree_sub_node "success" "Development installation completed" "true"
+            
             show_dev_success_message
         else
             tree_sub_node "error" "Development installation failed" "true"
@@ -746,6 +758,7 @@ install_with_pip() {
 
         if [[ $exit_code -eq 0 ]]; then
             tree_sub_node "success" "Installation completed" "true"
+            
             show_install_success_message
         else
             tree_sub_node "error" "Installation failed" "true"
@@ -868,19 +881,15 @@ Thank you for using STT!
 }
 
 
-# Additional extras installation
-install_additional_extras() {
-    
-    
-    
-    # Install apt packages
+# System dependencies installation (before Python packages)
+install_system_dependencies() {
     if command -v apt-get >/dev/null 2>&1; then
         tree_sub_node "info" "Installing system packages (may require sudo)..."
         
-        if sudo apt-get install -y libportaudio2-dev >/dev/null 2>&1; then
-            tree_sub_node "success" "Installed apt package: libportaudio2-dev"
+        if sudo apt-get install -y portaudio19-dev >/dev/null 2>&1; then
+            tree_sub_node "success" "Installed apt package: portaudio19-dev"
         else
-            tree_sub_node "warning" "Failed to install apt package: libportaudio2-dev"
+            tree_sub_node "warning" "Failed to install apt package: portaudio19-dev"
         fi
         
         if sudo apt-get install -y ffmpeg >/dev/null 2>&1; then
@@ -889,11 +898,18 @@ install_additional_extras() {
             tree_sub_node "warning" "Failed to install apt package: ffmpeg"
         fi
         
+        if sudo apt-get install -y swig >/dev/null 2>&1; then
+            tree_sub_node "success" "Installed apt package: swig"
+        else
+            tree_sub_node "warning" "Failed to install apt package: swig"
+        fi
+        
     else
-        tree_sub_node "info" "apt-get not found - manual installation required for: libportaudio2-dev, ffmpeg"
+        tree_sub_node "info" "apt-get not found - manual installation required for: portaudio19-dev, ffmpeg, swig"
     fi
-    
 }
+
+
 
 
 # Shell integration
