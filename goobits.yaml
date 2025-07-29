@@ -21,7 +21,7 @@ dependencies:
     - pipx
   optional:
     - ffmpeg  # For audio processing
-    - portaudio  # For microphone input
+    - portaudio  # For microphone input (system package)
   development:
     - ruff    # Modern Python linter and formatter
     - mypy    # Static type checker
@@ -31,6 +31,7 @@ dependencies:
 installation:
   pypi_name: "goobits-stt"
   development_path: "."
+  extras: ["audio"]  # Include audio dependencies like pyaudio
 
 shell_integration:
   enabled: false
@@ -46,6 +47,9 @@ messages:
     STT has been installed successfully!
     You can now use 'stt' from your terminal.
 
+    ⚠️  IMPORTANT: For audio device support, install with:
+       pipx install goobits-stt[audio] --force
+
     Quick start:
       stt listen              # Record and transcribe once
       stt live                # Interactive conversation mode
@@ -54,6 +58,9 @@ messages:
   install_dev_success: |
     STT has been installed in development mode!
     ✅ Your local changes will be reflected immediately - no reinstalling needed!
+
+    ⚠️  IMPORTANT: For audio device support, install with:
+       cd /workspace/stt && pipx install -e .[audio] --force
 
     Development workflow:
       - Edit code in src/goobits_stt/ directory

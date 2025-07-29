@@ -54,40 +54,17 @@ click.rich_click.STYLE_COMMANDS_TABLE_COLUMN_WIDTH_RATIO = (1, 3)  # Command:Des
 # Hooks system - try to import app_hooks module
 app_hooks = None
 try:
-
-    # Use configured hooks path
-    hooks_path = Path("src/goobits_stt/app_hooks.py")
-    if not hooks_path.is_absolute():
-        # Make relative to the CLI file's directory
-        script_dir = Path(__file__).parent
-        # Calculate relative path from CLI location to hooks
-        cli_parts = Path("src/goobits_stt/cli.py").parts
-        cli_depth = len([p for p in cli_parts if p not in ['.', '..']])
-        hooks_path = script_dir / ('/'.join(['..'] * (cli_depth - 1))) / "src/goobits_stt/app_hooks.py"
+    # Try to import from the project root directory
+    script_dir = Path(__file__).parent.parent.parent
+    hooks_path = script_dir / "app_hooks.py"
     
     if hooks_path.exists():
         spec = importlib.util.spec_from_file_location("app_hooks", hooks_path)
         app_hooks = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(app_hooks)
     else:
-        # Fallback: try multiple common locations
-        script_dir = Path(__file__).parent
-        possible_locations = [
-            script_dir / "app_hooks.py",  # Same directory as generated CLI
-            script_dir.parent.parent.parent / "app_hooks.py",  # Project root
-            script_dir.parent / "app_hooks.py",  # One level up
-        ]
-        
-        for fallback_path in possible_locations:
-            if fallback_path.exists():
-                spec = importlib.util.spec_from_file_location("app_hooks", fallback_path)
-                app_hooks = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(app_hooks)
-                break
-        else:
-            # Try to import from Python path
-            import app_hooks
-
+        # Try to import from Python path
+        import app_hooks
 except (ImportError, FileNotFoundError):
     # No hooks module found, use default behavior
     pass
