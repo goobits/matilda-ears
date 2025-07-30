@@ -61,7 +61,7 @@ fi
 readonly PACKAGE_NAME="goobits-stt"
 readonly COMMAND_NAME="stt"
 readonly DISPLAY_NAME="STT - Speech to Text"
-readonly DESCRIPTION="Real-time speech transcription powered by Whisper"
+readonly DESCRIPTION="Real-time speech-to-text transcription powered by Whisper"
 readonly PYPI_NAME="goobits-stt"
 readonly DEVELOPMENT_PATH="."
 readonly REQUIRED_VERSION="3.8"

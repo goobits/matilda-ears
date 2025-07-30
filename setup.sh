@@ -61,7 +61,7 @@ fi
 readonly PACKAGE_NAME="goobits-stt"
 readonly COMMAND_NAME="stt"
 readonly DISPLAY_NAME="STT - Speech to Text"
-readonly DESCRIPTION="Real-time speech transcription powered by Whisper"
+readonly DESCRIPTION="Real-time speech-to-text transcription powered by Whisper"
 readonly PYPI_NAME="goobits-stt"
 readonly DEVELOPMENT_PATH="."
 readonly REQUIRED_VERSION="3.8"
@@ -159,7 +159,7 @@ tree_final_node() {
 
 get_version() {
     # Return the version from pyproject.toml (hardcoded during build)
-    echo "v1.0.2"
+    echo "v1.0.3"
 }
 
 get_elapsed_time() {
@@ -897,6 +897,18 @@ install_system_dependencies() {
             tree_sub_node "success" "✓ Already installed: swig"
         fi
         
+        if ! dpkg -l | grep -q "^ii.*build-essential" 2>/dev/null; then
+            missing_packages+=("build-essential")
+        else
+            tree_sub_node "success" "✓ Already installed: build-essential"
+        fi
+        
+        if ! dpkg -l | grep -q "^ii.*python3-dev" 2>/dev/null; then
+            missing_packages+=("python3-dev")
+        else
+            tree_sub_node "success" "✓ Already installed: python3-dev"
+        fi
+        
         
         # Only prompt for sudo if there are missing packages
         if [[ ${#missing_packages[@]} -gt 0 ]]; then
@@ -919,7 +931,7 @@ install_system_dependencies() {
             tree_sub_node "success" "All system packages already installed"
         fi
     else
-        tree_sub_node "info" "apt-get not found - manual installation required for: portaudio19-dev, ffmpeg, swig"
+        tree_sub_node "info" "apt-get not found - manual installation required for: portaudio19-dev, ffmpeg, swig, build-essential, python3-dev"
     fi
 }
 

@@ -101,10 +101,9 @@ def builtin_upgrade_command(check_only=False, pre=False, version=None, dry_run=F
     # Find the setup.sh script - look in common locations
     setup_script = None
     search_paths = [
-        Path(__file__).parent / "setup.sh",  # Package directory (installed packages)
-        Path(__file__).parent.parent / "setup.sh",  # Development mode 
+        Path(__file__).parent.parent / "setup.sh",  # Package directory (prioritize)
         Path.home() / ".local" / "share" / "goobits-stt" / "setup.sh",  # User data
-        # Remove Path.cwd() to prevent cross-contamination
+        # Removed Path.cwd() / "setup.sh" - prevents cross-contamination between projects
     ]
     
     for path in search_paths:
@@ -217,7 +216,7 @@ def get_version():
         pass
         
     # Final fallback
-    return "1.0.1"
+    return "1.0.2"
 
 
 def show_help_json(ctx, param, value):
@@ -227,10 +226,10 @@ def show_help_json(ctx, param, value):
     # The triple quotes are important to correctly handle the multi-line JSON string
     click.echo('''{
   "name": "GOOBITS STT CLI",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "display_version": true,
   "tagline": "Speech to Text",
-  "description": "Real-time speech transcription powered by Whisper",
+  "description": "Real-time speech-to-text transcription powered by Whisper",
   "icon": "🎤",
   "header_sections": [
     {
@@ -244,17 +243,17 @@ def show_help_json(ctx, param, value):
         },
         {
           "item": "stt live",
-          "desc": "Interactive conversation mode",
+          "desc": "Real-time interactive transcription",
           "style": "example"
         },
         {
           "item": "stt serve",
-          "desc": "Start WebSocket server",
+          "desc": "Start transcription server",
           "style": "example"
         },
         {
           "item": "stt models",
-          "desc": "List available Whisper models",
+          "desc": "Show available Whisper models",
           "style": "example"
         }
       ]
@@ -295,7 +294,7 @@ def show_help_json(ctx, param, value):
           "name": "model",
           "short": "m",
           "type": "str",
-          "desc": "Whisper model size",
+          "desc": "Whisper model size (accuracy/performance)",
           "default": "base",
           "choices": [
             "tiny",
@@ -310,7 +309,7 @@ def show_help_json(ctx, param, value):
           "name": "language",
           "short": "l",
           "type": "str",
-          "desc": "Language code (e.g., en, es, fr)",
+          "desc": "Language code for transcription (e.g., en, es, fr)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -319,7 +318,7 @@ def show_help_json(ctx, param, value):
           "name": "device",
           "short": "d",
           "type": "str",
-          "desc": "Audio input device name",
+          "desc": "Audio input device (microphone name)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -328,7 +327,7 @@ def show_help_json(ctx, param, value):
           "name": "hold-to-talk",
           "short": null,
           "type": "str",
-          "desc": "Hold key to record (e.g., space, f8)",
+          "desc": "Hold-to-talk key (e.g., space, F8)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -337,7 +336,7 @@ def show_help_json(ctx, param, value):
           "name": "no-formatting",
           "short": null,
           "type": "bool",
-          "desc": "Disable text formatting",
+          "desc": "Output unformatted raw text",
           "default": false,
           "choices": null,
           "multiple": false
@@ -346,7 +345,7 @@ def show_help_json(ctx, param, value):
           "name": "sample-rate",
           "short": null,
           "type": "int",
-          "desc": "Audio sample rate in Hz",
+          "desc": "Audio sampling rate (Hz)",
           "default": 16000,
           "choices": null,
           "multiple": false
@@ -355,7 +354,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output as JSON",
+          "desc": "Output transcription results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -364,7 +363,7 @@ def show_help_json(ctx, param, value):
           "name": "debug",
           "short": null,
           "type": "flag",
-          "desc": "Enable debug logging",
+          "desc": "Enable detailed debug logging",
           "default": null,
           "choices": null,
           "multiple": false
@@ -373,7 +372,7 @@ def show_help_json(ctx, param, value):
           "name": "config",
           "short": null,
           "type": "str",
-          "desc": "Path to config file",
+          "desc": "Path to custom config file",
           "default": null,
           "choices": null,
           "multiple": false
@@ -382,8 +381,8 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "live": {
-      "desc": "Interactive conversation mode",
-      "icon": "💬",
+      "desc": "Real-time interactive transcription",
+      "icon": "🗣️",
       "is_default": false,
       "lifecycle": "standard",
       "args": [],
@@ -392,7 +391,7 @@ def show_help_json(ctx, param, value):
           "name": "model",
           "short": "m",
           "type": "str",
-          "desc": "Whisper model size",
+          "desc": "Whisper model size (accuracy/performance)",
           "default": "base",
           "choices": [
             "tiny",
@@ -407,7 +406,7 @@ def show_help_json(ctx, param, value):
           "name": "language",
           "short": "l",
           "type": "str",
-          "desc": "Language code (e.g., en, es, fr)",
+          "desc": "Language code for transcription (e.g., en, es, fr)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -416,7 +415,7 @@ def show_help_json(ctx, param, value):
           "name": "device",
           "short": "d",
           "type": "str",
-          "desc": "Audio input device name",
+          "desc": "Audio input device (microphone name)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -425,7 +424,7 @@ def show_help_json(ctx, param, value):
           "name": "tap-to-talk",
           "short": null,
           "type": "str",
-          "desc": "Key to tap for push-to-talk (e.g., f8)",
+          "desc": "Tap-to-talk key (e.g., F8)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -434,7 +433,7 @@ def show_help_json(ctx, param, value):
           "name": "no-formatting",
           "short": null,
           "type": "bool",
-          "desc": "Disable text formatting",
+          "desc": "Output unformatted raw text",
           "default": false,
           "choices": null,
           "multiple": false
@@ -443,7 +442,7 @@ def show_help_json(ctx, param, value):
           "name": "sample-rate",
           "short": null,
           "type": "int",
-          "desc": "Audio sample rate in Hz",
+          "desc": "Audio sampling rate (Hz)",
           "default": 16000,
           "choices": null,
           "multiple": false
@@ -452,7 +451,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output as JSON",
+          "desc": "Output transcription results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -461,7 +460,7 @@ def show_help_json(ctx, param, value):
           "name": "debug",
           "short": null,
           "type": "flag",
-          "desc": "Enable debug logging",
+          "desc": "Enable detailed debug logging",
           "default": null,
           "choices": null,
           "multiple": false
@@ -470,7 +469,7 @@ def show_help_json(ctx, param, value):
           "name": "config",
           "short": null,
           "type": "str",
-          "desc": "Path to config file",
+          "desc": "Path to custom config file",
           "default": null,
           "choices": null,
           "multiple": false
@@ -479,7 +478,7 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "serve": {
-      "desc": "Start transcription server",
+      "desc": "Launch transcription server",
       "icon": "🌐",
       "is_default": false,
       "lifecycle": "standard",
@@ -489,7 +488,7 @@ def show_help_json(ctx, param, value):
           "name": "port",
           "short": "p",
           "type": "int",
-          "desc": "Port to run server on",
+          "desc": "Server port (default 8769)",
           "default": 8769,
           "choices": null,
           "multiple": false
@@ -498,7 +497,7 @@ def show_help_json(ctx, param, value):
           "name": "host",
           "short": "h",
           "type": "str",
-          "desc": "Host to bind to",
+          "desc": "Server host address (default 0.0.0.0)",
           "default": "0.0.0.0",
           "choices": null,
           "multiple": false
@@ -507,7 +506,7 @@ def show_help_json(ctx, param, value):
           "name": "debug",
           "short": null,
           "type": "flag",
-          "desc": "Enable debug logging",
+          "desc": "Enable detailed debug logging",
           "default": null,
           "choices": null,
           "multiple": false
@@ -516,7 +515,7 @@ def show_help_json(ctx, param, value):
           "name": "config",
           "short": null,
           "type": "str",
-          "desc": "Path to config file",
+          "desc": "Path to custom config file",
           "default": null,
           "choices": null,
           "multiple": false
@@ -525,7 +524,7 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "status": {
-      "desc": "Check system and device status",
+      "desc": "Check system health and device status",
       "icon": "✅",
       "is_default": false,
       "lifecycle": "standard",
@@ -535,7 +534,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output as JSON",
+          "desc": "Output transcription results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -544,8 +543,8 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "models": {
-      "desc": "List available Whisper models",
-      "icon": "📦",
+      "desc": "Show available Whisper models",
+      "icon": "🧠",
       "is_default": false,
       "lifecycle": "standard",
       "args": [],
@@ -554,7 +553,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output as JSON",
+          "desc": "Output transcription results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -563,7 +562,7 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "config": {
-      "desc": "Manage configuration",
+      "desc": "Adjust CLI settings and preferences",
       "icon": "⚙️",
       "is_default": false,
       "lifecycle": "standard",
@@ -571,7 +570,7 @@ def show_help_json(ctx, param, value):
       "options": [],
       "subcommands": {
         "show": {
-          "desc": "Show all configuration",
+          "desc": "Display current configuration",
           "icon": null,
           "is_default": false,
           "lifecycle": "standard",
@@ -581,7 +580,7 @@ def show_help_json(ctx, param, value):
               "name": "json",
               "short": null,
               "type": "flag",
-              "desc": "Output as JSON",
+              "desc": "Output transcription results as JSON",
               "default": null,
               "choices": null,
               "multiple": false
@@ -590,7 +589,7 @@ def show_help_json(ctx, param, value):
           "subcommands": null
         },
         "get": {
-          "desc": "Get configuration value",
+          "desc": "Retrieve configuration value",
           "icon": null,
           "is_default": false,
           "lifecycle": "standard",
@@ -607,7 +606,7 @@ def show_help_json(ctx, param, value):
           "subcommands": null
         },
         "set": {
-          "desc": "Set configuration value",
+          "desc": "Set a configuration value",
           "icon": null,
           "is_default": false,
           "lifecycle": "standard",
@@ -709,11 +708,11 @@ def show_help_json(ctx, param, value):
 
 
 def main(ctx, help_json=False, help_all=False):
-    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.1[/bold color(6)] - Speech to Text
+    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.2[/bold color(6)] - Speech to Text
 
     
     \b
-    [#B3B8C0]Real-time speech transcription powered by Whisper[/#B3B8C0]
+    [#B3B8C0]Real-time speech-to-text transcription powered by Whisper[/#B3B8C0]
     
 
     
@@ -724,13 +723,13 @@ def main(ctx, help_json=False, help_all=False):
     [green]   stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic]
     
     
-    [green]   stt live    [/green] [italic][#B3B8C0]# Interactive conversation mode[/#B3B8C0][/italic]
+    [green]   stt live    [/green] [italic][#B3B8C0]# Real-time interactive transcription[/#B3B8C0][/italic]
     
     
-    [green]   stt serve   [/green] [italic][#B3B8C0]# Start WebSocket server[/#B3B8C0][/italic]
+    [green]   stt serve   [/green] [italic][#B3B8C0]# Start transcription server[/#B3B8C0][/italic]
     
     
-    [green]   stt models  [/green] [italic][#B3B8C0]# List available Whisper models[/#B3B8C0][/italic]
+    [green]   stt models  [/green] [italic][#B3B8C0]# Show available Whisper models[/#B3B8C0][/italic]
     
     [green] [/green]
     
@@ -829,49 +828,49 @@ def upgrade(check, version, pre, dry_run):
 @click.option("-m", "--model",
     type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
     default="base",
-    help="Whisper model size"
+    help="Whisper model size (accuracy/performance)"
 )
 
 @click.option("-l", "--language",
     type=str,
-    help="Language code (e.g., en, es, fr)"
+    help="Language code for transcription (e.g., en, es, fr)"
 )
 
 @click.option("-d", "--device",
     type=str,
-    help="Audio input device name"
+    help="Audio input device (microphone name)"
 )
 
 @click.option("--hold-to-talk",
     type=str,
-    help="Hold key to record (e.g., space, f8)"
+    help="Hold-to-talk key (e.g., space, F8)"
 )
 
 @click.option("--no-formatting",
     type=bool,
     default=False,
-    help="Disable text formatting"
+    help="Output unformatted raw text"
 )
 
 @click.option("--sample-rate",
     type=int,
     default=16000,
-    help="Audio sample rate in Hz"
+    help="Audio sampling rate (Hz)"
 )
 
 @click.option("--json",
     is_flag=True,
-    help="Output as JSON"
+    help="Output transcription results as JSON"
 )
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable debug logging"
+    help="Enable detailed debug logging"
 )
 
 @click.option("--config",
     type=str,
-    help="Path to config file"
+    help="Path to custom config file"
 )
 
 def listen(ctx, model, language, device, hold_to_talk, no_formatting, sample_rate, json, debug, config):
@@ -981,53 +980,53 @@ def listen(ctx, model, language, device, hold_to_talk, no_formatting, sample_rat
 @click.option("-m", "--model",
     type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
     default="base",
-    help="Whisper model size"
+    help="Whisper model size (accuracy/performance)"
 )
 
 @click.option("-l", "--language",
     type=str,
-    help="Language code (e.g., en, es, fr)"
+    help="Language code for transcription (e.g., en, es, fr)"
 )
 
 @click.option("-d", "--device",
     type=str,
-    help="Audio input device name"
+    help="Audio input device (microphone name)"
 )
 
 @click.option("--tap-to-talk",
     type=str,
-    help="Key to tap for push-to-talk (e.g., f8)"
+    help="Tap-to-talk key (e.g., F8)"
 )
 
 @click.option("--no-formatting",
     type=bool,
     default=False,
-    help="Disable text formatting"
+    help="Output unformatted raw text"
 )
 
 @click.option("--sample-rate",
     type=int,
     default=16000,
-    help="Audio sample rate in Hz"
+    help="Audio sampling rate (Hz)"
 )
 
 @click.option("--json",
     is_flag=True,
-    help="Output as JSON"
+    help="Output transcription results as JSON"
 )
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable debug logging"
+    help="Enable detailed debug logging"
 )
 
 @click.option("--config",
     type=str,
-    help="Path to config file"
+    help="Path to custom config file"
 )
 
 def live(ctx, model, language, device, tap_to_talk, no_formatting, sample_rate, json, debug, config):
-    """💬 Interactive conversation mode"""
+    """🗣️  Real-time interactive transcription"""
     
     # Check for built-in commands first
     
@@ -1133,27 +1132,27 @@ def live(ctx, model, language, device, tap_to_talk, no_formatting, sample_rate, 
 @click.option("-p", "--port",
     type=int,
     default=8769,
-    help="Port to run server on"
+    help="Server port (default 8769)"
 )
 
 @click.option("-h", "--host",
     type=str,
     default="0.0.0.0",
-    help="Host to bind to"
+    help="Server host address (default 0.0.0.0)"
 )
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable debug logging"
+    help="Enable detailed debug logging"
 )
 
 @click.option("--config",
     type=str,
-    help="Path to config file"
+    help="Path to custom config file"
 )
 
 def serve(ctx, port, host, debug, config):
-    """🌐 Start transcription server"""
+    """🌐 Launch transcription server"""
     
     # Check for built-in commands first
     
@@ -1223,11 +1222,11 @@ def serve(ctx, port, host, debug, config):
 
 @click.option("--json",
     is_flag=True,
-    help="Output as JSON"
+    help="Output transcription results as JSON"
 )
 
 def status(ctx, json):
-    """✅ Check system and device status"""
+    """✅ Check system health and device status"""
     
     # Check for built-in commands first
     
@@ -1276,11 +1275,11 @@ def status(ctx, json):
 
 @click.option("--json",
     is_flag=True,
-    help="Output as JSON"
+    help="Output transcription results as JSON"
 )
 
 def models(ctx, json):
-    """📦 List available Whisper models"""
+    """🧠 Show available Whisper models"""
     
     # Check for built-in commands first
     
@@ -1325,7 +1324,7 @@ def models(ctx, json):
 
 @main.group()
 def config():
-    """⚙️  Manage configuration"""
+    """⚙️  Adjust CLI settings and preferences"""
     pass
 
 
@@ -1335,11 +1334,11 @@ def config():
 
 @click.option("--json",
     is_flag=True,
-    help="Output as JSON"
+    help="Output transcription results as JSON"
 )
 
 def show(ctx, json):
-    """Show all configuration"""
+    """Display current configuration"""
     # Check if hook function exists
     hook_name = f"on_config_show"
     if app_hooks and hasattr(app_hooks, hook_name):
@@ -1380,7 +1379,7 @@ def show(ctx, json):
 
 
 def get(ctx, key):
-    """Get configuration value"""
+    """Retrieve configuration value"""
     # Check if hook function exists
     hook_name = f"on_config_get"
     if app_hooks and hasattr(app_hooks, hook_name):
@@ -1425,7 +1424,7 @@ def get(ctx, key):
 
 
 def set(ctx, key, value):
-    """Set configuration value"""
+    """Set a configuration value"""
     # Check if hook function exists
     hook_name = f"on_config_set"
     if app_hooks and hasattr(app_hooks, hook_name):

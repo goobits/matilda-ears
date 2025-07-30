@@ -12,15 +12,12 @@ This package provides:
 __version__ = "1.0.0"
 __author__ = "GOOBITS Team"
 
-# Import key classes for easy access
-from .modes.conversation import ConversationMode
-from .modes.hold_to_talk import HoldToTalkMode
-from .modes.listen_once import ListenOnceMode
-from .modes.tap_to_talk import TapToTalkMode
+# Classes are imported on-demand to avoid loading heavy dependencies at startup
+# Import them with: from stt.modes.conversation import ConversationMode
 
 __all__ = [
     "ConversationMode",
-    "HoldToTalkMode",
+    "HoldToTalkMode", 
     "ListenOnceMode",
     "TapToTalkMode",
 ]

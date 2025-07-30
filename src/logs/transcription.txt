@@ -1,0 +1,11 @@
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Self-contained session management enabled
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Loading Faster Whisper base model...
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Faster Whisper base model loaded successfully
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Starting WebSocket server on ws://0.0.0.0:8888
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Your Ubuntu IP: 0.0.0.0 (Mac clients should connect to this IP)
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Authentication token: stt-2024
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Model: base, Device: cuda, Compute: float16
+2025-07-30 00:17:40 - stt.transcription.server - INFO - WebSocket Matilda Server is ready for connections!
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Protocol: WS
+2025-07-30 00:17:40 - stt.transcription.server - INFO - Active clients: 0
