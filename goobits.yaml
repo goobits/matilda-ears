@@ -80,25 +80,39 @@ cli:
   name: "GOOBITS STT CLI"
   version: "1.0.2"
   display_version: true
-  tagline: "Speech to Text"
-  description: "Real-time speech-to-text transcription powered by Whisper"
+  tagline: "Real-time speech-to-text with AI-powered Whisper models"
+  description: "Convert speech into accurate text with multiple operation modes and advanced formatting."
   icon: "🎤"
   enable_recursive_help: true
   enable_help_json: true
 
   header_sections:
-    - title: "💡 Quick Start"
+    - title: "🎯 Most Common Use Cases"
       items:
-        - { item: "stt listen", desc: "Record once and transcribe", style: "example" }
-        - { item: "stt live", desc: "Real-time interactive transcription", style: "example" }
-        - { item: "stt serve", desc: "Start transcription server", style: "example" }
-        - { item: "stt models", desc: "Show available Whisper models", style: "example" }
+        - { item: 'stt listen', desc: "Quick voice note: Record and transcribe once", style: "example" }
+        - { item: 'stt live', desc: "Always listening: Hands-free conversation mode", style: "example" }
+        - { item: 'stt live --tap-to-talk=F8', desc: "Press F8 to talk: Controlled conversation mode", style: "example" }
+        - { item: 'stt listen --hold-to-talk=space', desc: "Hold spacebar: Push-to-talk recording", style: "example" }
+        - { item: 'stt serve --port=8080', desc: "Remote transcription: WebSocket server for clients", style: "example" }
 
-    - title: "🔑 Initial Setup"
+    - title: "🚀 Quick Start (First Time)"
       items:
-        - { item: "1. Check status", desc: "stt status", style: "setup" }
-        - { item: "2. Select model", desc: "stt config set model base", style: "setup" }
-        - { item: "3. Start listening", desc: "stt listen", style: "setup" }
+        - { item: "1. Check system", desc: "stt status", style: "setup" }
+        - { item: "2. Test recording", desc: "stt listen", style: "setup" }
+        - { item: "3. Try conversation", desc: "stt live", style: "setup" }
+
+    - title: "💭 Popular Workflows"
+      items:
+        - { item: "Voice Notes", desc: "stt listen > notes.txt  # Save transcription to file", style: "example" }
+        - { item: "Meeting Notes", desc: "stt live --json > meeting.json  # Structured output", style: "example" }
+        - { item: "Remote Dictation", desc: "stt serve  # Server + client apps on other devices", style: "example" }
+        - { item: "Gaming/Streaming", desc: "stt live --tap-to-talk=F8  # Hotkey control", style: "example" }
+
+    - title: "💡 Core Commands"
+      items:
+        - { item: "listen", desc: "🎙️  Record once and transcribe (default command)", style: "command" }
+        - { item: "live", desc: "🗣️  Real-time conversation mode with VAD", style: "command" }
+        - { item: "serve", desc: "🌐 Launch WebSocket transcription server", style: "command" }
 
   footer_note: "📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6]"
 
@@ -108,150 +122,219 @@ cli:
     - name: "Server & Processing"
       commands: ["serve"]
     - name: "System"
-      commands: ["status", "models"]
+      commands: ["status", "model"]
     - name: "Configuration"
       commands: ["config"]
   
   commands:
     listen:
-      desc: "Record once and transcribe"
+      desc: "🎙️ Record once and transcribe"
       icon: "🎙️"
       options:
         - name: "model"
           short: "m"
           type: "str"
-          desc: "Whisper model size (accuracy/performance)"
+          desc: "🧠 Whisper model size (tiny=fastest, large=most accurate)"
           choices: ["tiny", "base", "small", "medium", "large"]
           default: "base"
         - name: "language"
           short: "l"
           type: "str"
-          desc: "Language code for transcription (e.g., en, es, fr)"
+          desc: "🌍 Language code for transcription (e.g., en, es, fr, auto-detect)"
         - name: "device"
           short: "d"
           type: "str"
-          desc: "Audio input device (microphone name)"
+          desc: "🎤 Audio input device (microphone name or index)"
         - name: "hold-to-talk"
           type: "str"
-          desc: "Hold-to-talk key (e.g., space, F8)"
+          desc: "⌨️  Hold-to-talk key (e.g., space, F8, ctrl)"
         - name: "no-formatting"
           type: "bool"
-          desc: "Output unformatted raw text"
+          desc: "📝 Output unformatted raw text"
           default: false
         - name: "sample-rate"
           type: "int"
-          desc: "Audio sampling rate (Hz)"
+          desc: "🔊 Audio sampling rate (Hz)"
           default: 16000
         - name: "json"
           type: "flag"
-          desc: "Output transcription results as JSON"
+          desc: "📋 Output transcription results as JSON"
         - name: "debug"
           type: "flag"
-          desc: "Enable detailed debug logging"
+          desc: "🐞 Enable detailed debug logging"
         - name: "config"
           type: "str"
-          desc: "Path to custom config file"
+          desc: "⚙️ Path to custom config file"
 
     live:
-      desc: "Real-time interactive transcription"
+      desc: "🗣️ Real-time interactive transcription"
       icon: "🗣️"
       options:
         - name: "model"
           short: "m"
           type: "str"
-          desc: "Whisper model size (accuracy/performance)"
+          desc: "🧠 Whisper model size (tiny=fastest, large=most accurate)"
           choices: ["tiny", "base", "small", "medium", "large"]
           default: "base"
         - name: "language"
           short: "l"
           type: "str"
-          desc: "Language code for transcription (e.g., en, es, fr)"
+          desc: "🌍 Language code for transcription (e.g., en, es, fr, auto-detect)"
         - name: "device"
           short: "d"
           type: "str"
-          desc: "Audio input device (microphone name)"
+          desc: "🎤 Audio input device (microphone name or index)"
         - name: "tap-to-talk"
           type: "str"
-          desc: "Tap-to-talk key (e.g., F8)"
+          desc: "👆 Tap-to-talk key (e.g., F8)"
         - name: "no-formatting"
           type: "bool"
-          desc: "Output unformatted raw text"
+          desc: "📝 Output unformatted raw text"
           default: false
         - name: "sample-rate"
           type: "int"
-          desc: "Audio sampling rate (Hz)"
+          desc: "🔊 Audio sampling rate (Hz)"
           default: 16000
         - name: "json"
           type: "flag"
-          desc: "Output transcription results as JSON"
+          desc: "📋 Output transcription results as JSON"
         - name: "debug"
           type: "flag"
-          desc: "Enable detailed debug logging"
+          desc: "🐞 Enable detailed debug logging"
         - name: "config"
           type: "str"
-          desc: "Path to custom config file"
+          desc: "⚙️ Path to custom config file"
 
     serve:
-      desc: "Launch transcription server"
+      desc: "🌐 Launch transcription server"
       icon: "🌐"
       options:
         - name: "port"
           short: "p"
           type: "int"
-          desc: "Server port (default 8769)"
+          desc: "🌐 Server port (default 8769)"
           default: 8769
         - name: "host"
           short: "h"
           type: "str"
-          desc: "Server host address (default 0.0.0.0)"
+          desc: "🏠 Server host address (default 0.0.0.0)"
           default: "0.0.0.0"
         - name: "debug"
           type: "flag"
-          desc: "Enable detailed debug logging"
+          desc: "🐞 Enable detailed debug logging"
         - name: "config"
           type: "str"
-          desc: "Path to custom config file"
+          desc: "⚙️ Path to custom config file"
 
     status:
-      desc: "Check system health and device status"
+      desc: "✅ Check system health and device status"
       icon: "✅"
       options:
         - name: "json"
           type: "flag"
-          desc: "Output transcription results as JSON"
+          desc: "📋 Output status results as JSON"
 
-    models:
-      desc: "Show available Whisper models"
+    model:
+      desc: "Manage Whisper models"
       icon: "🧠"
-      options:
-        - name: "json"
-          type: "flag"
-          desc: "Output transcription results as JSON"
-
-    config:
-      desc: "Adjust CLI settings and preferences"
-      icon: "⚙️"
       subcommands:
-        show:
-          desc: "Display current configuration"
+        download:
+          desc: "Download a Whisper model"
+          args:
+            - name: "model_name"
+              desc: "🔽 Model name to download (tiny, base, small, medium, large)"
+              required: true
+              choices: ["tiny", "base", "small", "medium", "large"]
+          options:
+            - name: "force"
+              short: "f"
+              type: "flag"
+              desc: "🔄 Force re-download even if model exists"
+            - name: "device"
+              short: "d"
+              type: "str"
+              desc: "💻 Device type for model optimization (cpu, cuda, auto)"
+              choices: ["cpu", "cuda", "auto"]
+              default: "auto"
+        list:
+          desc: "List available and downloaded models"
+          options:
+            - name: "downloaded-only"
+              type: "flag"
+              desc: "📦 Show only downloaded models"
+            - name: "json"
+              type: "flag"
+              desc: "📋 Output as JSON"
+        info:
+          desc: "Show detailed model information"
+          args:
+            - name: "model_name"
+              desc: "🔍 Model name to inspect"
+              required: true
+              choices: ["tiny", "base", "small", "medium", "large"]
           options:
             - name: "json"
               type: "flag"
-              desc: "Output transcription results as JSON"
+              desc: "📋 Output as JSON"
+        remove:
+          desc: "Remove downloaded model"
+          args:
+            - name: "model_name"
+              desc: "🗑️ Model name to remove"
+              required: true
+              choices: ["tiny", "base", "small", "medium", "large"]
+          options:
+            - name: "force"
+              short: "f"
+              type: "flag"
+              desc: "🔄 Skip confirmation prompt"
+        benchmark:
+          desc: "Test model performance"
+          args:
+            - name: "model_name"
+              desc: "⚡ Model name to benchmark"
+              required: true
+              choices: ["tiny", "base", "small", "medium", "large"]
+          options:
+            - name: "duration"
+              short: "t"
+              type: "int"
+              desc: "⏱️ Test duration in seconds"
+              default: 10
+            - name: "device"
+              short: "d"
+              type: "str"
+              desc: "💻 Device to test on (cpu, cuda, auto)"
+              choices: ["cpu", "cuda", "auto"]
+              default: "auto"
+            - name: "json"
+              type: "flag"
+              desc: "📋 Output results as JSON"
+
+    config:
+      desc: "⚙️ Adjust CLI settings and preferences"
+      icon: "⚙️"
+      subcommands:
+        show:
+          desc: "👁️ Display current configuration"
+          options:
+            - name: "json"
+              type: "flag"
+              desc: "📋 Output configuration as JSON"
         get:
-          desc: "Retrieve configuration value"
+          desc: "🔍 Retrieve configuration value"
           args:
             - name: "key"
-              desc: "Configuration key"
+              desc: "🔑 Configuration key"
               required: true
         set:
-          desc: "Set a configuration value"
+          desc: "✏️ Set a configuration value"
           args:
             - name: "key"
-              desc: "Configuration key"
+              desc: "🔑 Configuration key"
               required: true
             - name: "value"
-              desc: "Configuration value"
+              desc: "💾 Configuration value"
               required: true
 
   config:

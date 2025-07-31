@@ -41,6 +41,7 @@ After generation, use `./setup.sh install --dev` for development installation wi
 
 ### Testing (Primary workflow)
 ```bash
+# Use the virtual environment when running commands, not the global python (see README for setup details)
 ./test.py                                    # Show comprehensive help
 ./test.py tests/text_formatting/ --summary  # Main testing workflow (YAML summary)
 ./test.py tests/text_formatting/ --sequential  # Sequential mode for debugging

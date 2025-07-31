@@ -652,9 +652,9 @@ def get_config() -> ConfigLoader:
 
 def setup_logging(
     module_name: str,
-    log_level: str = "INFO",
-    include_console: bool = True,
-    include_file: bool = True,
+    log_level: str | None = None,
+    include_console: bool | None = None,
+    include_file: bool | None = None,
     log_filename: str | None = None,
 ) -> logging.Logger:
     """
@@ -676,6 +676,15 @@ def setup_logging(
     # Avoid duplicate handlers if already configured
     if logger.handlers:
         return logger
+
+    # Get config-based defaults if not specified
+    config = get_config()
+    if log_level is None:
+        log_level = config.get("logging.level", "INFO")
+    if include_console is None:
+        include_console = config.get("logging.console", True)
+    if include_file is None:
+        include_file = config.get("logging.file", True)
 
     logger.setLevel(getattr(logging, log_level.upper()))
 

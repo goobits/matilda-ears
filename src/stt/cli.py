@@ -20,8 +20,8 @@ click.rich_click.GROUP_ARGUMENTS_OPTIONS = True
 click.rich_click.SHOW_METAVARS_COLUMN = False
 click.rich_click.APPEND_METAVARS_HELP = True
 click.rich_click.STYLE_ERRORS_SUGGESTION = "#ff5555"
-click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
-click.rich_click.ERRORS_EPILOGUE = "To find out more, visit https://github.com/anthropics/claude-code"
+click.rich_click.ERRORS_SUGGESTION = ""
+click.rich_click.ERRORS_EPILOGUE = ""
 click.rich_click.MAX_WIDTH = 120  # Set reasonable width
 click.rich_click.WIDTH = 120  # Set consistent width
 click.rich_click.COLOR_SYSTEM = "auto"
@@ -228,54 +228,106 @@ def show_help_json(ctx, param, value):
   "name": "GOOBITS STT CLI",
   "version": "1.0.2",
   "display_version": true,
-  "tagline": "Speech to Text",
-  "description": "Real-time speech-to-text transcription powered by Whisper",
+  "tagline": "Real-time speech-to-text with AI-powered Whisper models",
+  "description": "Convert speech into accurate text with multiple operation modes and advanced formatting.",
   "icon": "🎤",
   "header_sections": [
     {
-      "title": "💡 Quick Start",
+      "title": "🎯 Most Common Use Cases",
       "icon": null,
       "items": [
         {
           "item": "stt listen",
-          "desc": "Record once and transcribe",
+          "desc": "Quick voice note: Record and transcribe once",
           "style": "example"
         },
         {
           "item": "stt live",
-          "desc": "Real-time interactive transcription",
+          "desc": "Always listening: Hands-free conversation mode",
           "style": "example"
         },
         {
-          "item": "stt serve",
-          "desc": "Start transcription server",
+          "item": "stt live --tap-to-talk=F8",
+          "desc": "Press F8 to talk: Controlled conversation mode",
           "style": "example"
         },
         {
-          "item": "stt models",
-          "desc": "Show available Whisper models",
+          "item": "stt listen --hold-to-talk=space",
+          "desc": "Hold spacebar: Push-to-talk recording",
+          "style": "example"
+        },
+        {
+          "item": "stt serve --port=8080",
+          "desc": "Remote transcription: WebSocket server for clients",
           "style": "example"
         }
       ]
     },
     {
-      "title": "🔑 Initial Setup",
+      "title": "🚀 Quick Start (First Time)",
       "icon": null,
       "items": [
         {
-          "item": "1. Check status",
+          "item": "1. Check system",
           "desc": "stt status",
           "style": "setup"
         },
         {
-          "item": "2. Select model",
-          "desc": "stt config set model base",
+          "item": "2. Test recording",
+          "desc": "stt listen",
           "style": "setup"
         },
         {
-          "item": "3. Start listening",
-          "desc": "stt listen",
+          "item": "3. Try conversation",
+          "desc": "stt live",
           "style": "setup"
+        }
+      ]
+    },
+    {
+      "title": "💭 Popular Workflows",
+      "icon": null,
+      "items": [
+        {
+          "item": "Voice Notes",
+          "desc": "stt listen > notes.txt  # Save transcription to file",
+          "style": "example"
+        },
+        {
+          "item": "Meeting Notes",
+          "desc": "stt live --json > meeting.json  # Structured output",
+          "style": "example"
+        },
+        {
+          "item": "Remote Dictation",
+          "desc": "stt serve  # Server + client apps on other devices",
+          "style": "example"
+        },
+        {
+          "item": "Gaming/Streaming",
+          "desc": "stt live --tap-to-talk=F8  # Hotkey control",
+          "style": "example"
+        }
+      ]
+    },
+    {
+      "title": "💡 Core Commands",
+      "icon": null,
+      "items": [
+        {
+          "item": "listen",
+          "desc": "🎙️  Record once and transcribe (default command)",
+          "style": "command"
+        },
+        {
+          "item": "live",
+          "desc": "🗣️  Real-time conversation mode with VAD",
+          "style": "command"
+        },
+        {
+          "item": "serve",
+          "desc": "🌐 Launch WebSocket transcription server",
+          "style": "command"
         }
       ]
     }
@@ -284,7 +336,7 @@ def show_help_json(ctx, param, value):
   "options": [],
   "commands": {
     "listen": {
-      "desc": "Record once and transcribe",
+      "desc": "🎙️ Record once and transcribe",
       "icon": "🎙️",
       "is_default": false,
       "lifecycle": "standard",
@@ -294,7 +346,7 @@ def show_help_json(ctx, param, value):
           "name": "model",
           "short": "m",
           "type": "str",
-          "desc": "Whisper model size (accuracy/performance)",
+          "desc": "🧠 Whisper model size (tiny=fastest, large=most accurate)",
           "default": "base",
           "choices": [
             "tiny",
@@ -309,7 +361,7 @@ def show_help_json(ctx, param, value):
           "name": "language",
           "short": "l",
           "type": "str",
-          "desc": "Language code for transcription (e.g., en, es, fr)",
+          "desc": "🌍 Language code for transcription (e.g., en, es, fr, auto-detect)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -318,7 +370,7 @@ def show_help_json(ctx, param, value):
           "name": "device",
           "short": "d",
           "type": "str",
-          "desc": "Audio input device (microphone name)",
+          "desc": "🎤 Audio input device (microphone name or index)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -327,7 +379,7 @@ def show_help_json(ctx, param, value):
           "name": "hold-to-talk",
           "short": null,
           "type": "str",
-          "desc": "Hold-to-talk key (e.g., space, F8)",
+          "desc": "⌨️  Hold-to-talk key (e.g., space, F8, ctrl)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -336,7 +388,7 @@ def show_help_json(ctx, param, value):
           "name": "no-formatting",
           "short": null,
           "type": "bool",
-          "desc": "Output unformatted raw text",
+          "desc": "📝 Output unformatted raw text",
           "default": false,
           "choices": null,
           "multiple": false
@@ -345,7 +397,7 @@ def show_help_json(ctx, param, value):
           "name": "sample-rate",
           "short": null,
           "type": "int",
-          "desc": "Audio sampling rate (Hz)",
+          "desc": "🔊 Audio sampling rate (Hz)",
           "default": 16000,
           "choices": null,
           "multiple": false
@@ -354,7 +406,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output transcription results as JSON",
+          "desc": "📋 Output transcription results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -363,7 +415,7 @@ def show_help_json(ctx, param, value):
           "name": "debug",
           "short": null,
           "type": "flag",
-          "desc": "Enable detailed debug logging",
+          "desc": "🐞 Enable detailed debug logging",
           "default": null,
           "choices": null,
           "multiple": false
@@ -372,7 +424,7 @@ def show_help_json(ctx, param, value):
           "name": "config",
           "short": null,
           "type": "str",
-          "desc": "Path to custom config file",
+          "desc": "⚙️ Path to custom config file",
           "default": null,
           "choices": null,
           "multiple": false
@@ -381,7 +433,7 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "live": {
-      "desc": "Real-time interactive transcription",
+      "desc": "🗣️ Real-time interactive transcription",
       "icon": "🗣️",
       "is_default": false,
       "lifecycle": "standard",
@@ -391,7 +443,7 @@ def show_help_json(ctx, param, value):
           "name": "model",
           "short": "m",
           "type": "str",
-          "desc": "Whisper model size (accuracy/performance)",
+          "desc": "🧠 Whisper model size (tiny=fastest, large=most accurate)",
           "default": "base",
           "choices": [
             "tiny",
@@ -406,7 +458,7 @@ def show_help_json(ctx, param, value):
           "name": "language",
           "short": "l",
           "type": "str",
-          "desc": "Language code for transcription (e.g., en, es, fr)",
+          "desc": "🌍 Language code for transcription (e.g., en, es, fr, auto-detect)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -415,7 +467,7 @@ def show_help_json(ctx, param, value):
           "name": "device",
           "short": "d",
           "type": "str",
-          "desc": "Audio input device (microphone name)",
+          "desc": "🎤 Audio input device (microphone name or index)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -424,7 +476,7 @@ def show_help_json(ctx, param, value):
           "name": "tap-to-talk",
           "short": null,
           "type": "str",
-          "desc": "Tap-to-talk key (e.g., F8)",
+          "desc": "👆 Tap-to-talk key (e.g., F8)",
           "default": null,
           "choices": null,
           "multiple": false
@@ -433,7 +485,7 @@ def show_help_json(ctx, param, value):
           "name": "no-formatting",
           "short": null,
           "type": "bool",
-          "desc": "Output unformatted raw text",
+          "desc": "📝 Output unformatted raw text",
           "default": false,
           "choices": null,
           "multiple": false
@@ -442,7 +494,7 @@ def show_help_json(ctx, param, value):
           "name": "sample-rate",
           "short": null,
           "type": "int",
-          "desc": "Audio sampling rate (Hz)",
+          "desc": "🔊 Audio sampling rate (Hz)",
           "default": 16000,
           "choices": null,
           "multiple": false
@@ -451,7 +503,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output transcription results as JSON",
+          "desc": "📋 Output transcription results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -460,7 +512,7 @@ def show_help_json(ctx, param, value):
           "name": "debug",
           "short": null,
           "type": "flag",
-          "desc": "Enable detailed debug logging",
+          "desc": "🐞 Enable detailed debug logging",
           "default": null,
           "choices": null,
           "multiple": false
@@ -469,7 +521,7 @@ def show_help_json(ctx, param, value):
           "name": "config",
           "short": null,
           "type": "str",
-          "desc": "Path to custom config file",
+          "desc": "⚙️ Path to custom config file",
           "default": null,
           "choices": null,
           "multiple": false
@@ -478,7 +530,7 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "serve": {
-      "desc": "Launch transcription server",
+      "desc": "🌐 Launch transcription server",
       "icon": "🌐",
       "is_default": false,
       "lifecycle": "standard",
@@ -488,7 +540,7 @@ def show_help_json(ctx, param, value):
           "name": "port",
           "short": "p",
           "type": "int",
-          "desc": "Server port (default 8769)",
+          "desc": "🌐 Server port (default 8769)",
           "default": 8769,
           "choices": null,
           "multiple": false
@@ -497,7 +549,7 @@ def show_help_json(ctx, param, value):
           "name": "host",
           "short": "h",
           "type": "str",
-          "desc": "Server host address (default 0.0.0.0)",
+          "desc": "🏠 Server host address (default 0.0.0.0)",
           "default": "0.0.0.0",
           "choices": null,
           "multiple": false
@@ -506,7 +558,7 @@ def show_help_json(ctx, param, value):
           "name": "debug",
           "short": null,
           "type": "flag",
-          "desc": "Enable detailed debug logging",
+          "desc": "🐞 Enable detailed debug logging",
           "default": null,
           "choices": null,
           "multiple": false
@@ -515,7 +567,7 @@ def show_help_json(ctx, param, value):
           "name": "config",
           "short": null,
           "type": "str",
-          "desc": "Path to custom config file",
+          "desc": "⚙️ Path to custom config file",
           "default": null,
           "choices": null,
           "multiple": false
@@ -524,7 +576,7 @@ def show_help_json(ctx, param, value):
       "subcommands": null
     },
     "status": {
-      "desc": "Check system health and device status",
+      "desc": "✅ Check system health and device status",
       "icon": "✅",
       "is_default": false,
       "lifecycle": "standard",
@@ -534,7 +586,7 @@ def show_help_json(ctx, param, value):
           "name": "json",
           "short": null,
           "type": "flag",
-          "desc": "Output transcription results as JSON",
+          "desc": "📋 Output status results as JSON",
           "default": null,
           "choices": null,
           "multiple": false
@@ -542,27 +594,213 @@ def show_help_json(ctx, param, value):
       ],
       "subcommands": null
     },
-    "models": {
-      "desc": "Show available Whisper models",
+    "model": {
+      "desc": "Manage Whisper models",
       "icon": "🧠",
       "is_default": false,
       "lifecycle": "standard",
       "args": [],
-      "options": [
-        {
-          "name": "json",
-          "short": null,
-          "type": "flag",
-          "desc": "Output transcription results as JSON",
-          "default": null,
-          "choices": null,
-          "multiple": false
+      "options": [],
+      "subcommands": {
+        "download": {
+          "desc": "Download a Whisper model",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [
+            {
+              "name": "model_name",
+              "desc": "🔽 Model name to download (tiny, base, small, medium, large)",
+              "nargs": null,
+              "choices": [
+                "tiny",
+                "base",
+                "small",
+                "medium",
+                "large"
+              ],
+              "required": true
+            }
+          ],
+          "options": [
+            {
+              "name": "force",
+              "short": "f",
+              "type": "flag",
+              "desc": "🔄 Force re-download even if model exists",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            },
+            {
+              "name": "device",
+              "short": "d",
+              "type": "str",
+              "desc": "💻 Device type for model optimization (cpu, cuda, auto)",
+              "default": "auto",
+              "choices": [
+                "cpu",
+                "cuda",
+                "auto"
+              ],
+              "multiple": false
+            }
+          ],
+          "subcommands": null
+        },
+        "list": {
+          "desc": "List available and downloaded models",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [],
+          "options": [
+            {
+              "name": "downloaded-only",
+              "short": null,
+              "type": "flag",
+              "desc": "📦 Show only downloaded models",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            },
+            {
+              "name": "json",
+              "short": null,
+              "type": "flag",
+              "desc": "📋 Output as JSON",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            }
+          ],
+          "subcommands": null
+        },
+        "info": {
+          "desc": "Show detailed model information",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [
+            {
+              "name": "model_name",
+              "desc": "🔍 Model name to inspect",
+              "nargs": null,
+              "choices": [
+                "tiny",
+                "base",
+                "small",
+                "medium",
+                "large"
+              ],
+              "required": true
+            }
+          ],
+          "options": [
+            {
+              "name": "json",
+              "short": null,
+              "type": "flag",
+              "desc": "📋 Output as JSON",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            }
+          ],
+          "subcommands": null
+        },
+        "remove": {
+          "desc": "Remove downloaded model",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [
+            {
+              "name": "model_name",
+              "desc": "🗑️ Model name to remove",
+              "nargs": null,
+              "choices": [
+                "tiny",
+                "base",
+                "small",
+                "medium",
+                "large"
+              ],
+              "required": true
+            }
+          ],
+          "options": [
+            {
+              "name": "force",
+              "short": "f",
+              "type": "flag",
+              "desc": "🔄 Skip confirmation prompt",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            }
+          ],
+          "subcommands": null
+        },
+        "benchmark": {
+          "desc": "Test model performance",
+          "icon": null,
+          "is_default": false,
+          "lifecycle": "standard",
+          "args": [
+            {
+              "name": "model_name",
+              "desc": "⚡ Model name to benchmark",
+              "nargs": null,
+              "choices": [
+                "tiny",
+                "base",
+                "small",
+                "medium",
+                "large"
+              ],
+              "required": true
+            }
+          ],
+          "options": [
+            {
+              "name": "duration",
+              "short": "t",
+              "type": "int",
+              "desc": "⏱️ Test duration in seconds",
+              "default": 10,
+              "choices": null,
+              "multiple": false
+            },
+            {
+              "name": "device",
+              "short": "d",
+              "type": "str",
+              "desc": "💻 Device to test on (cpu, cuda, auto)",
+              "default": "auto",
+              "choices": [
+                "cpu",
+                "cuda",
+                "auto"
+              ],
+              "multiple": false
+            },
+            {
+              "name": "json",
+              "short": null,
+              "type": "flag",
+              "desc": "📋 Output results as JSON",
+              "default": null,
+              "choices": null,
+              "multiple": false
+            }
+          ],
+          "subcommands": null
         }
-      ],
-      "subcommands": null
+      }
     },
     "config": {
-      "desc": "Adjust CLI settings and preferences",
+      "desc": "⚙️ Adjust CLI settings and preferences",
       "icon": "⚙️",
       "is_default": false,
       "lifecycle": "standard",
@@ -570,7 +808,7 @@ def show_help_json(ctx, param, value):
       "options": [],
       "subcommands": {
         "show": {
-          "desc": "Display current configuration",
+          "desc": "👁️ Display current configuration",
           "icon": null,
           "is_default": false,
           "lifecycle": "standard",
@@ -580,7 +818,7 @@ def show_help_json(ctx, param, value):
               "name": "json",
               "short": null,
               "type": "flag",
-              "desc": "Output transcription results as JSON",
+              "desc": "📋 Output configuration as JSON",
               "default": null,
               "choices": null,
               "multiple": false
@@ -589,14 +827,14 @@ def show_help_json(ctx, param, value):
           "subcommands": null
         },
         "get": {
-          "desc": "Retrieve configuration value",
+          "desc": "🔍 Retrieve configuration value",
           "icon": null,
           "is_default": false,
           "lifecycle": "standard",
           "args": [
             {
               "name": "key",
-              "desc": "Configuration key",
+              "desc": "🔑 Configuration key",
               "nargs": null,
               "choices": null,
               "required": true
@@ -606,21 +844,21 @@ def show_help_json(ctx, param, value):
           "subcommands": null
         },
         "set": {
-          "desc": "Set a configuration value",
+          "desc": "✏️ Set a configuration value",
           "icon": null,
           "is_default": false,
           "lifecycle": "standard",
           "args": [
             {
               "name": "key",
-              "desc": "Configuration key",
+              "desc": "🔑 Configuration key",
               "nargs": null,
               "choices": null,
               "required": true
             },
             {
               "name": "value",
-              "desc": "Configuration value",
+              "desc": "💾 Configuration value",
               "nargs": null,
               "choices": null,
               "required": true
@@ -652,7 +890,7 @@ def show_help_json(ctx, param, value):
       "name": "System",
       "commands": [
         "status",
-        "models"
+        "model"
       ],
       "icon": null
     },
@@ -708,39 +946,71 @@ def show_help_json(ctx, param, value):
 
 
 def main(ctx, help_json=False, help_all=False):
-    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.2[/bold color(6)] - Speech to Text
+    """🎤 [bold color(6)]GOOBITS STT CLI v1.0.2[/bold color(6)] - Real-time speech-to-text with AI-powered Whisper models
 
     
     \b
-    [#B3B8C0]Real-time speech-to-text transcription powered by Whisper[/#B3B8C0]
+    [#B3B8C0]Convert speech into accurate text with multiple operation modes and advanced formatting.[/#B3B8C0]
     
 
     
     
-    [bold yellow]💡 Quick Start[/bold yellow]
+    [bold yellow]🎯 Most Common Use Cases[/bold yellow]
     
     
-    [green]   stt listen  [/green] [italic][#B3B8C0]# Record once and transcribe[/#B3B8C0][/italic]
+    [green]   stt listen                       [/green] [italic][#B3B8C0]# Quick voice note: Record and transcribe once[/#B3B8C0][/italic]
     
     
-    [green]   stt live    [/green] [italic][#B3B8C0]# Real-time interactive transcription[/#B3B8C0][/italic]
+    [green]   stt live                         [/green] [italic][#B3B8C0]# Always listening: Hands-free conversation mode[/#B3B8C0][/italic]
     
     
-    [green]   stt serve   [/green] [italic][#B3B8C0]# Start transcription server[/#B3B8C0][/italic]
+    [green]   stt live --tap-to-talk=F8        [/green] [italic][#B3B8C0]# Press F8 to talk: Controlled conversation mode[/#B3B8C0][/italic]
     
     
-    [green]   stt models  [/green] [italic][#B3B8C0]# Show available Whisper models[/#B3B8C0][/italic]
+    [green]   stt listen --hold-to-talk=space  [/green] [italic][#B3B8C0]# Hold spacebar: Push-to-talk recording[/#B3B8C0][/italic]
+    
+    
+    [green]   stt serve --port=8080            [/green] [italic][#B3B8C0]# Remote transcription: WebSocket server for clients[/#B3B8C0][/italic]
     
     [green] [/green]
     
-    [bold yellow]🔑 Initial Setup[/bold yellow]
+    [bold yellow]🚀 Quick Start (First Time)[/bold yellow]
     
     
-    [#B3B8C0]   1. Check status:    [/#B3B8C0][green]stt status[/green]
+    [#B3B8C0]   1. Check system:     [/#B3B8C0][green]stt status[/green]
     
-    [#B3B8C0]   2. Select model:    [/#B3B8C0][green]stt config set model base[/green]
+    [#B3B8C0]   2. Test recording:   [/#B3B8C0][green]stt listen[/green]
     
-    [#B3B8C0]   3. Start listening: [/#B3B8C0][green]stt listen[/green]
+    [#B3B8C0]   3. Try conversation: [/#B3B8C0][green]stt live[/green]
+    [green] [/green]
+    
+    [bold yellow]💭 Popular Workflows[/bold yellow]
+    
+    
+    [green]   Voice Notes       [/green] [italic][#B3B8C0]# stt listen > notes.txt  # Save transcription to file[/#B3B8C0][/italic]
+    
+    
+    [green]   Meeting Notes     [/green] [italic][#B3B8C0]# stt live --json > meeting.json  # Structured output[/#B3B8C0][/italic]
+    
+    
+    [green]   Remote Dictation  [/green] [italic][#B3B8C0]# stt serve  # Server + client apps on other devices[/#B3B8C0][/italic]
+    
+    
+    [green]   Gaming/Streaming  [/green] [italic][#B3B8C0]# stt live --tap-to-talk=F8  # Hotkey control[/#B3B8C0][/italic]
+    
+    [green] [/green]
+    
+    [bold yellow]💡 Core Commands[/bold yellow]
+    
+    
+    [green]   listen  [/green]  🎙️  Record once and transcribe (default command)
+    
+    
+    [green]   live    [/green]  🗣️  Real-time conversation mode with VAD
+    
+    
+    [green]   serve   [/green]  🌐 Launch WebSocket transcription server
+    
     [green] [/green]
     
     
@@ -795,7 +1065,7 @@ click.rich_click.COMMAND_GROUPS = {
         
         {
             "name": "System",
-            "commands": ['status', 'models'],
+            "commands": ['status', 'model'],
         },
         
         {
@@ -828,53 +1098,53 @@ def upgrade(check, version, pre, dry_run):
 @click.option("-m", "--model",
     type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
     default="base",
-    help="Whisper model size (accuracy/performance)"
+    help="🧠 Whisper model size (tiny=fastest, large=most accurate)"
 )
 
 @click.option("-l", "--language",
     type=str,
-    help="Language code for transcription (e.g., en, es, fr)"
+    help="🌍 Language code for transcription (e.g., en, es, fr, auto-detect)"
 )
 
 @click.option("-d", "--device",
     type=str,
-    help="Audio input device (microphone name)"
+    help="🎤 Audio input device (microphone name or index)"
 )
 
 @click.option("--hold-to-talk",
     type=str,
-    help="Hold-to-talk key (e.g., space, F8)"
+    help="⌨️  Hold-to-talk key (e.g., space, F8, ctrl)"
 )
 
 @click.option("--no-formatting",
     type=bool,
     default=False,
-    help="Output unformatted raw text"
+    help="📝 Output unformatted raw text"
 )
 
 @click.option("--sample-rate",
     type=int,
     default=16000,
-    help="Audio sampling rate (Hz)"
+    help="🔊 Audio sampling rate (Hz)"
 )
 
 @click.option("--json",
     is_flag=True,
-    help="Output transcription results as JSON"
+    help="📋 Output transcription results as JSON"
 )
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable detailed debug logging"
+    help="🐞 Enable detailed debug logging"
 )
 
 @click.option("--config",
     type=str,
-    help="Path to custom config file"
+    help="⚙️ Path to custom config file"
 )
 
 def listen(ctx, model, language, device, hold_to_talk, no_formatting, sample_rate, json, debug, config):
-    """🎙️  Record once and transcribe"""
+    """🎙️  🎙️ Record once and transcribe"""
     
     # Check for built-in commands first
     
@@ -980,53 +1250,53 @@ def listen(ctx, model, language, device, hold_to_talk, no_formatting, sample_rat
 @click.option("-m", "--model",
     type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
     default="base",
-    help="Whisper model size (accuracy/performance)"
+    help="🧠 Whisper model size (tiny=fastest, large=most accurate)"
 )
 
 @click.option("-l", "--language",
     type=str,
-    help="Language code for transcription (e.g., en, es, fr)"
+    help="🌍 Language code for transcription (e.g., en, es, fr, auto-detect)"
 )
 
 @click.option("-d", "--device",
     type=str,
-    help="Audio input device (microphone name)"
+    help="🎤 Audio input device (microphone name or index)"
 )
 
 @click.option("--tap-to-talk",
     type=str,
-    help="Tap-to-talk key (e.g., F8)"
+    help="👆 Tap-to-talk key (e.g., F8)"
 )
 
 @click.option("--no-formatting",
     type=bool,
     default=False,
-    help="Output unformatted raw text"
+    help="📝 Output unformatted raw text"
 )
 
 @click.option("--sample-rate",
     type=int,
     default=16000,
-    help="Audio sampling rate (Hz)"
+    help="🔊 Audio sampling rate (Hz)"
 )
 
 @click.option("--json",
     is_flag=True,
-    help="Output transcription results as JSON"
+    help="📋 Output transcription results as JSON"
 )
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable detailed debug logging"
+    help="🐞 Enable detailed debug logging"
 )
 
 @click.option("--config",
     type=str,
-    help="Path to custom config file"
+    help="⚙️ Path to custom config file"
 )
 
 def live(ctx, model, language, device, tap_to_talk, no_formatting, sample_rate, json, debug, config):
-    """🗣️  Real-time interactive transcription"""
+    """🗣️  🗣️ Real-time interactive transcription"""
     
     # Check for built-in commands first
     
@@ -1132,27 +1402,27 @@ def live(ctx, model, language, device, tap_to_talk, no_formatting, sample_rate, 
 @click.option("-p", "--port",
     type=int,
     default=8769,
-    help="Server port (default 8769)"
+    help="🌐 Server port (default 8769)"
 )
 
 @click.option("-h", "--host",
     type=str,
     default="0.0.0.0",
-    help="Server host address (default 0.0.0.0)"
+    help="🏠 Server host address (default 0.0.0.0)"
 )
 
 @click.option("--debug",
     is_flag=True,
-    help="Enable detailed debug logging"
+    help="🐞 Enable detailed debug logging"
 )
 
 @click.option("--config",
     type=str,
-    help="Path to custom config file"
+    help="⚙️ Path to custom config file"
 )
 
 def serve(ctx, port, host, debug, config):
-    """🌐 Launch transcription server"""
+    """🌐 🌐 Launch transcription server"""
     
     # Check for built-in commands first
     
@@ -1222,11 +1492,11 @@ def serve(ctx, port, host, debug, config):
 
 @click.option("--json",
     is_flag=True,
-    help="Output transcription results as JSON"
+    help="📋 Output status results as JSON"
 )
 
 def status(ctx, json):
-    """✅ Check system health and device status"""
+    """✅ ✅ Check system health and device status"""
     
     # Check for built-in commands first
     
@@ -1269,31 +1539,156 @@ def status(ctx, json):
 
 
 
-@main.command()
+@main.group()
+def model():
+    """🧠 Manage Whisper models"""
+    pass
+
+
+@model.command()
 @click.pass_context
 
-
-@click.option("--json",
-    is_flag=True,
-    help="Output transcription results as JSON"
+@click.argument(
+    "MODEL_NAME",
+    type=click.Choice(['tiny', 'base', 'small', 'medium', 'large'])
 )
 
-def models(ctx, json):
-    """🧠 Show available Whisper models"""
-    
-    # Check for built-in commands first
-    
-    # Standard command - use the existing hook pattern
-    hook_name = f"on_models"
+
+@click.option("-f", "--force",
+    is_flag=True,
+    help="🔄 Force re-download even if model exists"
+)
+
+@click.option("-d", "--device",
+    type=click.Choice(['cpu', 'cuda', 'auto']),
+    default="auto",
+    help="💻 Device type for model optimization (cpu, cuda, auto)"
+)
+
+def download(ctx, model_name, force, device):
+    """Download a Whisper model"""
+    # Check if hook function exists
+    hook_name = f"on_model_download"
     if app_hooks and hasattr(app_hooks, hook_name):
         # Call the hook with all parameters
         hook_func = getattr(app_hooks, hook_name)
         
         # Prepare arguments including global options
         kwargs = {}
-        kwargs['command_name'] = 'models'  # Pass command name for all commands
+        kwargs['command_name'] = 'download'  # Pass command name for all commands
         
         
+        kwargs['model_name'] = model_name
+        
+        
+        
+        
+        kwargs['force'] = force
+        
+        kwargs['device'] = device
+        
+        
+        
+        # Add global options from context
+        
+        
+        result = hook_func(**kwargs)
+        return result
+    else:
+        # Default placeholder behavior
+        click.echo(f"Executing download command...")
+        
+        
+        click.echo(f"  model_name: {model_name}")
+        
+        
+        
+        
+        click.echo(f"  force: {force}")
+        
+        click.echo(f"  device: {device}")
+        
+        
+
+@model.command()
+@click.pass_context
+
+
+@click.option("--downloaded-only",
+    is_flag=True,
+    help="📦 Show only downloaded models"
+)
+
+@click.option("--json",
+    is_flag=True,
+    help="📋 Output as JSON"
+)
+
+def list(ctx, downloaded_only, json):
+    """List available and downloaded models"""
+    # Check if hook function exists
+    hook_name = f"on_model_list"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        # Call the hook with all parameters
+        hook_func = getattr(app_hooks, hook_name)
+        
+        # Prepare arguments including global options
+        kwargs = {}
+        kwargs['command_name'] = 'list'  # Pass command name for all commands
+        
+        
+        
+        kwargs['downloaded_only'] = downloaded_only
+        
+        kwargs['json'] = json
+        
+        
+        
+        # Add global options from context
+        
+        
+        result = hook_func(**kwargs)
+        return result
+    else:
+        # Default placeholder behavior
+        click.echo(f"Executing list command...")
+        
+        
+        
+        click.echo(f"  downloaded-only: {downloaded_only}")
+        
+        click.echo(f"  json: {json}")
+        
+        
+
+@model.command()
+@click.pass_context
+
+@click.argument(
+    "MODEL_NAME",
+    type=click.Choice(['tiny', 'base', 'small', 'medium', 'large'])
+)
+
+
+@click.option("--json",
+    is_flag=True,
+    help="📋 Output as JSON"
+)
+
+def info(ctx, model_name, json):
+    """Show detailed model information"""
+    # Check if hook function exists
+    hook_name = f"on_model_info"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        # Call the hook with all parameters
+        hook_func = getattr(app_hooks, hook_name)
+        
+        # Prepare arguments including global options
+        kwargs = {}
+        kwargs['command_name'] = 'info'  # Pass command name for all commands
+        
+        
+        kwargs['model_name'] = model_name
         
         
         
@@ -1309,22 +1704,155 @@ def models(ctx, json):
         return result
     else:
         # Default placeholder behavior
-        click.echo(f"Executing models command...")
+        click.echo(f"Executing info command...")
+        
+        
+        click.echo(f"  model_name: {model_name}")
+        
         
         
         
         click.echo(f"  json: {json}")
         
         
-    
-    
+
+@model.command()
+@click.pass_context
+
+@click.argument(
+    "MODEL_NAME",
+    type=click.Choice(['tiny', 'base', 'small', 'medium', 'large'])
+)
+
+
+@click.option("-f", "--force",
+    is_flag=True,
+    help="🔄 Skip confirmation prompt"
+)
+
+def remove(ctx, model_name, force):
+    """Remove downloaded model"""
+    # Check if hook function exists
+    hook_name = f"on_model_remove"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        # Call the hook with all parameters
+        hook_func = getattr(app_hooks, hook_name)
+        
+        # Prepare arguments including global options
+        kwargs = {}
+        kwargs['command_name'] = 'remove'  # Pass command name for all commands
+        
+        
+        kwargs['model_name'] = model_name
+        
+        
+        
+        
+        kwargs['force'] = force
+        
+        
+        
+        # Add global options from context
+        
+        
+        result = hook_func(**kwargs)
+        return result
+    else:
+        # Default placeholder behavior
+        click.echo(f"Executing remove command...")
+        
+        
+        click.echo(f"  model_name: {model_name}")
+        
+        
+        
+        
+        click.echo(f"  force: {force}")
+        
+        
+
+@model.command()
+@click.pass_context
+
+@click.argument(
+    "MODEL_NAME",
+    type=click.Choice(['tiny', 'base', 'small', 'medium', 'large'])
+)
+
+
+@click.option("-t", "--duration",
+    type=int,
+    default=10,
+    help="⏱️ Test duration in seconds"
+)
+
+@click.option("-d", "--device",
+    type=click.Choice(['cpu', 'cuda', 'auto']),
+    default="auto",
+    help="💻 Device to test on (cpu, cuda, auto)"
+)
+
+@click.option("--json",
+    is_flag=True,
+    help="📋 Output results as JSON"
+)
+
+def benchmark(ctx, model_name, duration, device, json):
+    """Test model performance"""
+    # Check if hook function exists
+    hook_name = f"on_model_benchmark"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        # Call the hook with all parameters
+        hook_func = getattr(app_hooks, hook_name)
+        
+        # Prepare arguments including global options
+        kwargs = {}
+        kwargs['command_name'] = 'benchmark'  # Pass command name for all commands
+        
+        
+        kwargs['model_name'] = model_name
+        
+        
+        
+        
+        kwargs['duration'] = duration
+        
+        kwargs['device'] = device
+        
+        kwargs['json'] = json
+        
+        
+        
+        # Add global options from context
+        
+        
+        result = hook_func(**kwargs)
+        return result
+    else:
+        # Default placeholder behavior
+        click.echo(f"Executing benchmark command...")
+        
+        
+        click.echo(f"  model_name: {model_name}")
+        
+        
+        
+        
+        click.echo(f"  duration: {duration}")
+        
+        click.echo(f"  device: {device}")
+        
+        click.echo(f"  json: {json}")
+        
+        
+
 
 
 
 
 @main.group()
 def config():
-    """⚙️  Adjust CLI settings and preferences"""
+    """⚙️  ⚙️ Adjust CLI settings and preferences"""
     pass
 
 
@@ -1334,11 +1862,11 @@ def config():
 
 @click.option("--json",
     is_flag=True,
-    help="Output transcription results as JSON"
+    help="📋 Output configuration as JSON"
 )
 
 def show(ctx, json):
-    """Display current configuration"""
+    """👁️ Display current configuration"""
     # Check if hook function exists
     hook_name = f"on_config_show"
     if app_hooks and hasattr(app_hooks, hook_name):
@@ -1379,7 +1907,7 @@ def show(ctx, json):
 
 
 def get(ctx, key):
-    """Retrieve configuration value"""
+    """🔍 Retrieve configuration value"""
     # Check if hook function exists
     hook_name = f"on_config_get"
     if app_hooks and hasattr(app_hooks, hook_name):
@@ -1424,7 +1952,7 @@ def get(ctx, key):
 
 
 def set(ctx, key, value):
-    """Set a configuration value"""
+    """✏️ Set a configuration value"""
     # Check if hook function exists
     hook_name = f"on_config_set"
     if app_hooks and hasattr(app_hooks, hook_name):

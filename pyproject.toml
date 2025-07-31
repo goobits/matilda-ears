@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 keywords = [ "speech-to-text", "whisper", "transcription", "stt", "voice",]
 classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12",]
-dependencies = [ "websockets>=10.0", "numpy>=1.21.0", "cryptography>=3.0.0", "PyJWT>=2.0.0", "requests>=2.25.0", "aiohttp>=3.8.0", "click>=8.0.0", "rich-click>=1.7.0", "rich>=13.0.0", "faster-whisper>=1.0.0", "ctranslate2>=4.0.0", "torch>=2.0.0", "torchaudio>=2.0.0", "silero-vad>=4.0.0", "deepmultilingualpunctuation>=1.0.0", "spacy>=3.8.0", "pyparsing>=3.0.0", "opuslib>=3.0.0", "pynput>=1.7.0", "pvporcupine>=3.0.0",]
+dependencies = [ "websockets>=10.0", "numpy>=1.21.0", "cryptography>=3.0.0", "PyJWT>=2.0.0", "requests>=2.25.0", "aiohttp>=3.8.0", "click>=8.0.0", "rich-click>=1.7.0", "rich>=13.0.0", "faster-whisper>=1.0.0", "ctranslate2>=4.0.0", "torch>=2.0.0", "torchaudio>=2.0.0", "silero-vad>=4.0.0", "deepmultilingualpunctuation>=1.0.0", "spacy>=3.8.0", "pyparsing>=3.0.0", "opuslib>=3.0.0", "pynput>=1.7.0", "pvporcupine>=3.0.0", "psutil>=5.0.0",]
 [[project.authors]]
 name = "GOOBITS Team"
 

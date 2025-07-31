@@ -385,7 +385,6 @@ class PipeBasedAudioStreamer:
             try:
                 self.loop.call_soon_threadsafe(self.queue.put_nowait, audio_chunk)
             except Exception as e:
-                logger.error(f"[PIPE-STREAM] Error putting chunk in queue: {e}")
                 # If queue is full or loop is closed, we need to handle this gracefully
                 if "Queue is full" in str(e):
                     logger.warning("[PIPE-STREAM] Audio queue is full, dropping chunk to prevent blocking")
@@ -393,7 +392,8 @@ class PipeBasedAudioStreamer:
                     logger.warning("[PIPE-STREAM] Event loop closed, stopping audio reader")
                     break
                 else:
-                    # For other errors, re-raise to prevent data corruption
+                    # For other errors, log and re-raise to prevent data corruption
+                    logger.error(f"[PIPE-STREAM] Error putting chunk in queue: {e}")
                     raise
 
     def _flush_remaining_data(self):
@@ -412,7 +412,8 @@ class PipeBasedAudioStreamer:
                 try:
                     self.loop.call_soon_threadsafe(self.queue.put_nowait, remaining_chunk)
                 except Exception as e:
-                    logger.error(f"[PIPE-STREAM] Final callback error: {e}")
+                    if "Event loop is closed" not in str(e):
+                        logger.error(f"[PIPE-STREAM] Final callback error: {e}")
 
             self._audio_buffer = b""
 

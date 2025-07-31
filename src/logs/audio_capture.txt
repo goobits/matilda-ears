@@ -1,0 +1,10 @@
+2025-07-30 00:54:58 - stt.audio.capture - INFO - [PIPE-STREAM] Initialized: 32ms chunks, 16000Hz, 512 samples/chunk
+2025-07-30 00:54:58 - stt.audio.capture - INFO - [PIPE-STREAM] Starting audio capture: arecord -f S16_LE -r 16000 -c 1 -t raw
+2025-07-30 00:54:58 - stt.audio.capture - INFO - [PIPE-STREAM] Started with stdbuf for unbuffered output
+2025-07-30 00:54:58 - stt.audio.capture - INFO - [PIPE-STREAM] Reader thread started
+2025-07-30 00:54:58 - stt.audio.capture - INFO - [PIPE-STREAM] Recording started successfully
+2025-07-30 00:55:06 - stt.audio.capture - INFO - [PIPE-STREAM] Initialized: 32ms chunks, 16000Hz, 512 samples/chunk
+2025-07-30 00:55:06 - stt.audio.capture - INFO - [PIPE-STREAM] Starting audio capture: arecord -f S16_LE -r 16000 -c 1 -t raw
+2025-07-30 00:55:06 - stt.audio.capture - INFO - [PIPE-STREAM] Started with stdbuf for unbuffered output
+2025-07-30 00:55:06 - stt.audio.capture - INFO - [PIPE-STREAM] Reader thread started
+2025-07-30 00:55:06 - stt.audio.capture - INFO - [PIPE-STREAM] Recording started successfully

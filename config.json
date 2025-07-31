@@ -127,5 +127,10 @@
   "timing": {
     "server_startup_delay": 1.0,
     "server_stop_delay": 1.0
+  },
+  "logging": {
+    "level": "WARNING",
+    "console": true,
+    "file": true
   }
 }
