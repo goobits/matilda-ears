@@ -111,7 +111,8 @@ class BaseMode(ABC):
                 queue=self.audio_queue,
                 chunk_duration_ms=chunk_duration_ms,
                 sample_rate=self.args.sample_rate,
-                audio_device=self.args.device
+                audio_device=self.args.device,
+                debug=self.args.debug  # Pass debug flag to control logger output
             )
 
             self.logger.info("Audio streamer setup completed")

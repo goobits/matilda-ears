@@ -20,8 +20,8 @@ click.rich_click.GROUP_ARGUMENTS_OPTIONS = True
 click.rich_click.SHOW_METAVARS_COLUMN = False
 click.rich_click.APPEND_METAVARS_HELP = True
 click.rich_click.STYLE_ERRORS_SUGGESTION = "#ff5555"
-click.rich_click.ERRORS_SUGGESTION = ""
-click.rich_click.ERRORS_EPILOGUE = ""
+click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
+click.rich_click.ERRORS_EPILOGUE = "To find out more, visit https://github.com/anthropics/claude-code"
 click.rich_click.MAX_WIDTH = 120  # Set reasonable width
 click.rich_click.WIDTH = 120  # Set consistent width
 click.rich_click.COLOR_SYSTEM = "auto"
@@ -101,9 +101,10 @@ def builtin_upgrade_command(check_only=False, pre=False, version=None, dry_run=F
     # Find the setup.sh script - look in common locations
     setup_script = None
     search_paths = [
-        Path(__file__).parent.parent / "setup.sh",  # Package directory (prioritize)
+        Path(__file__).parent / "setup.sh",  # Package directory (installed packages)
+        Path(__file__).parent.parent / "setup.sh",  # Development mode 
         Path.home() / ".local" / "share" / "goobits-stt" / "setup.sh",  # User data
-        # Removed Path.cwd() / "setup.sh" - prevents cross-contamination between projects
+        # Remove Path.cwd() to prevent cross-contamination
     ]
     
     for path in search_paths:
@@ -195,8 +196,17 @@ def get_version():
     
     try:
         # Try to get version from pyproject.toml FIRST (most authoritative)
-        toml_path = Path(__file__).parent.parent / "pyproject.toml"
-        if toml_path.exists():
+        # Look in multiple possible locations
+        possible_paths = [
+            Path(__file__).parent.parent / "pyproject.toml",  # For flat structure
+            Path(__file__).parent.parent.parent / "pyproject.toml",  # For src/ structure
+        ]
+        toml_path = None
+        for path in possible_paths:
+            if path.exists():
+                toml_path = path
+                break
+        if toml_path:
             content = toml_path.read_text()
             match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
             if match:
@@ -239,6 +249,11 @@ def show_help_json(ctx, param, value):
         {
           "item": "stt listen",
           "desc": "Quick voice note: Record and transcribe once",
+          "style": "example"
+        },
+        {
+          "item": "stt transcribe audio.wav --json",
+          "desc": "File transcription: Process audio files with JSON output",
           "style": "example"
         },
         {
@@ -294,6 +309,11 @@ def show_help_json(ctx, param, value):
           "style": "example"
         },
         {
+          "item": "Batch Processing",
+          "desc": "stt transcribe *.wav --json  # Process multiple audio files",
+          "style": "example"
+        },
+        {
           "item": "Meeting Notes",
           "desc": "stt live --json > meeting.json  # Structured output",
           "style": "example"
@@ -322,6 +342,11 @@ def show_help_json(ctx, param, value):
         {
           "item": "live",
           "desc": "🗣️  Real-time conversation mode with VAD",
+          "style": "command"
+        },
+        {
+          "item": "transcribe",
+          "desc": "🎯 Transcribe audio files to text",
           "style": "command"
         },
         {
@@ -552,6 +577,115 @@ def show_help_json(ctx, param, value):
           "desc": "🏠 Server host address (default 0.0.0.0)",
           "default": "0.0.0.0",
           "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "debug",
+          "short": null,
+          "type": "flag",
+          "desc": "🐞 Enable detailed debug logging",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "config",
+          "short": null,
+          "type": "str",
+          "desc": "⚙️ Path to custom config file",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        }
+      ],
+      "subcommands": null
+    },
+    "transcribe": {
+      "desc": "🎯 Transcribe audio files to text",
+      "icon": "🎯",
+      "is_default": false,
+      "lifecycle": "standard",
+      "args": [
+        {
+          "name": "audio_files",
+          "desc": "🎵 Audio file(s) to transcribe (WAV, MP3, Opus supported)",
+          "nargs": "+",
+          "choices": null,
+          "required": true
+        }
+      ],
+      "options": [
+        {
+          "name": "model",
+          "short": "m",
+          "type": "str",
+          "desc": "🧠 Whisper model size (tiny=fastest, large=most accurate)",
+          "default": "base",
+          "choices": [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large"
+          ],
+          "multiple": false
+        },
+        {
+          "name": "language",
+          "short": "l",
+          "type": "str",
+          "desc": "🌍 Language code for transcription (e.g., en, es, fr, auto-detect)",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "json",
+          "short": null,
+          "type": "flag",
+          "desc": "📋 Output transcription results as JSON",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "prefer-server",
+          "short": null,
+          "type": "flag",
+          "desc": "🌐 Try WebSocket server first, fallback to direct",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "server-only",
+          "short": null,
+          "type": "flag",
+          "desc": "🔒 Require WebSocket server connection",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "direct-only",
+          "short": null,
+          "type": "flag",
+          "desc": "🖥️ Skip server, use direct Whisper processing",
+          "default": null,
+          "choices": null,
+          "multiple": false
+        },
+        {
+          "name": "output",
+          "short": "o",
+          "type": "str",
+          "desc": "📄 Output format (plain, json, matilda)",
+          "default": "plain",
+          "choices": [
+            "plain",
+            "json",
+            "matilda"
+          ],
           "multiple": false
         },
         {
@@ -880,6 +1014,13 @@ def show_help_json(ctx, param, value):
       "icon": null
     },
     {
+      "name": "File Processing",
+      "commands": [
+        "transcribe"
+      ],
+      "icon": null
+    },
+    {
       "name": "Server & Processing",
       "commands": [
         "serve"
@@ -930,6 +1071,8 @@ def show_help_json(ctx, param, value):
 
   
 
+  
+
 
 
 
@@ -961,6 +1104,9 @@ def main(ctx, help_json=False, help_all=False):
     [green]   stt listen                       [/green] [italic][#B3B8C0]# Quick voice note: Record and transcribe once[/#B3B8C0][/italic]
     
     
+    [green]   stt transcribe audio.wav --json  [/green] [italic][#B3B8C0]# File transcription: Process audio files with JSON output[/#B3B8C0][/italic]
+    
+    
     [green]   stt live                         [/green] [italic][#B3B8C0]# Always listening: Hands-free conversation mode[/#B3B8C0][/italic]
     
     
@@ -990,6 +1136,9 @@ def main(ctx, help_json=False, help_all=False):
     [green]   Voice Notes       [/green] [italic][#B3B8C0]# stt listen > notes.txt  # Save transcription to file[/#B3B8C0][/italic]
     
     
+    [green]   Batch Processing  [/green] [italic][#B3B8C0]# stt transcribe *.wav --json  # Process multiple audio files[/#B3B8C0][/italic]
+    
+    
     [green]   Meeting Notes     [/green] [italic][#B3B8C0]# stt live --json > meeting.json  # Structured output[/#B3B8C0][/italic]
     
     
@@ -1003,13 +1152,16 @@ def main(ctx, help_json=False, help_all=False):
     [bold yellow]💡 Core Commands[/bold yellow]
     
     
-    [green]   listen  [/green]  🎙️  Record once and transcribe (default command)
+    [green]   listen      [/green]  🎙️  Record once and transcribe (default command)
     
     
-    [green]   live    [/green]  🗣️  Real-time conversation mode with VAD
+    [green]   live        [/green]  🗣️  Real-time conversation mode with VAD
     
     
-    [green]   serve   [/green]  🌐 Launch WebSocket transcription server
+    [green]   transcribe  [/green]  🎯 Transcribe audio files to text
+    
+    
+    [green]   serve       [/green]  🌐 Launch WebSocket transcription server
     
     [green] [/green]
     
@@ -1018,7 +1170,6 @@ def main(ctx, help_json=False, help_all=False):
     [#B3B8C0]📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6][/#B3B8C0]
     
     """
-
     
     if help_all:
         # Print main help
@@ -1048,6 +1199,9 @@ def main(ctx, help_json=False, help_all=False):
 
     pass
 
+# Replace the version placeholder with dynamic version in the main command docstring
+
+
 
 # Set command groups after main function is defined
 click.rich_click.COMMAND_GROUPS = {
@@ -1059,8 +1213,13 @@ click.rich_click.COMMAND_GROUPS = {
         },
         
         {
+            "name": "File Processing",
+            "commands": ['transcribe'],
+        },
+        
+        {
             "name": "Server & Processing",
-            "commands": ['serve'],
+            "commands": ['serve', 'server'],
         },
         
         {
@@ -1474,6 +1633,171 @@ def serve(ctx, port, host, debug, config):
         click.echo(f"  port: {port}")
         
         click.echo(f"  host: {host}")
+        
+        click.echo(f"  debug: {debug}")
+        
+        click.echo(f"  config: {config}")
+        
+        
+    
+    
+
+
+
+
+@main.command()
+@click.pass_context
+
+@click.argument(
+    "AUDIO_FILES",
+    nargs=-1,
+    required=True
+)
+
+
+@click.option("-m", "--model",
+    type=click.Choice(['tiny', 'base', 'small', 'medium', 'large']),
+    default="base",
+    help="🧠 Whisper model size (tiny=fastest, large=most accurate)"
+)
+
+@click.option("-l", "--language",
+    type=str,
+    help="🌍 Language code for transcription (e.g., en, es, fr, auto-detect)"
+)
+
+@click.option("--json",
+    is_flag=True,
+    help="📋 Output transcription results as JSON"
+)
+
+@click.option("--prefer-server",
+    is_flag=True,
+    help="🌐 Try WebSocket server first, fallback to direct"
+)
+
+@click.option("--server-only",
+    is_flag=True,
+    help="🔒 Require WebSocket server connection"
+)
+
+@click.option("--direct-only",
+    is_flag=True,
+    help="🖥️ Skip server, use direct Whisper processing"
+)
+
+@click.option("-o", "--output",
+    type=click.Choice(['plain', 'json', 'matilda']),
+    default="plain",
+    help="📄 Output format (plain, json, matilda)"
+)
+
+@click.option("--debug",
+    is_flag=True,
+    help="🐞 Enable detailed debug logging"
+)
+
+@click.option("--config",
+    type=str,
+    help="⚙️ Path to custom config file"
+)
+
+def transcribe(ctx, audio_files, model, language, json, prefer_server, server_only, direct_only, output, debug, config):
+    """🎯 🎯 Transcribe audio files to text"""
+    
+    # Check for built-in commands first
+    
+    # Standard command - use the existing hook pattern
+    hook_name = f"on_transcribe"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        # Call the hook with all parameters
+        hook_func = getattr(app_hooks, hook_name)
+        
+        # Prepare arguments including global options
+        kwargs = {}
+        kwargs['command_name'] = 'transcribe'  # Pass command name for all commands
+        
+        
+        kwargs['audio_files'] = audio_files
+        
+        
+        
+        
+        
+        
+        
+        kwargs['model'] = model
+        
+        
+        
+        
+        kwargs['language'] = language
+        
+        
+        
+        
+        kwargs['json'] = json
+        
+        
+        
+        
+        kwargs['prefer_server'] = prefer_server
+        
+        
+        
+        
+        kwargs['server_only'] = server_only
+        
+        
+        
+        
+        kwargs['direct_only'] = direct_only
+        
+        
+        
+        
+        kwargs['output'] = output
+        
+        
+        
+        
+        kwargs['debug'] = debug
+        
+        
+        
+        
+        kwargs['config'] = config
+        
+        
+        
+        # Add global options from context
+        
+        
+        result = hook_func(**kwargs)
+        return result
+    else:
+        # Default placeholder behavior
+        click.echo(f"Executing transcribe command...")
+        
+        
+        click.echo(f"  audio_files: {audio_files}")
+        
+        
+        
+        
+        click.echo(f"  model: {model}")
+        
+        click.echo(f"  language: {language}")
+        
+        click.echo(f"  json: {json}")
+        
+        click.echo(f"  prefer-server: {prefer_server}")
+        
+        click.echo(f"  server-only: {server_only}")
+        
+        click.echo(f"  direct-only: {direct_only}")
+        
+        click.echo(f"  output: {output}")
         
         click.echo(f"  debug: {debug}")
         
@@ -2007,6 +2331,57 @@ def set(ctx, key, value):
 
 
 
+
+
+@main.group()
+def server():
+    """🔧 Basic server management"""
+    pass
+
+
+@server.command()
+@click.pass_context
+@click.option("-p", "--port", type=int, default=8769, help="🌐 Server port to check")
+@click.option("--json", is_flag=True, help="📋 Output status as JSON")
+def status(ctx, port, json):
+    """Check if server is running"""
+    hook_name = "on_server"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        hook_func = getattr(app_hooks, hook_name)
+        kwargs = {
+            'command': 'status',
+            'port': port,
+            'json': json
+        }
+        return hook_func(**kwargs)
+    else:
+        click.echo(f"Executing server status command...")
+        click.echo(f"  port: {port}")
+        click.echo(f"  json: {json}")
+
+
+@server.command()
+@click.pass_context
+@click.option("-p", "--port", type=int, default=8769, help="🌐 Server port")
+@click.option("-h", "--host", type=str, default="0.0.0.0", help="🏠 Server host address")
+@click.option("--json", is_flag=True, help="📋 Output result as JSON")
+def start(ctx, port, host, json):
+    """Start server (simple mode)"""
+    hook_name = "on_server"
+    if app_hooks and hasattr(app_hooks, hook_name):
+        hook_func = getattr(app_hooks, hook_name)
+        kwargs = {
+            'command': 'start',
+            'port': port,
+            'host': host,
+            'json': json
+        }
+        return hook_func(**kwargs)
+    else:
+        click.echo(f"Executing server start command...")
+        click.echo(f"  port: {port}")
+        click.echo(f"  host: {host}")
+        click.echo(f"  json: {json}")
 
 
 def cli_entry():

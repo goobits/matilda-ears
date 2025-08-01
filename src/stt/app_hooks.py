@@ -6,6 +6,7 @@ This file connects the generated CLI to the actual STT functionality
 
 import asyncio
 import sys
+from pathlib import Path
 from typing import Optional
 
 # Import STT functionality
@@ -1054,3 +1055,328 @@ def on_config_set(key: str, value: str, **kwargs) -> int:
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
+
+
+def on_server(command: str = None, port: int = 8769, host: str = "0.0.0.0", json: bool = False, **kwargs) -> int:
+    """Handle server management commands"""
+    import json as json_lib
+    from stt.simple_server_utils import check_server_port, start_server_simple
+    
+    try:
+        if command == "status":
+            # Check server status
+            status = check_server_port(port, "127.0.0.1")
+            
+            if json:
+                print(json_lib.dumps(status))
+            else:
+                if status["healthy"]:
+                    print(f"✅ Server is running on {status['host']}:{status['port']}")
+                else:
+                    print(f"⏸️  Server is not running on port {port}")
+            return 0
+            
+        elif command == "start":
+            # Start server
+            result = start_server_simple(port, host)
+            
+            if json:
+                print(json_lib.dumps(result))
+            else:
+                if result["success"]:
+                    print(f"✅ {result['message']} on port {port}")
+                else:
+                    print(f"❌ {result['message']}")
+            
+            return 0 if result["success"] else 1
+            
+        else:
+            print("❌ Unknown server command. Use 'status' or 'start'")
+            return 1
+            
+    except Exception as e:
+        if json:
+            print(json_lib.dumps({"error": str(e), "success": False}))
+        else:
+            print(f"❌ Error: {e}")
+        return 1
+
+
+def on_transcribe(
+    audio_files: list,
+    model: str = "base",
+    language: Optional[str] = None,
+    json: bool = False,
+    prefer_server: bool = False,
+    server_only: bool = False,
+    direct_only: bool = False,
+    output: str = "plain",
+    debug: bool = False,
+    config: Optional[str] = None,
+    **kwargs,
+) -> int:
+    """Handle the transcribe command - transcribe audio files to text"""
+    import os
+    import json as json_lib
+    import time
+    from pathlib import Path
+    from stt.simple_server_utils import is_server_running, start_server_simple
+    
+    try:
+        if debug:
+            print(f"🎯 Transcribing {len(audio_files)} audio file(s) with model '{model}'")
+            if language:
+                print(f"🌍 Language: {language}")
+        
+        # Validate all files exist before processing
+        validated_files = []
+        for audio_file in audio_files:
+            file_path = Path(audio_file)
+            if not file_path.exists():
+                print(f"❌ Error: Audio file not found: {audio_file}", file=sys.stderr)
+                return 1
+            if not file_path.is_file():
+                print(f"❌ Error: Path is not a file: {audio_file}", file=sys.stderr)
+                return 1
+            validated_files.append(file_path)
+        
+        # Process each file
+        results = []
+        for file_path in validated_files:
+            if debug:
+                print(f"🎵 Processing: {file_path}")
+            
+            # Get file info
+            file_stat = file_path.stat()
+            file_size = file_stat.st_size
+            
+            # Determine processing mode
+            use_server = False
+            if server_only or (prefer_server and not direct_only):
+                # Get server config
+                try:
+                    from stt.core.config import get_config
+                    config_obj = get_config()
+                    port = config_obj.websocket_port
+                except:
+                    port = 8769
+                
+                # Check if server is available
+                if not is_server_running(port):
+                    if prefer_server and not server_only:
+                        # Auto-start server for prefer-server mode
+                        if debug:
+                            print(f"🚀 Auto-starting server on port {port}...")
+                        
+                        start_result = start_server_simple(port)
+                        if start_result["success"]:
+                            if debug:
+                                print(f"✅ Server started successfully")
+                            use_server = True
+                        else:
+                            if debug:
+                                print(f"⚠️  Could not start server, falling back to direct mode")
+                            use_server = False
+                    elif server_only:
+                        print(f"❌ Error: Server required but not available on port {port}", file=sys.stderr)
+                        return 1
+                    else:
+                        use_server = False
+                else:
+                    use_server = True
+            
+            # Process the file
+            start_time = time.time()
+            try:
+                if use_server:
+                    if debug:
+                        print("🌐 Using WebSocket server mode")
+                    transcription_text, confidence = _transcribe_via_websocket(
+                        file_path, model, language, debug
+                    )
+                else:
+                    if debug:
+                        print("🖥️ Using direct Whisper mode")
+                    transcription_text, confidence = _transcribe_direct(
+                        file_path, model, language, debug
+                    )
+                
+                processing_time = time.time() - start_time
+                
+                # Create result object
+                result = {
+                    "success": True,
+                    "text": transcription_text,
+                    "confidence": confidence,
+                    "duration": round(processing_time, 2),
+                    "model": model,
+                    "file_info": {
+                        "name": file_path.name,
+                        "path": str(file_path),
+                        "size_bytes": file_size,
+                        "format": file_path.suffix.lower().lstrip('.')
+                    },
+                    "processing_mode": "server" if use_server else "direct",
+                    "language": language,
+                    "timestamp": time.time()
+                }
+                
+                results.append(result)
+                
+            except Exception as e:
+                error_result = {
+                    "success": False,
+                    "text": "",
+                    "error": str(e),
+                    "file_info": {
+                        "name": file_path.name,
+                        "path": str(file_path),
+                        "size_bytes": file_size,
+                        "format": file_path.suffix.lower().lstrip('.')
+                    },
+                    "timestamp": time.time()
+                }
+                results.append(error_result)
+                
+                if debug:
+                    import traceback
+                    traceback.print_exc()
+        
+        # Output results
+        if json or output == "json":
+            # JSON output - either single result or array
+            if len(results) == 1:
+                print(json_lib.dumps(results[0], indent=2))
+            else:
+                print(json_lib.dumps(results, indent=2))
+        elif output == "matilda":
+            # Matilda-specific format (compatible with TranscriptionClient expectations)
+            if len(results) == 1:
+                result = results[0]
+                matilda_result = {
+                    "success": result["success"],
+                    "text": result["text"],
+                    "confidence": result.get("confidence", 0.95),
+                    "duration": result.get("duration", 0.0),
+                    "model": result.get("model", model)
+                }
+                if not result["success"]:
+                    matilda_result["error"] = result.get("error", "Unknown error")
+                print(json_lib.dumps(matilda_result))
+            else:
+                # Multiple files - output array
+                matilda_results = []
+                for result in results:
+                    matilda_result = {
+                        "success": result["success"],
+                        "text": result["text"],
+                        "confidence": result.get("confidence", 0.95),
+                        "duration": result.get("duration", 0.0),
+                        "model": result.get("model", model),
+                        "file": result["file_info"]["name"]
+                    }
+                    if not result["success"]:
+                        matilda_result["error"] = result.get("error", "Unknown error")
+                    matilda_results.append(matilda_result)
+                print(json_lib.dumps(matilda_results))
+        else:
+            # Plain text output (default)
+            for result in results:
+                if result["success"]:
+                    if len(results) > 1:
+                        print(f"# {result['file_info']['name']}")
+                    print(result["text"])
+                    if len(results) > 1:
+                        print()  # Blank line between files
+                else:
+                    print(f"❌ Error processing {result['file_info']['name']}: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        
+        # Return error code if any file failed
+        failed_count = sum(1 for r in results if not r["success"])
+        if failed_count > 0:
+            if debug:
+                print(f"⚠️ {failed_count}/{len(results)} files failed processing", file=sys.stderr)
+            return 1
+        
+        return 0
+        
+    except KeyboardInterrupt:
+        print("\n🛑 Transcription cancelled", file=sys.stderr)
+        return 130
+    except Exception as e:
+        if debug:
+            import traceback
+            traceback.print_exc()
+        else:
+            print(f"❌ Error: {e}", file=sys.stderr)
+        return 1
+
+
+def _transcribe_via_websocket(file_path: Path, model: str, language: Optional[str], debug: bool) -> tuple[str, float]:
+    """Transcribe audio file via WebSocket server"""
+    # This would implement WebSocket client functionality
+    # For now, fall back to direct transcription
+    if debug:
+        print("⚠️ WebSocket transcription not yet implemented, falling back to direct")
+    return _transcribe_direct(file_path, model, language, debug)
+
+
+def _transcribe_direct(file_path: Path, model: str, language: Optional[str], debug: bool) -> tuple[str, float]:
+    """Transcribe audio file directly using Whisper"""
+    try:
+        from faster_whisper import WhisperModel
+        
+        # Determine device and compute type
+        try:
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            compute_type = "float16" if torch.cuda.is_available() else "int8"
+        except ImportError:
+            device = "cpu"
+            compute_type = "int8"
+        
+        if debug:
+            print(f"🤖 Loading Whisper model '{model}' on {device}")
+        
+        # Load model
+        model_obj = WhisperModel(model, device=device, compute_type=compute_type)
+        
+        # Transcribe
+        if debug:
+            print(f"🎵 Transcribing {file_path}")
+        
+        segments, info = model_obj.transcribe(
+            str(file_path),
+            language=language if language else None
+        )
+        
+        # Collect all segments
+        transcription_parts = []
+        total_confidence = 0.0
+        segment_count = 0
+        
+        for segment in segments:
+            transcription_parts.append(segment.text.strip())
+            if hasattr(segment, 'avg_logprob'):
+                # Convert log probability to confidence (0-1)
+                confidence = min(1.0, max(0.0, 1.0 + segment.avg_logprob / 10.0))
+                total_confidence += confidence
+                segment_count += 1
+        
+        # Calculate average confidence
+        avg_confidence = total_confidence / segment_count if segment_count > 0 else 0.95
+        
+        # Join transcription
+        full_transcription = " ".join(transcription_parts).strip()
+        
+        if debug:
+            print(f"✅ Transcription complete: {len(full_transcription)} characters")
+            print(f"📊 Confidence: {avg_confidence:.2f}")
+            print(f"🌍 Language: {info.language}")
+        
+        return full_transcription, avg_confidence
+    
+    except ImportError:
+        raise Exception("faster-whisper not installed. Run: pip install faster-whisper")
+    except Exception as e:
+        raise Exception(f"Transcription failed: {str(e)}")

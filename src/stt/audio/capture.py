@@ -8,7 +8,9 @@ from arecord, eliminating filesystem buffering issues entirely.
 from __future__ import annotations
 
 import asyncio
+import logging
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -29,7 +31,13 @@ except ImportError:
 try:
     from stt.core.config import setup_logging
 
-    logger = setup_logging(__name__, log_filename="audio_capture.txt")
+    # Default to no console output to prevent interference with pipeline usage
+    # Console output can be enabled via debug mode or explicit configuration
+    logger = setup_logging(
+        __name__, 
+        log_filename="audio_capture.txt",
+        include_console=False  # Prevent INFO messages from appearing in stderr
+    )
 
 except ImportError:
     # Fallback for standalone usage
@@ -78,6 +86,7 @@ class PipeBasedAudioStreamer:
         chunk_duration_ms: int = 32,
         sample_rate: int = 16000,
         audio_device: str | None = None,
+        debug: bool = False,
     ):
         """
         Initialize pipe-based audio streamer.
@@ -88,6 +97,7 @@ class PipeBasedAudioStreamer:
             chunk_duration_ms: Target duration per chunk in milliseconds (32ms = 512 samples at 16kHz for VAD compatibility)
             sample_rate: Audio sample rate
             audio_device: Optional specific audio device to use
+            debug: Enable debug logging to console
 
         """
         # Store loop and queue, remove the old callback system.
@@ -96,6 +106,18 @@ class PipeBasedAudioStreamer:
         self.chunk_duration_ms = chunk_duration_ms
         self.sample_rate = sample_rate
         self.audio_device = audio_device
+        self.debug = debug
+        
+        # Update logger level if debug mode is enabled
+        if debug:
+            logger.setLevel(logging.DEBUG)
+            # Add console handler for debug mode
+            if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+                console_handler = logging.StreamHandler(sys.stdout)
+                console_handler.setFormatter(
+                    logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+                )
+                logger.addHandler(console_handler)
 
         # Get config for cross-platform audio tools
         try:

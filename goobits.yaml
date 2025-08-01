@@ -90,6 +90,7 @@ cli:
     - title: "🎯 Most Common Use Cases"
       items:
         - { item: 'stt listen', desc: "Quick voice note: Record and transcribe once", style: "example" }
+        - { item: 'stt transcribe audio.wav --json', desc: "File transcription: Process audio files with JSON output", style: "example" }
         - { item: 'stt live', desc: "Always listening: Hands-free conversation mode", style: "example" }
         - { item: 'stt live --tap-to-talk=F8', desc: "Press F8 to talk: Controlled conversation mode", style: "example" }
         - { item: 'stt listen --hold-to-talk=space', desc: "Hold spacebar: Push-to-talk recording", style: "example" }
@@ -104,6 +105,7 @@ cli:
     - title: "💭 Popular Workflows"
       items:
         - { item: "Voice Notes", desc: "stt listen > notes.txt  # Save transcription to file", style: "example" }
+        - { item: "Batch Processing", desc: "stt transcribe *.wav --json  # Process multiple audio files", style: "example" }
         - { item: "Meeting Notes", desc: "stt live --json > meeting.json  # Structured output", style: "example" }
         - { item: "Remote Dictation", desc: "stt serve  # Server + client apps on other devices", style: "example" }
         - { item: "Gaming/Streaming", desc: "stt live --tap-to-talk=F8  # Hotkey control", style: "example" }
@@ -112,6 +114,7 @@ cli:
       items:
         - { item: "listen", desc: "🎙️  Record once and transcribe (default command)", style: "command" }
         - { item: "live", desc: "🗣️  Real-time conversation mode with VAD", style: "command" }
+        - { item: "transcribe", desc: "🎯 Transcribe audio files to text", style: "command" }
         - { item: "serve", desc: "🌐 Launch WebSocket transcription server", style: "command" }
 
   footer_note: "📚 For detailed help on a command, run: [color(2)]stt [COMMAND][/color(2)] [#ff79c6]--help[/#ff79c6]"
@@ -119,8 +122,10 @@ cli:
   command_groups:
     - name: "Recording Modes"
       commands: ["listen", "live"]
+    - name: "File Processing"
+      commands: ["transcribe"]
     - name: "Server & Processing"
-      commands: ["serve"]
+      commands: ["serve", "server"]
     - name: "System"
       commands: ["status", "model"]
     - name: "Configuration"
@@ -219,6 +224,50 @@ cli:
           type: "str"
           desc: "🏠 Server host address (default 0.0.0.0)"
           default: "0.0.0.0"
+        - name: "debug"
+          type: "flag"
+          desc: "🐞 Enable detailed debug logging"
+        - name: "config"
+          type: "str"
+          desc: "⚙️ Path to custom config file"
+
+    transcribe:
+      desc: "🎯 Transcribe audio files to text"
+      icon: "🎯"
+      args:
+        - name: "audio_files"
+          desc: "🎵 Audio file(s) to transcribe (WAV, MP3, Opus supported)"
+          nargs: "+"
+          required: true
+      options:
+        - name: "model"
+          short: "m"
+          type: "str"
+          desc: "🧠 Whisper model size (tiny=fastest, large=most accurate)"
+          choices: ["tiny", "base", "small", "medium", "large"]
+          default: "base"
+        - name: "language"
+          short: "l"
+          type: "str"
+          desc: "🌍 Language code for transcription (e.g., en, es, fr, auto-detect)"
+        - name: "json"
+          type: "flag"
+          desc: "📋 Output transcription results as JSON"
+        - name: "prefer-server"
+          type: "flag"
+          desc: "🌐 Try WebSocket server first, fallback to direct"
+        - name: "server-only"
+          type: "flag"
+          desc: "🔒 Require WebSocket server connection"
+        - name: "direct-only"
+          type: "flag"
+          desc: "🖥️ Skip server, use direct Whisper processing"
+        - name: "output"
+          short: "o"
+          type: "str"
+          desc: "📄 Output format (plain, json, matilda)"
+          choices: ["plain", "json", "matilda"]
+          default: "plain"
         - name: "debug"
           type: "flag"
           desc: "🐞 Enable detailed debug logging"
@@ -336,6 +385,38 @@ cli:
             - name: "value"
               desc: "💾 Configuration value"
               required: true
+
+    server:
+      desc: "Basic server management"
+      icon: "🔧"
+      subcommands:
+        status:
+          desc: "Check if server is running"
+          options:
+            - name: "port"
+              short: "p"
+              type: "int"
+              desc: "🌐 Server port to check"
+              default: 8769
+            - name: "json"
+              type: "flag"
+              desc: "📋 Output status as JSON"
+        start:
+          desc: "Start server (simple mode)"
+          options:
+            - name: "port"
+              short: "p"
+              type: "int"
+              desc: "🌐 Server port"
+              default: 8769
+            - name: "host"
+              short: "h"
+              type: "str"
+              desc: "🏠 Server host address"
+              default: "0.0.0.0"
+            - name: "json"
+              type: "flag"
+              desc: "📋 Output result as JSON"
 
   config:
     rich_help_panel: true
