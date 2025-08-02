@@ -23,19 +23,12 @@ class TestCLIImports:
     """Test that core CLI components can be imported without crashing."""
 
     def test_cli_creation_functions_import(self):
-        """Can we import and create CLI parsers without explosions?"""
-        from stt.main import async_main, create_rich_cli
+        """Can we import CLI functions without explosions?"""
+        from stt.cli import cli_entry, main
 
-        # Test that CLI creation doesn't crash
-        cli = create_rich_cli()
-        assert cli is not None
-        assert hasattr(cli, "commands")
-        assert "listen" in cli.commands
-        assert "live" in cli.commands
-        assert "config" in cli.commands
-
-        # Test that async_main function exists
-        assert async_main is not None
+        # Test that CLI entry point exists
+        assert cli_entry is not None
+        assert main is not None
 
     def test_mode_classes_import(self):
         """Can we import all the mode classes without dependency errors?"""
@@ -86,7 +79,7 @@ class TestCLICommands:
     def test_status_command_runs(self):
         """Does status subcommand work without crashing?"""
         # Test status command via subprocess to avoid async complexity
-        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
+        main_py = Path(__file__).parent.parent.parent / "stt.py"
 
         result = subprocess.run([
             sys.executable, str(main_py), "status"
@@ -101,7 +94,7 @@ class TestCLICommands:
     def test_models_command_runs(self):
         """Does models subcommand work without crashing?"""
         # Test models command via subprocess to avoid async complexity
-        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
+        main_py = Path(__file__).parent.parent.parent / "stt.py"
 
         result = subprocess.run([
             sys.executable, str(main_py), "models"
@@ -116,11 +109,8 @@ class TestCLICommands:
     def test_help_command_works(self):
         """Does --help work without crashing?"""
         # Test that help can be displayed via subprocess
-        # Use Path to get absolute path to main.py
-        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
-
         result = subprocess.run([
-            sys.executable, str(main_py), "--help"
+            "stt", "--help"
         ], check=False, capture_output=True, text=True, timeout=10, env={**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)})
 
         # Should exit with 0 and show help text
@@ -134,12 +124,11 @@ class TestCLICommands:
 
     def test_config_subcommands_work(self):
         """Do config subcommands work without crashing?"""
-        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
         env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)}
 
         # Test config help
         result = subprocess.run([
-            sys.executable, str(main_py), "config", "--help"
+            "stt", "config", "--help"
         ], check=False, capture_output=True, text=True, timeout=10, env=env)
 
         assert result.returncode == 0
@@ -149,7 +138,7 @@ class TestCLICommands:
 
         # Test config list (should show current config)
         result = subprocess.run([
-            sys.executable, str(main_py), "config", "list"
+            "stt", "config", "list"
         ], check=False, capture_output=True, text=True, timeout=10, env=env)
 
         # May fail due to missing dependencies, but should not be a syntax error
@@ -158,14 +147,13 @@ class TestCLICommands:
 
     def test_subcommand_help_works(self):
         """Do individual subcommand help pages work?"""
-        main_py = Path(__file__).parent.parent.parent / "src" / "main.py"
         env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent.parent)}
 
         subcommands = ["listen", "live", "serve", "status", "models"]
 
         for subcommand in subcommands:
             result = subprocess.run([
-                sys.executable, str(main_py), subcommand, "--help"
+                "stt", subcommand, "--help"
             ], check=False, capture_output=True, text=True, timeout=10, env=env)
 
             # Should show help for that specific subcommand

@@ -47,17 +47,20 @@ class WebEntityDetector:
         # Create a combined list for overlap checking that includes both existing and newly detected entities
         all_entities = entities[:]
 
-        # Detect emails first as they're more specific than URLs
+        # Detect port numbers FIRST to prevent email interference with domain:port patterns
+        self._detect_port_numbers(text, web_entities, all_entities)
+        all_entities = entities + web_entities  # Update with all detected so far
+
+        # Detect emails after port numbers but before URLs to maintain specificity
         self._detect_spoken_emails(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
 
+        # Detect protocol URLs 
         self._detect_spoken_protocol_urls(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
 
+        # Detect regular spoken URLs
         self._detect_spoken_urls(text, web_entities, all_entities)
-        all_entities = entities + web_entities  # Update with all detected so far
-
-        self._detect_port_numbers(text, web_entities, all_entities)
         all_entities = entities + web_entities  # Update with all detected so far
 
         # Finally, use SpaCy for any remaining well-formatted links.

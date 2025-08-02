@@ -35,9 +35,9 @@ def find_free_port() -> int:
         return s.getsockname()[1]
 
 
-def get_main_py_path() -> Path:
-    """Get the path to the main.py file"""
-    return Path(__file__).parent.parent.parent / "src" / "main.py"
+def get_cli_command() -> list:
+    """Get the command to run the CLI"""
+    return ["stt"]
 
 
 def get_test_env() -> dict:
@@ -55,12 +55,12 @@ class TestServerAsyncIO:
         This is the KEY test for the recent asyncio event loop fix.
         Previously this would fail with: 'asyncio.run() cannot be called from a running event loop'
         """
-        main_py = get_main_py_path()
+        cli_cmd = get_cli_command()
         port = find_free_port()
 
         # Start server in subprocess with timeout
         process = subprocess.Popen([
-            sys.executable, str(main_py), "serve", f"--port={port}", "--debug"
+            *cli_cmd, "serve", f"--port={port}", "--debug"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
 
         try:
@@ -121,10 +121,10 @@ class TestServerAsyncIO:
 
     def test_serve_command_help_works(self):
         """Verify serve command help works (quick smoke test)"""
-        main_py = get_main_py_path()
+        cli_cmd = get_cli_command()
 
         result = subprocess.run([
-            sys.executable, str(main_py), "serve", "--help"
+            *cli_cmd, "serve", "--help"
         ], check=False, capture_output=True, text=True, timeout=10, env=get_test_env())
 
         # Should exit with 0 and show help text
@@ -139,12 +139,12 @@ class TestServerStartupShutdown:
 
     def test_server_starts_and_accepts_interrupt(self):
         """Server should start, run briefly, then handle KeyboardInterrupt gracefully"""
-        main_py = get_main_py_path()
+        cli_cmd = get_cli_command()
         port = find_free_port()
 
         # Start server in subprocess
         process = subprocess.Popen([
-            sys.executable, str(main_py), "serve", f"--port={port}"
+            *cli_cmd, "serve", f"--port={port}"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
 
         try:
@@ -225,12 +225,12 @@ class TestServerStartupShutdown:
         blocker_socket.listen(1)
 
         try:
-            main_py = get_main_py_path()
+            cli_cmd = get_cli_command()
 
             # Try to start server on occupied port
             try:
                 result = subprocess.run([
-                    sys.executable, str(main_py), "serve", f"--port={port}"
+                    *cli_cmd, "serve", f"--port={port}"
                 ], check=False, capture_output=True, text=True, timeout=15, env=get_test_env())
             except subprocess.TimeoutExpired as e:
                 # Server hung - this is a REAL ISSUE that should be reported
@@ -299,12 +299,12 @@ class TestBasicServerFunctionality:
     @pytest.fixture
     def running_server(self):
         """Fixture that starts a server for testing"""
-        main_py = get_main_py_path()
+        cli_cmd = get_cli_command()
         port = find_free_port()
 
         # Start server
         process = subprocess.Popen([
-            sys.executable, str(main_py), "serve", f"--port={port}", "--debug"
+            *cli_cmd, "serve", f"--port={port}", "--debug"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
 
         # Wait for startup
@@ -389,12 +389,12 @@ class TestServerConfigurationHandling:
 
     def test_server_respects_host_parameter(self):
         """Server should respect --host parameter"""
-        main_py = get_main_py_path()
+        cli_cmd = get_cli_command()
         port = find_free_port()
 
         # Start server with specific host
         process = subprocess.Popen([
-            sys.executable, str(main_py), "serve", f"--port={port}", "--host=127.0.0.1"
+            *cli_cmd, "serve", f"--port={port}", "--host=127.0.0.1"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
 
         try:
@@ -422,12 +422,12 @@ class TestServerConfigurationHandling:
 
     def test_server_respects_debug_parameter(self):
         """Server should accept --debug parameter without crashing"""
-        main_py = get_main_py_path()
+        cli_cmd = get_cli_command()
         port = find_free_port()
 
         # Start server with debug flag
         process = subprocess.Popen([
-            sys.executable, str(main_py), "serve", f"--port={port}", "--debug"
+            *cli_cmd, "serve", f"--port={port}", "--debug"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=get_test_env())
 
         try:

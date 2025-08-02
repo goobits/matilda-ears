@@ -30,6 +30,34 @@
       "times": "×",
       "divided by": "÷",
       "over": "/"
+    },
+    "letters": {
+      "alpha": "A",
+      "bravo": "B", 
+      "charlie": "C",
+      "delta": "D",
+      "echo": "E",
+      "foxtrot": "F",
+      "golf": "G",
+      "hotel": "H",
+      "india": "I",
+      "juliet": "J",
+      "kilo": "K",
+      "lima": "L",
+      "mike": "M",
+      "november": "N",
+      "oscar": "O",
+      "papa": "P",
+      "quebec": "Q",
+      "romeo": "R",
+      "sierra": "S",
+      "tango": "T",
+      "uniform": "U",
+      "victor": "V",
+      "whiskey": "W",
+      "x-ray": "X",
+      "yankee": "Y",
+      "zulu": "Z"
     }
   },
   "abbreviations": {
@@ -180,6 +208,15 @@
       "write to ": "Write to ",
       "send to ": "Send to "
     }
+  },
+  "letters": {
+    "capital": "uppercase",
+    "capitals": "uppercase",
+    "uppercase": "uppercase",
+    "lowercase": "lowercase",
+    "lowercases": "lowercase",
+    "small": "lowercase",
+    "smalls": "lowercase"
   },
   "technical": {
     "terms": ["git", "commit", "push", "pull", "merge", "branch", "checkout", "clone", "fetch", "rebase", "stash", "reset", "log", "diff", "status", "init", "add", "rm", "npm", "yarn", "pip", "cargo", "composer", "gem", "brew", "apt", "yum", "conda", "docker", "kubectl", "helm", "terraform", "ansible", "vagrant", "make", "cmake", "max", "min", "sum", "count", "avg", "len", "size", "width", "height", "start", "end", "begin", "stop", "pause", "run", "execute", "build", "test", "debug", "compile", "deploy", "install", "update", "delete", "create", "save", "load", "read", "write", "copy", "move", "sort", "filter", "user", "admin", "guest", "root", "config", "settings", "options", "params", "data", "info", "result", "output", "input", "temp", "cache", "buffer", "file", "folder", "directory", "path", "backup", "restore", "sync"],

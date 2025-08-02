@@ -27,6 +27,7 @@ from .common import Entity, EntityType, NumberParser
 from .constants import get_resources
 from .detectors.code_detector import CodeEntityDetector
 from .detectors.numeric_detector import NumericalEntityDetector
+from .detectors.spoken_letter_detector import SpokenLetterDetector
 
 # Import specialized formatters
 from .detectors.web_detector import WebEntityDetector
@@ -675,6 +676,7 @@ class TextFormatter:
         self.web_detector = WebEntityDetector(nlp=self.nlp, language=self.language)
         self.code_detector = CodeEntityDetector(nlp=self.nlp, language=self.language)
         self.numeric_detector = NumericalEntityDetector(nlp=self.nlp, language=self.language)
+        self.spoken_letter_detector = SpokenLetterDetector(language=self.language)
 
         # Load language-specific resources
         self.resources = get_resources(language)
@@ -743,6 +745,11 @@ class TextFormatter:
         final_entities.extend(web_entities)
         logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
 
+        # Spoken letters are very specific patterns and should run early to avoid conflicts
+        letter_entities = self.spoken_letter_detector.detect(text, final_entities)
+        final_entities.extend(letter_entities)
+        logger.info(f"Letter entities detected: {len(letter_entities)} - {[f'{e.type}:{e.text}' for e in letter_entities]}")
+
         code_entities = self.code_detector.detect(text, final_entities)
         final_entities.extend(code_entities)
         logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
@@ -804,6 +811,8 @@ class TextFormatter:
             EntityType.ASSIGNMENT: 8,
             EntityType.FILENAME: 7,
             EntityType.UNDERSCORE_DELIMITER: 6,
+            EntityType.LETTER_SEQUENCE: 5,  # Letter sequences should have high priority
+            EntityType.SPOKEN_LETTER: 5,   # Individual letters should have high priority
             EntityType.TIME_AMPM: 4,  # Time entities should have priority
             EntityType.TIME: 4,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,

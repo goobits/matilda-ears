@@ -99,6 +99,10 @@ class PatternConverter:
             EntityType.SCIENTIFIC_NOTATION: self.convert_scientific_notation,
             EntityType.MUSIC_NOTATION: self.convert_music_notation,
             EntityType.SPOKEN_EMOJI: self.convert_spoken_emoji,
+            
+            # Spoken letter converters
+            EntityType.SPOKEN_LETTER: self.convert_spoken_letter,
+            EntityType.LETTER_SEQUENCE: self.convert_letter_sequence,
         }
 
     # ====================
@@ -411,7 +415,8 @@ class PatternConverter:
         return text + trailing_punct
 
     def convert_port_number(self, entity: Entity) -> str:
-        """Convert port numbers like 'localhost colon eight zero eight zero' to 'localhost:8080'"""
+        """Convert port numbers like 'localhost colon eight zero eight zero' to 'localhost:8080'
+        Also handles spoken domains like 'api dot service dot com colon three thousand' to 'api.service.com:3000'"""
         text = entity.text.lower()
 
         # Extract host and port parts using language-specific colon keyword
@@ -425,9 +430,10 @@ class PatternConverter:
                 break
 
         if colon_pattern:
+            # Convert spoken domain in host part (e.g., "api dot service dot com" -> "api.service.com")
+            host_part = self._convert_spoken_domain(host_part)
 
             # Use digit words from constants
-
             port_words = port_part.split()
 
             # Check if all words are single digits (for sequences like "eight zero eight zero" or "ocho cero ocho cero")
@@ -450,6 +456,18 @@ class PatternConverter:
         result = entity.text
         for colon_keyword in colon_keywords:
             result = result.replace(f" {colon_keyword} ", ":")
+        return result
+
+    def _convert_spoken_domain(self, domain_text: str) -> str:
+        """Convert spoken domain like 'api dot service dot com' to 'api.service.com'"""
+        # Get dot keywords from URL keywords
+        dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
+        
+        result = domain_text.strip()
+        for dot_keyword in dot_keywords:
+            # Replace spoken dot with actual dot
+            result = result.replace(f" {dot_keyword} ", ".")
+        
         return result
 
     # ====================
@@ -548,6 +566,17 @@ class PatternConverter:
 
         if not casing_words:
             return f".{extension}"  # Handle cases like ".bashrc"
+        
+        # Apply fuzzy matching for common misspellings in markdown files
+        if extension.lower() == "md":
+            fuzzy_corrections = {
+                "clod": "claude",
+                "claud": "claude", 
+                "cloud": "claude",
+                "readme": "readme",  # Keep as-is
+                "read": "readme",    # Expand "read" to "readme" for .md
+            }
+            casing_words = [fuzzy_corrections.get(word, word) for word in casing_words]
 
         if format_rule == "PascalCase":
             formatted_filename = "".join(w.capitalize() for w in casing_words)
@@ -656,23 +685,44 @@ class PatternConverter:
             left = entity.metadata.get("left", "")
             right = entity.metadata.get("right", "")
 
-            # Try to parse number words
-            parsed_right = self.number_parser.parse_with_validation(right)
-            if parsed_right:
-                right = parsed_right
-
-            # Check if right side contains math expressions - if so, preserve them
+            # Check if right side contains math expressions - if so, convert operators first
             has_math_operators = bool(re.search(r"\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b", right, re.IGNORECASE))
 
             if has_math_operators:
-                # Preserve math expressions as-is (they should be handled by math entity detection)
-                pass  # Don't modify math expressions
-            elif " " in right:
-                # If the right side seems like a function call (multiple words), snake_case it.
-                right = "_".join(right.lower().split())
-            # For simple single word values, convert to lowercase unless they look like constants
-            elif " " not in right and not any(c.isupper() for c in right[1:]) and not right.isupper():
-                right = right.lower()
+                # Convert math operators in assignment expressions
+                right = re.sub(r"\bplus\b", "+", right, flags=re.IGNORECASE)
+                right = re.sub(r"\bminus\b", "-", right, flags=re.IGNORECASE)
+                right = re.sub(r"\btimes\b", "×", right, flags=re.IGNORECASE)
+                right = re.sub(r"\bdivided\s+by\b", "÷", right, flags=re.IGNORECASE)
+                right = re.sub(r"\bover\b", "/", right, flags=re.IGNORECASE)
+                # Clean up extra spaces after operator substitution
+                right = re.sub(r"\s+", " ", right).strip()
+                
+                # Now try to parse individual number words that remain
+                def convert_number_words(text):
+                    words = text.split()
+                    converted_words = []
+                    for word in words:
+                        # Try to convert individual number words
+                        parsed_num = self.number_parser.parse_with_validation(word)
+                        if parsed_num:
+                            converted_words.append(parsed_num)
+                        else:
+                            converted_words.append(word)
+                    return " ".join(converted_words)
+                    
+                right = convert_number_words(right)
+            else:
+                # Try to parse number words for simple cases (no operators)
+                parsed_right = self.number_parser.parse_with_validation(right)
+                if parsed_right:
+                    right = parsed_right
+                elif " " in right:
+                    # If the right side seems like a function call (multiple words), snake_case it.
+                    right = "_".join(right.lower().split())
+                # For simple single word values, convert to lowercase unless they look like constants
+                elif " " not in right and not any(c.isupper() for c in right[1:]) and not right.isupper():
+                    right = right.lower()
 
             # Build the assignment string with optional keyword
             if keyword:
@@ -1453,6 +1503,10 @@ class PatternConverter:
 
     def convert_cardinal(self, entity: Entity, full_text: str = "") -> str:
         """Convert cardinal numbers - only convert standalone clear numbers"""
+        # Handle consecutive digits specially
+        if entity.metadata and entity.metadata.get("consecutive_digits"):
+            return entity.metadata.get("parsed_value", entity.text)
+        
         # Don't convert numbers that are part of hyphenated compounds
         # Check if this entity is immediately followed by a hyphen (like "One-on-one")
         if full_text:
@@ -1672,6 +1726,46 @@ class PatternConverter:
         if entity.metadata.get("is_decimal"):
             return self.number_parser.parse(entity.text) or entity.text
 
+        # Handle compound fractions (e.g., "one and one half" -> "1½")
+        if entity.metadata.get("is_compound"):
+            whole_word = entity.metadata.get("whole_word", "").lower()
+            numerator_word = entity.metadata.get("numerator_word", "").lower()
+            denominator_word = entity.metadata.get("denominator_word", "").lower()
+            
+            # Map number words to digits (extended for compound fractions)
+            num_map = {
+                "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+                "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+                "eleven": "11", "twelve": "12"
+            }
+            
+            # Map denominator words to numbers
+            denom_map = {
+                "half": "2", "halves": "2", "third": "3", "thirds": "3",
+                "quarter": "4", "quarters": "4", "fourth": "4", "fourths": "4",
+                "fifth": "5", "fifths": "5", "sixth": "6", "sixths": "6",
+                "seventh": "7", "sevenths": "7", "eighth": "8", "eighths": "8",
+                "ninth": "9", "ninths": "9", "tenth": "10", "tenths": "10",
+            }
+            
+            whole = num_map.get(whole_word)
+            numerator = num_map.get(numerator_word)
+            denominator = denom_map.get(denominator_word)
+            
+            if whole and numerator and denominator:
+                # Create the x/y format first
+                fraction_str = f"{numerator}/{denominator}"
+                # Map common fractions to Unicode equivalents
+                unicode_fractions = {
+                    "1/2": "½", "1/3": "⅓", "2/3": "⅔", "1/4": "¼", "3/4": "¾",
+                    "1/5": "⅕", "2/5": "⅖", "3/5": "⅗", "4/5": "⅘", "1/6": "⅙",
+                    "5/6": "⅚", "1/7": "⅐", "1/8": "⅛", "3/8": "⅜", "5/8": "⅝",
+                    "7/8": "⅞", "1/9": "⅑", "1/10": "⅒"
+                }
+                unicode_fraction = unicode_fractions.get(fraction_str, f"{numerator}/{denominator}")
+                return f"{whole}{unicode_fraction}"
+
+        # Handle simple fractions
         numerator_word = entity.metadata.get("numerator_word", "").lower()
         denominator_word = entity.metadata.get("denominator_word", "").lower()
 
@@ -2449,3 +2543,63 @@ class PatternConverter:
             return emoji + trailing_punct
 
         return entity.text
+
+    def convert_spoken_letter(self, entity: Entity) -> str:
+        """
+        Convert spoken letters to their character form.
+
+        Examples:
+        - "capital A" → "A"
+        - "lowercase b" → "b"
+        
+        """
+        if not entity.metadata:
+            return entity.text
+
+        letter = entity.metadata.get("letter", "")
+        case = entity.metadata.get("case", "")
+
+        if not letter:
+            return entity.text
+
+        # Apply case conversion based on metadata
+        if case == "uppercase":
+            return letter.upper()
+        elif case == "lowercase":
+            return letter.lower()
+        else:
+            # Default to the letter as provided
+            return letter
+
+    def convert_letter_sequence(self, entity: Entity) -> str:
+        """
+        Convert letter sequences to their concatenated form.
+
+        Examples:
+        - "capital A B C" → "ABC"
+        - "capital A lowercase b capital C" → "AbC"
+        - Mixed case sequences handled properly
+        
+        """
+        if not entity.metadata:
+            return entity.text
+
+        letters = entity.metadata.get("letters", [])
+        case = entity.metadata.get("case", "")
+
+        if not letters:
+            return entity.text
+
+        # Handle different case scenarios
+        if case == "uppercase":
+            # All letters should be uppercase
+            return "".join(letter.upper() for letter in letters)
+        elif case == "lowercase":
+            # All letters should be lowercase
+            return "".join(letter.lower() for letter in letters)
+        elif case == "mixed":
+            # Use letters as they are (case already determined by detector)
+            return "".join(letters)
+        else:
+            # Default to joining letters as-is
+            return "".join(letters)

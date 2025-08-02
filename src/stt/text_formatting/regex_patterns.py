@@ -128,6 +128,16 @@ SPOKEN_FRACTION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Compound fraction pattern for mixed numbers like "one and one half"
+SPOKEN_COMPOUND_FRACTION_PATTERN = re.compile(
+    r"\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+    r"and\s+"
+    r"(one|two|three|four|five|six|seven|eight|nine|ten)\s+"
+    r"(half|halves|third|thirds|quarter|quarters|fourth|fourths|fifth|fifths|"
+    r"sixth|sixths|seventh|sevenths|eighth|eighths|ninth|ninths|tenth|tenths)\b",
+    re.IGNORECASE,
+)
+
 # Component-based numeric range pattern for better maintainability
 # Get the number words from a single source of truth
 _number_parser_instance = NumberParser("en")  # Use English as default for pattern building
@@ -385,6 +395,111 @@ TECHNICAL_CONTENT_PATTERNS = [
 # ==============================================================================
 # WEB-RELATED PATTERNS
 # ==============================================================================
+
+
+def build_spoken_letter_pattern(language: str = "en") -> re.Pattern[str]:
+    """Builds the spoken letter pattern dynamically from keywords in constants."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    
+    # Get letter case keywords and letter keywords from resources
+    letter_case_keywords = resources.get("letters", {})
+    letter_keywords = resources.get("spoken_keywords", {}).get("letters", {})
+    
+    # Create pattern for case words (capital, uppercase, lowercase, etc.)
+    case_words = list(letter_case_keywords.keys())
+    case_words_escaped = [re.escape(word) for word in case_words]
+    case_pattern = "|".join(case_words_escaped) if case_words_escaped else "capital|uppercase|lowercase|small"
+    
+    # Create pattern for individual letters A-Z
+    letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    letters_lower = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+    all_letters = letters + letters_lower
+    
+    # Add any custom letter pronunciations from resources
+    letter_pronunciations = []
+    for key, value in letter_keywords.items():
+        if len(value) == 1 and value.isalpha():
+            letter_pronunciations.append(re.escape(key))
+    
+    # Create letter pattern (including phonetic pronunciations if available)
+    if letter_pronunciations:
+        letter_pattern = "|".join(letter_pronunciations + [re.escape(letter) for letter in all_letters])
+    else:
+        letter_pattern = "|".join(re.escape(letter) for letter in all_letters)
+    
+    # Check language to determine word order
+    if language == "es":
+        # Spanish: "A mayúscula" (letter + case)
+        pattern_str = rf"""
+        \b                                  # Word boundary
+        ({letter_pattern})                  # Capture group 1: letter
+        \s+                                 # Space
+        ({case_pattern})                    # Capture group 2: case modifier
+        \b                                  # Word boundary
+        """
+    else:
+        # English and other languages: "capital A" (case + letter)
+        pattern_str = rf"""
+        \b                                  # Word boundary
+        ({case_pattern})                    # Capture group 1: case modifier
+        \s+                                 # Space
+        ({letter_pattern})                  # Capture group 2: letter
+        \b                                  # Word boundary
+        """
+    
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
+
+
+def build_letter_sequence_pattern(language: str = "en") -> re.Pattern[str]:
+    """Builds the letter sequence pattern for sequences like 'A B C' dynamically."""
+    # Get resources for the specified language
+    resources = get_resources(language)
+    
+    # Get letter case keywords and letter keywords from resources
+    letter_case_keywords = resources.get("letters", {})
+    letter_keywords = resources.get("spoken_keywords", {}).get("letters", {})
+    
+    # Create pattern for case words (capital, uppercase, lowercase, etc.)
+    case_words = list(letter_case_keywords.keys())
+    case_words_escaped = [re.escape(word) for word in case_words]
+    case_pattern = "|".join(case_words_escaped) if case_words_escaped else "capital|uppercase|lowercase|small"
+    
+    # Create pattern for individual letters A-Z
+    letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    letters_lower = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+    all_letters = letters + letters_lower
+    
+    # Add any custom letter pronunciations from resources
+    letter_pronunciations = []
+    for key, value in letter_keywords.items():
+        if len(value) == 1 and value.isalpha():
+            letter_pronunciations.append(re.escape(key))
+    
+    # Create letter pattern (including phonetic pronunciations if available)
+    if letter_pronunciations:
+        letter_pattern = "|".join(letter_pronunciations + [re.escape(letter) for letter in all_letters])
+    else:
+        letter_pattern = "|".join(re.escape(letter) for letter in all_letters)
+    
+    # Create a single letter unit pattern that can optionally have a case modifier
+    letter_unit = rf"""
+        (?:({case_pattern})\s+)?        # Optional case modifier
+        ({letter_pattern})              # Letter
+    """
+    
+    # Create the letter sequence pattern - matches 2 or more letter units
+    pattern_str = rf"""
+    \b                                  # Word boundary
+    {letter_unit}                       # First letter (with optional case)
+    (?:                                 # Additional letters
+        \s+                             # Space separator
+        {letter_unit}                   # Another letter unit (with optional case)
+    ){{1,}}                             # One or more additional letters
+    \b                                  # Word boundary
+    """
+    
+    return re.compile(pattern_str, re.VERBOSE | re.IGNORECASE)
 
 
 def build_spoken_url_pattern(language: str = "en") -> re.Pattern[str]:
@@ -646,10 +761,22 @@ def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     number_words_escaped = [re.escape(word) for word in number_words]
     number_words_pattern = "|".join(number_words_escaped)
 
+    # Get dot keywords for spoken domain detection
+    dot_keywords = [k for k, v in url_keywords.items() if v == "."]
+    dot_keywords_sorted = sorted(dot_keywords, key=len, reverse=True)
+    dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
+
     # Build the complete pattern using the dynamic keyword patterns
     pattern_str = rf"""
     \b                                  # Word boundary
-    (localhost|[\w.-]+)                 # Hostname (capture group 1)
+    (                                   # Capture group 1: hostname (expanded for spoken domains)
+        (?:                             # Alternative 1: spoken domain like "api dot service dot com"
+            [a-zA-Z0-9-]+               # Domain part
+            (?:\s+(?:{dot_pattern})\s+[a-zA-Z0-9-]+)+  # One or more " dot " separated parts
+        )
+        |                               # OR
+        (?:localhost|[\w.-]+)           # Alternative 2: localhost or regular hostname
+    )
     \s+(?:{colon_pattern})\s+           # Spoken "colon"
     (                                   # Capture group 2: port number (allows compound numbers)
         (?:                             # Non-capturing group for number words
@@ -1524,3 +1651,7 @@ ASSIGNMENT_PATTERN = build_assignment_pattern("en")
 
 # Use the language-aware pattern
 SPOKEN_EMAIL_PATTERN = build_spoken_email_pattern("en")
+
+# Spoken letter patterns: "capital A" or "A mayúscula"
+SPOKEN_LETTER_PATTERN = build_spoken_letter_pattern("en")
+LETTER_SEQUENCE_PATTERN = build_letter_sequence_pattern("en")

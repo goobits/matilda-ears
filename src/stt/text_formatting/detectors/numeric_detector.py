@@ -242,11 +242,44 @@ class NumericalEntityDetector:
 
         return numerical_entities
 
+    def _detect_consecutive_digits(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
+        """Detect consecutive digit sequences like 'six four four' -> '644'."""
+        # Build pattern for single digits (zero through nine)
+        single_digits = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+        digit_pattern = "|".join(single_digits)
+        
+        # Pattern for consecutive single digits (3 or more for specificity)
+        consecutive_pattern = re.compile(
+            rf"\b({digit_pattern})\s+({digit_pattern})\s+({digit_pattern})(?:\s+({digit_pattern}))?\b",
+            re.IGNORECASE
+        )
+        
+        for match in consecutive_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                # Extract the digit words and convert to digits
+                digit_words = [g for g in match.groups() if g is not None]
+                
+                # Convert words to digits
+                digit_map = {word: str(i) for i, word in enumerate(single_digits)}
+                digits = [digit_map[word.lower()] for word in digit_words]
+                
+                entities.append(
+                    Entity(
+                        start=match.start(),
+                        end=match.end(),
+                        text=match.group(),
+                        type=EntityType.CARDINAL,
+                        metadata={"consecutive_digits": digits, "parsed_value": "".join(digits)},
+                    )
+                )
+
     def _detect_numerical_entities(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect numerical entities with units using SpaCy's grammar analysis."""
         # First, handle patterns that don't need SpaCy
         self._detect_numeric_ranges_simple(text, entities, all_entities)
         self._detect_number_unit_patterns(text, entities, all_entities)
+        self._detect_consecutive_digits(text, entities, all_entities)
 
         if not self.nlp:
             return
@@ -903,7 +936,27 @@ class NumericalEntityDetector:
                 )
 
     def _detect_fractions(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
-        """Detect fraction expressions (one half, two thirds, etc.)."""
+        """Detect fraction expressions (one half, two thirds, etc.) and compound fractions (one and one half)."""
+        # First detect compound fractions (they take priority)
+        for match in regex_patterns.SPOKEN_COMPOUND_FRACTION_PATTERN.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                entities.append(
+                    Entity(
+                        start=match.start(),
+                        end=match.end(),
+                        text=match.group(),
+                        type=EntityType.FRACTION,
+                        metadata={
+                            "whole_word": match.group(1), 
+                            "numerator_word": match.group(2), 
+                            "denominator_word": match.group(3),
+                            "is_compound": True
+                        },
+                    )
+                )
+        
+        # Then detect simple fractions
         for match in regex_patterns.SPOKEN_FRACTION_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
 

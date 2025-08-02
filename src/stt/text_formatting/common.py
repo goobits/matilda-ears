@@ -62,6 +62,8 @@ class EntityType(Enum):
     SCIENTIFIC_NOTATION = auto()
     MUSIC_NOTATION = auto()
     SPOKEN_EMOJI = auto()
+    SPOKEN_LETTER = auto()
+    LETTER_SEQUENCE = auto()
     SLASH_COMMAND = auto()
     UNDERSCORE_DELIMITER = auto()
     SIMPLE_UNDERSCORE_VARIABLE = auto()
