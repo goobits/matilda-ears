@@ -50,22 +50,21 @@ class SmartCapitalizer:
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
             # Note: CLI_COMMAND removed - they should be capitalized at sentence start
-            EntityType.ABBREVIATION,  # Protect abbreviations from capitalization changes
+            # Note: ABBREVIATION removed - abbreviations should be capitalized at sentence start
         }
 
         # Version patterns that indicate technical content
         self.version_patterns = {"version", "v.", "v", "build", "release"}
 
-        # Abbreviation patterns and their corrections
+        # Abbreviation patterns and their corrections (only applies mid-sentence)
         self.abbreviation_fixes = {
-            "I.e.": "i.e.",
-            "E.g.": "e.g.",
-            "Etc.": "etc.",
-            "Vs.": "vs.",
-            "Cf.": "cf.",
-            "Ie.": "i.e.",
-            "Eg.": "e.g.",
-            "Ex.": "e.g.",
+            # Only fix capitalized abbreviations in mid-sentence contexts
+            # At sentence start, they should remain capitalized
+            "Vs.": "vs.",  # vs. should not be capitalized mid-sentence
+            "Cf.": "cf.",  # cf. should not be capitalized mid-sentence
+            "Ie.": "i.e.",  # Fix wrong abbreviation form
+            "Eg.": "e.g.",  # Fix wrong abbreviation form  
+            "Ex.": "e.g.",  # Convert Ex. to e.g.
         }
 
         # Load uppercase abbreviations from resources

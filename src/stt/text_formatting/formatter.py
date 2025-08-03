@@ -1063,7 +1063,11 @@ class TextFormatter:
 
         # Step 5: Apply capitalization to the final text (entities already converted)
         # Skip capitalization for standalone technical content OR CLI commands with removed punctuation
-        if not is_standalone_technical and not skip_capitalization_for_cli:
+        # But always capitalize common sentence starters like "version", "page", etc.
+        starts_with_common_word = any(final_text.lower().startswith(word + " ") for word in ["version", "page", "chapter", "section", "line", "add", "multiply"])
+        should_capitalize = not is_standalone_technical and not skip_capitalization_for_cli or starts_with_common_word
+        
+        if should_capitalize:
             logger.debug(f"Text before capitalization: '{final_text}'")
 
             final_text = self._apply_capitalization_with_entity_protection(final_text, converted_entities, doc=doc)
@@ -1531,11 +1535,20 @@ class TextFormatter:
                 )
 
         # Add final punctuation intelligently when punctuation model is not available
-        if not is_standalone_technical and text and text.strip() and text.strip()[-1].isalnum():
-            # Only add punctuation if it looks like a complete thought
+        if text and text.strip() and text.strip()[-1].isalnum():
             word_count = len(text.split())
-            # More lenient: 2+ words or known complete phrases get punctuation
-            if word_count >= 2 or text.lower().strip() in self.complete_sentence_phrases:
+            
+            # Force punctuation for obvious natural language patterns
+            natural_patterns = [
+                r'\b(?:flatten|sharpen|brighten|darken|soften|harden)\s+the\s+\w+\b',  # "flatten the curve"
+                r'\bsolve\s+.*\s+using\s+.*\b',  # "solve x using formula"
+                r'\bsave\s+.*\s+with\s+.*\b',  # "save config with encoding"
+            ]
+            
+            is_natural_phrase = any(re.search(pattern, text, re.IGNORECASE) for pattern in natural_patterns)
+            
+            # Apply punctuation if it's not standalone technical OR if it matches natural patterns
+            if (not is_standalone_technical or is_natural_phrase) and word_count >= 2:
                 text += "."
                 logger.debug(f"Added final punctuation: '{text}'")
 
