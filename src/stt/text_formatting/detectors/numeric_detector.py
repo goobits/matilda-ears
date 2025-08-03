@@ -226,6 +226,9 @@ class NumericalEntityDetector:
         self._detect_dollar_cents(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
+        self._detect_cents_only(text, numerical_entities, all_entities)
+
+        all_entities = entities + numerical_entities
         self._detect_metric_units(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
@@ -1724,6 +1727,45 @@ class NumericalEntityDetector:
                             type=EntityType.DOLLAR_CENTS,
                             metadata={
                                 "dollars": dollars_value,
+                                "cents": cents_value
+                            },
+                        )
+                    )
+
+    def _detect_cents_only(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
+        """Detect 'X cents' patterns and convert to CENTS entities."""
+        # Pattern to match "X cents"
+        # Supports both word numbers and digits
+        number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
+        
+        # Pattern for numbers (digits or words)
+        number_pattern = rf"(?:\d+|(?:{number_words})(?:\s+(?:{number_words}))*)"
+        
+        # Complete pattern for "X cents"
+        cents_pattern = re.compile(
+            rf"\b({number_pattern})\s+cents?\b",
+            re.IGNORECASE
+        )
+
+        for match in cents_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                cents_text = match.group(1).strip()
+                
+                # Parse the cent amount
+                cents_value = self.number_parser.parse(cents_text)
+                
+                # Only create entity if parsing succeeds
+                if cents_value:
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.CENTS,
+                            metadata={
                                 "cents": cents_value
                             },
                         )

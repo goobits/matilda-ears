@@ -73,6 +73,7 @@ class PatternConverter:
             EntityType.CURRENCY: self.convert_currency,
             EntityType.MONEY: self.convert_currency,  # SpaCy detected money entity
             EntityType.DOLLAR_CENTS: self.convert_dollar_cents,
+            EntityType.CENTS: self.convert_cents,
             EntityType.PERCENT: self.convert_percent,
             EntityType.DATA_SIZE: self.convert_data_size,
             EntityType.FREQUENCY: self.convert_frequency,
@@ -1083,12 +1084,34 @@ class PatternConverter:
     def convert_dollar_cents(self, entity: Entity) -> str:
         """Convert 'X dollars and Y cents' to '$X.Y'"""
         if entity.metadata:
-            dollars = self.number_parser.parse(entity.metadata.get("dollars", "0"))
-            cents = self.number_parser.parse(entity.metadata.get("cents", "0"))
+            # The metadata already contains parsed values as strings
+            dollars = entity.metadata.get("dollars", "0")
+            cents = entity.metadata.get("cents", "0")
             if dollars and cents:
-                # Ensure cents is zero-padded to 2 digits
-                cents_str = str(cents).zfill(2)
-                return f"${dollars}.{cents_str}"
+                # Convert to integers for proper formatting
+                try:
+                    dollars_int = int(dollars) if isinstance(dollars, str) else dollars
+                    cents_int = int(cents) if isinstance(cents, str) else cents
+                    # Ensure cents is zero-padded to 2 digits
+                    cents_str = str(cents_int).zfill(2)
+                    return f"${dollars_int}.{cents_str}"
+                except (ValueError, TypeError):
+                    pass
+        return entity.text
+
+    def convert_cents(self, entity: Entity) -> str:
+        """Convert 'X cents' to '¢X' or '$0.XX'"""
+        if entity.metadata:
+            # The metadata contains parsed value as string
+            cents = entity.metadata.get("cents", "0")
+            if cents:
+                # Convert to integer for proper formatting
+                try:
+                    cents_int = int(cents) if isinstance(cents, str) else cents
+                    # Format as cents symbol (preferred)
+                    return f"{cents_int}¢"
+                except (ValueError, TypeError):
+                    pass
         return entity.text
 
     def convert_percent(self, entity: Entity) -> str:

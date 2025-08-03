@@ -203,11 +203,15 @@ class WebEntityDetector:
         SpaCy's more accurate token-level detection.
         """
         if not self.nlp:
+            # Fallback to regex-based detection when SpaCy is not available
+            self._detect_links_regex_fallback(text, entities, existing_entities)
             return
         try:
             doc = self.nlp(text)
         except (AttributeError, ValueError, IndexError) as e:
             logger.warning(f"SpaCy link detection failed: {e}")
+            # Use regex fallback on SpaCy failure
+            self._detect_links_regex_fallback(text, entities, existing_entities)
             return
 
         # Iterate through tokens to find URLs and emails
@@ -237,3 +241,68 @@ class WebEntityDetector:
                     entities.append(
                         Entity(start=start_pos, end=end_pos, text=token.text, type=EntityType.EMAIL, metadata=metadata)
                     )
+
+    def _detect_links_regex_fallback(self, text: str, entities: list[Entity], existing_entities: list[Entity]) -> None:
+        """
+        Fallback regex-based detection for URLs and emails when SpaCy is not available.
+        """
+        # Import the email pattern from regex_patterns
+        from stt.text_formatting import regex_patterns
+        
+        # Detect emails using the EMAIL_PROTECTION_PATTERN
+        for match in regex_patterns.EMAIL_PROTECTION_PATTERN.finditer(text):
+            start_pos = match.start()
+            end_pos = match.end()
+            email_text = match.group()
+            
+            if not is_inside_entity(start_pos, end_pos, existing_entities):
+                # Parse email to extract username and domain
+                parts = email_text.split("@")
+                metadata = {}
+                if len(parts) == 2:
+                    metadata = {"username": parts[0], "domain": parts[1]}
+                
+                entities.append(
+                    Entity(start=start_pos, end=end_pos, text=email_text, type=EntityType.EMAIL, metadata=metadata)
+                )
+                logger.debug(f"Regex fallback detected email: {email_text}")
+        
+        # Detect URLs using multiple patterns
+        # Pattern 1: URLs with protocol or www
+        url_with_protocol_pattern = re.compile(
+            r'\b(?:https?://|www\.)[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]+\b'
+        )
+        
+        for match in url_with_protocol_pattern.finditer(text):
+            start_pos = match.start()
+            end_pos = match.end()
+            url_text = match.group()
+            
+            if not is_inside_entity(start_pos, end_pos, existing_entities):
+                entities.append(
+                    Entity(start=start_pos, end=end_pos, text=url_text, type=EntityType.URL)
+                )
+                logger.debug(f"Regex fallback detected URL with protocol: {url_text}")
+        
+        # Pattern 2: Simple domain patterns (e.g., github.com, example.org)
+        # This pattern is more permissive to catch domains without protocol
+        domain_pattern = re.compile(
+            r'\b[a-zA-Z0-9][a-zA-Z0-9\-]*(?:\.[a-zA-Z0-9\-]+)*\.'
+            r'(?:com|org|net|edu|gov|mil|co|io|dev|app|ai|me|info|biz|'
+            r'tv|cc|ws|name|mobi|asia|uk|eu|ca|au|jp|de|fr|it|es|ru|cn|'
+            r'br|in|mx|nl|se|ch|be|at|dk|no|fi|pl|cz|gr|tr|kr|sg|hk|tw)\b'
+            r'(?:[:/][a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=%]*)?'
+        )
+        
+        for match in domain_pattern.finditer(text):
+            start_pos = match.start()
+            end_pos = match.end()
+            url_text = match.group()
+            
+            # Don't detect if it's already covered by another entity
+            if not is_inside_entity(start_pos, end_pos, existing_entities) and \
+               not any(e.start <= start_pos < e.end for e in entities):
+                entities.append(
+                    Entity(start=start_pos, end=end_pos, text=url_text, type=EntityType.URL)
+                )
+                logger.debug(f"Regex fallback detected domain: {url_text}")

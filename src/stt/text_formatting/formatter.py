@@ -818,6 +818,86 @@ class TextFormatter:
             f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}"
         )
 
+        # Define entity priority (higher number = higher priority)
+        entity_priorities = {
+            # User-defined exact patterns (80-100)
+            EntityType.SPOKEN_LETTER: 100,  # Individual letters should have highest priority
+            EntityType.LETTER_SEQUENCE: 95,  # Letter sequences should have high priority
+            EntityType.FILENAME: 90,  # Filenames are user-specific patterns
+            EntityType.URL: 85,  # URLs need to preserve exact case
+            EntityType.SPOKEN_URL: 85,
+            EntityType.SPOKEN_PROTOCOL_URL: 85,
+            EntityType.EMAIL: 80,
+            EntityType.SPOKEN_EMAIL: 80,
+            
+            # Technical patterns (60-80)
+            EntityType.MATH_EXPRESSION: 75,
+            EntityType.MATH: 75,
+            EntityType.ROOT_EXPRESSION: 74,
+            EntityType.SCIENTIFIC_NOTATION: 73,
+            EntityType.COMPARISON: 70,
+            EntityType.ASSIGNMENT: 70,
+            EntityType.INCREMENT_OPERATOR: 68,
+            EntityType.DECREMENT_OPERATOR: 68,
+            EntityType.SLASH_COMMAND: 65,
+            EntityType.CLI_COMMAND: 65,
+            EntityType.PROGRAMMING_KEYWORD: 63,
+            EntityType.COMMAND_FLAG: 62,
+            EntityType.UNDERSCORE_DELIMITER: 60,
+            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 60,
+            
+            # Path patterns (55-60)
+            EntityType.UNIX_PATH: 58,
+            EntityType.WINDOWS_PATH: 58,
+            
+            # Financial patterns (50-70)
+            EntityType.DOLLAR_CENTS: 65,
+            EntityType.DOLLARS: 64,
+            EntityType.CENTS: 63,
+            EntityType.CURRENCY: 62,
+            EntityType.POUNDS: 61,
+            EntityType.EUROS: 61,
+            EntityType.MONEY: 50,  # Generic money entity (SpaCy)
+            
+            # Technical measurements (45-55)
+            EntityType.DATA_SIZE: 55,
+            EntityType.FREQUENCY: 54,
+            EntityType.VERSION: 53,
+            EntityType.PORT_NUMBER: 52,
+            EntityType.TEMPERATURE: 51,
+            EntityType.METRIC_LENGTH: 50,
+            EntityType.METRIC_WEIGHT: 50,
+            EntityType.METRIC_VOLUME: 50,
+            
+            # Time patterns (40-50)
+            EntityType.TIME_AMPM: 48,
+            EntityType.TIME: 47,
+            EntityType.TIME_DURATION: 46,
+            EntityType.TIME_CONTEXT: 45,
+            EntityType.TIME_RELATIVE: 44,
+            EntityType.DATE: 42,
+            
+            # Numeric patterns (30-40)
+            EntityType.PHONE_LONG: 40,
+            EntityType.NUMERIC_RANGE: 38,
+            EntityType.FRACTION: 36,
+            EntityType.PERCENT: 35,
+            EntityType.ORDINAL: 32,
+            EntityType.QUANTITY: 30,
+            
+            # Generic SpaCy entities (10-30)
+            EntityType.CARDINAL: 20,  # Basic numbers
+            EntityType.ABBREVIATION: 25,
+            
+            # Special patterns (20-40)
+            EntityType.PHYSICS_SQUARED: 35,
+            EntityType.PHYSICS_TIMES: 35,
+            EntityType.MATH_CONSTANT: 34,
+            EntityType.MUSIC_NOTATION: 30,
+            EntityType.SPOKEN_EMOJI: 28,
+            EntityType.PROTOCOL: 26,
+        }
+
         # Phase 4 Fix: Deduplicate entities with identical boundaries and overlapping entities
         # This fixes cases where SpaCy and custom detectors find overlapping entities
         deduplicated_entities: list[Entity] = []
@@ -838,7 +918,29 @@ class TextFormatter:
                     # Prefer longer entity (more specific) or same type
                     entity_length = entity.end - entity.start
                     existing_length = existing.end - existing.start
+                    
+                    # Get priorities for both entities
+                    entity_priority = entity_priorities.get(entity.type, 0)
+                    existing_priority = entity_priorities.get(existing.type, 0)
 
+                    # For equal-length entities, use priority
+                    if entity_length == existing_length:
+                        if entity_priority > existing_priority:
+                            # Remove the lower priority entity and add this higher priority one
+                            deduplicated_entities.remove(existing)
+                            logger.debug(
+                                f"Replacing lower priority entity {existing.type}('{existing.text}', priority={existing_priority}) with higher priority {entity.type}('{entity.text}', priority={entity_priority})"
+                            )
+                            break
+                        elif entity_priority < existing_priority:
+                            # Keep the existing higher priority entity
+                            overlaps_with_existing = True
+                            logger.debug(
+                                f"Skipping lower priority entity: {entity.type}('{entity.text}', priority={entity_priority}) overlaps with higher priority {existing.type}('{existing.text}', priority={existing_priority})"
+                            )
+                            break
+                    
+                    # For different-length entities, prefer longer (more specific)
                     if entity_length > existing_length:
                         # Remove the shorter existing entity and add this longer one
                         deduplicated_entities.remove(existing)
@@ -859,22 +961,6 @@ class TextFormatter:
 
         # Remove smaller entities that are completely contained within larger, higher-priority entities
         priority_filtered_entities = []
-
-        # Define entity priority (higher number = higher priority)
-        entity_priorities = {
-            EntityType.MATH_EXPRESSION: 10,
-            EntityType.COMPARISON: 9,
-            EntityType.ASSIGNMENT: 8,
-            EntityType.FILENAME: 7,
-            EntityType.UNDERSCORE_DELIMITER: 6,
-            EntityType.LETTER_SEQUENCE: 5,  # Letter sequences should have high priority
-            EntityType.SPOKEN_LETTER: 5,  # Individual letters should have high priority
-            EntityType.TIME_AMPM: 4,  # Time entities should have priority
-            EntityType.TIME: 4,
-            EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
-            EntityType.CARDINAL: 1,
-            EntityType.QUANTITY: 1,
-        }
 
         for entity in deduplicated_entities:
             is_contained = False
