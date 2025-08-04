@@ -424,6 +424,20 @@ class EntityDetector:
         # Keep DATE entities that contain actual month names
         month_names = self.resources.get("temporal", {}).get("month_names", [])
         if any(month in entity_text for month in month_names):
+            # However, check if this is a context where we want ordinal conversion
+            # (e.g., "January first meeting" -> "January 1st meeting")
+            date_ordinal_words = self.resources.get("temporal", {}).get("date_ordinals", [])
+            has_ordinal = any(ordinal in entity_text for ordinal in date_ordinal_words)
+            
+            if has_ordinal:
+                # Check the context after the DATE entity to see if it's non-date context
+                suffix_text = text[ent.end_char:].strip().lower()
+                non_date_contexts = ["meeting", "conference", "report", "quarter", "generation", "party", "place", "winner", "performance", "time", "item", "agenda", "step", "process", "option", "available", "deadline"]
+                
+                if any(context in suffix_text for context in non_date_contexts):
+                    logger.debug(f"Skipping DATE '{ent.text}' - contains month but followed by non-date context '{suffix_text[:20]}'")
+                    return True  # Skip this DATE to allow ORDINAL processing
+            
             return False  # Keep - this is a real date
 
         # Keep DATE entities that contain specific relative days
@@ -665,6 +679,7 @@ class PatternConverter:
             EntityType.CURRENCY,
             EntityType.QUANTITY,
             EntityType.FILENAME,  # Added to detect spoken underscores in context
+            EntityType.ORDINAL,   # Added for context-aware ordinal conversion
         }
 
         if entity.type in full_text_entity_types:

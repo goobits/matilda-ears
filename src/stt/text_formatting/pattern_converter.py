@@ -1575,7 +1575,7 @@ class PatternConverter:
         parsed = self.number_parser.parse(entity.text)
         return parsed if parsed else entity.text
 
-    def convert_ordinal(self, entity: Entity) -> str:
+    def convert_ordinal(self, entity: Entity, full_text: str = "") -> str:
         """Convert ordinal numbers with context awareness (first -> 1st, but 1st -> first in conversational contexts)."""
         text_lower = entity.text.lower().replace("-", " ")
         original_text = entity.text
@@ -1586,9 +1586,9 @@ class PatternConverter:
 
         if numeric_match:
             # Input is already numeric - check context to see if we should convert to words
-            if hasattr(entity, "parent_text") and entity.parent_text:
+            if full_text:
                 # Context analysis for conversational vs positional usage
-                context = entity.parent_text.lower()
+                context = full_text.lower()
 
                 # Conversational patterns where numeric ordinals should become words
                 conversational_patterns = [
