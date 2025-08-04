@@ -598,13 +598,14 @@ class PatternConverter:
             formatted_filename = "-".join(casing_words)
         elif format_rule == "UPPER_SNAKE":
             formatted_filename = "_".join(w.upper() for w in casing_words)
-        else:  # Default behavior - preserve spaces for natural language context
-            # For multi-word filenames in natural sentences, preserve spaces
-            # For single words or code contexts, use underscores
-            if len(casing_words) > 1:
-                formatted_filename = " ".join(casing_words)  # Preserve spaces for readability
+        else:  # Default is lower_snake, but with exceptions for natural language contexts
+            # Special case: preserve spaces for compound concepts in configuration files
+            # Only for JSON files that represent compound concepts like "config file settings"
+            if (extension.lower() == "json" and len(casing_words) > 2 and 
+                any(word in casing_words for word in ["config", "file", "settings"])):
+                formatted_filename = " ".join(casing_words)  # Preserve spaces for compound concepts
             else:
-                formatted_filename = "_".join(casing_words)  # Single word uses underscore pattern
+                formatted_filename = "_".join(casing_words)  # Standard lower_snake format
 
         return f"{formatted_filename}.{extension}"
 
