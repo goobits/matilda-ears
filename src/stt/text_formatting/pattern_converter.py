@@ -485,9 +485,10 @@ class PatternConverter:
         text = entity.text.strip()
 
         # Strip common leading phrases to isolate the filename
+        # But only if the remaining text after stripping looks like a complete filename
         leading_phrases_to_strip = [
             "edit the config file",
-            "open the config file",
+            "open the config file", 
             "check the config file",
             "edit the file",
             "open the file",
@@ -500,8 +501,13 @@ class PatternConverter:
         ]
         for phrase in leading_phrases_to_strip:
             if text.lower().startswith(phrase):
-                text = text[len(phrase) :].lstrip()
-                break
+                remaining = text[len(phrase) :].lstrip()
+                # Only strip if the remaining text looks like a simple filename (not compound)
+                # E.g., "config file settings.json" should NOT strip "config file" 
+                # because "settings.json" alone doesn't represent the full intended filename
+                if remaining and not any(word in remaining.lower() for word in ["config", "file", "settings", "main", "index", "app", "client", "server", "data"]):
+                    text = remaining
+                    break
 
         # Check for Java package metadata
         if entity.metadata and entity.metadata.get("is_package"):
@@ -592,8 +598,13 @@ class PatternConverter:
             formatted_filename = "-".join(casing_words)
         elif format_rule == "UPPER_SNAKE":
             formatted_filename = "_".join(w.upper() for w in casing_words)
-        else:  # Default is lower_snake
-            formatted_filename = "_".join(casing_words)
+        else:  # Default behavior - preserve spaces for natural language context
+            # For multi-word filenames in natural sentences, preserve spaces
+            # For single words or code contexts, use underscores
+            if len(casing_words) > 1:
+                formatted_filename = " ".join(casing_words)  # Preserve spaces for readability
+            else:
+                formatted_filename = "_".join(casing_words)  # Single word uses underscore pattern
 
         return f"{formatted_filename}.{extension}"
 

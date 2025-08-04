@@ -262,31 +262,57 @@ class CodeEntityDetector:
                             and prev_token.text.isalpha()
                             and prev_token.text.lower() not in {"the", "a", "an", "this", "that"}
                         ):
-                            # Create entity spanning variable and operator
-                            start_pos = prev_token.idx
-                            end_pos = doc[i + 1].idx + len(doc[i + 1].text)
-                            entity_text = text[start_pos:end_pos]
-
-                            check_entities = all_entities if all_entities else entities
-                            if not is_inside_entity(start_pos, end_pos, check_entities):
-                                entities.append(
-                                    Entity(
-                                        start=start_pos,
-                                        end=end_pos,
-                                        text=entity_text,
-                                        type=(
-                                            EntityType.INCREMENT_OPERATOR
-                                            if operator_patterns[two_word_pattern] == "++"
-                                            else (
-                                                EntityType.DECREMENT_OPERATOR
-                                                if operator_patterns[two_word_pattern] == "--"
-                                                else EntityType.COMPARISON
+                            symbol = operator_patterns[two_word_pattern]
+                            
+                            # For comparison operators, check if there's a following value
+                            if symbol == "==":
+                                # Check if there's a next token that could be a value
+                                if i + 2 < len(doc):
+                                    next_token = doc[i + 2]
+                                    if (next_token.is_alpha and not next_token.is_stop) or next_token.like_num or next_token.text.lower() in ["true", "false", "null"]:
+                                        # Create comparison entity spanning variable + operator + value
+                                        start_pos = prev_token.idx
+                                        end_pos = next_token.idx + len(next_token.text)
+                                        entity_text = text[start_pos:end_pos]
+                                        
+                                        check_entities = all_entities if all_entities else entities
+                                        if not is_inside_entity(start_pos, end_pos, check_entities):
+                                            entities.append(
+                                                Entity(
+                                                    start=start_pos,
+                                                    end=end_pos,
+                                                    text=entity_text,
+                                                    type=EntityType.COMPARISON,
+                                                    metadata={
+                                                        "left": prev_token.text,
+                                                        "right": next_token.text,
+                                                        "operator": symbol,
+                                                    },
+                                                )
                                             )
-                                        ),
-                                        metadata={
-                                            "variable": prev_token.text,
-                                            "operator": operator_patterns[two_word_pattern],
-                                        },
+                                            logger.debug(f"SpaCy detected {symbol} comparison: '{entity_text}' at {start_pos}-{end_pos}")
+                            else:
+                                # For increment/decrement operators, create entity spanning variable and operator
+                                start_pos = prev_token.idx
+                                end_pos = doc[i + 1].idx + len(doc[i + 1].text)
+                                entity_text = text[start_pos:end_pos]
+
+                                check_entities = all_entities if all_entities else entities
+                                if not is_inside_entity(start_pos, end_pos, check_entities):
+                                    entities.append(
+                                        Entity(
+                                            start=start_pos,
+                                            end=end_pos,
+                                            text=entity_text,
+                                            type=(
+                                                EntityType.INCREMENT_OPERATOR
+                                                if symbol == "++"
+                                                else EntityType.DECREMENT_OPERATOR
+                                            ),
+                                            metadata={
+                                                "variable": prev_token.text,
+                                                "operator": symbol,
+                                            },
                                     )
                                 )
 
