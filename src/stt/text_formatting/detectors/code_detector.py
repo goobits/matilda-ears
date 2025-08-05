@@ -48,6 +48,19 @@ class CodeEntityDetector:
         all_entities.extend(entities)
         all_entities.extend(code_entities)
 
+    def _run_detector(self, detector_method, text, entities, code_entities, all_entities):
+        """Run a detector method and update entities state.
+        
+        Args:
+            detector_method: The detector method to call
+            text: The text to analyze
+            entities: List of existing entities
+            code_entities: List of detected code entities
+            all_entities: Combined list of all entities
+        """
+        detector_method(text, code_entities, all_entities)
+        self._update_entities_state(entities, code_entities, all_entities)
+
     def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
         """Detects all code-related entities."""
         code_entities: list[Entity] = []
@@ -55,36 +68,19 @@ class CodeEntityDetector:
         # Start with existing entities and build cumulatively
         all_entities = entities[:]  # Start with copy of existing entities
 
-        self._detect_filenames(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
+        # Run detectors in order, maintaining detection sequence
+        self._run_detector(self._detect_filenames, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_cli_commands, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_programming_keywords, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_spoken_operators, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_assignment_operators, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_abbreviations, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_underscore_delimiters, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_simple_underscore_variables, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_command_flags, text, entities, code_entities, all_entities)
+        self._run_detector(self._detect_preformatted_flags, text, entities, code_entities, all_entities)
 
-        self._detect_cli_commands(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_programming_keywords(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_spoken_operators(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_assignment_operators(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_abbreviations(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_underscore_delimiters(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_simple_underscore_variables(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_command_flags(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
-        self._detect_preformatted_flags(text, code_entities, all_entities)
-        self._update_entities_state(entities, code_entities, all_entities)
-
+        # Last detector doesn't use _run_detector to preserve exact functionality
         self._detect_slash_commands(text, code_entities, all_entities)
 
         logger.debug(f"CodeEntityDetector found {len(code_entities)} entities in '{text}'")
@@ -219,26 +215,8 @@ class CodeEntityDetector:
             logger.debug("SpaCy filename detection found no new entities, trying regex fallback")
             self._detect_filenames_regex_fallback(text, entities, all_entities)
 
-    def _detect_spoken_operators(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
-        """
-        Detect spoken operators using SpaCy token context analysis.
-
-        This method detects patterns like "variable plus plus" or "count minus minus"
-        using token analysis to ensure they're used in valid programming contexts.
-        """
-        if not self.nlp:
-            logger.debug("SpaCy not available for spoken operator detection, using regex fallback")
-            self._detect_spoken_operators_regex(text, entities, all_entities)
-            return
-        try:
-            doc = self.nlp(text)
-        except (AttributeError, ValueError, IndexError) as e:
-            logger.warning(f"SpaCy operator detection failed: {e}")
-            return
-        logger.debug(f"Processing text for operators: '{text}'")
-
+    def _setup_operator_patterns(self):
+        """Setup operator patterns from language resources."""
         # Get operator keywords for the current language
         operators = get_resources(self.language)["spoken_keywords"]["operators"]
 
@@ -246,8 +224,24 @@ class CodeEntityDetector:
         operator_patterns = {}
         for pattern, symbol in operators.items():
             operator_patterns[pattern.lower()] = symbol
+        
+        return operator_patterns
 
-        # Iterate through tokens to find operator patterns
+    def _validate_variable_token(self, token):
+        """Validate if a token can be a valid variable name."""
+        # Check if the preceding token is a valid variable name
+        # Include single letter pronouns like 'i' which SpaCy tags as PRON
+        return (
+            (
+                token.pos_ in ["NOUN", "PROPN", "SYM", "VERB", "PUNCT"]  # Added PUNCT for single letters like 'x'
+                or (token.pos_ == "PRON" and len(token.text) == 1)
+            )  # Single letter like 'i'
+            and token.text.isalpha()
+            and token.text.lower() not in {"the", "a", "an", "this", "that"}
+        )
+
+    def _detect_two_word_operators(self, doc, operator_patterns, entities, all_entities, text):
+        """Detect two-word operator patterns in the document."""
         for i, token in enumerate(doc):
             # Check for multi-word operators
             if i + 1 < len(doc):
@@ -258,16 +252,7 @@ class CodeEntityDetector:
                     # Check if there's a preceding token that could be a variable
                     if i > 0:
                         prev_token = doc[i - 1]
-                        # Check if the preceding token is a valid variable name
-                        # Include single letter pronouns like 'i' which SpaCy tags as PRON
-                        if (
-                            (
-                                prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB", "PUNCT"]  # Added PUNCT for single letters like 'x'
-                                or (prev_token.pos_ == "PRON" and len(prev_token.text) == 1)
-                            )  # Single letter like 'i'
-                            and prev_token.text.isalpha()
-                            and prev_token.text.lower() not in {"the", "a", "an", "this", "that"}
-                        ):
+                        if self._validate_variable_token(prev_token):
                             symbol = operator_patterns[two_word_pattern]
                             
                             # For comparison operators, check if there's a following value
@@ -322,46 +307,76 @@ class CodeEntityDetector:
                                     )
                                 )
 
-                # Also check for three-word operators if present
-                elif i + 2 < len(doc):
-                    three_word_pattern = f"{token.text.lower()} {doc[i + 1].text.lower()} {doc[i + 2].text.lower()}"
-                    if three_word_pattern in operator_patterns:
-                        # Handle comparison operators like "equals equals"
-                        if i > 0 and i + 3 < len(doc):
-                            prev_token = doc[i - 1]
-                            next_token = doc[i + 3]
+    def _detect_three_word_operators(self, doc, operator_patterns, entities, all_entities, text):
+        """Detect three-word operator patterns in the document."""
+        for i, token in enumerate(doc):
+            # Check for three-word operators if present
+            if i + 2 < len(doc):
+                three_word_pattern = f"{token.text.lower()} {doc[i + 1].text.lower()} {doc[i + 2].text.lower()}"
+                if three_word_pattern in operator_patterns:
+                    # Handle comparison operators like "equals equals"
+                    if i > 0 and i + 3 < len(doc):
+                        prev_token = doc[i - 1]
+                        next_token = doc[i + 3]
 
-                            # Check for variable on left and value/variable on right
-                            is_left_var = prev_token.is_alpha and not prev_token.is_stop
-                            is_right_var = (
-                                (next_token.is_alpha and not next_token.is_stop)
-                                or next_token.like_num
-                                or next_token.text.lower() in ["true", "false", "null"]
-                            )
+                        # Check for variable on left and value/variable on right
+                        is_left_var = prev_token.is_alpha and not prev_token.is_stop
+                        is_right_var = (
+                            (next_token.is_alpha and not next_token.is_stop)
+                            or next_token.like_num
+                            or next_token.text.lower() in ["true", "false", "null"]
+                        )
 
-                            if is_left_var and is_right_var:
-                                # Check if there's an "if" before the comparison
-                                start_pos = prev_token.idx
-                                if i > 1 and doc[i - 2].text.lower() == "if":
-                                    start_pos = doc[i - 2].idx
+                        if is_left_var and is_right_var:
+                            # Check if there's an "if" before the comparison
+                            start_pos = prev_token.idx
+                            if i > 1 and doc[i - 2].text.lower() == "if":
+                                start_pos = doc[i - 2].idx
 
-                                end_pos = next_token.idx + len(next_token.text)
-                                entity_text = text[start_pos:end_pos]
-                                check_entities = all_entities if all_entities else entities
-                                if not is_inside_entity(start_pos, end_pos, check_entities):
-                                    entities.append(
-                                        Entity(
-                                            start=start_pos,
-                                            end=end_pos,
-                                            text=entity_text,
-                                            type=EntityType.COMPARISON,
-                                            metadata={
-                                                "left": prev_token.text,
-                                                "right": next_token.text,
-                                                "operator": operator_patterns[three_word_pattern],
-                                            },
-                                        )
+                            end_pos = next_token.idx + len(next_token.text)
+                            entity_text = text[start_pos:end_pos]
+                            check_entities = all_entities if all_entities else entities
+                            if not is_inside_entity(start_pos, end_pos, check_entities):
+                                entities.append(
+                                    Entity(
+                                        start=start_pos,
+                                        end=end_pos,
+                                        text=entity_text,
+                                        type=EntityType.COMPARISON,
+                                        metadata={
+                                            "left": prev_token.text,
+                                            "right": next_token.text,
+                                            "operator": operator_patterns[three_word_pattern],
+                                        },
                                     )
+                                )
+
+    def _detect_spoken_operators(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
+        """
+        Detect spoken operators using SpaCy token context analysis.
+
+        This method detects patterns like "variable plus plus" or "count minus minus"
+        using token analysis to ensure they're used in valid programming contexts.
+        """
+        if not self.nlp:
+            logger.debug("SpaCy not available for spoken operator detection, using regex fallback")
+            self._detect_spoken_operators_regex(text, entities, all_entities)
+            return
+        try:
+            doc = self.nlp(text)
+        except (AttributeError, ValueError, IndexError) as e:
+            logger.warning(f"SpaCy operator detection failed: {e}")
+            return
+        logger.debug(f"Processing text for operators: '{text}'")
+
+        # Setup operator patterns
+        operator_patterns = self._setup_operator_patterns()
+
+        # Detect two-word and three-word operators
+        self._detect_two_word_operators(doc, operator_patterns, entities, all_entities, text)
+        self._detect_three_word_operators(doc, operator_patterns, entities, all_entities, text)
 
     def _detect_spoken_operators_regex(
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None

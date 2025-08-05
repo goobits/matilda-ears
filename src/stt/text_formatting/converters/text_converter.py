@@ -122,6 +122,12 @@ class TextPatternConverter(BasePatternConverter):
         - Mixed case sequences handled properly
 
         """
+        # Special handling for common abbreviations that should be left as-is for postprocessing
+        entity_text = entity.text.lower().strip()
+        if entity_text in ["i e", "e g", "v s"]:
+            # Return the original text to be handled by abbreviation postprocessing
+            return entity.text
+            
         if not entity.metadata:
             return entity.text
 

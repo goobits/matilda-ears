@@ -215,37 +215,37 @@ def _deduplicate_entities(entities: List[Entity]) -> List[Entity]:
                 entity_priority = ENTITY_PRIORITIES.get(entity.type, 0)
                 existing_priority = ENTITY_PRIORITIES.get(existing.type, 0)
 
-                # For equal-length entities, use priority
-                if entity_length == existing_length:
-                    if entity_priority > existing_priority:
-                        # Remove the lower priority entity and add this higher priority one
-                        deduplicated_entities.remove(existing)
-                        logger.debug(
-                            f"Replacing lower priority entity {existing.type}('{existing.text}', priority={existing_priority}) with higher priority {entity.type}('{entity.text}', priority={entity_priority})"
-                        )
-                        break
-                    elif entity_priority < existing_priority:
-                        # Keep the existing higher priority entity
-                        overlaps_with_existing = True
-                        logger.debug(
-                            f"Skipping lower priority entity: {entity.type}('{entity.text}', priority={entity_priority}) overlaps with higher priority {existing.type}('{existing.text}', priority={existing_priority})"
-                        )
-                        break
-                
-                # For different-length entities, prefer longer (more specific)
-                if entity_length > existing_length:
-                    # Remove the shorter existing entity and add this longer one
+                # Priority is the primary factor - length is only a tiebreaker for same priority
+                if entity_priority > existing_priority:
+                    # Remove the lower priority entity and add this higher priority one
                     deduplicated_entities.remove(existing)
                     logger.debug(
-                        f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}')"
+                        f"Replacing lower priority entity {existing.type}('{existing.text}', priority={existing_priority}) with higher priority {entity.type}('{entity.text}', priority={entity_priority})"
                     )
                     break
-                # Keep the existing longer/equal entity
-                overlaps_with_existing = True
-                logger.debug(
-                    f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')"
-                )
-                break
+                elif entity_priority < existing_priority:
+                    # Keep the existing higher priority entity
+                    overlaps_with_existing = True
+                    logger.debug(
+                        f"Skipping lower priority entity: {entity.type}('{entity.text}', priority={entity_priority}) overlaps with higher priority {existing.type}('{existing.text}', priority={existing_priority})"
+                    )
+                    break
+                else:
+                    # Same priority - use length as tiebreaker (longer is more specific)
+                    if entity_length > existing_length:
+                        # Remove the shorter existing entity and add this longer one
+                        deduplicated_entities.remove(existing)
+                        logger.debug(
+                            f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}') (same priority={entity_priority})"
+                        )
+                        break
+                    else:
+                        # Keep the existing longer or equal-length entity
+                        overlaps_with_existing = True
+                        logger.debug(
+                            f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}') (same priority={entity_priority})"
+                        )
+                        break
 
         if not overlaps_with_existing:
             deduplicated_entities.append(entity)

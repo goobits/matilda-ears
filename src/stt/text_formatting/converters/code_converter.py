@@ -259,16 +259,41 @@ class CodePatternConverter(BasePatternConverter):
         return entity.text
 
     def convert_abbreviation(self, entity: Entity) -> str:
-        """Convert abbreviations to proper lowercase format"""
-        text = entity.text.lower()
+        """Convert abbreviations to proper format with comma when appropriate"""
+        text = entity.text.lower().strip()
 
-        # Handle "v s" specifically
-        if text == "v s":
-            return "vs."
-
-        # Use abbreviations from resources
+        # Use abbreviations from resources to get the proper format
         abbreviations = self.resources.get("abbreviations", {})
-        return str(abbreviations.get(text, text))
+        converted = abbreviations.get(text, None)
+        
+        # If we didn't find it in the map, handle common patterns manually
+        if converted is None:
+            if text == "v s":
+                converted = "vs."
+            elif text == "i e":
+                converted = "i.e."
+            elif text == "e g":
+                converted = "e.g."
+            elif text == "etc":
+                converted = "etc."
+            elif text in ["i.e.", "e.g.", "vs.", "cf.", "etc."]:
+                # Already has periods, keep as is
+                converted = text
+            else:
+                # Fallback: assume it's already in proper format
+                converted = text
+        
+        # Add comma after certain abbreviations when they introduce examples or clarifications
+        # This follows standard grammar rules for Latin abbreviations
+        comma_requiring_abbreviations = {"i.e.", "e.g.", "viz.", "sc.", "cf."}
+        
+        # Check if this abbreviation typically requires a comma
+        if any(converted.startswith(abbrev.rstrip('.')) for abbrev in comma_requiring_abbreviations):
+            # Add comma if not already present
+            if not converted.endswith(','):
+                converted = converted + ","
+        
+        return converted
 
     def convert_assignment(self, entity: Entity) -> str:
         """Convert assignment patterns like 'a equals b' -> 'a=b' or 'let a equals b' -> 'let a=b'"""

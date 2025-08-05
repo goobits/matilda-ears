@@ -49,8 +49,10 @@ class SmartCapitalizer:
             # Note: VERSION removed - version numbers at sentence start should be capitalized
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
+            EntityType.MATH_EXPRESSION,  # Math expressions should preserve their formatting
+            EntityType.MATH_CONSTANT,  # Mathematical constants like π, ∞ should preserve their exact form
+            EntityType.ABBREVIATION,  # Latin abbreviations like i.e., e.g. should stay lowercase
             # Note: CLI_COMMAND removed - they should be capitalized at sentence start
-            # Note: ABBREVIATION removed - abbreviations should be capitalized at sentence start
         }
 
         # Version patterns that indicate technical content
@@ -192,13 +194,28 @@ class SmartCapitalizer:
                             logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
                             should_capitalize = False
                             break
-                        # Special case: Allow capitalization of sentence-starting programming keywords
+                        # Special case: Check if sentence-starting programming keywords are part of larger programming constructs
                         elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
-                            logger.debug(
-                                f"Allowing capitalization of sentence-starting programming keyword: '{entity.text}'"
+                            # Check if there are other programming/code entities nearby - if so, don't capitalize
+                            has_nearby_code_entities = any(
+                                other_entity.type in {
+                                    EntityType.ASSIGNMENT, EntityType.COMPARISON, EntityType.MATH_EXPRESSION,
+                                    EntityType.FILENAME, EntityType.COMMAND_FLAG, EntityType.CLI_COMMAND,
+                                    EntityType.INCREMENT_OPERATOR, EntityType.DECREMENT_OPERATOR
+                                } for other_entity in entities
                             )
-                            # Don't protect - allow capitalization
-                            break
+                            if has_nearby_code_entities:
+                                logger.debug(
+                                    f"Programming keyword '{entity.text}' at sentence start has nearby code entities, not capitalizing"
+                                )
+                                should_capitalize = False
+                                break
+                            else:
+                                logger.debug(
+                                    f"Allowing capitalization of isolated sentence-starting programming keyword: '{entity.text}'"
+                                )
+                                # Don't protect - allow capitalization for isolated keywords
+                                break
 
                 if should_capitalize:
                     logger.debug(f"Capitalizing first letter at index {first_letter_index}")

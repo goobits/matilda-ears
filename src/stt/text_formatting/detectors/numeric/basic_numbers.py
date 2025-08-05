@@ -228,8 +228,9 @@ class BasicNumberDetector:
                     if percent_start != -1:
                         end_pos = percent_start + 7  # 7 = len("percent")
 
-                # Check for currency units
+                # Check for currency units - sort by length descending to prioritize longer matches
                 currency_units = self.resources.get("currency", {}).get("units", [])
+                currency_units = sorted(currency_units, key=len, reverse=True)
                 for currency_unit in currency_units:
                     if remaining_text.lower().startswith(currency_unit.lower()):
                         unit_type = "currency"
@@ -253,8 +254,9 @@ class BasicNumberDetector:
 
                 # Check for other units (time, weight, etc.)
                 if not unit_text:
-                    # Time units
+                    # Time units - sort by length descending to prioritize longer matches
                     time_units = self.resources.get("units", {}).get("time_units", [])
+                    time_units = sorted(time_units, key=len, reverse=True)
                     for time_unit in time_units:
                         if remaining_text.lower().startswith(time_unit.lower()):
                             unit_type = "time"
@@ -265,8 +267,9 @@ class BasicNumberDetector:
                             break
 
                 if not unit_text:
-                    # Weight units
+                    # Weight units - sort by length descending to prioritize longer matches (e.g., "kilograms" over "kilogram")
                     weight_units = self.resources.get("units", {}).get("weight_units", [])
+                    weight_units = sorted(weight_units, key=len, reverse=True)
                     for weight_unit in weight_units:
                         if remaining_text.lower().startswith(weight_unit.lower()):
                             unit_type = "weight"

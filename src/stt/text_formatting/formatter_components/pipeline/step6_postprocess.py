@@ -65,7 +65,13 @@ def restore_abbreviations(text: str, resources: dict) -> str:
 
     # Add comma after i.e. and e.g. when followed by a word,
     # but NOT if a comma is already there.
-    return re.sub(r"(\b(?:i\.e\.|e\.g\.))(?!,)(\s+[a-zA-Z])", r"\1,\2", text)
+    text = re.sub(r"(i\.e\.)(\s+[a-zA-Z])", r"\1,\2", text, flags=re.IGNORECASE)
+    text = re.sub(r"(e\.g\.)(\s+[a-zA-Z])", r"\1,\2", text, flags=re.IGNORECASE)
+    
+    # Remove double commas that might result from the above
+    text = re.sub(r",,", ",", text)
+    
+    return text
 
 
 def convert_orphaned_keywords(text: str, language: str = "en") -> str:
