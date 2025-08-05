@@ -326,13 +326,29 @@ def build_port_number_pattern(language: str = "en") -> re.Pattern[str]:
     # Build the complete pattern using the dynamic keyword patterns
     pattern_str = rf"""
     \b                                  # Word boundary
-    (                                   # Capture group 1: hostname (expanded for spoken domains)
-        (?:                             # Alternative 1: spoken domain like "api dot service dot com"
+    (                                   # Capture group 1: hostname (expanded for spoken domains and IP addresses)
+        (?:                             # Alternative 1: IP address like "one two seven dot zero dot zero dot one"
+            (?:                         # IP address octet: can be number words or alphanumeric
+                (?:{number_words_pattern})(?:\s+(?:{number_words_pattern}))*  # Multiple number words
+                |                       # OR
+                [a-zA-Z0-9-]+           # Regular alphanumeric part
+            )
+            (?:                         # Three more octets (4 total for IP)
+                \s+(?:{dot_pattern})\s+ # Spoken "dot"
+                (?:                     # Another octet
+                    (?:{number_words_pattern})(?:\s+(?:{number_words_pattern}))*  # Multiple number words
+                    |                   # OR
+                    [a-zA-Z0-9-]+       # Regular alphanumeric part
+                )
+            ){{3}}                      # Exactly 3 more octets (for 4 total)
+        )
+        |                               # OR
+        (?:                             # Alternative 2: spoken domain like "api dot service dot com"
             [a-zA-Z0-9-]+               # Domain part
             (?:\s+(?:{dot_pattern})\s+[a-zA-Z0-9-]+)+  # One or more " dot " separated parts
         )
         |                               # OR
-        (?:localhost|[\w.-]+)           # Alternative 2: localhost or regular hostname
+        (?:localhost|[\w.-]+)           # Alternative 3: localhost or regular hostname
     )
     \s+(?:{colon_pattern})\s+           # Spoken "colon"
     (                                   # Capture group 2: port number (allows compound numbers)

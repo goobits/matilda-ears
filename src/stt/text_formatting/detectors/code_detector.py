@@ -780,6 +780,8 @@ class CodeEntityDetector:
             full_filename = match.group(0)  # e.g., "my script dot py"
             filename_part = match.group(1)  # e.g., "my script"
             extension = match.group(2)  # e.g., "py"
+            
+            logger.debug(f"REGEX FALLBACK: Found match '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'")
 
             # Skip if this looks like it includes command verbs
             # Get the context before the match to check for command patterns
@@ -794,19 +796,48 @@ class CodeEntityDetector:
             
             # Remove action words and stop words from the beginning
             filtered_words = []
-            for word in filename_words:
+            for i, word in enumerate(filename_words):
                 word_lower = word.lower()
-                if word_lower not in filename_actions and word_lower not in filename_stop_words:
-                    filtered_words.append(word)
-                elif not filtered_words:  # Only skip words at the beginning
-                    continue
-                else:  # Once we have content words, include everything else
-                    filtered_words.append(word)
+                
+                # Remove action verbs from the beginning only
+                if word_lower in filename_actions and not filtered_words:
+                    continue  # Skip action verbs at the beginning
+                
+                # Special handling for certain stop words that might be part of filenames
+                # Words like "script", "file", "document" can be part of filenames if not at the very beginning
+                # or if they appear after we already have some content
+                if word_lower in filename_stop_words:
+                    # Skip generic stop words (articles, prepositions) always
+                    if word_lower in ["the", "a", "an", "this", "that", "in", "on", "for", "is", "was", "called"]:
+                        if not filtered_words:  # Only skip at the beginning
+                            continue
+                    # Allow descriptive words like "script", "file", "document" if we have context
+                    elif word_lower in ["script", "file", "document"]:
+                        # Always include these if they're not the very first word or if we already have content
+                        if i > 0 or filtered_words:
+                            filtered_words.append(word)
+                            continue  # Important: continue here to avoid double-adding
+                        else:
+                            continue  # Skip only if it's the very first word
+                    else:
+                        # For other stop words, only skip at the beginning
+                        if not filtered_words:
+                            continue
+                        else:
+                            # If we already have content, add the stop word
+                            filtered_words.append(word)
+                            continue
+                
+                # Add all other words (only reached if not a stop word or action verb)
+                filtered_words.append(word)
+            
+            logger.debug(f"REGEX FALLBACK: Filtered words: {filtered_words}")
             
             if filtered_words:
                 actual_filename = " ".join(filtered_words)
                 # Find where the actual filename starts in the original text
                 actual_start = text.find(actual_filename, match.start())
+                logger.debug(f"REGEX FALLBACK: Actual filename: '{actual_filename}', start: {actual_start}")
                 if actual_start != -1:
                     actual_match_text = f"{actual_filename} dot {extension}"
                     actual_end = actual_start + len(actual_match_text)

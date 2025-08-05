@@ -114,7 +114,11 @@ class TechnicalConverter(BaseNumericConverter):
                 "gcc",
             ]:
                 if prefix.lower() in ["v", "version"]:
-                    prefix = prefix.lower()  # Keep lowercase for version and v
+                    # Special case: capitalize "version" at sentence start (position 0)
+                    if entity.start == 0 and prefix.lower() == "version":
+                        prefix = "Version"  # Capitalize for sentence start
+                    else:
+                        prefix = prefix.lower()  # Keep lowercase for mid-sentence version and v
                 elif prefix.lower() in ["php", "gcc"]:
                     prefix = prefix.upper()
                 else:

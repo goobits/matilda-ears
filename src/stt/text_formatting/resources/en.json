@@ -224,16 +224,16 @@
     "common_abbreviations": ["i.e.", "e.g.", "etc.", "vs.", "cf."],
     "complete_sentence_phrases": ["yes", "no", "okay", "thanks", "hello", "goodbye", "hi", "bye", "thank you", "sure", "please", "sorry"],
     "idiomatic_phrases": {
-      "first": ["class", "rate", "person", "aid", "hand", "base", "string", "impression"],
-      "second": ["nature", "hand", "string", "thoughts", "class", "rate", "person"],
-      "third": ["party", "person", "string", "wheel", "base", "class", "rate"],
-      "fourth": ["wall", "estate", "dimension"],
-      "fifth": ["wheel", "column", "amendment"],
-      "sixth": ["sense"],
-      "seventh": ["heaven"],
-      "eighth": ["wonder"],
-      "ninth": ["inning"],
-      "tenth": ["amendment"]
+      "first": ["class", "rate", "person", "aid", "hand", "base", "string", "impression", "thing", "things", "time", "place", "step", "choice", "option", "priority", "item", "come", "of", "we", "they", "I"],
+      "second": ["nature", "hand", "string", "thoughts", "class", "rate", "person", "time", "place", "step", "choice", "option", "priority", "item", "to", "the", "we", "they", "I"],
+      "third": ["party", "person", "string", "wheel", "base", "class", "rate", "time", "time's", "place", "step", "choice", "option", "priority", "item", "implementation", "we", "they", "I"],
+      "fourth": ["wall", "estate", "dimension", "time", "place", "step", "choice", "option", "priority", "item"],
+      "fifth": ["wheel", "column", "amendment", "time", "place", "step", "choice", "option", "priority", "item"],
+      "sixth": ["sense", "time", "place", "step", "choice", "option", "priority", "item"],
+      "seventh": ["heaven", "time", "place", "step", "choice", "option", "priority", "item"],
+      "eighth": ["wonder", "time", "place", "step", "choice", "option", "priority", "item"],
+      "ninth": ["inning", "time", "place", "step", "choice", "option", "priority", "item"],
+      "tenth": ["amendment", "time", "place", "step", "choice", "option", "priority", "item"]
     },
     "ordinal_words": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "thirtieth", "fortieth", "fiftieth", "sixtieth", "seventieth", "eightieth", "ninetieth", "hundredth", "thousandth"],
     "uppercase_abbreviations": {

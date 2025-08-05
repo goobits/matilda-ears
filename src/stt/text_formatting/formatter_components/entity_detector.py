@@ -20,7 +20,7 @@ from ..nlp_provider import get_nlp
 from ..utils import is_inside_entity
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
 
 
 class EntityDetector:
@@ -103,6 +103,7 @@ class EntityDetector:
 
                         # Skip ORDINAL entities that are specific idiomatic phrases
                         if ent.label_ == "ORDINAL":
+                            logger.debug(f"Processing ORDINAL entity: '{ent.text}' at {ent.start_char}-{ent.end_char}")
                             # Find the corresponding token and next token
                             ordinal_token = None
                             next_token = None
@@ -112,11 +113,15 @@ class EntityDetector:
                                     if token.i + 1 < len(doc):
                                         next_token = doc[token.i + 1]
                                     break
+                            
+                            if ordinal_token and next_token:
+                                logger.debug(f"Found tokens: '{ordinal_token.text}' ({ordinal_token.pos_}) -> '{next_token.text}' ({next_token.pos_})")
 
                             # Check for specific idiomatic contexts using POS tags
                             if ordinal_token and next_token:
-                                # RULE 1: Skip if it's an adjective followed by a specific idiomatic noun from our resources.
-                                if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
+                                # RULE 1: Skip if it's an adjective followed by a specific idiomatic word from our resources.
+                                # Extended to include not just nouns but also prepositions, pronouns, etc.
+                                if ordinal_token.pos_ == "ADJ" and next_token.pos_ in ["NOUN", "ADP", "PRON", "DET", "PART", "VERB"]:
                                     # This is the key: we check our i18n file for specific exceptions.
                                     idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
                                     if (
@@ -124,7 +129,7 @@ class EntityDetector:
                                         and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
                                     ):
                                         logger.debug(
-                                            f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'."
+                                            f"Skipping ORDINAL '{ent.text}' due to idiomatic follower word '{next_token.text}' (POS: {next_token.pos_})."
                                         )
                                         continue
 
@@ -147,6 +152,15 @@ class EntityDetector:
                                     f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources"
                                 )
                                 continue
+                        
+                        # RULE 4: Additional fallback - check for sentence-start patterns with comma (even without proper POS analysis)
+                        ordinal_text = ent.text.lower()
+                        remaining_text = text[ent.end_char:].strip().lower()
+                        
+                        # Check for sentence-start patterns with comma when POS analysis didn't catch it
+                        if (ent.start_char == 0 or text[ent.start_char-1] in '.!?') and remaining_text.startswith(','):
+                            logger.debug(f"Skipping ORDINAL '{ent.text}' - sentence starter with comma (fallback)")
+                            continue
 
                         entity_type = label_to_type[ent.label_]
 

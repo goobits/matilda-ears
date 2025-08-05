@@ -91,7 +91,7 @@ ENTITY_PRIORITIES = {
     
     # Generic SpaCy entities (10-30)
     EntityType.CARDINAL: 20,  # Basic numbers
-    EntityType.ABBREVIATION: 25,
+    EntityType.ABBREVIATION: 105,  # Higher than SPOKEN_LETTER to prevent conflicts
     
     # Special patterns (20-40)
     EntityType.PHYSICS_SQUARED: 35,

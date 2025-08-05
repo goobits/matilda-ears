@@ -562,9 +562,9 @@ class TestAbbreviations:
         """Test abbreviations with proper punctuation formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("i dot e dot we should refactor", "i.e., we should refactor"),
-            ("e dot g dot use a linter", "e.g., use a linter"),
-            ("ex this is an example", "e.g., this is an example"),
+            ("i dot e dot we should refactor", "I.e., we should refactor"),  # Capital at sentence start
+            ("e dot g dot use a linter", "E.g., use a linter"),  # Capital at sentence start
+            ("ex this is an example", "E.g., this is an example"),  # Capital at sentence start
         ]
 
         for input_text, expected in test_cases:

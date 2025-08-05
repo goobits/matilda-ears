@@ -54,6 +54,21 @@ class SpokenLetterDetector:
 
         return entities
 
+    def _is_known_abbreviation(self, text: str) -> bool:
+        """Check if the text matches a known abbreviation pattern."""
+        # Common abbreviation patterns that should not be treated as spoken letters
+        abbreviation_patterns = [
+            r'\bv\s+s\b',      # "v s" -> "vs."
+            r'\bi\s+e\b',      # "i e" -> "i.e."
+            r'\be\s+g\b',      # "e g" -> "e.g."
+            r'\bc\s+f\b',      # "c f" -> "cf."
+        ]
+        
+        for pattern in abbreviation_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return False
+
     def _detect_letter_sequences(
         self, text: str, entities: List[Entity], pattern: re.Pattern, language: str, existing_entities: List[Entity]
     ) -> None:
@@ -68,6 +83,11 @@ class SpokenLetterDetector:
 
             full_text = match.group(0)
             logger.debug(f"Found letter sequence match: '{full_text}' at {match.start()}-{match.end()}")
+
+            # Check if this matches a known abbreviation pattern (skip if it does)
+            if self._is_known_abbreviation(full_text.lower()):
+                logger.debug(f"Skipping letter sequence '{full_text}' - matches known abbreviation")
+                continue
 
             # Extract letters from the sequence
             letters, case_info = self._extract_letters_from_sequence(match, language)

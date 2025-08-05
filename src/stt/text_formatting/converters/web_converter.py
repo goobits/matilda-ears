@@ -389,13 +389,51 @@ class WebPatternConverter(BasePatternConverter):
         return result
 
     def _convert_spoken_domain(self, domain_text: str) -> str:
-        """Convert spoken domain like 'api dot service dot com' to 'api.service.com'"""
+        """Convert spoken domain like 'api dot service dot com' to 'api.service.com'
+        Also handles IP addresses like 'one two seven dot zero dot zero dot one' to '127.0.0.1'"""
         # Get dot keywords from URL keywords
         dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
 
         result = domain_text.strip()
+        
+        # First, replace spoken dots with actual dots to get the structure
+        temp_result = result
         for dot_keyword in dot_keywords:
-            # Replace spoken dot with actual dot
+            temp_result = temp_result.replace(f" {dot_keyword} ", ".")
+        
+        # Check if this looks like an IP address (has 3 dots, creating 4 octets)
+        parts = temp_result.split(".")
+        if len(parts) == 4:
+            # This might be an IP address - try to convert each octet
+            converted_parts = []
+            is_ip_address = True
+            
+            for part in parts:
+                part = part.strip()
+                # Try to convert this part as a digit sequence
+                parsed_digits = self.number_parser.parse_as_digits(part)
+                if parsed_digits is not None:
+                    # Successfully parsed as digits
+                    converted_parts.append(parsed_digits)
+                elif part.isdigit():
+                    # Already a digit
+                    converted_parts.append(part)
+                else:
+                    # Try regular number parsing as fallback
+                    parsed_number = self.number_parser.parse(part)
+                    if parsed_number and parsed_number.isdigit():
+                        converted_parts.append(parsed_number)
+                    else:
+                        # This part doesn't look like a number, so not an IP address
+                        is_ip_address = False
+                        break
+            
+            if is_ip_address and len(converted_parts) == 4:
+                # All parts were successfully converted to numbers, treat as IP
+                return ".".join(converted_parts)
+        
+        # Not an IP address, use original domain logic with dot replacement
+        for dot_keyword in dot_keywords:
             result = result.replace(f" {dot_keyword} ", ".")
 
         return result

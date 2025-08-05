@@ -101,8 +101,9 @@ class BasicNumberDetector:
 
                 # Check for specific idiomatic contexts
                 if ordinal_token and next_token:
-                    # Skip if it's an adjective followed by a specific idiomatic noun from our resources.
-                    if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
+                    # Skip if it's an adjective followed by a specific idiomatic word from our resources.
+                    # Extended to include not just nouns but also prepositions, pronouns, etc.
+                    if ordinal_token.pos_ == "ADJ" and next_token.pos_ in ["NOUN", "ADP", "PRON", "DET", "PART", "VERB"]:
                         # This is the key: we check our i18n file for specific exceptions.
                         idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
                         if (
@@ -110,7 +111,7 @@ class BasicNumberDetector:
                             and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
                         ):
                             logger.debug(
-                                f"Skipping ORDINAL '{match.group()}' due to idiomatic follower noun '{next_token.text}'."
+                                f"Skipping ORDINAL '{match.group()}' due to idiomatic follower word '{next_token.text}' (POS: {next_token.pos_})."
                             )
                             continue
 
@@ -118,6 +119,26 @@ class BasicNumberDetector:
                     if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
                         logger.debug(f"Skipping ORDINAL '{match.group()}' - sentence starter with comma")
                         continue
+
+            # Fallback check for idiomatic phrases when SpaCy is not available
+            if not doc:
+                # Simple pattern-based check for common idiomatic patterns
+                ordinal_word = match.group().lower()
+                remaining_text = text[match.end():].strip().lower()
+                
+                # Check if the ordinal is followed by any idiomatic words from our resources
+                idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+                if ordinal_word in idiomatic_phrases:
+                    # Get the next word after the ordinal
+                    words_after = remaining_text.split()
+                    if words_after and words_after[0] in idiomatic_phrases[ordinal_word]:
+                        logger.debug(f"Skipping ORDINAL '{match.group()}' due to idiomatic pattern (no SpaCy)")
+                        continue
+                
+                # Also check for sentence-start patterns with comma
+                if (match.start() == 0 or text[match.start()-1] in '.!?') and remaining_text.startswith(','):
+                    logger.debug(f"Skipping ORDINAL '{match.group()}' - sentence starter with comma (no SpaCy)")
+                    continue
 
             # Your existing logic for checking overlaps is good. Keep it.
             check_entities = all_entities if all_entities else entities

@@ -174,13 +174,20 @@ class SmartCapitalizer:
                         logger.debug(
                             f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}"
                         )
-                        # Don't capitalize if it's a strictly protected type
+                        # Don't capitalize if it's a strictly protected type, except for abbreviations
                         if entity.type in self.STRICTLY_PROTECTED_TYPES:
-                            logger.debug(f"Entity {entity.type} is strictly protected")
-                            should_capitalize = False
-                            break
+                            if entity.type == EntityType.ABBREVIATION:
+                                # Special case: abbreviations at sentence start should have first letter capitalized
+                                # but preserve the abbreviation format (e.g., "i.e." -> "I.e.")
+                                logger.debug(f"Abbreviation '{entity.text}' at sentence start, capitalizing first letter only")
+                                # Don't set should_capitalize = False, let it capitalize normally
+                                # The abbreviation entity will handle maintaining the correct format
+                            else:
+                                logger.debug(f"Entity {entity.type} is strictly protected")
+                                should_capitalize = False
+                                break
                         # Special rule for CLI commands: only keep lowercase if the *entire* text is the command
-                        if entity.type == EntityType.CLI_COMMAND:
+                        elif entity.type == EntityType.CLI_COMMAND:
                             if entity.text.strip() == text.strip():
                                 logger.debug("CLI command is entire text, not capitalizing")
                                 should_capitalize = False
@@ -194,28 +201,17 @@ class SmartCapitalizer:
                             logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
                             should_capitalize = False
                             break
-                        # Special case: Check if sentence-starting programming keywords are part of larger programming constructs
+                        # FIXED: Programming keywords at sentence start should ALWAYS be capitalized
+                        # This was the main issue - the logic was preventing capitalization of sentence-starting
+                        # programming keywords when there were nearby code entities, but sentence-start capitalization
+                        # should take precedence over entity protection
                         elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
-                            # Check if there are other programming/code entities nearby - if so, don't capitalize
-                            has_nearby_code_entities = any(
-                                other_entity.type in {
-                                    EntityType.ASSIGNMENT, EntityType.COMPARISON, EntityType.MATH_EXPRESSION,
-                                    EntityType.FILENAME, EntityType.COMMAND_FLAG, EntityType.CLI_COMMAND,
-                                    EntityType.INCREMENT_OPERATOR, EntityType.DECREMENT_OPERATOR
-                                } for other_entity in entities
+                            logger.debug(
+                                f"Programming keyword '{entity.text}' at sentence start - allowing capitalization for proper sentence structure"
                             )
-                            if has_nearby_code_entities:
-                                logger.debug(
-                                    f"Programming keyword '{entity.text}' at sentence start has nearby code entities, not capitalizing"
-                                )
-                                should_capitalize = False
-                                break
-                            else:
-                                logger.debug(
-                                    f"Allowing capitalization of isolated sentence-starting programming keyword: '{entity.text}'"
-                                )
-                                # Don't protect - allow capitalization for isolated keywords
-                                break
+                            # Always allow capitalization for sentence-starting programming keywords
+                            # The entity converter will handle the proper formatting of the keyword itself
+                            break
 
                 if should_capitalize:
                     logger.debug(f"Capitalizing first letter at index {first_letter_index}")
@@ -466,6 +462,7 @@ class SmartCapitalizer:
                                     EntityType.DECREMENT_OPERATOR,
                                     EntityType.COMMAND_FLAG,
                                     EntityType.PORT_NUMBER,
+                                    EntityType.ABBREVIATION,  # Protect abbreviations from SpaCy proper noun capitalization
                                 }:
                                     logger.debug(
                                         f"Protecting entity '{entity_text}' from capitalization due to {entity.type}"

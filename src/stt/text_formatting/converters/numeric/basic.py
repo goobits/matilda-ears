@@ -79,6 +79,12 @@ class BasicNumericConverter(BaseNumericConverter):
             # Default: keep numeric form if no clear context
             return original_text
 
+        # Input is word form - check for idiomatic phrases first
+        if full_text and text_lower in self.ordinal_word_to_numeric:
+            # Check if this ordinal is part of an idiomatic phrase
+            if self.is_idiomatic_context(entity, full_text, text_lower):
+                return original_text  # Keep word form for idiomatic phrases
+            
         # Input is word form - convert to numeric (existing behavior)
         # First, try a direct lookup in the comprehensive map
         if text_lower in self.ordinal_word_to_numeric:

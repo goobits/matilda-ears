@@ -373,6 +373,35 @@ class BaseNumericConverter(ABC):
                 
         return False
     
+    def is_idiomatic_context(self, entity: Entity, full_text: str, ordinal_word: str) -> bool:
+        """Check if the ordinal is in an idiomatic phrase context."""
+        if not full_text:
+            return False
+            
+        # Get idiomatic phrases from resources
+        from ...constants import get_resources
+        resources = get_resources(self.language)
+        idiomatic_phrases = resources.get("technical", {}).get("idiomatic_phrases", {})
+        
+        if ordinal_word not in idiomatic_phrases:
+            return False
+            
+        # Check if the word following the ordinal is in the idiomatic phrases list
+        context = full_text.lower()
+        entity_end = entity.end
+        remaining_text = full_text[entity_end:].strip().lower()
+        
+        if remaining_text:
+            words_after = remaining_text.split()
+            if words_after and words_after[0] in idiomatic_phrases[ordinal_word]:
+                return True
+        
+        # Also check for sentence-start patterns with comma
+        if entity.start == 0 and remaining_text.startswith(','):
+            return True
+            
+        return False
+    
     def is_positional_context(self, entity: Entity, full_text: str) -> bool:
         """Check if the entity is in a positional/ranking context."""
         if not full_text:
