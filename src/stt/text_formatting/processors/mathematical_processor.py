@@ -15,6 +15,7 @@ from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
 from stt.text_formatting import pattern_modules
+from stt.text_formatting.priority_config import ProcessorType, get_current_config
 
 
 class MathematicalProcessor(BaseNumericProcessor):
@@ -29,6 +30,10 @@ class MathematicalProcessor(BaseNumericProcessor):
             self.math_parser = MathExpressionParser()
         except ImportError:
             self.math_parser = None
+        
+        # Apply priority configuration
+        config = get_current_config()
+        config.apply_to_processor(self, ProcessorType.MATHEMATICAL)
     
     def _init_detection_rules(self) -> List[ProcessingRule]:
         """Initialize detection rules for mathematical entities."""
@@ -43,7 +48,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_complex_math_metadata,
             context_filters=[self._filter_idiomatic_over, self._filter_idiomatic_spacy],
-            priority=30
+            priority=120
         ))
         
         rules.append(ProcessingRule(
@@ -51,7 +56,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_simple_math_metadata,
             context_filters=[self._filter_increment_decrement],
-            priority=25
+            priority=118
         ))
         
         # Special case: number + constant pattern (e.g., "two pi")
@@ -59,7 +64,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             pattern=pattern_modules.get_number_constant_pattern(self.language),
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_number_constant_metadata,
-            priority=20
+            priority=115
         ))
         
         # 2. Root expressions (square/cube root)
@@ -67,7 +72,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             pattern=re.compile(r"\b(square|cube)\s+root\s+of\s+([\w\s+\-*/]+)\b", re.IGNORECASE),
             entity_type=EntityType.ROOT_EXPRESSION,
             metadata_extractor=self._extract_root_metadata,
-            priority=18
+            priority=113
         ))
         
         # 3. Mathematical constants (pi, infinity)
@@ -75,7 +80,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             pattern=re.compile(r"\b(pi|infinity|inf)\b", re.IGNORECASE),
             entity_type=EntityType.MATH_CONSTANT,
             metadata_extractor=self._extract_constant_metadata,
-            priority=16
+            priority=110
         ))
         
         # 4. Scientific notation
@@ -83,7 +88,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             pattern=self._build_scientific_notation_pattern(),
             entity_type=EntityType.SCIENTIFIC_NOTATION,
             metadata_extractor=self._extract_scientific_metadata,
-            priority=14
+            priority=108
         ))
         
         # 5. Negative numbers
@@ -94,7 +99,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             ),
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_negative_metadata,
-            priority=12
+            priority=105
         ))
         
         # 6. Roots and powers (x squared, etc.)
@@ -106,7 +111,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             ),
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_simple_power_metadata,
-            priority=10
+            priority=103
         ))
         
         # Complex power expressions like "two to the fourth power"
@@ -123,7 +128,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             ),
             entity_type=EntityType.MATH_EXPRESSION,
             metadata_extractor=self._extract_complex_power_metadata,
-            priority=8
+            priority=100
         ))
         
         return rules

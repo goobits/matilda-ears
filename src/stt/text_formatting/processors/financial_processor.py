@@ -30,14 +30,14 @@ class FinancialProcessor(BaseNumericProcessor):
                 pattern=self._build_dollar_cents_pattern(),
                 entity_type=EntityType.DOLLAR_CENTS,
                 metadata_extractor=self._extract_dollar_cents_metadata,
-                priority=20
+                priority=60
             ),
             # Cents only pattern
             ProcessingRule(
                 pattern=self._build_cents_pattern(),
                 entity_type=EntityType.CENTS,
                 metadata_extractor=self._extract_cents_metadata,
-                priority=15
+                priority=50
             ),
             # General currency pattern (with context filtering)
             ProcessingRule(
@@ -48,7 +48,7 @@ class FinancialProcessor(BaseNumericProcessor):
                 entity_type=EntityType.CURRENCY,
                 metadata_extractor=self._extract_currency_metadata,
                 context_filters=[self._filter_pound_context],
-                priority=10
+                priority=40
             ),
         ]
     

@@ -24,35 +24,35 @@ class BasicNumericProcessor(BaseNumericProcessor):
                 entity_type=EntityType.ORDINAL,
                 metadata_extractor=self._extract_ordinal_metadata,
                 context_filters=[self._filter_idiomatic_ordinals],
-                priority=10
+                priority=40
             ),
             # Fraction detection
             ProcessingRule(
                 pattern=regex_patterns.SPOKEN_FRACTION_PATTERN,
                 entity_type=EntityType.FRACTION,
                 metadata_extractor=self._extract_fraction_metadata,
-                priority=8
+                priority=35
             ),
             # Compound fraction detection
             ProcessingRule(
                 pattern=regex_patterns.SPOKEN_COMPOUND_FRACTION_PATTERN,
                 entity_type=EntityType.FRACTION,
                 metadata_extractor=self._extract_compound_fraction_metadata,
-                priority=9
+                priority=30
             ),
             # Numeric range detection
             ProcessingRule(
                 pattern=regex_patterns.NUMERIC_RANGE_PATTERN,
                 entity_type=EntityType.NUMERIC_RANGE,
                 metadata_extractor=self._extract_range_metadata,
-                priority=7
+                priority=25
             ),
             # Consecutive digits detection
             ProcessingRule(
                 pattern=regex_patterns.CONSECUTIVE_DIGITS_PATTERN,
                 entity_type=EntityType.CONSECUTIVE_DIGITS,
                 metadata_extractor=self._extract_digits_metadata,
-                priority=5
+                priority=20
             ),
         ]
         

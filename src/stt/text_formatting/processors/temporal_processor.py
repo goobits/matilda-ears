@@ -42,7 +42,7 @@ class TemporalProcessor(BaseNumericProcessor):
                 entity_type=EntityType.TIME_CONTEXT,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
-                priority=15
+                priority=100
             ),
             # AM/PM time expressions (e.g., "three thirty PM")
             ProcessingRule(
@@ -50,7 +50,7 @@ class TemporalProcessor(BaseNumericProcessor):
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
-                priority=14
+                priority=98
             ),
             # Spoken "a m"/"p m" pattern
             ProcessingRule(
@@ -58,7 +58,7 @@ class TemporalProcessor(BaseNumericProcessor):
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
-                priority=13
+                priority=95
             ),
             # "at three PM" pattern
             ProcessingRule(
@@ -66,7 +66,7 @@ class TemporalProcessor(BaseNumericProcessor):
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
-                priority=12
+                priority=92
             ),
             # Simple "three PM" pattern
             ProcessingRule(
@@ -74,28 +74,28 @@ class TemporalProcessor(BaseNumericProcessor):
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
-                priority=11
+                priority=89
             ),
             # Time duration pattern
             ProcessingRule(
                 pattern=self._build_time_duration_pattern(),
                 entity_type=EntityType.TIME_DURATION,
                 metadata_extractor=self._extract_duration_metadata,
-                priority=10
+                priority=86
             ),
             # Compound duration pattern
             ProcessingRule(
                 pattern=self._build_compound_duration_pattern(),
                 entity_type=EntityType.TIME_DURATION,
                 metadata_extractor=self._extract_compound_duration_metadata,
-                priority=15
+                priority=83
             ),
             # Relative time expressions (e.g., "quarter past three")
             ProcessingRule(
                 pattern=self._build_relative_time_pattern(),
                 entity_type=EntityType.TIME_RELATIVE,
                 metadata_extractor=self._extract_relative_time_metadata,
-                priority=20
+                priority=80
             ),
         ]
     

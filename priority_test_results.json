@@ -1,0 +1,37 @@
+[
+  {
+    "config": "A_current",
+    "passed": 274,
+    "failed": 111,
+    "total": 385,
+    "pass_rate": 0.7116883116883117
+  },
+  {
+    "config": "B_specific_to_general",
+    "passed": 274,
+    "failed": 111,
+    "total": 385,
+    "pass_rate": 0.7116883116883117
+  },
+  {
+    "config": "C_domain_first",
+    "passed": 274,
+    "failed": 111,
+    "total": 385,
+    "pass_rate": 0.7116883116883117
+  },
+  {
+    "config": "D_frequency_based",
+    "passed": 274,
+    "failed": 111,
+    "total": 385,
+    "pass_rate": 0.7116883116883117
+  },
+  {
+    "config": "E_length_based",
+    "passed": 274,
+    "failed": 111,
+    "total": 385,
+    "pass_rate": 0.7116883116883117
+  }
+]

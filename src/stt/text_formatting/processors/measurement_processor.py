@@ -34,14 +34,14 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_temperature_pattern_with_units(),
                 entity_type=EntityType.TEMPERATURE,
                 metadata_extractor=self._extract_temperature_metadata,
-                priority=25
+                priority=80
             ),
             ProcessingRule(
                 pattern=self._build_temperature_degrees_pattern(),
                 entity_type=EntityType.TEMPERATURE,
                 metadata_extractor=self._extract_temperature_degrees_metadata,
                 context_filters=[self._filter_temperature_degrees_context],
-                priority=24
+                priority=78
             ),
             
             # Measurement patterns (feet/inches compounds)
@@ -49,19 +49,19 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_feet_inches_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_compound_measurement_metadata,
-                priority=22
+                priority=76
             ),
             ProcessingRule(
                 pattern=self._build_fraction_feet_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_fraction_measurement_metadata,
-                priority=21
+                priority=74
             ),
             ProcessingRule(
                 pattern=self._build_height_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_height_metadata,
-                priority=20
+                priority=72
             ),
             
             # Data size patterns
@@ -69,7 +69,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_data_size_pattern(),
                 entity_type=EntityType.DATA_SIZE,
                 metadata_extractor=self._extract_general_unit_metadata,
-                priority=18
+                priority=69
             ),
             
             # Frequency patterns
@@ -77,7 +77,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_frequency_pattern(),
                 entity_type=EntityType.FREQUENCY,
                 metadata_extractor=self._extract_general_unit_metadata,
-                priority=17
+                priority=67
             ),
             
             # Time duration patterns
@@ -85,7 +85,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_time_duration_pattern(),
                 entity_type=EntityType.TIME_DURATION,
                 metadata_extractor=self._extract_general_unit_metadata,
-                priority=16
+                priority=65
             ),
             
             # Percentage patterns
@@ -93,7 +93,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_percentage_pattern(),
                 entity_type=EntityType.PERCENT,
                 metadata_extractor=self._extract_percentage_metadata,
-                priority=15
+                priority=63
             ),
             
             # General measurement patterns (lower priority)
@@ -101,7 +101,7 @@ class MeasurementProcessor(BaseNumericProcessor):
                 pattern=self._build_general_measurement_pattern(),
                 entity_type=EntityType.QUANTITY,
                 metadata_extractor=self._extract_general_measurement_metadata,
-                priority=10
+                priority=60
             ),
         ]
     
