@@ -71,10 +71,16 @@ class BasicNumberDetector:
 
                 # Only create entity if it parses to a valid number
                 if parsed_number and parsed_number.isdigit():
-                    # Use context analyzer to determine if we should convert this number word
-                    decision = self.context_analyzer.should_convert_number_word(
-                        text, match.start(), match.end()
-                    )
+                    # Compound numbers (with spaces or scale words) are always numeric
+                    if ' ' in number_text or any(scale in number_text.lower() 
+                                                  for scale in ['hundred', 'thousand', 'million', 'billion']):
+                        # Compound number - always convert
+                        decision = NumberWordDecision.CONVERT_DIGIT
+                    else:
+                        # Single word - check context
+                        decision = self.context_analyzer.should_convert_number_word(
+                            text, match.start(), match.end()
+                        )
                     
                     # Only create entity if context analysis says to convert
                     if decision == NumberWordDecision.CONVERT_DIGIT:
