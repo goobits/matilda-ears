@@ -17,6 +17,11 @@ from .constants import get_resources
 from .nlp_provider import get_nlp
 from .utils import is_inside_entity
 
+# Import new modular components
+from .capitalizer_rules import CapitalizationRules
+from .capitalizer_protection import EntityProtection
+from .capitalizer_context import ContextAnalyzer
+
 # Setup logging
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
 
@@ -31,49 +36,17 @@ class SmartCapitalizer:
         # Load language-specific resources
         self.resources = get_resources(language)
 
-        # Entity types that must have their casing preserved under all circumstances
-        self.STRICTLY_PROTECTED_TYPES = {
-            EntityType.URL,
-            EntityType.SPOKEN_URL,
-            EntityType.SPOKEN_PROTOCOL_URL,
-            EntityType.EMAIL,
-            EntityType.SPOKEN_EMAIL,
-            EntityType.FILENAME,
-            EntityType.INCREMENT_OPERATOR,
-            EntityType.DECREMENT_OPERATOR,
-            EntityType.SLASH_COMMAND,
-            EntityType.COMMAND_FLAG,
-            EntityType.SIMPLE_UNDERSCORE_VARIABLE,
-            EntityType.UNDERSCORE_DELIMITER,
-            # Note: PORT_NUMBER removed - host names before port should be capitalized normally
-            # Note: VERSION removed - version numbers at sentence start should be capitalized
-            EntityType.ASSIGNMENT,
-            EntityType.COMPARISON,
-            EntityType.MATH_EXPRESSION,  # Math expressions should preserve their formatting
-            EntityType.MATH_CONSTANT,  # Mathematical constants like π, ∞ should preserve their exact form
-            EntityType.ABBREVIATION,  # Latin abbreviations like i.e., e.g. should stay lowercase
-            # Note: CLI_COMMAND removed - they should be capitalized at sentence start
-        }
+        # Initialize modular components
+        self.rules = CapitalizationRules(self.resources, language)
+        self.protection = EntityProtection(self.rules)
+        self.context = ContextAnalyzer(self.rules, self.nlp)
 
-        # Version patterns that indicate technical content
-        self.version_patterns = {"version", "v.", "v", "build", "release"}
-
-        # Abbreviation patterns and their corrections (only applies mid-sentence)
-        self.abbreviation_fixes = {
-            # Only fix capitalized abbreviations in mid-sentence contexts
-            # At sentence start, they should remain capitalized
-            "Vs.": "vs.",  # vs. should not be capitalized mid-sentence
-            "Cf.": "cf.",  # cf. should not be capitalized mid-sentence
-            "Ie.": "i.e.",  # Fix wrong abbreviation form
-            "Eg.": "e.g.",  # Fix wrong abbreviation form  
-            "Ex.": "e.g.",  # Convert Ex. to e.g.
-        }
-
-        # Load uppercase abbreviations from resources
-        self.uppercase_abbreviations = self.resources.get("technical", {}).get("uppercase_abbreviations", {})
-
-        # Load common abbreviations from resources
-        self.common_abbreviations = tuple(self.resources.get("technical", {}).get("common_abbreviations", []))
+        # Keep backward compatibility properties
+        self.STRICTLY_PROTECTED_TYPES = self.rules.STRICTLY_PROTECTED_TYPES
+        self.version_patterns = self.rules.version_patterns
+        self.abbreviation_fixes = self.rules.abbreviation_fixes
+        self.uppercase_abbreviations = self.rules.uppercase_abbreviations
+        self.common_abbreviations = self.rules.common_abbreviations
 
     def capitalize(self, text: str, entities: list[Entity] | None = None, doc=None) -> str:
         """Apply intelligent capitalization with entity protection"""
@@ -129,15 +102,12 @@ class SmartCapitalizer:
             letter_pos = match.start() + len(punctuation_and_space)
 
             # Check if the letter is inside ANY entity - entities should control their own formatting
-            if entities:
-                for entity in entities:
-                    if entity.start <= letter_pos < entity.end:
-                        return match.group(0)  # Don't capitalize - let entity handle formatting
+            if self.protection.is_entity_protected_from_sentence_capitalization(letter_pos, entities):
+                return match.group(0)  # Don't capitalize - let entity handle formatting
 
             # Check the text before the match to see if it's an abbreviation
-            preceding_text = text[: match.start()].lower()
-            common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
-            if any(preceding_text.endswith(abbrev) for abbrev in common_abbreviations):
+            context = self.context.get_sentence_capitalization_context(text, match.start())
+            if context["follows_abbreviation"]:
                 return match.group(0)  # Don't capitalize
 
             return punctuation_and_space + letter.upper()
@@ -151,9 +121,8 @@ class SmartCapitalizer:
             letter = match.group(2)  # "t" or "T"
             return abbrev_and_space + letter.lower()  # Force lowercase
 
-        # Build pattern from constants - match both upper and lowercase letters
-        common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
-        abbrev_pattern = "|".join(abbrev.replace(".", "\\.") for abbrev in common_abbreviations)
+        # Build pattern from constants - match both upper and lowercase letters  
+        abbrev_pattern = self.rules.get_common_abbreviations_pattern()
         text = re.sub(rf"(\b(?:{abbrev_pattern})\s+)([a-zA-Z])", protect_after_abbreviation, text)
 
         # Fix first letter capitalization with entity protection
@@ -166,52 +135,9 @@ class SmartCapitalizer:
                     break
 
             if first_letter_index != -1:
-                should_capitalize = True
-
-                # Check for protected entities at the start
-                for entity in entities or []:
-                    if entity.start <= first_letter_index < entity.end:
-                        logger.debug(
-                            f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}"
-                        )
-                        # Don't capitalize if it's a strictly protected type, except for abbreviations
-                        if entity.type in self.STRICTLY_PROTECTED_TYPES:
-                            if entity.type == EntityType.ABBREVIATION:
-                                # Special case: abbreviations at sentence start should have first letter capitalized
-                                # but preserve the abbreviation format (e.g., "i.e." -> "I.e.")
-                                logger.debug(f"Abbreviation '{entity.text}' at sentence start, capitalizing first letter only")
-                                # Don't set should_capitalize = False, let it capitalize normally
-                                # The abbreviation entity will handle maintaining the correct format
-                            else:
-                                logger.debug(f"Entity {entity.type} is strictly protected")
-                                should_capitalize = False
-                                break
-                        # Special rule for CLI commands: only keep lowercase if the *entire* text is the command
-                        elif entity.type == EntityType.CLI_COMMAND:
-                            if entity.text.strip() == text.strip():
-                                logger.debug("CLI command is entire text, not capitalizing")
-                                should_capitalize = False
-                                break
-                            logger.debug(
-                                f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization"
-                            )
-                            # Otherwise, allow normal capitalization for CLI commands at sentence start
-                        # Special rule for versions starting with 'v' (e.g., v1.2)
-                        elif entity.type == EntityType.VERSION and entity.text.startswith("v"):
-                            logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
-                            should_capitalize = False
-                            break
-                        # FIXED: Programming keywords at sentence start should ALWAYS be capitalized
-                        # This was the main issue - the logic was preventing capitalization of sentence-starting
-                        # programming keywords when there were nearby code entities, but sentence-start capitalization
-                        # should take precedence over entity protection
-                        elif entity.type == EntityType.PROGRAMMING_KEYWORD and entity.start == 0:
-                            logger.debug(
-                                f"Programming keyword '{entity.text}' at sentence start - allowing capitalization for proper sentence structure"
-                            )
-                            # Always allow capitalization for sentence-starting programming keywords
-                            # The entity converter will handle the proper formatting of the keyword itself
-                            break
+                should_capitalize = self.protection.should_capitalize_first_letter(
+                    text, first_letter_index, entities
+                )
 
                 if should_capitalize:
                     logger.debug(f"Capitalizing first letter at index {first_letter_index}")
@@ -244,9 +170,7 @@ class SmartCapitalizer:
                                     is_variable_context = True
 
                             # Check if this 'i' is inside a protected entity (like a filename)
-                            is_protected = False
-                            if entities:
-                                is_protected = any(entity.start <= token.idx < entity.end for entity in entities)
+                            is_protected = self.protection.is_position_inside_protected_entity(token.idx, entities)
 
                             if not is_protected and not is_variable_context:  # <-- ADDED CHECK
                                 # Safely replace the character at the correct index
@@ -264,20 +188,9 @@ class SmartCapitalizer:
                 start, end = match.span()
                 new_text += text[last_end:start]
 
-                is_protected = False
-                if entities:
-                    is_protected = any(entity.start <= start < entity.end for entity in entities)
-
-                is_part_of_identifier = (start > 0 and text[start - 1] in "_-") or (
-                    end < len(text) and text[end] in "_-"
-                )
-
-                # Add context check for variable 'i'
-                preceding_text = text[max(0, start - 25) : start].lower()
-                is_variable_context = any(
-                    keyword in preceding_text
-                    for keyword in ["variable is", "counter is", "iterator is", "for i in", "variable i", "letter i"]
-                )
+                is_protected = self.protection.is_position_inside_protected_entity(start, entities)
+                is_part_of_identifier = self.context.is_part_of_identifier(text, start, end)
+                is_variable_context = self.context.is_variable_context_for_i(text, start)
 
                 if not is_protected and not is_part_of_identifier and not is_variable_context:
                     new_text += "I"  # Capitalize
@@ -314,32 +227,14 @@ class SmartCapitalizer:
                 # Process in reverse order to maintain positions
                 for match in reversed(matches):
                     match_start, match_end = match.span()
-                    # matched_text = text[match_start:match_end]  # Unused variable
 
                     # Check if this match overlaps with any protected entity
-                    is_protected = any(
-                        match_start < entity.end
-                        and match_end > entity.start
-                        and entity.type
-                        in {
-                            EntityType.URL,
-                            EntityType.SPOKEN_URL,
-                            EntityType.EMAIL,
-                            EntityType.SPOKEN_EMAIL,
-                            EntityType.FILENAME,
-                            EntityType.ASSIGNMENT,
-                            EntityType.INCREMENT_OPERATOR,
-                            EntityType.DECREMENT_OPERATOR,
-                            EntityType.COMMAND_FLAG,
-                            EntityType.PORT_NUMBER,
-                            EntityType.ABBREVIATION,  # Protect abbreviations from uppercase conversion
-                        }
-                        for entity in entities
+                    is_protected = self.protection.should_protect_from_uppercase_conversion(
+                        match_start, match_end, entities
                     )
 
                     if not is_protected:
                         # Safe to replace this match
-                        # old_text = text  # Unused variable
                         text = text[:match_start] + upper_abbrev + text[match_end:]
 
             else:
@@ -347,8 +242,7 @@ class SmartCapitalizer:
                 text = re.sub(pattern, upper_abbrev, text, flags=re.IGNORECASE)
 
         # Restore original case for placeholders
-        for placeholder in placeholders_found:
-            text = re.sub(placeholder, placeholder, text, flags=re.IGNORECASE)
+        text = self.protection.restore_placeholders(text, placeholder_pattern)
 
         # Restore all-caps words (acronyms) - use regex replacement to avoid mangling
         for placeholder, caps_word in all_caps_words.items():
@@ -364,7 +258,7 @@ class SmartCapitalizer:
 
         # Skip SpaCy processing if text contains placeholders
         # The entity positions become invalid after placeholder substitution
-        if "__CAPS_" in text or "__PLACEHOLDER_" in text or "__ENTITY_" in text:
+        if self.protection.has_placeholders(text):
             logger.debug("Skipping SpaCy proper noun capitalization due to placeholders in text")
             return text
 
@@ -377,52 +271,17 @@ class SmartCapitalizer:
                 return text
 
         try:
-
-            # Build list of entities to capitalize
-            entities_to_capitalize = []
-
-            # Add spaCy detected named entities
+            # Build list of entities to capitalize using context analyzer
+            entities_to_capitalize = self.context.analyze_proper_noun_entities(doc_to_use, text, entities)
+            
+            # Handle technical verb replacements separately
             for ent in doc_to_use.ents:
-                logger.debug(f"SpaCy found entity: '{ent.text}' ({ent.label_}) at {ent.start_char}-{ent.end_char}")
-                if ent.label_ in [
-                    "PERSON",
-                    "ORG",
-                    "GPE",
-                    "NORP",
-                    "LANGUAGE",
-                    "EVENT",
-                ]:  # Types that should be capitalized
-
-                    # Skip pi constant to prevent capitalization
-                    if ent.text.lower() == "pi":
-                        logger.debug(f"Skipping pi constant '{ent.text}' to allow MATH_CONSTANT converter to handle it")
-                        continue
-
-                    # Skip if this SpaCy entity is inside a final filtered entity
-                    if entities and is_inside_entity(ent.start_char, ent.end_char, entities):
-                        logger.debug(
-                            f"Skipping SpaCy-detected entity '{ent.text}' because it is inside a final filtered entity."
-                        )
-                        continue
-
-                    # Skip PERSON entities that are likely technical terms in coding contexts
-                    if ent.label_ == "PERSON" and self._is_technical_term(ent.text.lower(), text):
-                        logger.debug(f"Skipping PERSON entity '{ent.text}' - detected as technical term")
-                        continue
-
-                    # Skip PERSON or ORG entities that are technical verbs (let, const, var, etc.)
-                    technical_verbs = self.resources.get("technical", {}).get("verbs", [])
-                    if ent.label_ in ["PERSON", "ORG"] and ent.text.isupper() and ent.text.lower() in technical_verbs:
-                        # It's an all-caps technical term, replace with lowercase version
-                        text = text[: ent.start_char] + ent.text.lower() + text[ent.end_char :]
-                        continue  # Move to the next SpaCy entity
-
-                    if ent.label_ in ["PERSON", "ORG"] and ent.text.lower() in technical_verbs:
-                        logger.debug(f"Skipping capitalization for technical verb: '{ent.text}'")
-                        continue
-
-                    logger.debug(f"Adding '{ent.text}' to capitalize list (type: {ent.label_})")
-                    entities_to_capitalize.append((ent.start_char, ent.end_char, ent.text))
+                if ent.label_ in ["PERSON", "ORG"]:
+                    should_replace, replacement = self.context.should_handle_technical_verb_capitalization(
+                        ent.text, ent.label_
+                    )
+                    if should_replace and replacement:
+                        text = text[: ent.start_char] + replacement + text[ent.end_char :]
 
             # Sort by position (reverse order to maintain indices)
             entities_to_capitalize.sort(key=lambda x: x[0], reverse=True)
@@ -431,48 +290,11 @@ class SmartCapitalizer:
             for start, end, entity_text in entities_to_capitalize:
                 if start < len(text) and end <= len(text):
                     # Skip placeholders - they should not be capitalized
-                    # Check the actual text at this position, not just the entity text
-                    actual_text = text[start:end]
-                    # Also check if we're inside a placeholder by looking at surrounding context
-                    context_start = max(0, start - 2)
-                    context_end = min(len(text), end + 2)
-                    context = text[context_start:context_end]
-
-                    if "__" in context or actual_text.strip(".,!?").endswith("__"):
+                    if self.protection.is_placeholder_context(text, start, end):
                         continue
 
                     # Check if this position overlaps with any protected entity
-                    is_protected = False
-                    if entities:
-                        for entity in entities:
-                            # Check if the SpaCy entity overlaps with any protected entity
-                            if start < entity.end and end > entity.start:
-                                logger.debug(
-                                    f"SpaCy entity '{entity_text}' at {start}-{end} overlaps with protected entity {entity.type} at {entity.start}-{entity.end}"
-                                )
-                                # Skip capitalization for URL and email entities specifically
-                                if entity.type in {
-                                    EntityType.URL,
-                                    EntityType.SPOKEN_URL,
-                                    EntityType.EMAIL,
-                                    EntityType.SPOKEN_EMAIL,
-                                    EntityType.FILENAME,
-                                    EntityType.ASSIGNMENT,
-                                    EntityType.INCREMENT_OPERATOR,
-                                    EntityType.DECREMENT_OPERATOR,
-                                    EntityType.COMMAND_FLAG,
-                                    EntityType.PORT_NUMBER,
-                                    EntityType.ABBREVIATION,  # Protect abbreviations from SpaCy proper noun capitalization
-                                }:
-                                    logger.debug(
-                                        f"Protecting entity '{entity_text}' from capitalization due to {entity.type}"
-                                    )
-                                    is_protected = True
-                                    break
-                                logger.debug(
-                                    f"Entity type {entity.type} not in protected list, allowing capitalization"
-                                )
-
+                    is_protected = self.protection.should_protect_from_spacy_capitalization(start, end, entities)
                     if is_protected:
                         continue
 
@@ -488,38 +310,8 @@ class SmartCapitalizer:
             return text
 
     def _is_technical_term(self, entity_text: str, full_text: str) -> bool:
-        """Check if a PERSON entity is actually a technical term that shouldn't be capitalized."""
-        # Use technical terms from constants
-
-        # Check exact match for multi-word terms
-        multi_word_technical = set(self.resources.get("context_words", {}).get("multi_word_commands", []))
-        if entity_text.lower() in multi_word_technical:
-            return True
-
-        # Check single words in the entity
-        entity_words = entity_text.lower().split()
-        technical_terms = set(self.resources.get("technical", {}).get("terms", []))
-        if any(word in technical_terms for word in entity_words):
-            return True
-
-        # Check context - if surrounded by technical keywords, likely technical
-
-        # Check words around the entity
-        full_text_lower = full_text.lower()
-        words = full_text_lower.split()
-
-        try:
-            entity_index = words.index(entity_text)
-            # Check 2 words before and after
-            context_start = max(0, entity_index - 2)
-            context_end = min(len(words), entity_index + 3)
-            context_words = words[context_start:context_end]
-
-            technical_context_words = set(self.resources.get("context_words", {}).get("technical_context", []))
-            if any(word in technical_context_words for word in context_words):
-                return True
-        except ValueError:
-            # Entity not found as single word, might be multi-word
-            pass
-
-        return False
+        """Check if a PERSON entity is actually a technical term that shouldn't be capitalized.
+        
+        Deprecated: Use context.is_technical_term() instead.
+        """
+        return self.context.is_technical_term(entity_text, full_text)
