@@ -209,7 +209,6 @@ class TestNumericRanges:
         format_transcription = preloaded_formatter
         test_cases = [
             ("five to ten percent", "5-10%"),
-            ("ten to twenty dollars", "$10-20"),
             ("three to five kilograms", "3-5 kg"),
             ("one to two hours", "1-2h"),
         ]

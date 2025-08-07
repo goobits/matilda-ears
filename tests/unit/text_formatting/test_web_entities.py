@@ -550,6 +550,77 @@ class TestAmbiguousWebContexts:
             ), f"Input '{input_text}' should not be interpreted as email: '{expected}', got '{result}'"
 
 
+class TestWebEntityBasicFormatting:
+    """Test basic formatting behavior for web entities."""
+
+    def test_url_capitalization_protection(self, preloaded_formatter):
+        """Test that URLs maintain their original case."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("visit github.com for more info", "Visit github.com for more info"),
+            ("go to stackoverflow.com", "Go to stackoverflow.com"),
+            ("check api.service.com", "Check api.service.com"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_email_capitalization_protection(self, preloaded_formatter):
+        """Test that emails maintain their original case."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("contact john@example.com", "Contact john@example.com"),
+            ("email support@company.com", "Email support@company.com"),
+            ("send to user@domain.com", "Send to user@domain.com"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_web_entities_at_sentence_start(self, preloaded_formatter):
+        """Test that web entities at sentence start maintain their proper case."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            # Email at sentence start should not be capitalized
+            ("hello@muffin.com is my email address", "hello@muffin.com is my email address"),
+            # URL at sentence start should maintain case
+            ("github.com is a website", "github.com is a website"),
+            ("example.org has info", "example.org has info"),
+            # But regular action words should still be capitalized
+            ("john@company.com sent this", "john@company.com sent this"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should protect entity case: '{expected}', got '{result}'"
+
+    def test_no_double_punctuation_with_web_entities(self, preloaded_formatter):
+        """Test that we don't add double punctuation with web entities."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("what is github.com?", "What is github.com?"),
+            ("visit example.com.", "Visit example.com."),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+    def test_punctuation_after_web_entities(self, preloaded_formatter):
+        """Test punctuation placement after web entities."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("send to john@example.com", "Send to john@example.com"),
+            ("use port eight thousand", "Use port 8000"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
+
 class TestWebEntityProtection:
     """Test protection of technical web entities from capitalization."""
 

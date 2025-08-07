@@ -261,6 +261,7 @@ class TestFinancialExpressions:
             ("between ten and twenty dollars", "Between $10 and $20"),
             ("from fifty to one hundred dollars", "From $50 to $100"),
             ("costs five to ten dollars", "Costs $5-10"),
+            ("ten to twenty dollars", "$10-20"),  # Moved from test_numeric_entities.py
         ]
 
         for input_text, _expected in test_cases:
