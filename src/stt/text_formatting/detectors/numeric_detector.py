@@ -115,6 +115,13 @@ class NumericalEntityDetector:
         self.basic_detector.detect_ranges(text, entities, all_entities)
         # Regex-based detection is handled by the measurement processor
         # self.measurement_processor.detect_general_units_with_regex(text, entities, all_entities)
+        
+        # Run currency detection BEFORE basic number detection to prevent conflicts
+        # This ensures "ten dollars" is detected as currency before "ten" is detected as cardinal
+        all_entities_current = entities + (all_entities if all_entities else [])
+        self.financial_detector.detect_currency_with_regex(text, entities, all_entities_current)
+
+        # Now run basic number detection - this should skip areas already covered by currency
         self.basic_detector.detect_number_words(text, entities, all_entities)
 
         if not self.nlp:
@@ -126,7 +133,7 @@ class NumericalEntityDetector:
             logger.warning(f"SpaCy numerical entity detection failed: {e}")
             return
         
-        # Delegate currency detection to the financial detector
+        # Delegate SpaCy-based currency detection to the financial detector
         self.financial_detector.detect_currency_with_spacy(doc, text, entities, all_entities)
         
         # SpaCy-based detection is handled by the measurement processor
