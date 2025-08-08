@@ -196,7 +196,10 @@ class FileDetector:
             filename_words = filename_part.split()
             filename_stop_words = resources.get("context_words", {}).get("filename_stop_words", [])
             
-            # Remove action words and stop words from the beginning
+            # Determine if this is a clear filename pattern (extension is recognized)
+            is_clear_filename_pattern = extension in ["py", "js", "ts", "java", "cpp", "c", "h", "rb", "php", "go", "rs", "json", "xml", "html", "css", "md", "txt", "csv"]
+            
+            # Remove action words and stop words from the beginning, with context-aware logic
             filtered_words = []
             for i, word in enumerate(filename_words):
                 word_lower = word.lower()
@@ -205,21 +208,30 @@ class FileDetector:
                 if word_lower in filename_actions and not filtered_words:
                     continue  # Skip action verbs at the beginning
                 
+                # Always skip common navigation words that are clearly not part of filenames
+                if word_lower in ["go", "to", "open", "edit", "run", "execute"] and not filtered_words:
+                    continue  # Skip navigation/action words at the beginning
+                
                 # Special handling for certain stop words that might be part of filenames
-                # Words like "script", "file", "document" can be part of filenames if not at the very beginning
-                # or if they appear after we already have some content
                 if word_lower in filename_stop_words:
-                    # Skip generic stop words (articles, prepositions) always
+                    # Always skip generic stop words (articles, prepositions)
                     if word_lower in ["the", "a", "an", "this", "that", "in", "on", "for", "is", "was", "called"]:
                         continue  # Always skip these words, they're never part of filenames
-                    # Allow descriptive words like "script", "file", "document" if we have context
+                    
+                    # Context-aware handling for descriptive words like "script", "file", "document"
                     elif word_lower in ["script", "file", "document"]:
-                        # Only include these if we already have other filename content (more conservative)
-                        if filtered_words:
+                        # If this is a clear filename pattern with a code extension, be more permissive
+                        if is_clear_filename_pattern:
+                            # Allow these descriptive words as they're likely part of the filename
                             filtered_words.append(word)
-                            continue  # Important: continue here to avoid double-adding
+                            continue
                         else:
-                            continue  # Skip only if it's the very first word
+                            # Original conservative logic: only include if we already have other filename content
+                            if filtered_words:
+                                filtered_words.append(word)
+                                continue  # Important: continue here to avoid double-adding
+                            else:
+                                continue  # Skip only if it's the very first word
                     else:
                         # For other stop words, only skip at the beginning
                         if not filtered_words:
