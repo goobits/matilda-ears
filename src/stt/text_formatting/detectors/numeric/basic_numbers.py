@@ -9,7 +9,7 @@ from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.constants import get_resources
-from stt.text_formatting.utils import is_inside_entity
+from stt.text_formatting.utils import is_inside_entity, overlaps_with_entity
 from stt.text_formatting.number_word_context import NumberWordContextAnalyzer, NumberWordDecision
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
@@ -63,7 +63,7 @@ class BasicNumberDetector:
         for match in cardinal_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             # Check for overlaps with existing entities (including SpaCy-detected ones)
-            if not is_inside_entity(match.start(), match.end(), check_entities):
+            if not overlaps_with_entity(match.start(), match.end(), check_entities):
                 # Try to parse this number sequence
                 number_text = match.group(0)
                 parsed_number = self.number_parser.parse(number_text)
@@ -104,6 +104,75 @@ class BasicNumberDetector:
                             )
                         )
 
+    def _detect_compound_ordinals(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None, doc=None) -> None:
+        """Detect compound ordinals like 'one hundred first', 'twenty third', etc."""
+        # Simple ordinal endings that can be combined with cardinal numbers
+        ordinal_endings = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"]
+        
+        # Build pattern to match: [cardinal numbers] + [ordinal ending]
+        number_words = sorted(self.number_parser.all_number_words, key=len, reverse=True)
+        number_pattern = "|".join(re.escape(word) for word in number_words)
+        ordinal_ending_pattern = "|".join(ordinal_endings)
+        
+        # Pattern for compound ordinals: number words + ordinal ending
+        compound_ordinal_pattern = re.compile(
+            rf"\b({number_pattern}(?:\s+(?:and\s+)?(?:{number_pattern}))*)\s+({ordinal_ending_pattern})\b", 
+            re.IGNORECASE
+        )
+        
+        for match in compound_ordinal_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not overlaps_with_entity(match.start(), match.end(), check_entities):
+                cardinal_part = match.group(1)
+                ordinal_part = match.group(2)
+                full_ordinal = match.group(0)
+                
+                # Try to parse the compound ordinal
+                parsed_ordinal = self.number_parser.parse_ordinal(full_ordinal)
+                if parsed_ordinal and parsed_ordinal != full_ordinal:  # Only if it actually converted something
+                    # Apply the same context filtering as regular ordinals
+                    should_skip = False
+                    if doc:
+                        # Find the token and apply same idiomatic filtering logic
+                        ordinal_token = None
+                        next_token = None
+                        for token in doc:
+                            if token.idx == match.start():
+                                ordinal_token = token
+                                # For compound ordinals, we need to check the token after the last word
+                                ordinal_words = full_ordinal.split()
+                                last_word_start = match.start() + len(" ".join(ordinal_words[:-1]))
+                                if ordinal_words:
+                                    last_word_start += 1  # space
+                                for t in doc:
+                                    if t.idx >= last_word_start and t.text.lower() == ordinal_words[-1].lower():
+                                        if t.i + 1 < len(doc):
+                                            next_token = doc[t.i + 1]
+                                        break
+                                break
+                        
+                        if ordinal_token and next_token:
+                            # Apply same filtering logic as simple ordinals
+                            idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
+                            if ordinal_part.lower() in idiomatic_phrases:
+                                if next_token.text.lower() in idiomatic_phrases[ordinal_part.lower()]:
+                                    should_skip = True
+                            
+                            # Skip if it's at sentence start and followed by comma
+                            if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
+                                should_skip = True
+                    
+                    if not should_skip:
+                        entities.append(
+                            Entity(
+                                start=match.start(),
+                                end=match.end(),
+                                text=full_ordinal,
+                                type=EntityType.ORDINAL,
+                                metadata={"cardinal_part": cardinal_part, "ordinal_part": ordinal_part},
+                            )
+                        )
+
     def detect_ordinal_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect ordinal numbers (first, second, third, etc.)."""
         # First, run the SpaCy analysis once if available.
@@ -114,6 +183,10 @@ class BasicNumberDetector:
             except Exception as e:
                 logger.warning(f"SpaCy ordinal analysis failed: {e}")
 
+        # First, detect compound ordinals like "one hundred first", "twenty first", etc.
+        self._detect_compound_ordinals(text, entities, all_entities, doc)
+        
+        # Then detect simple ordinals that aren't already covered
         for match in regex_patterns.SPOKEN_ORDINAL_PATTERN.finditer(text):
             # If we have a SpaCy doc, use it for grammatical context checking.
             if doc:
@@ -223,7 +296,7 @@ class BasicNumberDetector:
         # First detect compound fractions (they take priority)
         for match in regex_patterns.SPOKEN_COMPOUND_FRACTION_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
+            if not overlaps_with_entity(match.start(), match.end(), check_entities):
                 entities.append(
                     Entity(
                         start=match.start(),
@@ -390,7 +463,7 @@ class BasicNumberDetector:
         
         for match in duration_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
+            if not overlaps_with_entity(match.start(), match.end(), check_entities):
                 # Parse the duration
                 words = match.group(0).split()
                 number_text = words[0]
@@ -425,7 +498,7 @@ class BasicNumberDetector:
 
         for match in consecutive_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
-            if not is_inside_entity(match.start(), match.end(), check_entities):
+            if not overlaps_with_entity(match.start(), match.end(), check_entities):
                 # Extract the digit words and convert to digits
                 digit_words = [g for g in match.groups() if g is not None]
 

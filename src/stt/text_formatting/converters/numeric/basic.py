@@ -106,6 +106,37 @@ class BasicNumericConverter(BaseNumericConverter):
 
         # Handle decimal numbers (e.g., "three point one four" -> "3.14")
         if entity.metadata.get("is_decimal"):
+            # Check if we have groups metadata from the format detector
+            if "groups" in entity.metadata:
+                groups = entity.metadata["groups"]
+                if len(groups) >= 2:
+                    integer_part = groups[0]
+                    decimal_part = groups[1]
+                    
+                    # Parse the integer part
+                    integer_parsed = None
+                    if integer_part:
+                        integer_parsed = self.number_parser.parse(integer_part)
+                        if not integer_parsed and integer_part.isdigit():
+                            integer_parsed = integer_part
+                    
+                    # Parse the decimal part - handle as digits for true decimal representation
+                    decimal_parsed = None
+                    if decimal_part:
+                        # For decimal parts, try to parse as a sequence of digits first
+                        decimal_parsed = self.number_parser.parse_as_digits(decimal_part)
+                        if not decimal_parsed:
+                            # Fallback to regular parsing
+                            decimal_parsed = self.number_parser.parse(decimal_part)
+                        if not decimal_parsed and decimal_part.isdigit():
+                            decimal_parsed = decimal_part
+                    
+                    if integer_parsed and decimal_parsed:
+                        return f"{integer_parsed}.{decimal_parsed}"
+                    elif integer_parsed:
+                        return integer_parsed
+            
+            # Fallback to parsing the whole text
             return self.number_parser.parse(entity.text) or entity.text
 
         # Handle compound fractions (e.g., "one and one half" -> "1½")

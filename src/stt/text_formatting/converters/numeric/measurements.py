@@ -34,7 +34,36 @@ class MeasurementConverter(BaseNumericConverter):
         # Handle new version number detection format
         if entity.metadata and "groups" in entity.metadata and entity.metadata.get("is_percentage"):
             groups = entity.metadata["groups"]
-            # Convert the numeric parts
+            
+            if len(groups) >= 2:
+                # For decimal patterns like "nine point five" where group[0]="nine", group[1]="five"
+                integer_part = groups[0]
+                decimal_part = groups[1]
+                
+                # Parse the integer part
+                integer_parsed = None
+                if integer_part:
+                    integer_parsed = self.number_parser.parse(integer_part)
+                    if not integer_parsed and integer_part.isdigit():
+                        integer_parsed = integer_part
+                
+                # Parse the decimal part - handle as digits for true decimal representation
+                decimal_parsed = None
+                if decimal_part:
+                    # For decimal parts, try to parse as a sequence of digits first
+                    decimal_parsed = self.number_parser.parse_as_digits(decimal_part)
+                    if not decimal_parsed:
+                        # Fallback to regular parsing
+                        decimal_parsed = self.number_parser.parse(decimal_part)
+                    if not decimal_parsed and decimal_part.isdigit():
+                        decimal_parsed = decimal_part
+                
+                if integer_parsed and decimal_parsed:
+                    return f"{integer_parsed}.{decimal_parsed}%"
+                elif integer_parsed:
+                    return f"{integer_parsed}%"
+            
+            # Fallback: convert the numeric parts individually and join
             parts = []
             for group in groups:
                 if group:

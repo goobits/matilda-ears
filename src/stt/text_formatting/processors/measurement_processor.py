@@ -1192,6 +1192,54 @@ class MeasurementProcessor(BaseNumericProcessor):
                     return f"{number}%"
             return entity.text
         
+        # Handle groups metadata from format detector (for decimal percentages)
+        if "groups" in entity.metadata and entity.metadata.get("is_percentage"):
+            groups = entity.metadata["groups"]
+            
+            if len(groups) >= 2:
+                # For decimal patterns like "nine point five" where group[0]="nine", group[1]="five"
+                integer_part = groups[0]
+                decimal_part = groups[1]
+                
+                # Parse the integer part
+                integer_parsed = None
+                if integer_part:
+                    integer_parsed = self.parse_number(integer_part)
+                    if not integer_parsed and integer_part.isdigit():
+                        integer_parsed = integer_part
+                
+                # Parse the decimal part - handle as digits for true decimal representation
+                decimal_parsed = None
+                if decimal_part:
+                    # For decimal parts, try to parse as a sequence of digits first
+                    decimal_parsed = self.parse_as_digits(decimal_part)
+                    if not decimal_parsed:
+                        # Fallback to regular parsing
+                        decimal_parsed = self.parse_number(decimal_part)
+                    if not decimal_parsed and decimal_part.isdigit():
+                        decimal_parsed = decimal_part
+                
+                if integer_parsed and decimal_parsed:
+                    return f"{integer_parsed}.{decimal_parsed}%"
+                elif integer_parsed:
+                    return f"{integer_parsed}%"
+            
+            # Fallback: convert the numeric parts individually and join
+            parts = []
+            for group in groups:
+                if group:
+                    parsed = self.parse_number(group)
+                    if parsed:
+                        parts.append(parsed)
+                    elif group and group.isdigit():
+                        parts.append(group)
+
+            if parts:
+                # Join with dots for decimal percentages
+                percent_str = ".".join(parts)
+                return f"{percent_str}%"
+        
+        # Original handling for metadata with "number" field
         number_text = entity.metadata.get("number", "")
         
         # Parse the number text to convert words to digits
