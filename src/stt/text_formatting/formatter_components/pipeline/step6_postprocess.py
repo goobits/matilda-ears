@@ -96,6 +96,7 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
     Returns:
         Text with orphaned keywords converted to symbols
     """
+    original_text = text
     # Get language-specific keywords
     resources = get_resources(language)
     url_keywords = resources.get("spoken_keywords", {}).get("url", {})

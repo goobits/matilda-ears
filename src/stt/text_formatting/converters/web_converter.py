@@ -274,9 +274,18 @@ class WebPatternConverter(BasePatternConverter):
         # Now convert URL keywords in the text with converted numbers
         text = " ".join(converted_words)
         
-        # Apply URL keyword replacements
+        # Apply URL keyword replacements with proper space handling for URL context
+        # In URL context, keywords like "slash", "dot", etc. should not have spaces around them
         for keyword, replacement in self.url_keywords.items():
-            text = re.sub(rf"\b{re.escape(keyword)}\b", replacement, text, flags=re.IGNORECASE)
+            # Match keyword with surrounding spaces (typical in spoken URLs)
+            # e.g., "github.com slash project" -> "github.com/project"
+            pattern = rf"\s+{re.escape(keyword)}\s+"
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+            
+            # Also handle cases where keyword is at word boundaries but might not have spaces
+            # This is a fallback for cases not caught by the first pattern
+            pattern_boundary = rf"\b{re.escape(keyword)}\b"
+            text = re.sub(pattern_boundary, replacement, text, flags=re.IGNORECASE)
         
         # Remove all spaces to create the final URL
         return text.replace(" ", "")

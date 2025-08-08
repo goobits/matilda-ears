@@ -165,6 +165,7 @@ class CommandDetector:
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # Check if preceded by a number word (likely math division)
+                # or if preceded by a URL/domain (likely URL path)
                 if match.start() > 0:
                     preceding_text = text[: match.start()].rstrip()
                     # Get the last word before "slash"
@@ -179,6 +180,19 @@ class CommandDetector:
                             if last_word in parser.all_number_words or last_word.isdigit():
                                 # Skip this - it's likely division, not a slash command
                                 continue
+                            
+                            # Check if it looks like a URL/domain (contains dots)
+                            # This handles cases like "github.com slash project" where "slash project"
+                            # should be treated as a URL path, not a slash command
+                            if "." in last_word:
+                                # Check if it ends with a common TLD or has URL-like structure
+                                common_tlds = {
+                                    "com", "org", "net", "edu", "gov", "io", "co", "uk", "ca", "au",
+                                    "de", "fr", "jp", "cn", "in", "br", "mx", "es", "it", "nl", "local"
+                                }
+                                if any(last_word.endswith("." + tld) for tld in common_tlds):
+                                    # Skip this - it's likely a URL path, not a slash command
+                                    continue
 
                 command = match.group(1)
 
