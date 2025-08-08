@@ -186,15 +186,18 @@ class SpacyWebMatcher:
         for child in verb_token.children:
             if child.dep_ in ["prep", "dobj", "ccomp"]:
                 # Look for email patterns in this subtree
-                subtree_text = text[child.idx:child.idx + len(child.subtree.text)]
+                subtree_tokens = list(child.subtree)
+                subtree_start = min(t.idx for t in subtree_tokens) if subtree_tokens else child.idx
+                subtree_end = max(t.idx + len(t.text) for t in subtree_tokens) if subtree_tokens else child.idx + len(child.text)
+                subtree_text = text[subtree_start:subtree_end]
                 
                 # Check if this subtree contains email-like patterns
                 email_match = self._find_email_in_subtree(subtree_text, at_pattern)
                 if email_match:
                     start, end, email_text = email_match
                     # Convert to absolute positions
-                    abs_start = child.idx + start
-                    abs_end = child.idx + end
+                    abs_start = subtree_start + start
+                    abs_end = subtree_start + end
                     return (abs_start, abs_end, email_text)
         
         return None
@@ -408,12 +411,15 @@ class SpacyWebMatcher:
         for child in verb_token.children:
             if child.dep_ in ["prep", "dobj", "ccomp"]:
                 # Check if this subtree contains URL-like patterns  
-                subtree_text = text[child.idx:child.idx + len(child.subtree.text)]
+                subtree_tokens = list(child.subtree)
+                subtree_start = min(t.idx for t in subtree_tokens) if subtree_tokens else child.idx
+                subtree_end = max(t.idx + len(t.text) for t in subtree_tokens) if subtree_tokens else child.idx + len(child.text)
+                subtree_text = text[subtree_start:subtree_end]
                 url_match = self._find_url_in_subtree(subtree_text)
                 if url_match:
                     start, end, url_text = url_match
-                    abs_start = child.idx + start
-                    abs_end = child.idx + end
+                    abs_start = subtree_start + start
+                    abs_end = subtree_start + end
                     return (abs_start, abs_end, url_text)
         
         return None

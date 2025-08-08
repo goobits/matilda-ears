@@ -166,6 +166,47 @@ class SpacyOrdinalMatcher:
         
         return matches
     
+    def finditer(self, text: str) -> List['SpacyOrdinalMatch']:
+        """
+        Find all ordinal matches and return iterator-like list of match objects.
+        
+        Args:
+            text: Text to search in
+        
+        Returns:
+            List of SpacyOrdinalMatch objects (for regex compatibility)
+        """
+        matches = []
+        try:
+            doc = self.nlp(text)
+            for ent in doc.ents:
+                if ent.label_ == "ORDINAL":
+                    if not self._should_skip_ordinal_basic(ent, text):
+                        matches.append(SpacyOrdinalMatch(
+                            match_text=ent.text,
+                            start=ent.start_char,
+                            end=ent.end_char,
+                            groups=(ent.text,)
+                        ))
+        except Exception as e:
+            # Log the error and fallback to basic regex
+            logger.debug(f"SpaCy ordinal finditer failed: {e}. Falling back to regex pattern.")
+            import re
+            fallback_pattern = re.compile(
+                r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b",
+                re.IGNORECASE
+            )
+            for match in fallback_pattern.finditer(text):
+                matches.append(SpacyOrdinalMatch(
+                    match_text=match.group(0),
+                    start=match.start(),
+                    end=match.end(),
+                    groups=match.groups()
+                ))
+            logger.debug(f"Regex fallback found {len(matches)} ordinals")
+        
+        return matches
+    
     def _should_skip_ordinal_basic(self, ent, text: str) -> bool:
         """
         Basic check for whether to skip ordinal (simplified version of spacy_detector logic).
