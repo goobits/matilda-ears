@@ -338,16 +338,24 @@ class CodePatternConverter(BasePatternConverter):
 
                 right = convert_number_words(right)
             else:
-                # Try to parse number words for simple cases (no operators)
-                parsed_right = self.number_parser.parse_with_validation(right)
-                if parsed_right:
-                    right = parsed_right
-                elif " " in right:
-                    # If the right side seems like a function call (multiple words), snake_case it.
-                    right = "_".join(right.lower().split())
-                # For simple single word values, convert to lowercase unless they look like constants
-                elif " " not in right and not any(c.isupper() for c in right[1:]) and not right.isupper():
-                    right = right.lower()
+                # Check if right side contains chained assignments (e.g., "y equals z")
+                has_chained_assignment = re.search(r'\b(?:equals|equal)\s+', right, re.IGNORECASE)
+                if has_chained_assignment:
+                    # Convert chained assignments: "y equals z" -> "y = z"
+                    right = re.sub(r'\b(?:equals|equal)\s+', ' = ', right, flags=re.IGNORECASE)
+                    # Clean up extra spaces
+                    right = re.sub(r'\s+', ' ', right).strip()
+                else:
+                    # Try to parse number words for simple cases (no operators)
+                    parsed_right = self.number_parser.parse_with_validation(right)
+                    if parsed_right:
+                        right = parsed_right
+                    elif " " in right:
+                        # If the right side seems like a function call (multiple words), snake_case it.
+                        right = "_".join(right.lower().split())
+                    # For simple single word values, convert to lowercase unless they look like constants
+                    elif " " not in right and not any(c.isupper() for c in right[1:]) and not right.isupper():
+                        right = right.lower()
 
             # Build the assignment string with optional keyword
             if keyword:

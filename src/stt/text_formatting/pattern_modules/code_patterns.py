@@ -230,8 +230,7 @@ def build_assignment_pattern(language: str = "en") -> re.Pattern[str]:
         (?:(let|const|var)\s+)?             # Optional variable declaration keyword (capture group 1)
         ([a-zA-Z_]\w*)                      # Variable name (capture group 2)
         \s+{equals_pattern}\s+              # Space, equals keyword, space
-        (?!\s*{equals_pattern})             # Negative lookahead: not followed by another equals keyword (with optional space for ==)
-        (                                   # Value (capture group 3)
+        (                                   # Value (capture group 3) - now captures chained assignments
             (?!.*\b(?:times|plus|minus|divided\s+by|over|squared?|cubed?)\b)  # Not a math expression
             (?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?        # Stop at conjunctions
         )

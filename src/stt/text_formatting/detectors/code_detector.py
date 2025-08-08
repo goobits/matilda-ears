@@ -74,11 +74,15 @@ class CodeEntityDetector:
         all_entities = entities[:]  # Start with copy of existing entities
 
         # Run detectors in order, maintaining detection sequence
-        # File detection
-        self._run_detector(self.file_detector.detect_filenames, text, entities, code_entities, all_entities)
+        # Command flags detection first (before filename) to prevent conflicts
+        self._run_detector(self.command_detector.detect_command_flags, text, entities, code_entities, all_entities)
+        self._run_detector(self.command_detector.detect_preformatted_flags, text, entities, code_entities, all_entities)
         
         # Command detection
         self._run_detector(self.command_detector.detect_cli_commands, text, entities, code_entities, all_entities)
+        
+        # File detection (after command flags to avoid conflicts)
+        self._run_detector(self.file_detector.detect_filenames, text, entities, code_entities, all_entities)
         
         # Variable detection
         self._run_detector(self.variable_detector.detect_programming_keywords, text, entities, code_entities, all_entities)
@@ -92,10 +96,6 @@ class CodeEntityDetector:
         self._run_detector(self.variable_detector.detect_underscore_delimiters, text, entities, code_entities, all_entities)
         self._run_detector(self.variable_detector.detect_simple_underscore_variables, text, entities, code_entities, all_entities)
         self._run_detector(self.variable_detector.detect_single_letter_variables, text, entities, code_entities, all_entities)
-        
-        # Command flags detection
-        self._run_detector(self.command_detector.detect_command_flags, text, entities, code_entities, all_entities)
-        self._run_detector(self.command_detector.detect_preformatted_flags, text, entities, code_entities, all_entities)
 
         # Last detector doesn't use _run_detector to preserve exact functionality
         self.command_detector.detect_slash_commands(text, code_entities, all_entities)
