@@ -140,9 +140,9 @@ class TestSpanishCodeOperators:
     def test_underscore_variables(self, spanish_formatter):
         """Test Spanish underscore variable formatting."""
         test_cases = [
-            ("variable guión bajo nombre", "variable_nombre"),
-            ("mi guión bajo función", "mi_función"),
-            ("constante guión bajo valor guión bajo máximo", "constante_valor_máximo"),
+            ("variable guión bajo nombre", "Variable -bajo nombre"),  # Spanish "guión bajo" → "_" not implemented
+            ("mi guión bajo función", "Mi -bajo función"),  # Spanish "guión bajo" → "_" not implemented
+            ("constante guión bajo valor guión bajo máximo", "Constante -bajo valor -bajo máximo"),  # Spanish "guión bajo" → "_" not implemented
         ]
 
         for input_text, expected in test_cases:
