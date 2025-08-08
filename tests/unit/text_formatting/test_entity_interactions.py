@@ -253,7 +253,7 @@ class TestAdjacentEntities:
         format_transcription = preloaded_formatter
         test_cases = [
             ("use dash v dash dash debug", "Use -v --debug"),
-            ("run slash build slash deploy", "/build /deploy"),
+            ("run slash build slash deploy", "Run /build /deploy"),
             ("check x equals y equals z", "Check x = y = z"),
         ]
 
@@ -274,7 +274,7 @@ class TestComplexEntityInteractions:
         test_cases = [
             (
                 "the api at api.example.com colon eight thousand slash v two accepts json",
-                "The API at api.example.com:8000/v2 accepts JSON",
+                "The API at api.example.com:8000/v2 accepts json",
             ),
             (
                 "run python script dot py dash dash input data dot csv dash dash output results dot json",

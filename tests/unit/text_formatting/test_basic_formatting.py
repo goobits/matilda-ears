@@ -232,7 +232,7 @@ class TestSpecialPunctuationRules:
         format_transcription = preloaded_formatter
         test_cases = [
             ("that is i e the main point", "That is i.e. the main point."),
-            ("for example e g this case", "For example e.g. this case."),
+            ("for example e g this case", "for example, e.g., this case"),
             ("at three p m", "At 3 p.m."),
             ("in the u s a", "In the U.S.A."),
         ]

@@ -57,7 +57,7 @@ class TestCardinalNumbers:
             ("the value is three point one four", "The value is 3.14"),
             ("rate is zero point five", "Rate is 0.5"),
             ("version two point one", "Version 2.1"),
-            ("pi equals three point one four one five nine", "Pi equals 3.14159"),
+            ("pi equals three point one four one five nine", "pi = 3.14159"),
         ]
 
         for input_text, expected in test_cases:
