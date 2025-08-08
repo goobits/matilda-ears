@@ -242,73 +242,34 @@ class ConfigLoader:
     @property
     def jwt_secret_key(self) -> str:
         """
-        Get JWT secret key with security-first approach.
+        Get JWT secret key with mandatory explicit configuration.
 
-        Priority order:
-        1. Environment variable STT_JWT_SECRET (production)
-        2. Config file value (development)
-        3. Auto-generated temporary secret (fallback)
+        JWT secrets must be explicitly configured in either:
+        1. Environment variable STT_JWT_SECRET, or
+        2. Config file server.websocket.jwt_secret_key
+
+        No automatic generation or fallbacks are provided to ensure
+        explicit security configuration in all environments.
         """
-        # 1. Environment variable (highest priority - production use)
+        # 1. Environment variable (highest priority)
         env_key = os.environ.get("STT_JWT_SECRET")
         if env_key and self._validate_secret_key(env_key):
             return env_key
 
-        # 2. Config file (fallback for development)
+        # 2. Config file value
         config_key = self.get("server.websocket.jwt_secret_key")
         if config_key and config_key != "GENERATE_RANDOM_SECRET_HERE" and self._validate_secret_key(config_key):
             return str(config_key)
 
-        # 3. Production enforcement or development fallback
-        import logging
+        # 3. No fallbacks - require explicit configuration
+        raise ConfigurationError(
+            "JWT secret must be explicitly configured. Set either:\n"
+            "1. Environment variable: export STT_JWT_SECRET=$(openssl rand -base64 32)\n"
+            "2. Config file: Set server.websocket.jwt_secret_key to a secure 32+ character secret\n"
+            "\n"
+            "Auto-generation has been disabled to ensure explicit security configuration."
+        )
 
-        logger = logging.getLogger(__name__)
-        
-        if self.is_production():
-            # In production, JWT secret MUST be provided via environment variable
-            raise ConfigurationError(
-                "JWT secret is required in production environments. "
-                "Please set the STT_JWT_SECRET environment variable with a secure 32+ character secret. "
-                "Example: export STT_JWT_SECRET=$(openssl rand -base64 32)"
-            )
-        else:
-            # Development only: use persistent file-based secret
-            return self._get_or_create_dev_secret(logger)
-
-    def _generate_secret_key(self) -> str:
-        """Generate a cryptographically secure secret key."""
-        import secrets
-
-        return secrets.token_urlsafe(32)
-
-    def _get_or_create_dev_secret(self, logger) -> str:
-        """Get or create a persistent development secret."""
-        import secrets
-        
-        secret_file = self.config_dir / ".jwt_secret"
-        
-        try:
-            if secret_file.exists():
-                secret = secret_file.read_text().strip()
-                if self._validate_secret_key(secret):
-                    return secret
-                else:
-                    logger.warning("Existing development JWT secret is invalid, regenerating...")
-            
-            # Generate new secret
-            secret = secrets.token_urlsafe(32)
-            secret_file.write_text(secret)
-            secret_file.chmod(0o600)  # Secure permissions
-            
-            logger.warning("Generated new development JWT secret and saved to .jwt_secret file")
-            logger.info("For production, set STT_JWT_SECRET environment variable instead")
-            
-            return secret
-            
-        except (OSError, IOError) as e:
-            logger.warning(f"Could not persist development JWT secret: {e}")
-            logger.warning("Using in-memory secret for this session only")
-            return secrets.token_urlsafe(32)
 
     def _validate_secret_key(self, key: str) -> bool:
         """Validate that secret key meets minimum security requirements."""
