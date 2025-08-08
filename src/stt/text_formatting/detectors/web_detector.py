@@ -14,13 +14,14 @@ logger = setup_logging(__name__, log_filename="text_formatting.txt", include_con
 
 
 class WebEntityDetector:
-    def __init__(self, nlp=None, language: str = "en"):
+    def __init__(self, nlp=None, language: str = "en", use_spacy_matcher: bool = True):
         """
         Initialize WebEntityDetector with dependency injection.
 
         Args:
             nlp: SpaCy NLP model instance. If None, will load from nlp_provider.
             language: Language code for resource loading (default: 'en')
+            use_spacy_matcher: Whether to use SpacyWebMatcher for intelligent detection (default: True)
 
         """
         if nlp is None:
@@ -30,11 +31,26 @@ class WebEntityDetector:
 
         self.nlp = nlp
         self.language = language
+        self.use_spacy_matcher = use_spacy_matcher
 
         # Load language-specific resources
         self.resources = get_resources(language)
 
-        # Build patterns dynamically for the specified language
+        # Initialize SpacyWebMatcher for intelligent detection
+        if self.use_spacy_matcher and self.nlp:
+            try:
+                from stt.text_formatting.spacy_utils.spacy_web_matcher import create_spacy_web_matcher
+                self.spacy_web_matcher = create_spacy_web_matcher(self.nlp, language)
+                logger.info("SpacyWebMatcher initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize SpacyWebMatcher: {e}, falling back to regex patterns")
+                self.spacy_web_matcher = None
+                self.use_spacy_matcher = False
+        else:
+            self.spacy_web_matcher = None
+            logger.info("Using traditional regex patterns for web entity detection")
+
+        # Build patterns dynamically for the specified language (fallback)
         self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
         self.port_number_pattern = regex_patterns.get_port_number_pattern(language)
         self.spoken_protocol_pattern = regex_patterns.get_spoken_protocol_pattern(language)
@@ -83,6 +99,29 @@ class WebEntityDetector:
 
     def _detect_spoken_urls(self, text: str, web_entities: list[Entity], existing_entities: list[Entity]) -> None:
         """Detect spoken URLs like 'example dot com slash path'."""
+        
+        # Try SpacyWebMatcher first if available
+        if self.spacy_web_matcher:
+            try:
+                spacy_url_spans = self.spacy_web_matcher.detect_urls(text)
+                for start, end, url_text in spacy_url_spans:
+                    # Check for overlaps with existing entities
+                    if not is_inside_entity(start, end, existing_entities):
+                        web_entities.append(
+                            Entity(start=start, end=end, text=url_text, type=EntityType.SPOKEN_URL)
+                        )
+                        logger.debug(f"SpacyWebMatcher detected URL: {url_text}")
+                
+                # If SpacyWebMatcher found URLs, we can return early
+                if spacy_url_spans:
+                    logger.debug(f"SpacyWebMatcher found {len(spacy_url_spans)} URL(s), skipping regex fallback")
+                    return
+                    
+            except Exception as e:
+                logger.warning(f"SpacyWebMatcher URL detection failed: {e}, falling back to regex")
+        
+        # Fallback to regex-based detection
+        logger.debug("Using regex fallback for URL detection")
         for match in self.spoken_url_pattern.finditer(text):
             if not is_inside_entity(match.start(), match.end(), existing_entities):
                 # Include trailing punctuation in the entity if present
@@ -93,9 +132,31 @@ class WebEntityDetector:
 
     def _detect_spoken_emails(self, text: str, web_entities: list[Entity], existing_entities: list[Entity]) -> None:
         """Detect spoken emails like 'john at example.com' using spaCy for context."""
-        # First, let's look for email patterns with a simpler approach
-        # We'll search for patterns like "username at domain dot com"
-
+        
+        # Try SpacyWebMatcher first if available
+        if self.spacy_web_matcher:
+            try:
+                spacy_email_spans = self.spacy_web_matcher.detect_emails(text)
+                for start, end, email_text in spacy_email_spans:
+                    # Check for overlaps with existing entities
+                    if not overlaps_with_entity(start, end, existing_entities):
+                        web_entities.append(
+                            Entity(start=start, end=end, text=email_text, type=EntityType.SPOKEN_EMAIL)
+                        )
+                        logger.debug(f"SpacyWebMatcher detected email: {email_text}")
+                
+                # If SpacyWebMatcher found emails, we can return early
+                # or continue with regex as additional fallback
+                if spacy_email_spans:
+                    logger.debug(f"SpacyWebMatcher found {len(spacy_email_spans)} email(s), skipping regex fallback")
+                    return
+                    
+            except Exception as e:
+                logger.warning(f"SpacyWebMatcher email detection failed: {e}, falling back to regex")
+        
+        # Fallback to regex-based detection
+        logger.debug("Using regex fallback for email detection")
+        
         # Get keywords
         at_keywords = [k for k, v in self.resources.get("spoken_keywords", {}).get("url", {}).items() if v == "@"]
         at_pattern = "|".join(re.escape(k) for k in at_keywords)
