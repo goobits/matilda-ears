@@ -82,19 +82,39 @@ class ContextAnalyzer:
         """
         # Check preceding text for variable indicators (expanded to catch more contexts)
         preceding_text = text[max(0, position - 30):position].lower()
+        
+        # Enhanced variable detection with position awareness
         variable_indicators = [
             "variable is", "counter is", "iterator is", "for i in", 
             "variable i", "letter i", "the variable is", "variable called",
             "the counter is", "the iterator is", "set i to", "set i equals",
-            "i equals", "i is equal", "when i write i"
+            "i equals", "i is equal"
         ]
+        
+        # Special case: "when i write i" - only the second 'i' should be treated as variable
+        # Check if this is the second 'i' in the "write i" pattern
+        if "write i" in preceding_text and position > 0:
+            # Look backwards to see if there's "write" immediately before this 'i'
+            write_pattern_start = max(0, position - 10)
+            write_context = text[write_pattern_start:position + 1].lower()
+            if write_context.endswith("write i"):
+                return True
         
         # Also check if 'i' comes after mathematical/assignment operators
         following_text = text[position + 1:position + 10].lower()
         if any(op in following_text for op in [" equals", " =", " +", " -", " *", " /"]):
             return True
             
-        return any(keyword in preceding_text for keyword in variable_indicators)
+        # Check for explicit variable context indicators
+        if any(keyword in preceding_text for keyword in variable_indicators):
+            return True
+            
+        # Enhanced check for assignment contexts
+        # Look for "set i", "let i", etc.
+        if any(pattern in preceding_text for pattern in ["set i", "let i", "declare i"]):
+            return True
+            
+        return False
 
     def is_part_of_identifier(self, text: str, start: int, end: int) -> bool:
         """Check if a text span is part of an identifier (connected by _ or -).

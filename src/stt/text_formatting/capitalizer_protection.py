@@ -51,7 +51,7 @@ class EntityProtection:
                     f"Checking entity at start: {entity.type} '{entity.text}' [{entity.start}:{entity.end}], first_letter_index={first_letter_index}"
                 )
                 
-                # Don't capitalize if it's a strictly protected type, except for abbreviations
+                # Don't capitalize if it's a strictly protected type, except for abbreviations and special cases
                 if self.rules.is_strictly_protected_type(entity.type):
                     if entity.type.name == "ABBREVIATION":
                         # Special case: abbreviations at sentence start should have first letter capitalized
@@ -60,6 +60,20 @@ class EntityProtection:
                         # Don't set should_capitalize = False, let it capitalize normally
                         # The abbreviation entity will handle maintaining the correct format
                         return True
+                    elif entity.type.name in ["URL", "SPOKEN_URL", "SPOKEN_PROTOCOL_URL", "PORT_NUMBER"]:
+                        # URLs and port numbers should NEVER be capitalized, even at sentence start
+                        logger.debug(f"URL/Port entity '{entity.text}' at sentence start - preventing capitalization")
+                        return False
+                    elif entity.type.name == "VARIABLE" and entity.text == "i":
+                        # Special case: single letter 'i' variables need context-aware handling
+                        # Check if this is truly a pronoun context vs variable context
+                        is_pronoun_context = self._is_i_pronoun_context(text, first_letter_index)
+                        if is_pronoun_context:
+                            logger.debug(f"Variable 'i' detected as pronoun in context - allowing capitalization")
+                            return True
+                        else:
+                            logger.debug(f"Variable 'i' in variable context - preventing capitalization")
+                            return False
                     else:
                         logger.debug(f"Entity {entity.type} is strictly protected")
                         return False
@@ -79,21 +93,21 @@ class EntityProtection:
                     logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
                     return False
                     
-                # CONDITIONAL STATEMENT LOGIC: Programming keywords like "if", "when" at sentence start  
-                # should NOT be capitalized because they start conditional statements, not declarative sentences
+                # PROGRAMMING STATEMENT LOGIC: Programming keywords that start code statements
+                # should NOT be capitalized because they start code, not natural language sentences
                 elif entity.type.name == "PROGRAMMING_KEYWORD" and entity.start == 0:
-                    # Check if this is a conditional keyword that should stay lowercase
-                    conditional_keywords = {"if", "when", "while", "unless", "until"}
-                    if entity.text.lower() in conditional_keywords:
+                    # Check if this is a programming statement keyword that should stay lowercase
+                    code_statement_keywords = {"if", "when", "while", "unless", "until", "let", "const", "var", "for", "def", "function"}
+                    if entity.text.lower() in code_statement_keywords:
                         logger.debug(
-                            f"Conditional keyword '{entity.text}' at sentence start - preventing capitalization to preserve conditional context"
+                            f"Programming statement keyword '{entity.text}' at sentence start - preventing capitalization to preserve code context"
                         )
                         return False
                     else:
                         logger.debug(
-                            f"Non-conditional programming keyword '{entity.text}' at sentence start - allowing capitalization for proper sentence structure"
+                            f"Non-statement programming keyword '{entity.text}' at sentence start - allowing capitalization for proper sentence structure"
                         )
-                        # Allow capitalization for non-conditional programming keywords
+                        # Allow capitalization for non-statement programming keywords
                         break
 
         return True
@@ -243,3 +257,43 @@ class EntityProtection:
             text = re.sub(placeholder, placeholder, text, flags=re.IGNORECASE)
             
         return text
+    
+    def _is_i_pronoun_context(self, text: str, position: int) -> bool:
+        """Check if 'i' at given position should be treated as a pronoun (not variable).
+        
+        Args:
+            text: Full text
+            position: Position of 'i' in text
+            
+        Returns:
+            True if 'i' should be treated as a pronoun and capitalized
+        """
+        # Simple heuristic: if 'i' is at sentence start OR followed by a verb, treat as pronoun
+        # This is a simplified approach since SpaCy is not available
+        
+        # Check if this is sentence start (accounting for leading punctuation/spaces)
+        if position <= 5:  # Near beginning of sentence
+            return True
+            
+        # Look at surrounding context
+        context_before = text[max(0, position - 15):position].lower()
+        context_after = text[position + 1:position + 15].lower()
+        
+        # If preceded by "when", "if", "because", etc., likely a pronoun
+        pronoun_indicators = ["when ", "if ", "because ", "since ", "while ", "after "]
+        if any(text[max(0, position - len(indicator) - 1):position].lower().endswith(indicator) 
+               for indicator in pronoun_indicators):
+            return True
+            
+        # If followed by common verbs, likely a pronoun
+        verb_indicators = [" think", " write", " am", " was", " will", " have", " had", " do", " did"]
+        if any(context_after.startswith(verb) for verb in verb_indicators):
+            return True
+            
+        # If followed by assignment operators, likely a variable
+        assignment_indicators = [" equals", " =", " +=", " -="]
+        if any(context_after.startswith(op) for op in assignment_indicators):
+            return False
+            
+        # Default: treat as pronoun (safer to over-capitalize than under-capitalize)
+        return True

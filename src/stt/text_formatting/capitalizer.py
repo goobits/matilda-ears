@@ -162,17 +162,13 @@ class SmartCapitalizer:
                     for token in doc_to_use:
                         # Find standalone 'i' tokens that are pronouns
                         if token.text == "i" and token.pos_ == "PRON":
-                            # NEW: Add context check for variable 'i'
-                            is_variable_context = False
-                            if token.i > 0:
-                                prev_token = doc_to_use[token.i - 1]
-                                if prev_token.lemma_ in ["variable", "letter", "iterator", "counter", "character"]:
-                                    is_variable_context = True
+                            # Enhanced context analysis for variable 'i'
+                            is_variable_context = self._is_i_in_variable_assignment_context(token, doc_to_use)
 
                             # Check if this 'i' is inside a protected entity (like a filename)
                             is_protected = self.protection.is_position_inside_protected_entity(token.idx, entities)
 
-                            if not is_protected and not is_variable_context:  # <-- ADDED CHECK
+                            if not is_protected and not is_variable_context:
                                 # Safely replace the character at the correct index
                                 text_chars[token.idx] = "I"
                     text = "".join(text_chars)  # Re-assemble the string once at the end
@@ -191,6 +187,18 @@ class SmartCapitalizer:
                 is_protected = self.protection.is_position_inside_protected_entity(start, entities)
                 is_part_of_identifier = self.context.is_part_of_identifier(text, start, end)
                 is_variable_context = self.context.is_variable_context_for_i(text, start)
+                
+                # Special handling for 'i' VARIABLE entities - check if it's really a pronoun
+                if is_protected and entities:
+                    for entity in entities:
+                        if (entity.start <= start < entity.end and 
+                            entity.type.name == "VARIABLE" and entity.text == "i"):
+                            # Check if this should be treated as pronoun despite being a VARIABLE entity
+                            is_pronoun_context = self.protection._is_i_pronoun_context(text, start)
+                            if is_pronoun_context:
+                                is_protected = False  # Allow capitalization
+                                logger.debug(f"Overriding VARIABLE protection for pronoun 'i' at position {start}")
+                            break
 
                 if not is_protected and not is_part_of_identifier and not is_variable_context:
                     new_text += "I"  # Capitalize
@@ -308,6 +316,63 @@ class SmartCapitalizer:
             logger.debug(f"Error in spaCy proper noun capitalization: {e}")
             # Return text unchanged on error
             return text
+
+    def _is_i_in_variable_assignment_context(self, token, doc) -> bool:
+        """Check if 'i' token is in a variable/assignment context using spaCy analysis.
+        
+        Args:
+            token: SpaCy token representing 'i'
+            doc: SpaCy document
+            
+        Returns:
+            True if 'i' appears to be a variable in assignment context
+        """
+        try:
+            # Look for assignment patterns (i = , i equals, etc.)
+            next_tokens = []
+            for j in range(token.i + 1, min(token.i + 4, len(doc))):
+                next_tokens.append(doc[j])
+            
+            # Check for immediate assignment patterns
+            if next_tokens:
+                # Check for "i equals" or "i ="
+                if (next_tokens[0].lemma_ in ["equal", "="] or 
+                    (len(next_tokens) > 1 and 
+                     next_tokens[0].lemma_ == "equal" and next_tokens[1].lemma_ == "equal")):
+                    logger.debug(f"Found assignment pattern after 'i' at position {token.idx}")
+                    return True
+                    
+                # Check for increment/decrement: "i++" or "i--"
+                if (next_tokens[0].text in ["++", "--"] or
+                    (len(next_tokens) > 1 and 
+                     next_tokens[0].text == "+" and next_tokens[1].text == "+")):
+                    logger.debug(f"Found increment/decrement pattern after 'i' at position {token.idx}")
+                    return True
+            
+            # Look for explicit variable context words before 'i'
+            prev_tokens = []
+            for j in range(max(0, token.i - 5), token.i):
+                prev_tokens.append(doc[j])
+                
+            if prev_tokens:
+                prev_lemmas = [t.lemma_.lower() for t in prev_tokens]
+                variable_words = ["variable", "counter", "iterator", "letter", "write", "set"]
+                if any(word in prev_lemmas for word in variable_words):
+                    logger.debug(f"Found variable context words before 'i' at position {token.idx}")
+                    return True
+            
+            # Special case: "when i write i" - only the second i should be treated as variable
+            # Check if this is part of "write i equals" pattern
+            if (token.i >= 2 and 
+                doc[token.i - 1].lemma_ == "write" and
+                doc[token.i - 2].lemma_ == "i"):
+                logger.debug(f"Found 'write i' pattern - treating as variable context at position {token.idx}")
+                return True
+                
+        except (IndexError, AttributeError) as e:
+            logger.debug(f"Error in variable assignment context analysis: {e}")
+            
+        return False
 
     def _is_technical_term(self, entity_text: str, full_text: str) -> bool:
         """Check if a PERSON entity is actually a technical term that shouldn't be capitalized.

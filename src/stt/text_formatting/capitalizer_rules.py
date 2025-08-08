@@ -33,7 +33,7 @@ class CapitalizationRules:
             EntityType.SIMPLE_UNDERSCORE_VARIABLE,
             EntityType.UNDERSCORE_DELIMITER,
             EntityType.VARIABLE,  # Single-letter variables must preserve their case (e.g., 'i' in code contexts)
-            # Note: PORT_NUMBER removed - host names before port should be capitalized normally
+            EntityType.PORT_NUMBER,  # URLs with ports should stay lowercase (e.g., localhost:8080)
             # Note: VERSION removed - version numbers at sentence start should be capitalized
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
