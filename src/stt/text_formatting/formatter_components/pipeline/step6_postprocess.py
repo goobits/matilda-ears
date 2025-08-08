@@ -89,6 +89,9 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
     This handles cases where keywords like 'slash', 'dot', 'at' remain in the text
     after entity conversion, typically due to entity boundary issues.
     
+    Uses spaCy for context awareness to prevent inappropriate conversions when
+    words like 'colon' and 'underscore' are used descriptively.
+    
     Args:
         text: Text to process
         language: Language code for resource lookup
@@ -96,6 +99,8 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
     Returns:
         Text with orphaned keywords converted to symbols
     """
+    from ...nlp_provider import get_nlp
+    
     original_text = text
     # Get language-specific keywords
     resources = get_resources(language)
@@ -129,20 +134,295 @@ def convert_orphaned_keywords(text: str, language: str = "en") -> str:
 
     # Define keywords that should consume surrounding spaces when converted
     space_consuming_symbols = {"/", ":", "_", "-"}
+    
+    # Define keywords that require context validation
+    context_sensitive_keywords = {"colon", "underscore"}
 
     # Convert keywords that appear as standalone words
     for keyword, symbol in sorted_keywords:
-        if symbol in space_consuming_symbols:
-            # For these symbols, consume surrounding spaces
-            pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
-            # Simple replacement that consumes spaces
-            text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+        if keyword in context_sensitive_keywords:
+            # Use context-aware conversion for sensitive keywords
+            text = _convert_context_aware_keyword(text, keyword, symbol, space_consuming_symbols, language)
         else:
-            # For other keywords, preserve word boundaries
-            pattern = rf"\b{re.escape(keyword)}\b"
-            text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+            # Use simple conversion for other keywords
+            if symbol in space_consuming_symbols:
+                # For these symbols, consume surrounding spaces
+                pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
+                # Simple replacement that consumes spaces
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+            else:
+                # For other keywords, preserve word boundaries
+                pattern = rf"\b{re.escape(keyword)}\b"
+                text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
     return text
+
+
+def _convert_context_aware_keyword(text: str, keyword: str, symbol: str, space_consuming_symbols: set, language: str = "en") -> str:
+    """
+    Convert a keyword to its symbol only in appropriate contexts.
+    
+    Uses spaCy dependency parsing and POS tagging to determine if a keyword like
+    'colon' or 'underscore' is being used functionally (should be converted) or
+    descriptively (should remain as word).
+    
+    Args:
+        text: Text to process
+        keyword: The keyword to potentially convert (e.g., 'colon', 'underscore')
+        symbol: The symbol to convert to (e.g., ':', '_')
+        space_consuming_symbols: Set of symbols that consume surrounding spaces
+        language: Language code
+        
+    Returns:
+        Text with context-appropriate conversions applied
+    """
+    from ...nlp_provider import get_nlp
+    
+    nlp = get_nlp()
+    if not nlp:
+        # Fallback to regex-based context validation if spaCy is not available
+        logger.debug(f"SpaCy not available, using regex-based context validation for '{keyword}'")
+        return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)
+    
+    try:
+        # Parse the text with spaCy
+        doc = nlp(text)
+        
+        # Find all instances of the keyword in the text
+        pattern = rf"\b{re.escape(keyword)}\b"
+        matches = list(re.finditer(pattern, text, flags=re.IGNORECASE))
+        
+        if not matches:
+            return text
+        
+        # Process matches from right to left to preserve indices
+        for match in reversed(matches):
+            start_pos = match.start()
+            end_pos = match.end()
+            matched_word = match.group(0)
+            
+            # Find the spaCy token corresponding to this match
+            token = None
+            for t in doc:
+                if t.idx <= start_pos < t.idx + len(t.text):
+                    token = t
+                    break
+            
+            if not token:
+                continue
+            
+            # Determine if this keyword should be converted based on context
+            should_convert = _should_convert_keyword(token, keyword, doc)
+            
+            if should_convert:
+                # Apply the conversion
+                if symbol in space_consuming_symbols:
+                    # Consume surrounding spaces
+                    replacement = symbol
+                    # Find actual boundaries including spaces
+                    actual_start = start_pos
+                    actual_end = end_pos
+                    
+                    # Check for leading space
+                    if actual_start > 0 and text[actual_start - 1].isspace():
+                        actual_start -= 1
+                    
+                    # Check for trailing space
+                    if actual_end < len(text) and text[actual_end].isspace():
+                        actual_end += 1
+                    
+                    text = text[:actual_start] + replacement + text[actual_end:]
+                else:
+                    # Simple replacement
+                    text = text[:start_pos] + symbol + text[end_pos:]
+        
+        return text
+        
+    except Exception as e:
+        logger.warning(f"Error in context-aware conversion for '{keyword}': {e}")
+        # Fallback to regex-based context validation
+        return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)
+
+
+def _should_convert_keyword(token, keyword: str, doc) -> bool:
+    """
+    Determine if a keyword token should be converted to its symbol based on context.
+    
+    Uses spaCy's linguistic analysis to detect descriptive vs functional usage.
+    
+    Args:
+        token: spaCy token for the keyword
+        keyword: The keyword string ('colon', 'underscore', etc.)
+        doc: The spaCy document
+        
+    Returns:
+        bool: True if the keyword should be converted to symbol, False if it should remain as word
+    """
+    # Descriptive patterns that indicate the word should NOT be converted
+    descriptive_indicators = {
+        # Determiners before the word indicate descriptive usage
+        "det_before": ["a", "an", "the"],
+        
+        # Verbs that indicate drawing/writing/describing
+        "descriptive_verbs": ["draw", "write", "add", "insert", "type", "include", "contain", 
+                             "have", "need", "want", "see", "show", "display"],
+        
+        # Prepositions that indicate descriptive context
+        "descriptive_preps": ["with", "without", "using", "by"],
+        
+        # Objects that indicate the keyword is being described
+        "descriptive_objects": ["here", "there", "character", "symbol", "mark"],
+    }
+    
+    # Check for determiners before the keyword
+    if token.i > 0:
+        prev_token = doc[token.i - 1]
+        if (prev_token.pos_ == "DET" and 
+            prev_token.text.lower() in descriptive_indicators["det_before"]):
+            logger.debug(f"Found determiner '{prev_token.text}' before '{keyword}' - descriptive context")
+            return False
+    
+    # Check for descriptive verbs in the sentence
+    sentence_tokens = [t for t in doc if t.sent == token.sent]
+    for sent_token in sentence_tokens:
+        if (sent_token.pos_ == "VERB" and 
+            sent_token.lemma_.lower() in descriptive_indicators["descriptive_verbs"]):
+            logger.debug(f"Found descriptive verb '{sent_token.text}' in sentence with '{keyword}' - descriptive context")
+            return False
+    
+    # Check for descriptive prepositions
+    if token.i > 0:
+        prev_token = doc[token.i - 1]
+        if (prev_token.pos_ == "ADP" and 
+            prev_token.text.lower() in descriptive_indicators["descriptive_preps"]):
+            logger.debug(f"Found descriptive preposition '{prev_token.text}' before '{keyword}' - descriptive context")
+            return False
+    
+    # Check for descriptive objects after the keyword
+    if token.i < len(doc) - 1:
+        next_token = doc[token.i + 1]
+        if next_token.text.lower() in descriptive_indicators["descriptive_objects"]:
+            logger.debug(f"Found descriptive object '{next_token.text}' after '{keyword}' - descriptive context")
+            return False
+    
+    # Check dependency relationships
+    # If the keyword is the direct object of certain verbs, it's likely descriptive
+    if token.dep_ == "dobj":  # direct object
+        head = token.head
+        if head.lemma_.lower() in descriptive_indicators["descriptive_verbs"]:
+            logger.debug(f"'{keyword}' is direct object of descriptive verb '{head.text}' - descriptive context")
+            return False
+    
+    # Check for "must have" constructions
+    if token.i > 1:
+        prev_prev_token = doc[token.i - 2]
+        prev_token = doc[token.i - 1]
+        if (prev_prev_token.lemma_.lower() == "must" and 
+            prev_token.lemma_.lower() in ["have", "contain", "include"]):
+            logger.debug(f"Found 'must have/contain' construction before '{keyword}' - descriptive context")
+            return False
+    
+    # Functional context indicators (should convert)
+    functional_indicators = {
+        # Technical contexts where keywords are likely functional
+        "tech_words": ["localhost", "server", "port", "url", "domain", "website", "api", "endpoint"],
+        
+        # Programming contexts
+        "code_words": ["variable", "function", "method", "class", "object", "parameter"],
+        
+        # Words that indicate the keyword is part of a technical specification
+        "spec_words": ["format", "syntax", "pattern", "structure"],
+    }
+    
+    # Check for technical/functional context in the sentence
+    sentence_text = token.sent.text.lower()
+    for category, words in functional_indicators.items():
+        if any(word in sentence_text for word in words):
+            logger.debug(f"Found {category} context in sentence with '{keyword}' - functional context")
+            return True
+    
+    # If no clear descriptive indicators found, default to conversion
+    # This maintains backward compatibility for most cases
+    logger.debug(f"No clear descriptive context found for '{keyword}' - allowing conversion")
+    return True
+
+
+def _convert_keyword_with_regex_context(text: str, keyword: str, symbol: str, space_consuming_symbols: set) -> str:
+    """
+    Regex-based fallback for context-aware keyword conversion when spaCy is not available.
+    
+    Uses simple regex patterns to detect descriptive vs functional contexts.
+    
+    Args:
+        text: Text to process
+        keyword: The keyword to potentially convert (e.g., 'colon', 'underscore')
+        symbol: The symbol to convert to (e.g., ':', '_')
+        space_consuming_symbols: Set of symbols that consume surrounding spaces
+        
+    Returns:
+        Text with context-appropriate conversions applied
+    """
+    # Descriptive patterns that indicate the word should NOT be converted
+    descriptive_patterns = [
+        # Determiners before the keyword
+        rf"\b(?:a|an|the)\s+{re.escape(keyword)}\b",
+        
+        # Descriptive verbs in the sentence with the keyword
+        rf"\b(?:draw|write|add|insert|type|include|contain|have|need|want|see|show|display)\b.*\b{re.escape(keyword)}\b",
+        rf"\b{re.escape(keyword)}\b.*\b(?:draw|write|add|insert|type|include|contain|have|need|want|see|show|display)\b",
+        
+        # "must have/contain" constructions
+        rf"\bmust\s+(?:have|contain|include)\s+.*\b{re.escape(keyword)}\b",
+        
+        # Descriptive objects after the keyword
+        rf"\b{re.escape(keyword)}\s+(?:here|there|character|symbol|mark)\b",
+        
+        # Please + descriptive verb
+        rf"\bplease\s+(?:draw|write|add|insert|type)\b.*\b{re.escape(keyword)}\b",
+    ]
+    
+    # Check if any descriptive patterns match
+    for pattern in descriptive_patterns:
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            logger.debug(f"Regex-based context validation: Found descriptive pattern for '{keyword}' - NOT converting")
+            return text  # Don't convert, return original text
+    
+    # Check for functional/technical contexts
+    functional_patterns = [
+        # Technical contexts
+        rf"\b(?:localhost|server|port|url|domain|website|api|endpoint)\b.*\b{re.escape(keyword)}\b",
+        rf"\b{re.escape(keyword)}\b.*\b(?:localhost|server|port|url|domain|website|api|endpoint)\b",
+        
+        # Programming contexts  
+        rf"\b(?:variable|function|method|class|object|parameter)\b.*\b{re.escape(keyword)}\b",
+        rf"\b{re.escape(keyword)}\b.*\b(?:variable|function|method|class|object|parameter)\b",
+        
+        # Format specifications
+        rf"\b(?:format|syntax|pattern|structure)\b.*\b{re.escape(keyword)}\b",
+        rf"\b{re.escape(keyword)}\b.*\b(?:format|syntax|pattern|structure)\b",
+    ]
+    
+    # Check if any functional patterns match (force conversion)
+    for pattern in functional_patterns:
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            logger.debug(f"Regex-based context validation: Found functional pattern for '{keyword}' - converting")
+            break
+    else:
+        # No clear functional context, but no descriptive indicators either
+        # Default to conversion for backward compatibility, but be more conservative
+        logger.debug(f"Regex-based context validation: No clear context for '{keyword}' - allowing conversion")
+    
+    # Apply the conversion
+    if symbol in space_consuming_symbols:
+        # For these symbols, consume surrounding spaces
+        pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
+        result = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+    else:
+        # For other keywords, preserve word boundaries
+        pattern = rf"\b{re.escape(keyword)}\b"
+        result = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+    
+    return result
 
 
 def rescue_mangled_domains(text: str, resources: dict) -> str:
