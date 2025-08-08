@@ -71,6 +71,14 @@ def restore_abbreviations(text: str, resources: dict) -> str:
     # Remove double commas that might result from the above
     text = re.sub(r",,", ",", text)
     
+    # Fix specific case where introductory phrases + abbreviations create double commas
+    # e.g., "for example, e.g.," -> "for example e.g.,"
+    # Handle both direct and spaced patterns
+    text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)", r"\1 \2", text, flags=re.IGNORECASE)
+    
+    # Also catch cases where the comma might be attached to the following word
+    text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.),(\s)", r"\1 \2,\3", text, flags=re.IGNORECASE)
+    
     return text
 
 

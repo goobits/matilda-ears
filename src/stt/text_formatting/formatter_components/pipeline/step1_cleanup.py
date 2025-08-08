@@ -63,7 +63,7 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
         # Get the original artifact word
         artifact_word = transcription_artifacts[i]
 
-        # For certain filler words, check if they're being discussed
+        # For certain filler words, check if they're being discussed or used meaningfully
         if artifact_word in contextual_artifacts:
             # Check if this word appears in a meta-discussion context
             # Look for patterns like "words like X" or "saying X"
@@ -77,6 +77,41 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
                 if meta_pattern.search(text):
                     preserved = True
                     break
+            
+            # Additional preservation logic for meaningful contexts
+            if not preserved and artifact_word.lower() in ["actually", "basically", "literally"]:
+                # Preserve filler words when they're used for emphasis or clarification
+                meaningful_patterns = []
+                
+                if artifact_word.lower() == "actually":
+                    # "actually" patterns for emphasis or clarification
+                    meaningful_patterns = [
+                        r"\bI\s+actually\b",                    # "I actually"
+                        r"\bactually\s+(?:finished|completed|did|made|got|found|learned|understood|realized)\b", # completion
+                        r"\b(?:we|they|you)\s+actually\b",      # other pronouns + actually
+                        r"\bactually\s+(?:correct|true|right|wrong)\b", # correctness
+                    ]
+                elif artifact_word.lower() == "basically":
+                    # "basically" patterns for clarification or simplification
+                    meaningful_patterns = [
+                        r"\bbasically\s+(?:correct|true|right|wrong|done|finished)\b", # assessment
+                        r"\bbasically\s+(?:means|says|tells)\b", # explanation
+                        r"\bit's\s+basically\b",                # "it's basically"
+                        r"\bthat's\s+basically\b",              # "that's basically"
+                    ]
+                elif artifact_word.lower() == "literally":
+                    # "literally" patterns for emphasis
+                    meaningful_patterns = [
+                        r"\bliterally\s+(?:true|correct|right|wrong)\b", # correctness
+                        r"\bliterally\s+(?:said|told|meant)\b",          # quotation context
+                        r"\bI\s+literally\b",                           # personal emphasis
+                        r"\b(?:he|she|they)\s+literally\s+said\b",      # reported speech
+                    ]
+                
+                for meaningful_pattern in meaningful_patterns:
+                    if re.search(meaningful_pattern, text, re.IGNORECASE):
+                        preserved = True
+                        break
 
             if not preserved:
                 text = pattern.sub("", text).strip()
