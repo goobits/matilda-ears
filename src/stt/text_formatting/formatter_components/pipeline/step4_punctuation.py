@@ -34,6 +34,7 @@ def add_punctuation(
     """Add punctuation - treat all text as sentences unless single standalone technical entity"""
     if filtered_entities is None:
         filtered_entities = []
+        
 
     # Add this at the beginning to handle empty inputs
     if not text.strip():
@@ -50,6 +51,9 @@ def add_punctuation(
     # If original text already had punctuation, don't add more
     if original_had_punctuation:
         return text
+
+    # Add comma insertion for common introductory phrases BEFORE punctuation model processing
+    text = _add_comma_for_introductory_phrases(text, language)
 
     # All other text is treated as a sentence - use punctuation model
     punctuator = get_punctuator()
@@ -250,21 +254,7 @@ def add_punctuation(
             pass
 
     # Add final punctuation intelligently when punctuation model is not available
-    if text and text.strip() and text.strip()[-1].isalnum():
-        word_count = len(text.split())
-        
-        # Force punctuation for obvious natural language patterns
-        natural_patterns = [
-            r'\b(?:flatten|sharpen|brighten|darken|soften|harden)\s+the\s+\w+\b',  # "flatten the curve"
-            r'\bsolve\s+.*\s+using\s+.*\b',  # "solve x using formula"
-            r'\bsave\s+.*\s+with\s+.*\b',  # "save config with encoding"
-        ]
-        
-        is_natural_phrase = any(re.search(pattern, text, re.IGNORECASE) for pattern in natural_patterns)
-        
-        # Apply punctuation if it's not standalone technical OR if it matches natural patterns
-        if (not is_standalone_technical or is_natural_phrase) and word_count >= 2:
-            text += "."
+    text = _add_sentence_ending_punctuation(text, is_standalone_technical)
 
     # The punctuation model adds colons after action verbs when followed by objects/entities
     # This is grammatically correct, so we'll keep them
@@ -281,6 +271,132 @@ def add_punctuation(
     text = re.sub(r"\b(\d+):([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(\d+)\s+([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
 
+    return text
+
+
+def _add_sentence_ending_punctuation(text: str, is_standalone_technical: bool = False) -> str:
+    """
+    Add sentence-ending punctuation when appropriate.
+    
+    This handles cases where text lacks proper sentence punctuation,
+    particularly for mathematical expressions and natural language.
+    
+    Args:
+        text: The text to process
+        is_standalone_technical: Whether this is a standalone technical entity
+        
+    Returns:
+        Text with appropriate sentence-ending punctuation
+    """
+    if not text or not text.strip():
+        return text
+        
+    stripped_text = text.strip()
+    
+    # Don't add punctuation if text already ends with punctuation
+    if stripped_text and stripped_text[-1] in '.!?:;':
+        return text
+        
+    # Don't add punctuation to purely numeric standalone entities
+    if is_standalone_technical and stripped_text.replace(' ', '').replace('.', '').replace('-', '').isdigit():
+        return text
+    
+    word_count = len(stripped_text.split())
+    
+    # Force punctuation for obvious natural language patterns
+    natural_patterns = [
+        r'\b(?:flatten|sharpen|brighten|darken|soften|harden)\s+the\s+\w+\b',  # "flatten the curve"
+        r'\bsolve\s+.*\s+using\s+.*\b',  # "solve x using formula"
+        r'\bsave\s+.*\s+with\s+.*\b',  # "save config with encoding"
+        r'\blet\s+me\s+\w+\b',  # "let me say", "let me explain"
+        r'\b(?:first|second|third)\s+of\s+all\b',  # "first of all", etc.
+        r'\b(?:calculate|compute|evaluate)\s+.*\b',  # Mathematical operations
+        r'\bmake\s+sure\s+.*\b',  # "make sure to..."
+        r'\bneed\s+to\s+\w+\b',  # "need to check", "need to verify"
+    ]
+    
+    is_natural_phrase = any(re.search(pattern, stripped_text, re.IGNORECASE) for pattern in natural_patterns)
+    
+    # Additional check for mathematical expressions ending with alphanumeric (like "x equals five")
+    has_math_context = bool(re.search(r'\b(?:equals?|plus|minus|times|divided by|multiplied by|result)\b', stripped_text, re.IGNORECASE))
+    
+    # Apply punctuation if:
+    # 1. It's not standalone technical OR it matches natural patterns
+    # 2. Has 2+ words (avoid single-word technical terms)
+    # 3. Last character is alphanumeric (needs punctuation)
+    if stripped_text and stripped_text[-1].isalnum():
+        should_punctuate = (
+            (not is_standalone_technical or is_natural_phrase or has_math_context) 
+            and word_count >= 2
+        )
+        
+        if should_punctuate:
+            text = stripped_text + "."
+    
+    return text
+
+
+def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
+    """
+    Add commas after common introductory phrases that require them.
+    
+    This handles phrases like:
+    - "first of all" → "first of all,"
+    - "second of all" → "second of all,"
+    - "by the way" → "by the way,"
+    - "in other words" → "in other words,"
+    
+    Args:
+        text: The text to process
+        language: Language code ("en", "es", etc.)
+        
+    Returns:
+        Text with commas added after introductory phrases
+    """
+    if not text.strip():
+        return text
+
+    # Define comma-requiring introductory phrases with their patterns
+    introductory_patterns = [
+        r"\bfirst of all\b",
+        r"\bsecond of all\b", 
+        r"\bthird of all\b",
+        r"\bby the way\b",
+        r"\bin other words\b",
+        r"\bfor example\b",
+        r"\bon the other hand\b",
+        r"\bas a matter of fact\b",
+        r"\bto be honest\b",
+        r"\bfrankly speaking\b",
+        r"\bin the first place\b",
+        r"\bmost importantly\b",
+    ]
+    
+    # Apply comma insertion for each pattern
+    for pattern in introductory_patterns:
+        # Match the phrase and check if it needs a comma
+        def add_comma_if_needed(match):
+            matched_phrase = match.group(0)
+            start_pos = match.start()
+            end_pos = match.end()
+            
+            # Check what comes after the phrase
+            remaining_text = text[end_pos:].lstrip()
+            
+            # Only add comma if:
+            # 1. There's more text after the phrase
+            # 2. The phrase is not already followed by punctuation
+            # 3. The phrase is at the beginning or after whitespace/punctuation
+            if (remaining_text and 
+                not remaining_text[0] in ',.!?;:' and
+                (start_pos == 0 or text[start_pos-1] in ' \n\t.!?')):
+                return matched_phrase + ','
+            
+            return matched_phrase
+        
+        # Apply the pattern with case insensitive matching
+        text = re.sub(pattern, add_comma_if_needed, text, flags=re.IGNORECASE)
+    
     return text
 
 

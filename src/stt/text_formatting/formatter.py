@@ -55,7 +55,8 @@ from .formatter_components.pipeline.step6_postprocess import (
     restore_abbreviations, 
     convert_orphaned_keywords, 
     rescue_mangled_domains, 
-    apply_smart_quotes
+    apply_smart_quotes,
+    add_introductory_phrase_commas
 )
 
 
@@ -224,6 +225,10 @@ class TextFormatter:
         # Rescue mangled domains
         final_text = rescue_mangled_domains(final_text, self.resources)
         logger.debug(f"Step 6 - After domain rescue: '{final_text}'")
+        
+        # Add commas for introductory phrases
+        final_text = add_introductory_phrase_commas(final_text)
+        logger.debug(f"Step 6 - After introductory phrase commas: '{final_text}'")
 
         # Apply smart quotes
         final_text = apply_smart_quotes(final_text)

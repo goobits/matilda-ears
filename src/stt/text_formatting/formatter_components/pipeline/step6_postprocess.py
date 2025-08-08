@@ -208,6 +208,121 @@ def rescue_mangled_domains(text: str, resources: dict) -> str:
     return text
 
 
+def add_introductory_phrase_commas(text: str) -> str:
+    """
+    Add commas after common introductory phrases.
+    
+    This function handles cases like "first of all" → "first of all," that
+    need comma insertion but aren't handled by the punctuation model step
+    (which may be disabled in testing environments).
+    
+    Args:
+        text: Text to process
+        
+    Returns:
+        Text with commas added after introductory phrases
+    """
+    if not text.strip():
+        return text
+
+    # Define introductory phrases that require commas
+    introductory_patterns = [
+        r"\bfirst of all\b",
+        r"\bsecond of all\b", 
+        r"\bthird of all\b",
+        r"\bby the way\b",
+        r"\bin other words\b",
+        r"\bfor example\b",
+        r"\bon the other hand\b",
+        r"\bas a matter of fact\b",
+        r"\bto be honest\b",
+        r"\bfrankly speaking\b",
+        r"\bin the first place\b",
+        r"\bmost importantly\b",
+    ]
+    
+    # Define sentence-starting ordinals that need commas when used as transitions
+    sentence_starter_patterns = [
+        r"^(first|second|third|fourth|fifth)\s+(\w+)",  # "First we need", "Second I want"
+        r"^(next|then|now|finally)\s+(\w+)",  # "Next we should", "Finally I want"
+    ]
+    
+    # Apply repeated phrase patterns (like "first come first served")
+    repeated_phrase_pattern = r"\b(first|second|third)\s+([a-z]+)\s+(\1)\s+([a-z]+)\b"
+    
+    def fix_repeated_phrase(match):
+        word1 = match.group(1)  # "first"
+        middle1 = match.group(2)  # "come"
+        word2 = match.group(3)  # "first"
+        middle2 = match.group(4)  # "served"
+        
+        # Preserve the case of the first occurrence, but make second occurrence lowercase
+        return f"{word1} {middle1}, {word2.lower()} {middle2}"
+    
+    text = re.sub(repeated_phrase_pattern, fix_repeated_phrase, text, flags=re.IGNORECASE)
+    
+    # Apply comma insertion for each pattern
+    for pattern in introductory_patterns:
+        def add_comma_if_needed(match):
+            matched_phrase = match.group(0)
+            start_pos = match.start()
+            end_pos = match.end()
+            
+            # Check what comes after the phrase
+            remaining_text = text[end_pos:].lstrip()
+            
+            # Only add comma if:
+            # 1. There's more text after the phrase
+            # 2. The phrase is not already followed by punctuation
+            # 3. The phrase is at the beginning or after whitespace/punctuation
+            if (remaining_text and 
+                not remaining_text[0] in ',.!?;:' and
+                (start_pos == 0 or text[start_pos-1] in ' \n\t.!?')):
+                return matched_phrase + ','
+            
+            return matched_phrase
+        
+        # Apply the pattern with case insensitive matching
+        text = re.sub(pattern, add_comma_if_needed, text, flags=re.IGNORECASE)
+    
+    # Apply sentence starter patterns only for simple transition cases
+    # Avoid patterns that are handled elsewhere (introductory phrases, repeated phrases, idioms)
+    transition_starter_pattern = r"^(first|second|third|fourth|fifth)\s+(\w+)"
+    
+    def add_comma_for_transitions(match):
+        starter = match.group(1).lower()  # "first", "second", etc.
+        next_word = match.group(2).lower()  # next word
+        full_match = match.group(0).lower()
+        
+        # Skip if this is part of an introductory phrase
+        if 'of all' in text[match.start():match.start()+20].lower():
+            return match.group(0)  # Let introductory phrase handler deal with it
+        
+        # Skip if this looks like a repeated phrase pattern
+        remaining_text = text[match.end():].lower()
+        if f" {starter} " in remaining_text:
+            return match.group(0)  # Let repeated phrase handler deal with it
+        
+        # Skip idiomatic expressions
+        idiomatic_starters = {
+            'first thing', 'first things', 'second nature', 'second to', 'third wheel', 
+            'second thoughts', 'first time', 'second time', 'third time', 'fourth time',
+            'first place', 'second place', 'third place', 'first come'
+        }
+        phrase_start = f"{starter} {next_word}"
+        if any(phrase_start.startswith(idiom) for idiom in idiomatic_starters):
+            return match.group(0)  # No comma for idioms
+        
+        # For non-idiomatic transition uses at sentence start, add comma
+        return f"{match.group(1)}, {match.group(2)}"
+    
+    text = re.sub(transition_starter_pattern, add_comma_for_transitions, text, flags=re.IGNORECASE)
+    
+    # (repeated phrase patterns already applied above)
+    
+    return text
+
+
 def apply_smart_quotes(text: str) -> str:
     """
     Convert straight quotes and apostrophes to smart/curly equivalents.
