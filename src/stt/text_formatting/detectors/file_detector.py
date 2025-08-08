@@ -106,7 +106,7 @@ class FileDetector:
                 if token.pos_ == 'ADP' and token.text.lower() != "file":  # Prepositions: in/en/dans/в
                     break
 
-                # ** THE CRITICAL STOPPING LOGIC **
+                # ** THE CRITICAL STOPPING LOGIC WITH SPACY DEPENDENCY PARSING **
                 # Get language-specific filename stop words from i18n resources
                 filename_actions = self.resources.get("context_words", {}).get("filename_actions", [])
                 filename_linking = self.resources.get("context_words", {}).get("filename_linking", [])
@@ -118,10 +118,15 @@ class FileDetector:
                 is_punctuation = token.is_punct
                 is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != "v"
 
-                # Special handling for "file" - stop if preceded by articles or stop words
-                if token.text.lower() == "file" and i > 0:
-                    prev_token = doc[i - 1].text.lower()
-                    if prev_token in ["the", "a", "an", "this", "that"] or prev_token in filename_stop_words:
+                # Enhanced context-aware stopping using dependency parsing
+                is_context_word = self._is_context_word_using_dependencies(token, filename_tokens)
+
+                # Special handling for "file" using dependency parsing
+                if token.text.lower() == "file":
+                    # Use dependency parsing to determine if "file" is a descriptor vs part of filename
+                    should_stop_at_file = self._should_stop_at_file_word(token, doc, filename_tokens)
+                    if should_stop_at_file:
+                        logger.debug(f"SPACY FILENAME: Stopping at 'file' - determined to be context word via dependency parsing")
                         break
 
                 # Don't treat "file" as a stop word if it's part of a compound filename
@@ -135,9 +140,9 @@ class FileDetector:
                 )
                 is_stop_word_filtered = is_stop_word and not is_file_in_compound
 
-                if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator:
+                if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator or is_context_word:
                     logger.debug(
-                        f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})"
+                        f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator}, context:{is_context_word})"
                     )
                     break
 
@@ -199,7 +204,7 @@ class FileDetector:
             # Determine if this is a clear filename pattern (extension is recognized)
             is_clear_filename_pattern = extension in ["py", "js", "ts", "java", "cpp", "c", "h", "rb", "php", "go", "rs", "json", "xml", "html", "css", "md", "txt", "csv"]
             
-            # Remove action words and stop words from the beginning, with context-aware logic
+            # Enhanced context-aware filtering for regex fallback
             filtered_words = []
             for i, word in enumerate(filename_words):
                 word_lower = word.lower()
@@ -212,14 +217,31 @@ class FileDetector:
                 if word_lower in ["go", "to", "open", "edit", "run", "execute"] and not filtered_words:
                     continue  # Skip navigation/action words at the beginning
                 
-                # Special handling for certain stop words that might be part of filenames
+                # ENHANCED: Special handling for "file" word - check if it's a descriptor
+                if word_lower == "file":
+                    # Skip "file" if it appears after articles or action verbs
+                    context_before = " ".join(text[:match.start()].lower().split()[-3:]) if match.start() > 0 else ""
+                    
+                    # Skip if preceded by articles indicating it's a descriptor: "the file", "a file"
+                    if any(phrase in context_before for phrase in ["the file", "a file", "an file", "this file", "that file"]):
+                        continue
+                        
+                    # Skip if preceded by action verbs: "open file", "edit file"
+                    if any(phrase in context_before for phrase in ["open file", "edit file", "check file", "save file", "run file"]):
+                        continue
+                        
+                    # Skip if we already have substantial filename content (likely descriptor)
+                    if len(filtered_words) >= 2:
+                        continue
+                
+                # Special handling for other stop words that might be part of filenames
                 if word_lower in filename_stop_words:
-                    # Always skip generic stop words (articles, prepositions)
+                    # Always skip generic stop words (articles, prepositions) except "file" which we handled above
                     if word_lower in ["the", "a", "an", "this", "that", "in", "on", "for", "is", "was", "called"]:
                         continue  # Always skip these words, they're never part of filenames
                     
-                    # Context-aware handling for descriptive words like "script", "file", "document"
-                    elif word_lower in ["script", "file", "document"]:
+                    # Context-aware handling for descriptive words like "script", "document" (but not "file")
+                    elif word_lower in ["script", "document"]:
                         # If this is a clear filename pattern with a code extension, be more permissive
                         if is_clear_filename_pattern:
                             # Allow these descriptive words as they're likely part of the filename
@@ -264,8 +286,16 @@ class FileDetector:
                 
                 logger.debug(f"REGEX FALLBACK: Actual filename: '{actual_filename}', start: {actual_start}")
                 if actual_start != -1:
-                    actual_match_text = f"{actual_filename} dot {extension}"
-                    actual_end = actual_start + len(actual_match_text)
+                    # Calculate the end position based on the original full match, not reconstructed text
+                    # Find the actual end position in the original text
+                    actual_end = text.find(f" dot {extension}", actual_start)
+                    if actual_end != -1:
+                        actual_end = actual_end + len(f" dot {extension}")
+                        actual_match_text = text[actual_start:actual_end]
+                    else:
+                        # Fallback: use the original match boundaries
+                        actual_match_text = match.group(0)
+                        actual_end = match.end()
 
                     entities.append(
                         Entity(
@@ -290,3 +320,128 @@ class FileDetector:
                     f"Regex Fallback: Skipping '{full_filename}' because no filename words remain after filtering"
                 )
                 continue
+
+    def _is_context_word_using_dependencies(self, token, filename_tokens: list) -> bool:
+        """
+        Use spaCy dependency parsing to determine if a token is a context word rather than part of filename.
+        
+        Args:
+            token: spaCy token to analyze
+            filename_tokens: List of tokens already collected for filename
+            
+        Returns:
+            True if token should be treated as context word (stop collection)
+        """
+        try:
+            # Check dependency relations that indicate context rather than filename content
+            
+            # If this token is the root of a verb phrase, it's likely a command verb
+            if token.dep_ == "ROOT" and token.pos_ == "VERB":
+                return True
+                
+            # If this token is the subject of a sentence, it's likely not part of filename  
+            if token.dep_ in ["nsubj", "nsubj:pass"]:
+                return True
+                
+            # If this token is a determiner (the, a, an) it's context
+            if token.pos_ == "DET":
+                return True
+                
+            # If this token has children that are determiners, it's likely a noun phrase header
+            if any(child.pos_ == "DET" for child in token.children):
+                return True
+                
+            # Check if this token is syntactically distant from potential filename content
+            if filename_tokens:
+                last_filename_token = filename_tokens[-1]
+                
+                # If there's no direct syntactic relationship, this might be context
+                if not self._tokens_are_syntactically_related(token, last_filename_token):
+                    # Additional check: if this looks like a separate noun phrase
+                    if token.pos_ in ["NOUN", "PROPN"] and token.dep_ in ["pobj", "dobj", "attr"]:
+                        return True
+            
+            return False
+            
+        except (AttributeError, IndexError):
+            # If dependency parsing fails, fall back to conservative approach
+            return False
+
+    def _should_stop_at_file_word(self, file_token, doc, filename_tokens: list) -> bool:
+        """
+        Use spaCy dependency parsing to determine if "file" should stop filename collection.
+        
+        Args:
+            file_token: The spaCy token for "file"
+            doc: The spaCy document
+            filename_tokens: List of tokens already collected for filename
+            
+        Returns:
+            True if we should stop at this "file" token
+        """
+        try:
+            # Case 1: "the file config.py" - "file" is modified by "the" 
+            # Check if "file" has a determiner child or is preceded by determiner
+            if any(child.pos_ == "DET" for child in file_token.children):
+                return True
+                
+            if file_token.i > 0:
+                prev_token = doc[file_token.i - 1]
+                if prev_token.pos_ == "DET":  # the, a, an
+                    return True
+                    
+            # Case 2: "open file config.py" - "file" is the object of "open"
+            # Check if "file" is the direct object of a verb
+            if file_token.dep_ == "dobj" and file_token.head.pos_ == "VERB":
+                return True
+                
+            # Case 3: "edit the config file" - "file" is the head noun of a noun phrase
+            # Check if "file" is modified by other nouns (indicating it's the container)
+            noun_modifiers = [child for child in file_token.children if child.pos_ in ["NOUN", "PROPN", "ADJ"]]
+            if noun_modifiers:
+                return True
+                
+            # Case 4: If we already have filename content and "file" appears later, 
+            # it's likely descriptive: "config data file" -> want "config" not "config_data_file"
+            if len(filename_tokens) >= 2:  # Already have substantial filename content
+                return True
+                
+            return False
+            
+        except (AttributeError, IndexError):
+            # If dependency parsing fails, use conservative heuristics
+            if file_token.i > 0:
+                prev_token = doc[file_token.i - 1]
+                if prev_token.text.lower() in ["the", "a", "an", "this", "that"]:
+                    return True
+            return False
+
+    def _tokens_are_syntactically_related(self, token1, token2) -> bool:
+        """
+        Check if two tokens are syntactically related in the dependency tree.
+        
+        Args:
+            token1: First spaCy token
+            token2: Second spaCy token
+            
+        Returns:
+            True if tokens are directly related in dependency tree
+        """
+        try:
+            # Check if one is ancestor/descendant of the other
+            if token1.is_ancestor(token2) or token2.is_ancestor(token1):
+                return True
+                
+            # Check if they share a common parent (siblings)
+            if token1.head == token2.head and token1.head != token1 and token2.head != token2:
+                return True
+                
+            # Check if they are in the same noun compound
+            if (token1.dep_ in ["compound", "amod"] and token2.dep_ in ["compound", "amod"] and
+                token1.head == token2.head):
+                return True
+                
+            return False
+            
+        except (AttributeError, IndexError):
+            return False
