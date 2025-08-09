@@ -71,8 +71,8 @@ class TextFormatter:
         # Load shared NLP model once
         self.nlp = get_nlp()
         
-        # Initialize global document processor for centralized SpaCy doc caching
-        initialize_global_doc_processor(self.nlp, max_cache_size=10)
+        # Initialize global document processor for centralized SpaCy doc caching with enhanced cache size
+        initialize_global_doc_processor(self.nlp, max_cache_size=50)
 
         # Initialize components with dependency injection and language support
         self.entity_detector = EntityDetector(nlp=self.nlp, language=self.language)

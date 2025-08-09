@@ -186,8 +186,12 @@ class MeasurementDetector:
         """
         if not self.nlp:
             return
+        # Use shared document processor for optimal caching
+        from ...spacy_doc_cache import get_or_create_shared_doc
         try:
-            doc = self.nlp(text)
+            doc = get_or_create_shared_doc(text, nlp_model=self.nlp)
+            if doc is None:
+                raise ValueError("SpaCy document creation failed")
         except (AttributeError, ValueError, IndexError) as e:
             logger.warning(f"SpaCy metric unit detection failed: {e}")
             return

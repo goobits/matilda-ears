@@ -66,8 +66,12 @@ class FileDetector:
 
         entities_before_spacy = len(entities)
 
+        # Use shared document processor for optimal caching
+        from ..spacy_doc_cache import get_or_create_shared_doc
         try:
-            doc = self.nlp(text)
+            doc = get_or_create_shared_doc(text, nlp_model=self.nlp)
+            if doc is None:
+                raise ValueError("SpaCy document creation failed")
         except (AttributeError, ValueError, IndexError) as e:
             logger.warning(f"SpaCy filename detection failed: {e}")
             self._detect_filenames_regex_fallback(text, entities, all_entities)

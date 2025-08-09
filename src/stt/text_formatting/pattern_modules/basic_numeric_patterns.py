@@ -103,8 +103,9 @@ class SpacyOrdinalMatcher:
             if doc_processor:
                 doc = doc_processor.get_or_create_doc(text)
             else:
-                # Fallback to direct nlp processing if processor not available
-                doc = self.nlp(text) if self.nlp else None
+                # Use shared document processor for optimal caching
+                from ..spacy_doc_cache import get_or_create_shared_doc
+                doc = get_or_create_shared_doc(text, nlp_model=self.nlp) if self.nlp else None
             
             if not doc:
                 return None
@@ -163,8 +164,9 @@ class SpacyOrdinalMatcher:
             if doc_processor:
                 doc = doc_processor.get_or_create_doc(text)
             else:
-                # Fallback to direct nlp processing if processor not available
-                doc = self.nlp(text) if self.nlp else None
+                # Use shared document processor for optimal caching
+                from ..spacy_doc_cache import get_or_create_shared_doc
+                doc = get_or_create_shared_doc(text, nlp_model=self.nlp) if self.nlp else None
                 
             if not doc:
                 raise Exception("No document available")
@@ -202,8 +204,9 @@ class SpacyOrdinalMatcher:
             if doc_processor:
                 doc = doc_processor.get_or_create_doc(text)
             else:
-                # Fallback to direct nlp processing if processor not available
-                doc = self.nlp(text) if self.nlp else None
+                # Use shared document processor for optimal caching
+                from ..spacy_doc_cache import get_or_create_shared_doc
+                doc = get_or_create_shared_doc(text, nlp_model=self.nlp) if self.nlp else None
                 
             if not doc:
                 raise Exception("No document available")

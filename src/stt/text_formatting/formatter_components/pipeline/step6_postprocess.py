@@ -218,9 +218,13 @@ def _convert_context_aware_keyword(text: str, keyword: str, symbol: str, space_c
             logger.debug(f"SpaCy not available, using regex-based context validation for '{keyword}'")
             return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)
         
+        # Use shared document processor for optimal caching
+        from ...spacy_doc_cache import get_or_create_shared_doc
         try:
-            # Parse the text with spaCy
-            doc = nlp(text)
+            # Parse the text with shared SpaCy processor
+            doc = get_or_create_shared_doc(text, nlp_model=nlp)
+            if doc is None:
+                raise ValueError("SpaCy document creation failed")
         except Exception as e:
             logger.warning(f"SpaCy processing failed for keyword conversion: {e}")
             return _convert_keyword_with_regex_context(text, keyword, symbol, space_consuming_symbols)

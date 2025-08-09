@@ -178,10 +178,13 @@ class BasicNumberDetector:
         # First, run the SpaCy analysis once if available.
         doc = None
         if self.nlp:
+            # Use shared document processor for optimal caching
+            from ...spacy_doc_cache import get_or_create_shared_doc
             try:
-                doc = self.nlp(text)
+                doc = get_or_create_shared_doc(text, nlp_model=self.nlp)
             except Exception as e:
                 logger.warning(f"SpaCy ordinal analysis failed: {e}")
+                doc = None
 
         # First, detect compound ordinals like "one hundred first", "twenty first", etc.
         self._detect_compound_ordinals(text, entities, all_entities, doc)

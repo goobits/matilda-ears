@@ -47,11 +47,13 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self.format_detector.detect_version_numbers(text, numerical_entities, all_entities)
 
-        # Use shared doc if available, otherwise create new one
+        # Use shared doc if available, otherwise get from global document processor  
         if doc is None:
             if self.nlp:
+                # Use shared document processor for optimal caching
+                from ..spacy_doc_cache import get_or_create_shared_doc
                 try:
-                    doc = self.nlp(text)
+                    doc = get_or_create_shared_doc(text, nlp_model=self.nlp)
                 except (AttributeError, ValueError, IndexError) as e:
                     logger.warning(f"SpaCy numerical entity detection failed: {e}")
                     doc = None

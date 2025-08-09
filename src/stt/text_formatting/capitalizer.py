@@ -150,8 +150,12 @@ class SmartCapitalizer:
             # IMPORTANT: Always create a fresh doc object on the current text
             # The passed-in doc was created on the original text and its token indices
             # are no longer valid after text modifications
+            from .spacy_doc_cache import get_or_create_shared_doc
             try:
-                doc_to_use = self.nlp(text)
+                # Force creation since text may have been modified
+                doc_to_use = get_or_create_shared_doc(text, nlp_model=self.nlp, force_create=True)
+                if doc_to_use is None:
+                    raise ValueError("SpaCy document creation failed")
             except Exception as e:
                 logger.warning(f"SpaCy-based 'i' capitalization failed: {e}")
                 doc_to_use = None
@@ -276,8 +280,12 @@ class SmartCapitalizer:
 
         doc_to_use = doc
         if doc_to_use is None:
+            # Use shared document processor for proper noun capitalization
+            from .spacy_doc_cache import get_or_create_shared_doc
             try:
-                doc_to_use = self.nlp(text)
+                doc_to_use = get_or_create_shared_doc(text, nlp_model=self.nlp)
+                if doc_to_use is None:
+                    raise ValueError("SpaCy document creation failed")
             except (AttributeError, ValueError, IndexError) as e:
                 logger.debug(f"Error in spaCy proper noun capitalization: {e}")
                 return text

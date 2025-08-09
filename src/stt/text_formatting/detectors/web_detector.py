@@ -332,14 +332,18 @@ class WebEntityDetector:
         This method replaces the regex-based URL and email detection with
         SpaCy's more accurate token-level detection.
         """
-        # Use shared doc if available, otherwise create new one
+        # Use shared doc if available, otherwise get from global document processor
         if doc is None:
             if not self.nlp:
                 # Fallback to regex-based detection when SpaCy is not available
                 self._detect_links_regex_fallback(text, entities, existing_entities)
                 return
+            # Use shared document processor for optimal caching
+            from ..spacy_doc_cache import get_or_create_shared_doc
             try:
-                doc = self.nlp(text)
+                doc = get_or_create_shared_doc(text, nlp_model=self.nlp)
+                if doc is None:
+                    raise ValueError("SpaCy document creation failed")
             except (AttributeError, ValueError, IndexError) as e:
                 logger.warning(f"SpaCy link detection failed: {e}")
                 # Use regex fallback on SpaCy failure
