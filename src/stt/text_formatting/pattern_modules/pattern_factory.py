@@ -6,6 +6,7 @@ to avoid duplication across pattern modules.
 """
 
 import re
+import inspect
 from typing import Dict, Any, Callable, Union, List
 from functools import lru_cache
 
@@ -19,8 +20,16 @@ class PatternFactory:
         self._builders: Dict[str, Callable] = {}
         self._builders_loaded = False
         
+        # Pre-computed signature metadata to eliminate runtime inspect.signature() calls
+        self._builder_signatures: Dict[str, bool] = {}  # True if accepts language param
+        self._signature_cache_loaded = False
+        
         # Cache for created patterns
         self._pattern_cache: Dict[str, Any] = {}
+        
+        # Performance monitoring
+        self._pattern_requests = 0
+        self._cache_hits = 0
     
     def _load_builders(self):
         """Lazily load all builder functions to avoid circular imports."""
@@ -81,6 +90,25 @@ class PatternFactory:
         }
         
         self._builders_loaded = True
+        
+        # Pre-compute signatures after loading builders
+        self._precompute_signatures()
+    
+    def _precompute_signatures(self):
+        """Pre-compute builder function signatures for fast lookup."""
+        if self._signature_cache_loaded:
+            return
+            
+        # Pre-compute which builders accept language parameter
+        for pattern_name, builder in self._builders.items():
+            try:
+                sig = inspect.signature(builder)
+                self._builder_signatures[pattern_name] = "language" in sig.parameters
+            except (ValueError, TypeError):
+                # If signature inspection fails, assume no language parameter
+                self._builder_signatures[pattern_name] = False
+        
+        self._signature_cache_loaded = True
     
     def get_pattern(self, pattern_name: str, language: str = "en") -> Union[re.Pattern[str], List[re.Pattern[str]]]:
         """
@@ -98,6 +126,9 @@ class PatternFactory:
         """
         self._load_builders()
         
+        # Performance monitoring
+        self._pattern_requests += 1
+        
         cache_key = f"{pattern_name}_{language}"
         
         if cache_key not in self._pattern_cache:
@@ -106,15 +137,16 @@ class PatternFactory:
             
             builder = self._builders[pattern_name]
             
-            # Check if builder accepts language parameter
-            import inspect
-            sig = inspect.signature(builder)
-            if "language" in sig.parameters:
+            # Use pre-computed signature cache instead of runtime inspection
+            if self._builder_signatures.get(pattern_name, False):
                 pattern = builder(language)
             else:
                 pattern = builder()
             
             self._pattern_cache[cache_key] = pattern
+        else:
+            # Track cache hits for performance monitoring
+            self._cache_hits += 1
         
         return self._pattern_cache[cache_key]
     
@@ -126,6 +158,29 @@ class PatternFactory:
     def clear_cache(self) -> None:
         """Clear the pattern cache."""
         self._pattern_cache.clear()
+    
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """
+        Get performance statistics for the pattern factory.
+        
+        Returns:
+            Dictionary containing performance metrics
+        """
+        cache_hit_rate = (self._cache_hits / self._pattern_requests * 100) if self._pattern_requests > 0 else 0.0
+        
+        return {
+            "total_requests": self._pattern_requests,
+            "cache_hits": self._cache_hits,
+            "cache_hit_rate_percent": round(cache_hit_rate, 2),
+            "cache_size": len(self._pattern_cache),
+            "builders_loaded": self._builders_loaded,
+            "signatures_cached": len(self._builder_signatures),
+        }
+    
+    def reset_performance_stats(self) -> None:
+        """Reset performance monitoring counters."""
+        self._pattern_requests = 0
+        self._cache_hits = 0
 
 
 # Global factory instance
@@ -144,11 +199,21 @@ def clear_pattern_cache() -> None:
     """Clear the pattern cache."""
     _factory.clear_cache()
 
+def get_factory_performance_stats() -> Dict[str, Any]:
+    """Get performance statistics for the pattern factory."""
+    return _factory.get_performance_stats()
+
+def reset_factory_performance_stats() -> None:
+    """Reset performance monitoring counters."""
+    _factory.reset_performance_stats()
+
 
 # Export the factory interface
 __all__ = [
     "PatternFactory",
     "get_pattern", 
     "get_all_pattern_names",
-    "clear_pattern_cache"
+    "clear_pattern_cache",
+    "get_factory_performance_stats",
+    "reset_factory_performance_stats"
 ]
