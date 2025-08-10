@@ -391,3 +391,65 @@ def preloaded_formatter():
     from stt.text_formatting.formatter import format_transcription
 
     return format_transcription
+
+
+@pytest.fixture
+def aec_processor():
+    """Provide WebRTC AEC processor with dependency checking."""
+    try:
+        from examples.smart_voice_demo import WebRTCAECProcessor
+        return WebRTCAECProcessor()
+    except ImportError:
+        pytest.skip("WebRTC AEC processor not available - missing demo dependencies")
+
+
+@pytest.fixture
+def tts_engine():
+    """Provide TTS engine with graceful dependency checking."""
+    try:
+        from examples.smart_voice_demo import TTSCLIEngine
+        
+        # Create a mock class that bypasses TTS CLI verification for testing
+        class MockTTSCLIEngine(TTSCLIEngine):
+            def _verify_tts_available(self):
+                """Override TTS CLI verification for testing."""
+                import subprocess
+                try:
+                    result = subprocess.run(["tts", "status"], capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        self.logger.info("TTS CLI verified successfully")
+                        return
+                except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                    # Instead of logging error, skip the test gracefully
+                    pytest.skip(f"TTS CLI not available: {e}. Install TTS CLI or ensure it's in your PATH")
+        
+        return MockTTSCLIEngine()
+        
+    except ImportError:
+        pytest.skip("TTS CLI engine not available - missing demo dependencies")
+
+
+@pytest.fixture
+def ttt_processor():
+    """Provide TTT CLI processor with graceful dependency checking."""
+    try:
+        from examples.smart_voice_demo import TTTCLIProcessor
+        
+        # Create a mock class that bypasses TTT CLI verification for testing
+        class MockTTTCLIProcessor(TTTCLIProcessor):
+            def _verify_ttt_available(self):
+                """Override TTT CLI verification for testing."""
+                import subprocess
+                try:
+                    result = subprocess.run(["ttt", "status"], capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        self.logger.info("TTT CLI verified successfully")
+                        return
+                except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                    # Instead of logging error, skip the test gracefully
+                    pytest.skip(f"TTT CLI not available: {e}. Install TTT CLI or ensure it's in your PATH")
+        
+        return MockTTTCLIProcessor()
+        
+    except ImportError:
+        pytest.skip("TTT CLI processor not available - missing demo dependencies")
