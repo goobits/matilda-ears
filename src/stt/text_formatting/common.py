@@ -97,6 +97,9 @@ class NumberParser:
     def __init__(self, language: str = "en"):
         from .constants import get_resources
 
+        # Store language for use in other methods
+        self.language = language
+
         # Load language-specific number words
         resources = get_resources(language)
         number_resources = resources.get("number_words", {})
@@ -109,43 +112,18 @@ class NumberParser:
         else:
             # Fallback to hardcoded English for backward compatibility
             self.ones = {
-                "zero": 0,
-                "one": 1,
-                "two": 2,
-                "three": 3,
-                "four": 4,
-                "five": 5,
-                "six": 6,
-                "seven": 7,
-                "eight": 8,
-                "nine": 9,
-                "ten": 10,
-                "eleven": 11,
-                "twelve": 12,
-                "thirteen": 13,
-                "fourteen": 14,
-                "fifteen": 15,
-                "sixteen": 16,
-                "seventeen": 17,
-                "eighteen": 18,
-                "nineteen": 19,
+                "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+                "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11,
+                "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+                "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19
             }
             self.tens = {
-                "twenty": 20,
-                "thirty": 30,
-                "forty": 40,
-                "fifty": 50,
-                "sixty": 60,
-                "seventy": 70,
-                "eighty": 80,
-                "ninety": 90,
+                "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+                "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90
             }
             self.scales = {
-                "hundred": 100,
-                "thousand": 1000,
-                "million": 1000000,
-                "billion": 1000000000,
-                "trillion": 1000000000000,
+                "hundred": 100, "thousand": 1000, "million": 1000000,
+                "billion": 1000000000, "trillion": 1000000000000
             }
 
         # Combine all number words for easy checking
@@ -288,55 +266,35 @@ class NumberParser:
 
         text = text.strip().lower().replace("-", " ")
 
-        # Handle special cases first
-        special_ordinals = {
-            "first": "1",
-            "second": "2",
-            "third": "3",
-            "fourth": "4",
-            "fifth": "5",
-            "sixth": "6",
-            "seventh": "7",
-            "eighth": "8",
-            "ninth": "9",
-            "tenth": "10",
-            "eleventh": "11",
-            "twelfth": "12",
-            "thirteenth": "13",
-            "fourteenth": "14",
-            "fifteenth": "15",
-            "sixteenth": "16",
-            "seventeenth": "17",
-            "eighteenth": "18",
-            "nineteenth": "19",
-            "twentieth": "20",
-            "thirtieth": "30",
-            "fortieth": "40",
-            "fiftieth": "50",
-            "sixtieth": "60",
-            "seventieth": "70",
-            "eightieth": "80",
-            "ninetieth": "90",
-            "hundredth": "100",
-            "thousandth": "1000",
-        }
+        # Load ordinal mappings from resources via mapping registry
+        from .mapping_registry import get_mapping_registry
+        registry = get_mapping_registry(self.language)
+        special_ordinals = registry.get_ordinal_word_to_numeric()
+        
+        # Extract just the numeric part (without suffixes) for internal parsing
+        special_ordinals_numeric = {}
+        for word, ordinal_str in special_ordinals.items():
+            # Extract numeric part (e.g., "1st" -> "1", "2nd" -> "2")
+            numeric_part = ''.join(filter(str.isdigit, ordinal_str))
+            if numeric_part:
+                special_ordinals_numeric[word] = numeric_part
 
-        if text in special_ordinals:
-            return special_ordinals[text]
+        if text in special_ordinals_numeric:
+            return special_ordinals_numeric[text]
 
         # Handle compound ordinals like "twenty first", "one hundred first"
         words = text.split()
         # Find the last word that is an ordinal
         last_word = words[-1] if words else ""
 
-        if last_word in special_ordinals:
+        if last_word in special_ordinals_numeric:
             # Get the cardinal part of the text
             cardinal_part_text = " ".join(words[:-1])
             if cardinal_part_text:
                 cardinal_num_str = self.parse(cardinal_part_text)
                 if cardinal_num_str:
                     cardinal_value = int(cardinal_num_str)
-                    ordinal_value = int(special_ordinals[last_word])
+                    ordinal_value = int(special_ordinals_numeric[last_word])
 
                     # For any compound ordinal like "twenty-first" or "hundred-first", the value is the sum.
                     if cardinal_value > 0 and cardinal_value % 10 == 0:

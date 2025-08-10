@@ -186,58 +186,56 @@ class MappingRegistry:
         }
         
     def _init_number_mappings(self) -> None:
-        """Initialize all number-related word mappings."""
-        # Time-specific word mappings
-        self._mappings["time_word_mappings"] = {
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-            "ten": "10",
-            "eleven": "11",
-            "twelve": "12",
-            "fifteen": "15",
-            "twenty": "20",
-            "thirty": "30",
-            "forty five": "45",
-            "forty-five": "45",
-            "oh": "0",
-        }
-        
-        # Digit word mappings
-        self._mappings["digit_word_mappings"] = {
-            "zero": "0",
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-        }
-        
-        # Number word mappings
-        self._mappings["number_word_mappings"] = {
-            "one": "1",
-            "two": "2",
-            "three": "3",
-            "four": "4",
-            "five": "5",
-            "six": "6",
-            "seven": "7",
-            "eight": "8",
-            "nine": "9",
-            "ten": "10",
-            "eleven": "11",
-            "twelve": "12",
-        }
+        """Initialize all number-related word mappings from resources."""
+        # Load number mappings from resources
+        try:
+            resource_path = os.path.join(
+                os.path.dirname(__file__),
+                "resources",
+                f"{self.language}.json"
+            )
+            with open(resource_path, "r", encoding="utf-8") as f:
+                resources = json.load(f)
+                
+                number_words = resources.get("number_words", {})
+                
+                # Load digit word mappings from resources
+                self._mappings["digit_word_mappings"] = number_words.get("digit_words", {
+                    "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+                    "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9"
+                })
+                
+                # Build number word mappings from ones resource
+                ones_data = number_words.get("ones", {})
+                self._mappings["number_word_mappings"] = {k: str(v) for k, v in ones_data.items() if v <= 12}
+                
+                # Build time-specific word mappings
+                self._mappings["time_word_mappings"] = {
+                    "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+                    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+                    "eleven": "11", "twelve": "12", "fifteen": "15", "twenty": "20",
+                    "thirty": "30", "forty five": "45", "forty-five": "45", "oh": "0"
+                }
+                
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Fallback to hardcoded mappings for backward compatibility
+            self._mappings["digit_word_mappings"] = {
+                "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+                "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9"
+            }
+            
+            self._mappings["number_word_mappings"] = {
+                "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+                "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+                "eleven": "11", "twelve": "12"
+            }
+            
+            self._mappings["time_word_mappings"] = {
+                "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+                "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+                "eleven": "11", "twelve": "12", "fifteen": "15", "twenty": "20",
+                "thirty": "30", "forty five": "45", "forty-five": "45", "oh": "0"
+            }
         
         # Denominator mappings for fractions
         self._mappings["denominator_mappings"] = {
@@ -284,44 +282,64 @@ class MappingRegistry:
         }
         
     def _init_ordinal_mappings(self) -> None:
-        """Initialize ordinal number mappings (bidirectional)."""
-        # Word to numeric ordinals
-        self._mappings["ordinal_word_to_numeric"] = {
-            "first": "1st",
-            "second": "2nd",
-            "third": "3rd",
-            "fourth": "4th",
-            "fifth": "5th",
-            "sixth": "6th",
-            "seventh": "7th",
-            "eighth": "8th",
-            "ninth": "9th",
-            "tenth": "10th",
-            "eleventh": "11th",
-            "twelfth": "12th",
-            "thirteenth": "13th",
-            "fourteenth": "14th",
-            "fifteenth": "15th",
-            "sixteenth": "16th",
-            "seventeenth": "17th",
-            "eighteenth": "18th",
-            "nineteenth": "19th",
-            "twentieth": "20th",
-            "twenty first": "21st",
-            "twenty-first": "21st",
-            "twenty second": "22nd",
-            "twenty-second": "22nd",
-            "twenty third": "23rd",
-            "twenty-third": "23rd",
-            "thirtieth": "30th",
-            "fortieth": "40th",
-            "fiftieth": "50th",
-            "sixtieth": "60th",
-            "seventieth": "70th",
-            "eightieth": "80th",
-            "ninetieth": "90th",
-            "hundredth": "100th",
-        }
+        """Initialize ordinal number mappings from resources."""
+        # Load ordinal mappings from resources
+        try:
+            resource_path = os.path.join(
+                os.path.dirname(__file__),
+                "resources",
+                f"{self.language}.json"
+            )
+            with open(resource_path, "r", encoding="utf-8") as f:
+                resources = json.load(f)
+                
+                # Get ordinal words and suffixes from resources
+                technical = resources.get("technical", {})
+                ordinal_words = technical.get("ordinal_words", [])
+                ordinal_suffixes = technical.get("ordinal_suffixes", {})
+                
+                # Build ordinal word to numeric mapping
+                self._mappings["ordinal_word_to_numeric"] = {}
+                
+                # Map ordinal words to their numeric forms using suffixes from resources
+                for i, word in enumerate(ordinal_words, 1):
+                    if str(i) in ordinal_suffixes:
+                        self._mappings["ordinal_word_to_numeric"][word] = ordinal_suffixes[str(i)]
+                    else:
+                        # Fallback to computed suffix
+                        suffix = self._get_ordinal_suffix(i)
+                        self._mappings["ordinal_word_to_numeric"][word] = f"{i}{suffix}"
+                
+                # Add common compound ordinals using resources
+                compound_ordinals = {
+                    "twenty first": "21", "twenty-first": "21",
+                    "twenty second": "22", "twenty-second": "22", 
+                    "twenty third": "23", "twenty-third": "23",
+                    "thirty first": "31", "thirty-first": "31"
+                }
+                
+                for word, num in compound_ordinals.items():
+                    if num in ordinal_suffixes:
+                        self._mappings["ordinal_word_to_numeric"][word] = ordinal_suffixes[num]
+                    else:
+                        suffix = self._get_ordinal_suffix(int(num))
+                        self._mappings["ordinal_word_to_numeric"][word] = f"{num}{suffix}"
+                        
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Fallback to hardcoded ordinals for backward compatibility
+            self._mappings["ordinal_word_to_numeric"] = {
+                "first": "1st", "second": "2nd", "third": "3rd", "fourth": "4th",
+                "fifth": "5th", "sixth": "6th", "seventh": "7th", "eighth": "8th",
+                "ninth": "9th", "tenth": "10th", "eleventh": "11th", "twelfth": "12th",
+                "thirteenth": "13th", "fourteenth": "14th", "fifteenth": "15th",
+                "sixteenth": "16th", "seventeenth": "17th", "eighteenth": "18th",
+                "nineteenth": "19th", "twentieth": "20th", "twenty first": "21st",
+                "twenty-first": "21st", "twenty second": "22nd", "twenty-second": "22nd",
+                "twenty third": "23rd", "twenty-third": "23rd", "thirtieth": "30th",
+                "fortieth": "40th", "fiftieth": "50th", "sixtieth": "60th",
+                "seventieth": "70th", "eightieth": "80th", "ninetieth": "90th",
+                "hundredth": "100th",
+            }
         
         # Numeric to word ordinals (reverse mapping)
         self._mappings["ordinal_numeric_to_word"] = {
@@ -357,6 +375,12 @@ class MappingRegistry:
             90: "ninetieth",
             100: "hundredth",
         }
+        
+    def _get_ordinal_suffix(self, num: int) -> str:
+        """Get the ordinal suffix for a number (st, nd, rd, th)."""
+        if 11 <= num % 100 <= 13:
+            return "th"
+        return {1: "st", 2: "nd", 3: "rd"}.get(num % 10, "th")
         
     def _init_mathematical_mappings(self) -> None:
         """Initialize mathematical symbol and operator mappings."""

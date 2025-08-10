@@ -189,7 +189,7 @@ class SpacyOrdinalMatcher:
     
     def finditer(self, text: str) -> List['SpacyOrdinalMatch']:
         """
-        Find all ordinal matches and return iterator-like list of match objects.
+        Find all ordinal matches using SpaCy NER with regex pattern fallback.
         
         Args:
             text: Text to search in
@@ -198,8 +198,10 @@ class SpacyOrdinalMatcher:
             List of SpacyOrdinalMatch objects (for regex compatibility)
         """
         matches = []
+        found_positions = set()  # Track positions to avoid duplicates
+        
         try:
-            # Use centralized document processor for better caching
+            # First, try SpaCy NER detection
             doc_processor = get_global_doc_processor()
             if doc_processor:
                 doc = doc_processor.get_or_create_doc(text)
@@ -208,33 +210,69 @@ class SpacyOrdinalMatcher:
                 from ..spacy_doc_cache import get_or_create_shared_doc
                 doc = get_or_create_shared_doc(text, nlp_model=self.nlp) if self.nlp else None
                 
-            if not doc:
-                raise Exception("No document available")
-            for ent in doc.ents:
-                if ent.label_ == "ORDINAL":
-                    if not self._should_skip_ordinal_basic(ent, text):
-                        matches.append(SpacyOrdinalMatch(
-                            match_text=ent.text,
-                            start=ent.start_char,
-                            end=ent.end_char,
-                            groups=(ent.text,)
-                        ))
+            if doc:
+                for ent in doc.ents:
+                    if ent.label_ == "ORDINAL":
+                        if not self._should_skip_ordinal_basic(ent, text):
+                            matches.append(SpacyOrdinalMatch(
+                                match_text=ent.text,
+                                start=ent.start_char,
+                                end=ent.end_char,
+                                groups=(ent.text,)
+                            ))
+                            found_positions.add((ent.start_char, ent.end_char))
         except Exception as e:
             # Log the error and fallback to basic regex
             logger.debug(f"SpaCy ordinal finditer failed: {e}. Falling back to regex pattern.")
-            import re
-            fallback_pattern = re.compile(
-                r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b",
-                re.IGNORECASE
-            )
-            for match in fallback_pattern.finditer(text):
-                matches.append(SpacyOrdinalMatch(
-                    match_text=match.group(0),
-                    start=match.start(),
-                    end=match.end(),
-                    groups=match.groups()
-                ))
-            logger.debug(f"Regex fallback found {len(matches)} ordinals")
+        
+        # Add regex pattern fallback for ordinals SpaCy might miss
+        try:
+            # Load ordinal words from resources to build dynamic pattern
+            from ..constants import get_resources
+            resources = get_resources(self.language)
+            ordinal_words = resources.get("technical", {}).get("ordinal_words", [])
+            
+            if ordinal_words:
+                # Build pattern from resource ordinal words
+                escaped_words = [re.escape(word) for word in ordinal_words]
+                pattern_str = r"\b(" + "|".join(escaped_words) + r")\b"
+                pattern = re.compile(pattern_str, re.IGNORECASE)
+            else:
+                # Fallback to hardcoded pattern if resources unavailable
+                pattern = re.compile(
+                    r"\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|"
+                    r"eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|"
+                    r"eighteenth|nineteenth|twentieth|twenty[-\s]?first|twenty[-\s]?second|"
+                    r"twenty[-\s]?third|thirtieth|fortieth|fiftieth|sixtieth|seventieth|"
+                    r"eightieth|ninetieth|hundredth|thousandth)\b",
+                    re.IGNORECASE,
+                )
+                
+            # Find regex matches that aren't already found by SpaCy
+            for match in pattern.finditer(text):
+                start, end = match.start(), match.end()
+                if (start, end) not in found_positions:
+                    # Check if this should be skipped (same logic as SpaCy version)
+                    match_text = match.group()
+                    # Create a simple object to pass to _should_skip_ordinal_basic
+                    class SimpleMatch:
+                        def __init__(self, text, start_char, end_char):
+                            self.text = text
+                            self.start_char = start_char
+                            self.end_char = end_char
+                    
+                    simple_ent = SimpleMatch(match_text, start, end)
+                    if not self._should_skip_ordinal_basic(simple_ent, text):
+                        matches.append(SpacyOrdinalMatch(
+                            match_text=match_text,
+                            start=start,
+                            end=end,
+                            groups=(match_text,)
+                        ))
+                        found_positions.add((start, end))
+                        
+        except Exception as e:
+            logger.debug(f"Regex fallback for ordinals failed: {e}")
         
         return matches
     
