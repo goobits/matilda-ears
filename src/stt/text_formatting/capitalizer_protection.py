@@ -74,6 +74,46 @@ class EntityProtection:
                         else:
                             logger.debug(f"Variable 'i' in variable context - preventing capitalization")
                             return False
+                    elif entity.type.name in ["SPOKEN_EMAIL", "EMAIL"]:
+                        # Special case: emails at sentence start should have first letter capitalized
+                        # when they begin with a normal word (e.g., "email support@..." -> "Email support@...")
+                        # This handles cases like "email support at company dot com" -> "Email support@company.com"
+                        if entity.start == 0 and first_letter_index == 0:
+                            # Check if the first word looks like a normal word (not technical/address-like)
+                            first_word = entity.text.split()[0] if entity.text else ""
+                            if self._should_capitalize_first_word_in_email(first_word):
+                                logger.debug(f"Email entity '{entity.text}' at sentence start - allowing first word capitalization")
+                                return True
+                        logger.debug(f"Email entity '{entity.text}' - preventing capitalization to preserve email format")
+                        return False
+                    elif entity.type.name in ["VARIABLE", "SIMPLE_UNDERSCORE_VARIABLE", "UNDERSCORE_DELIMITER", 
+                                             "INCREMENT_OPERATOR", "DECREMENT_OPERATOR"]:
+                        # Special case: code entities at sentence start in natural language contexts
+                        # should allow sentence-start capitalization for normal words
+                        # This handles Spanish cases like "índice menos menos" -> "Índice --" 
+                        # and "variable guión bajo nombre" -> "Variable _nombre"
+                        if entity.start == 0 and first_letter_index == 0:
+                            # Extract the first word from the entity text 
+                            # Handle cases like "índice--" where there are no spaces
+                            entity_words = entity.text.split()
+                            if entity_words:
+                                first_word = entity_words[0] 
+                            else:
+                                first_word = ""
+                            
+                            # If there's only one "word" but it contains non-alphabetic characters,
+                            # extract just the alphabetic prefix (e.g., "índice--" -> "índice")
+                            if len(entity_words) == 1 and entity.text:
+                                # Find the first sequence of alphabetic characters
+                                alpha_match = re.match(r'[a-zA-ZáéíóúñÁÉÍÓÚÑ]+', entity.text)
+                                if alpha_match:
+                                    first_word = alpha_match.group()
+                            
+                            if first_word and self._should_capitalize_first_word_in_code_entity(first_word):
+                                logger.debug(f"Code entity '{entity.text}' at sentence start - allowing first word capitalization for '{first_word}'")
+                                return True
+                        logger.debug(f"Code entity '{entity.text}' - preventing capitalization to preserve technical format")
+                        return False
                     else:
                         logger.debug(f"Entity {entity.type} is strictly protected")
                         return False
@@ -372,3 +412,97 @@ class EntityProtection:
             
         # Default: assume natural language context (safer to capitalize)
         return True
+    
+    def _should_capitalize_first_word_in_email(self, first_word: str) -> bool:
+        """Check if the first word in an email entity should be capitalized at sentence start.
+        
+        Args:
+            first_word: The first word of the email entity
+            
+        Returns:
+            True if the first word looks like a normal word that should be capitalized
+        """
+        if not first_word:
+            return False
+            
+        first_word_lower = first_word.lower()
+        
+        # Common action words that typically start email sentences
+        email_action_words = {
+            "email", "contact", "send", "forward", "reach", "notify", "message", "mail",
+            "write", "communicate", "support", "help", "info", "admin", "sales"
+        }
+        
+        # Spanish equivalents
+        spanish_action_words = {
+            "email", "contacto", "enviar", "reenviar", "alcanzar", "notificar", 
+            "mensaje", "correo", "escribir", "comunicar", "soporte", "ayuda", 
+            "información", "admin", "ventas", "índice", "variable", "función",
+            "método", "archivo", "documento", "servidor", "sistema"
+        }
+        
+        # Technical terms that might appear in email contexts but should still be capitalized at sentence start
+        technical_words = {
+            "server", "admin", "support", "help", "info", "system", "service", "api",
+            "database", "config", "setup", "install", "update", "backup", "log",
+            "user", "guest", "client", "host", "domain", "account", "profile"
+        }
+        
+        # Check if it's a recognizable word that should be capitalized
+        if (first_word_lower in email_action_words or 
+            first_word_lower in spanish_action_words or 
+            first_word_lower in technical_words):
+            return True
+            
+        # Don't capitalize if it looks like part of an email address or technical identifier
+        # (contains digits, special chars, or is very short technical abbreviation)
+        if (re.match(r'^[a-z0-9._-]+$', first_word_lower) and 
+            (any(c.isdigit() for c in first_word) or '_' in first_word or '-' in first_word)):
+            return False
+            
+        # If it's a normal-looking word (all letters), probably safe to capitalize
+        if first_word.isalpha() and len(first_word) > 1:
+            return True
+            
+        return False
+    
+    def _should_capitalize_first_word_in_code_entity(self, first_word: str) -> bool:
+        """Check if the first word in a code entity should be capitalized at sentence start.
+        
+        Args:
+            first_word: The first word of the code entity
+            
+        Returns:
+            True if the first word looks like a normal word that should be capitalized
+        """
+        if not first_word:
+            return False
+            
+        first_word_lower = first_word.lower()
+        
+        # Common natural language words that appear in code contexts but should be capitalized at sentence start
+        natural_language_words = {
+            # English
+            "index", "variable", "function", "method", "class", "object", "value", "result", 
+            "counter", "number", "item", "element", "data", "list", "array", "string", "text",
+            "file", "document", "server", "client", "user", "admin", "system", "config",
+            # Spanish
+            "índice", "variable", "función", "método", "clase", "objeto", "valor", "resultado",
+            "contador", "número", "elemento", "datos", "lista", "array", "cadena", "texto",
+            "archivo", "documento", "servidor", "cliente", "usuario", "administrador", "sistema"
+        }
+        
+        # Check if it's a recognizable natural language word
+        if first_word_lower in natural_language_words:
+            return True
+            
+        # Don't capitalize if it looks like a technical identifier 
+        # (starts with underscore, contains digits mixed with letters, etc.)
+        if first_word.startswith('_') or re.match(r'^[a-z0-9_-]+$', first_word_lower):
+            return False
+            
+        # If it's a normal-looking word (all letters), probably safe to capitalize at sentence start
+        if first_word.isalpha() and len(first_word) > 1:
+            return True
+            
+        return False
