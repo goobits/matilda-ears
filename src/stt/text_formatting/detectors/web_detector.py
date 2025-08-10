@@ -157,8 +157,25 @@ class WebEntityDetector:
             if not is_inside_entity(match.start(), match.end(), existing_entities):
                 # Include trailing punctuation in the entity if present
                 full_match = match.group(0)  # Full match including punctuation
+                
+                # Trim action words from the beginning of the URL entity
+                # Common action words that should not be part of the URL entity
+                action_words = ["go to", "visit", "check", "navigate to", "browse", "open", "to"]
+                
+                trimmed_start = match.start()
+                trimmed_text = full_match
+                
+                for action in action_words:
+                    if full_match.lower().startswith(action + " "):
+                        # Calculate the new start position
+                        action_len = len(action) + 1  # +1 for the space
+                        trimmed_start = match.start() + action_len
+                        trimmed_text = full_match[action_len:]
+                        logger.debug(f"Trimmed action word '{action}' from URL entity")
+                        break
+                
                 web_entities.append(
-                    Entity(start=match.start(), end=match.end(), text=full_match, type=EntityType.SPOKEN_URL)
+                    Entity(start=trimmed_start, end=match.end(), text=trimmed_text, type=EntityType.SPOKEN_URL)
                 )
 
     def _detect_spoken_emails(self, text: str, web_entities: list[Entity], existing_entities: list[Entity]) -> None:
@@ -198,14 +215,14 @@ class WebEntityDetector:
 
         # Contextual email pattern that handles action phrases correctly
         # Pattern matches: [optional_action_phrase] username_words + at + domain
-        # IMPORTANT: Limit username to 1-3 words to avoid matching URL-like text
+        # IMPORTANT: Use context-based filtering to avoid URL conflicts instead of requiring actions
         simple_email_pattern = rf"""
-        (?:                                 # Optional context words (action phrases)
-            (?:email|contact|send\s+to|forward\s+to|reach\s+out\s+to|notify|send\s+the\s+report\s+to|forward\s+this\s+to|visit)\s+
+        (?:                                 # Optional context words (email action phrases)
+            (?:email|contact|send\s+to|forward\s+to|reach\s+out\s+to|notify|send\s+the\s+report\s+to|forward\s+this\s+to)\s+
         )?
         (                                   # Capture group for the whole email only
             [a-zA-Z]\w*                     # Username starting with letter, then word chars
-            (?:\s+[a-zA-Z0-9]+){{0,2}}      # Optional 1-2 additional username words (max 3 words total)
+            (?:\s+[a-zA-Z0-9_-]+){{0,1}}    # Optional 1 additional username word (max 2 words total)
             \s+(?:{at_pattern})\s+          # "at" keyword
             [a-zA-Z0-9-]+                   # First domain part
             (?:\s+[a-zA-Z0-9]+)*            # Optional additional domain words (handles "help one")
@@ -243,7 +260,7 @@ class WebEntityDetector:
             common_email_usernames = {"support", "help", "info", "admin", "contact", "sales", "hello"}
             
             # URL action words that suggest this should be a URL, not email
-            url_actions = {"visit", "go to", "check", "navigate to", "browse", "open"}
+            url_actions = {"visit", "go to", "check", "navigate to", "browse", "open", "website at", "site at", "page at"}
 
             should_skip = False
             
@@ -251,14 +268,22 @@ class WebEntityDetector:
             username_words = username_lower.split()
             contains_location_noun = any(word in location_nouns for word in username_words)
             
+            # Check if username contains website-related terms
+            website_terms = {"website", "site", "page", "docs", "documentation", "api", "server"}
+            contains_website_terms = any(term in username_lower for term in website_terms)
+            
             # Check if username itself contains URL action words (e.g., "visit user")
             username_contains_url_action = any(action in username_lower for action in url_actions)
             
-            # Check what comes before this match
+            # Check what comes before this match (larger context)
             before_match = text[: match.start()].lower().strip()
             
             # Check for URL action words before this match
             has_url_action = any(before_match.endswith(action) for action in url_actions)
+            
+            # Also check for URL context phrases that include "at"
+            url_context_phrases = {"website at", "site at", "page at", "docs at", "documentation at", "api at"}
+            has_url_context_phrase = any(phrase in before_match for phrase in url_context_phrases)
             
             # Check for email action words before this match  
             email_actions = self.resources.get("context_words", {}).get("email_actions", [])
@@ -271,6 +296,14 @@ class WebEntityDetector:
             # Skip if the username contains location nouns (even without explicit URL action)
             elif contains_location_noun:
                 logger.debug(f"Skipping email match '{email_text}' - contains location noun '{username}'")
+                should_skip = True
+            # Skip if the username contains website-related terms (high priority)
+            elif contains_website_terms:
+                logger.debug(f"Skipping email match '{email_text}' - contains website terms in '{username}'")
+                should_skip = True
+            # Skip if there's a URL context phrase like "website at"
+            elif has_url_context_phrase:
+                logger.debug(f"Skipping email match '{email_text}' - URL context phrase detected")
                 should_skip = True
             # Skip if there's a URL action and no explicit email action
             elif has_url_action and not has_email_action:

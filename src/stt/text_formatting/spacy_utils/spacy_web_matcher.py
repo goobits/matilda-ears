@@ -79,6 +79,7 @@ class SpacyWebMatcher:
         """Initialize semantic patterns for web entity detection."""
         
         # Email patterns - understand communication actions
+        # IMPORTANT: Require explicit email actions to avoid URL conflicts
         email_verbs = {
             'send', 'email', 'contact', 'write', 'forward', 'reach', 'notify', 
             'message', 'mail', 'communicate'
@@ -253,24 +254,31 @@ class SpacyWebMatcher:
                 at_start = match.start()
                 at_end = match.end()
                 
-                # Get the spaCy tokens around this "at" keyword
+                # IMPORTANT: Skip potential URL contexts before processing
                 context_start = max(0, at_start - 100)
                 context_end = min(len(text), at_end + 100)
-                context = text[context_start:context_end]
+                context = text[context_start:context_end].lower()
+                
+                # Check for URL-indicating context words
+                url_indicators = ["website", "site", "page", "docs", "documentation", "api", "server", 
+                                 "visit", "go to", "check", "browse", "hosted on", "find the"]
+                if any(indicator in context for indicator in url_indicators):
+                    logger.debug(f"Skipping potential email at position {at_start} - URL context detected")
+                    continue
                 
                 # Use spaCy to understand the syntax around the "at" keyword
                 try:
                     # Use centralized document processor for better caching
                     doc_processor = get_global_doc_processor()
                     if doc_processor:
-                        context_doc = doc_processor.get_or_create_doc(context)
+                        context_doc = doc_processor.get_or_create_doc(text[context_start:context_end])
                     else:
                         # Fallback to direct nlp processing if processor not available
-                        context_doc = self.nlp(context) if self.nlp else None
+                        context_doc = self.nlp(text[context_start:context_end]) if self.nlp else None
                         
                     if not context_doc:
                         continue
-                    email_span = self._analyze_at_context(context, context_doc, at_start - context_start)
+                    email_span = self._analyze_at_context(text[context_start:context_end], context_doc, at_start - context_start)
                     if email_span:
                         # Convert back to absolute positions
                         start, end, email_text = email_span
@@ -438,17 +446,41 @@ class SpacyWebMatcher:
         # Look through the verb's children for URL-like patterns
         for child in verb_token.children:
             if child.dep_ in ["prep", "dobj", "ccomp"]:
-                # Check if this subtree contains URL-like patterns  
-                subtree_tokens = list(child.subtree)
-                subtree_start = min(t.idx for t in subtree_tokens) if subtree_tokens else child.idx
-                subtree_end = max(t.idx + len(t.text) for t in subtree_tokens) if subtree_tokens else child.idx + len(child.text)
-                subtree_text = text[subtree_start:subtree_end]
-                url_match = self._find_url_in_subtree(subtree_text)
-                if url_match:
-                    start, end, url_text = url_match
-                    abs_start = subtree_start + start
-                    abs_end = subtree_start + end
-                    return (abs_start, abs_end, url_text)
+                # For prepositions like "to", skip the prep itself and look in its children
+                if child.dep_ == "prep" and child.text.lower() in ["to", "at"]:
+                    # Look in the preposition's children (pobj) for the actual URL
+                    for pobj_child in child.children:
+                        if pobj_child.dep_ == "pobj":
+                            # Get all tokens that modify the prepositional object (including nummod, compound, etc.)
+                            # but exclude the preposition itself
+                            pobj_subtree = list(pobj_child.subtree)
+                            # Sort by token position to get the correct span
+                            pobj_subtree.sort(key=lambda t: t.i)
+                            
+                            if pobj_subtree:
+                                subtree_start = pobj_subtree[0].idx
+                                last_token = pobj_subtree[-1] 
+                                subtree_end = last_token.idx + len(last_token.text)
+                                subtree_text = text[subtree_start:subtree_end]
+                                
+                                url_match = self._find_url_in_subtree(subtree_text)
+                                if url_match:
+                                    start, end, url_text = url_match
+                                    abs_start = subtree_start + start
+                                    abs_end = subtree_start + end
+                                    return (abs_start, abs_end, url_text)
+                else:
+                    # For other dependencies, use the original logic
+                    subtree_tokens = list(child.subtree)
+                    subtree_start = min(t.idx for t in subtree_tokens) if subtree_tokens else child.idx
+                    subtree_end = max(t.idx + len(t.text) for t in subtree_tokens) if subtree_tokens else child.idx + len(child.text)
+                    subtree_text = text[subtree_start:subtree_end]
+                    url_match = self._find_url_in_subtree(subtree_text)
+                    if url_match:
+                        start, end, url_text = url_match
+                        abs_start = subtree_start + start
+                        abs_end = subtree_start + end
+                        return (abs_start, abs_end, url_text)
         
         return None
     
@@ -456,21 +488,29 @@ class SpacyWebMatcher:
         """Find URL patterns within a syntactic subtree."""
         dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
         dot_pattern = "|".join(re.escape(k) for k in dot_keywords)
+        slash_keywords = [k for k, v in self.url_keywords.items() if v == "/"]
+        slash_pattern = "|".join(re.escape(k) for k in slash_keywords)
         
         # Simplified URL pattern for identified subtrees
+        # Make sure to exclude action words from the start of the URL
         url_pattern = rf"""
-        \b
-        ([a-zA-Z0-9-]+(?:\s+[a-zA-Z0-9-]+)*           # Domain parts
+        (?:^|\s)                                      # Start of text or whitespace
+        (?!(?:to|at|from|with|on|in|for|by)\s)        # Negative lookahead - not followed by prepositions
+        ([a-zA-Z0-9-]+(?:\s+[a-zA-Z0-9-]+)*           # Domain parts (numbers could be multi-word)
          (?:\s+(?:{dot_pattern})\s+[a-zA-Z0-9-]+)+    # Must have dots
          (?:\s+(?:{dot_pattern})\s+(?:com|org|net|edu|gov|io|co|uk))  # TLD
-        (?:\s+(?:slash|/)\s+[a-zA-Z0-9-]+)*           # Optional paths
+        (?:\s+(?:{slash_pattern})\s+[a-zA-Z0-9-]+)*   # Optional paths
         )
         \b
         """
         
         match = re.search(url_pattern, text, re.VERBOSE | re.IGNORECASE)
         if match:
-            return (match.start(), match.end(), match.group(0))
+            # Return the URL part, not including any leading whitespace
+            url_text = match.group(1).strip()
+            # Find the actual start position of the URL text within the original text
+            url_start_in_match = match.start(1)
+            return (match.start() + url_start_in_match, match.start() + url_start_in_match + len(url_text), url_text)
         
         return None
     

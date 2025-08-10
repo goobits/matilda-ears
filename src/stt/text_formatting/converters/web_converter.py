@@ -199,9 +199,10 @@ class WebPatternConverter(BasePatternConverter):
         """Convert spoken URL patterns by replacing keywords and removing spaces."""
         url_text = entity.text
         
-        # Remove command prefixes that shouldn't be part of the URL
+        # Remove command prefixes that shouldn't be part of the URL, but preserve action words
         # Sort by length (longest first) to avoid partial matches
-        command_prefixes = ["navigate to ", "go to ", "visit ", "check ", "browse ", "open ", "to "]
+        # NOTE: Be careful not to strip action words that should be preserved in the sentence
+        command_prefixes = ["navigate to ", "browse ", "open "]  # Removed "go to ", "visit ", "check ", "to "
         for prefix in command_prefixes:
             if url_text.lower().startswith(prefix):
                 url_text = url_text[len(prefix):]
