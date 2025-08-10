@@ -8,18 +8,25 @@ converter for better maintainability and performance.
 """
 from __future__ import annotations
 
+# Standard library imports
 import re
 
+# Local imports - core/config
 from stt.core.config import get_config, setup_logging
 
-from . import regex_patterns
+# Local imports - common data structures
 from stt.text_formatting.common import Entity, EntityType, NumberParser
+
+# Local imports - utilities and resources
+from . import regex_patterns
 from .constants import get_resources
+
+# Local imports - specialized converters and processors
 from .converters import TextPatternConverter, WebPatternConverter, CodePatternConverter, NumericPatternConverter
 from .processors.measurement_processor import MeasurementProcessor
 from .processors.mathematical_processor import MathematicalProcessor
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class PatternConverter:

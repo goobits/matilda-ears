@@ -11,7 +11,7 @@ from stt.text_formatting.constants import get_resources
 from stt.text_formatting.pattern_cache import cached_pattern
 from stt.text_formatting.utils import is_inside_entity
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 # Cached pattern helper functions

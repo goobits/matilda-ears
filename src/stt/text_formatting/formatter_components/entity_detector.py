@@ -20,7 +20,7 @@ from .spacy_detector import SpacyEntityProcessor
 from .validation import EntityValidator
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
+logger = setup_logging(__name__)
 
 
 class EntityDetector:

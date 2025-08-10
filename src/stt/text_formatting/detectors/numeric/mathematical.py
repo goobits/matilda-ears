@@ -17,7 +17,7 @@ from stt.text_formatting.spacy_doc_cache import get_global_doc_processor
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
 from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class MathematicalExpressionDetector:

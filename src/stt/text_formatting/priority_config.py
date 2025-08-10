@@ -12,7 +12,7 @@ from pathlib import Path
 
 from stt.core.config import setup_logging
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class ProcessorType(Enum):

@@ -2,28 +2,28 @@
 """Smart capitalization module for Matilda transcriptions."""
 from __future__ import annotations
 
+# Standard library imports
 import re
 
+# Local imports - core/config
 from stt.core.config import setup_logging
 
-# Import centralized regex patterns
-from . import regex_patterns
-
-# Import common data structures
+# Local imports - common data structures
 from stt.text_formatting.common import Entity, EntityType
 
-# Import resource loader for i18n constants
+# Local imports - utilities and resources
+from . import regex_patterns
 from .constants import get_resources
 from .nlp_provider import get_nlp
 from .utils import is_inside_entity
 
-# Import new modular components
+# Local imports - modular components
 from .capitalizer_rules import CapitalizationRules
 from .capitalizer_protection import EntityProtection
 from .capitalizer_context import ContextAnalyzer
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class SmartCapitalizer:

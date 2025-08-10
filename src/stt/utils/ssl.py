@@ -10,7 +10,7 @@ from stt.core.config import get_config, setup_logging
 
 # Get config and logger
 config = get_config()
-logger = setup_logging(__name__, log_filename="security.txt")
+logger = setup_logging(__name__)
 
 # Type alias for SSL modes
 SSLMode = Literal["client", "server"]

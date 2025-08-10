@@ -9,7 +9,7 @@ import opuslib
 try:
     from stt.core.config import setup_logging
 
-    logger = setup_logging(__name__, log_filename="audio_encoder.txt")
+    logger = setup_logging(__name__)
 except ImportError:
     # Fallback for standalone usage
     import logging

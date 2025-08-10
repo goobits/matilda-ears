@@ -13,7 +13,7 @@ from ...core.config import setup_logging
 from ..constants import get_resources
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
+logger = setup_logging(__name__)
 
 
 class EntityValidator:

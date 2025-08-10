@@ -8,13 +8,15 @@ SpaCy is now a hard dependency - the system will fail-fast if SpaCy
 or required models are not available, ensuring predictable behavior.
 """
 
+# Standard library imports
 import os
 import sys
 import threading
 
+# Local imports - core/config
 from stt.core.config import setup_logging
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 # Global model instances with thread-safe lazy loading
 _nlp = None

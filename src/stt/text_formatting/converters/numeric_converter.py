@@ -15,7 +15,7 @@ from .numeric import (
 )
 from .numeric.base import BaseNumericConverter as NumericBase
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class NumericPatternConverter(BasePatternConverter):

@@ -2,6 +2,7 @@
 """Common data structures and classes shared across text formatting modules."""
 from __future__ import annotations
 
+# Standard library imports
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any

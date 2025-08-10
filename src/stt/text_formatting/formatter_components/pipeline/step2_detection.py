@@ -13,17 +13,20 @@ This includes:
 Extracted from the main TextFormatter to create a modular pipeline architecture.
 """
 
+# Standard library imports
 import logging
-from typing import Dict, List, Any, Optional
 import time
+from typing import Dict, List, Any, Optional
 
-from stt.text_formatting.common import Entity, EntityType
-
+# Third-party imports (conditional)
 try:
     from intervaltree import IntervalTree, Interval
     INTERVAL_TREE_AVAILABLE = True
 except ImportError:
     INTERVAL_TREE_AVAILABLE = False
+
+# Local imports - common data structures
+from stt.text_formatting.common import Entity, EntityType
 
 # Setup logging for this module
 logger = logging.getLogger(__name__)

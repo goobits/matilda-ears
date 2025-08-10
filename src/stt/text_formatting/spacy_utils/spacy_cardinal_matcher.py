@@ -16,7 +16,7 @@ from ..number_word_context import NumberWordContextAnalyzer, NumberWordDecision
 from ..spacy_doc_cache import get_global_doc_processor
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
+logger = setup_logging(__name__)
 
 
 class SpacyCardinalMatcher:

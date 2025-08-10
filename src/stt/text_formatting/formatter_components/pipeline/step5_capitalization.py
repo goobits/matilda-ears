@@ -19,7 +19,7 @@ from stt.text_formatting.common import Entity, EntityType
 if TYPE_CHECKING:
     from ...capitalizer import SmartCapitalizer
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 def apply_capitalization_with_entity_protection(

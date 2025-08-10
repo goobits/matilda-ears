@@ -27,7 +27,7 @@ from ...batch_regex import batch_abbreviation_processing
 if TYPE_CHECKING:
     pass
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 def _get_sentence_starter_ordinal_patterns() -> list[str]:

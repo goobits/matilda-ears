@@ -12,7 +12,7 @@ from stt.text_formatting.detectors.numeric.financial import FinancialDetector
 from stt.text_formatting.processors.measurement_processor import MeasurementProcessor
 from stt.text_formatting.detectors.numeric.formats import FormatDetector
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class NumericalEntityDetector:

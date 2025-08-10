@@ -48,8 +48,7 @@ class BaseMode(ABC):
         self.logger = setup_logging(
             self.__class__.__name__,
             log_level="DEBUG" if args.debug else "WARNING",
-            include_console=False,  # Never show logger output to console - use _send_* methods
-            include_file=True,
+            include_console=False,
         )
 
         # Audio processing

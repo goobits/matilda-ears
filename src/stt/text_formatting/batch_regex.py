@@ -10,9 +10,10 @@ Phase F Optimization: String Operation Optimization
 """
 from __future__ import annotations
 
+# Standard library imports
 import re
-from typing import List, Tuple, Pattern, Dict, Any
 from functools import lru_cache
+from typing import List, Tuple, Pattern, Dict, Any
 
 # Pre-compiled pattern cache for performance
 _PATTERN_CACHE: Dict[str, Pattern[str]] = {}

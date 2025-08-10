@@ -6,11 +6,15 @@ EntityProcessor pattern, eliminating code duplication and providing a
 cleaner abstraction.
 """
 
+# Standard library imports
 import re
 from typing import Dict, List, Any, Optional, Pattern
 
-from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
+# Local imports - common data structures
 from stt.text_formatting.common import Entity, EntityType
+
+# Local imports - base processors and resources
+from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
 from stt.text_formatting import regex_patterns
 
 

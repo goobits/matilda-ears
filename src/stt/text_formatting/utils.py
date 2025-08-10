@@ -2,6 +2,7 @@
 """Shared utility functions for text formatting modules."""
 from __future__ import annotations
 
+# Local imports - common data structures
 from .common import Entity
 
 

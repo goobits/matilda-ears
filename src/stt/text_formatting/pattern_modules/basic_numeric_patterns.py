@@ -17,7 +17,7 @@ from ..spacy_doc_cache import get_global_doc_processor
 from ...core.config import setup_logging
 
 # Setup logger for this module
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 # ==============================================================================
@@ -391,6 +391,20 @@ def build_numeric_range_pattern(language: str = "en") -> re.Pattern[str]:
     )
 
 
+@cached_pattern
+def build_consecutive_digits_pattern(language: str = "en") -> re.Pattern[str]:
+    """Build the consecutive digits pattern for sequences like 'six four four' -> '644'."""
+    # Build pattern for single digits (zero through nine)
+    single_digits = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+    digit_pattern = "|".join(single_digits)
+    
+    # Pattern for consecutive single digits (3 or more for specificity)
+    return re.compile(
+        rf"\b({digit_pattern})\s+({digit_pattern})\s+({digit_pattern})(?:\s+({digit_pattern}))?\b", 
+        re.IGNORECASE
+    )
+
+
 # ==============================================================================
 # GETTER FUNCTIONS
 # ==============================================================================
@@ -414,6 +428,11 @@ def get_compound_fraction_pattern(language: str = "en") -> re.Pattern[str]:
 def get_numeric_range_pattern(language: str = "en") -> re.Pattern[str]:
     """Get the numeric range pattern for the specified language."""
     return build_numeric_range_pattern(language)
+
+
+def get_consecutive_digits_pattern(language: str = "en") -> re.Pattern[str]:
+    """Get the consecutive digits pattern for the specified language."""
+    return build_consecutive_digits_pattern(language)
 
 
 def get_number_words() -> list[str]:

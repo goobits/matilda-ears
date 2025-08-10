@@ -1,8 +1,10 @@
 """Base pattern converter class with shared utilities."""
 
+# Standard library imports
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 
+# Local imports - common data structures
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.constants import get_resources
 

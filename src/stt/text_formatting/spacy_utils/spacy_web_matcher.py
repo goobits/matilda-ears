@@ -22,7 +22,7 @@ from ..spacy_doc_cache import get_global_doc_processor
 from ..constants import get_resources
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
+logger = setup_logging(__name__)
 
 
 class WebEntityType(Enum):

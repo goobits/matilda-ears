@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .capitalizer_rules import CapitalizationRules
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class ContextAnalyzer:

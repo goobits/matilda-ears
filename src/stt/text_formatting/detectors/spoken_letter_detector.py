@@ -9,7 +9,7 @@ from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class SpokenLetterDetector:

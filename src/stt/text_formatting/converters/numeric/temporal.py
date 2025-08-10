@@ -8,7 +8,7 @@ from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from .base import BaseNumericConverter
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class TemporalConverter(BaseNumericConverter):

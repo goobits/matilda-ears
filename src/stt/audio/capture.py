@@ -34,13 +34,7 @@ except ImportError:
 try:
     from stt.core.config import setup_logging
 
-    # Default to no console output to prevent interference with pipeline usage
-    # Console output can be enabled via debug mode or explicit configuration
-    logger = setup_logging(
-        __name__,
-        log_filename="audio_capture.txt",
-        include_console=False,  # Prevent INFO messages from appearing in stderr
-    )
+    logger = setup_logging(__name__)
 
 except ImportError:
     # Fallback for standalone usage

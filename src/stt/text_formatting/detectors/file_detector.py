@@ -8,7 +8,7 @@ from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.utils import overlaps_with_entity
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class FileDetector:

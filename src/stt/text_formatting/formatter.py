@@ -14,39 +14,30 @@ import contextlib
 import os
 import re
 
+# Local imports - core/config
 from stt.core.config import get_config, setup_logging
 
-# Import centralized regex patterns
-from . import regex_patterns
-from .capitalizer import SmartCapitalizer
-from .spacy_doc_cache import initialize_global_doc_processor
-
-# Import common data structures
+# Local imports - common data structures
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 
-# Import resource loader for i18n constants
+# Local imports - utilities and resources
+from . import regex_patterns
 from .constants import get_resources
+from .nlp_provider import get_nlp, get_punctuator
+from .spacy_doc_cache import initialize_global_doc_processor
+from .utils import is_inside_entity
+
+# Local imports - specialized components
+from .capitalizer import SmartCapitalizer
 from .detectors.code_detector import CodeEntityDetector
 from .detectors.numeric_detector import NumericalEntityDetector
 from .detectors.spoken_letter_detector import SpokenLetterDetector
-
-# Import specialized formatters
 from .detectors.web_detector import WebEntityDetector
-from .nlp_provider import get_nlp, get_punctuator
 from .pattern_converter import PatternConverter as UnifiedPatternConverter
-from .utils import is_inside_entity
 
-# Setup config and logging
-config = get_config()
-# Default to no console logging - will be overridden by modes if needed
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
-
-
-# Import the extracted classes
+# Local imports - formatter components
 from .formatter_components.entity_detector import EntityDetector
 from .formatter_components.pattern_converter import PatternConverter
-
-# Import pipeline step functions
 from .formatter_components.pipeline.step1_cleanup import clean_artifacts, apply_filters
 from .formatter_components.pipeline.step2_detection import detect_all_entities
 from .formatter_components.pipeline.step3_conversion import convert_entities
@@ -60,8 +51,13 @@ from .formatter_components.pipeline.step6_postprocess import (
     add_introductory_phrase_commas
 )
 
-# Import batch regex processing for string optimization
+# Local imports - optimization modules
 from .batch_regex import batch_cleanup_substitutions
+
+# Setup config and logging
+config = get_config()
+# Default to no console logging - will be overridden by modes if needed
+logger = setup_logging(__name__)
 
 
 class TextFormatter:

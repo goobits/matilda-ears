@@ -28,7 +28,7 @@ from stt.core.config import get_config, setup_logging
 from .client import StreamingAudioClient
 
 # Setup logging and config
-logger = setup_logging(__name__, log_filename="transcription.txt")
+logger = setup_logging(__name__)
 config = get_config()
 
 

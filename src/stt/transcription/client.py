@@ -31,7 +31,7 @@ from stt.utils.ssl import create_ssl_context
 
 # Get config instance
 config = get_config()
-logger = setup_logging(__name__, log_filename="transcription.txt")
+logger = setup_logging(__name__)
 
 
 # ========================= CUSTOM EXCEPTIONS =========================

@@ -14,7 +14,7 @@ from ..utils import is_inside_entity
 from ..number_word_context import NumberWordContextAnalyzer, NumberWordDecision
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=True)
+logger = setup_logging(__name__)
 
 
 class SpacyEntityProcessor:

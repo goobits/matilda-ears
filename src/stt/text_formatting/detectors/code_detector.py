@@ -9,14 +9,19 @@ This module acts as a facade that coordinates specialized detection modules:
 """
 from __future__ import annotations
 
+# Local imports - core/config
 from stt.core.config import setup_logging
+
+# Local imports - common data structures
 from stt.text_formatting.common import Entity
+
+# Local imports - specialized detectors
 from .assignment_detector import AssignmentDetector
 from .command_detector import CommandDetector
 from .file_detector import FileDetector
 from .variable_detector import VariableDetector
 
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class CodeEntityDetector:

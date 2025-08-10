@@ -13,7 +13,7 @@ from stt.text_formatting.common import Entity, EntityType, NumberParser
 from ..pattern_converter import PatternConverter as UnifiedPatternConverter
 
 # Setup logging
-logger = setup_logging(__name__, log_filename="text_formatting.txt", include_console=False)
+logger = setup_logging(__name__)
 
 
 class PatternConverter:
