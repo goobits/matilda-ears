@@ -52,6 +52,7 @@ from .capitalization_patterns import (
     PRONOUN_I_PATTERN,
     PRONOUN_I_STANDALONE_PATTERN,
     TEMPERATURE_PROTECTION_PATTERN,
+    DECIMAL_PROTECTION_PATTERN,
     TECHNICAL_CONTENT_PATTERNS,
     build_all_caps_preservation_pattern,
     build_sentence_capitalization_pattern,
@@ -64,6 +65,7 @@ from .capitalization_patterns import (
     get_pronoun_i_pattern,
     get_pronoun_i_standalone_pattern,
     get_temperature_protection_pattern,
+    get_decimal_protection_pattern,
     get_technical_content_patterns,
 )
 
@@ -135,6 +137,7 @@ __all__ = [
     "PRONOUN_I_PATTERN",
     "PRONOUN_I_STANDALONE_PATTERN",
     "TEMPERATURE_PROTECTION_PATTERN",
+    "DECIMAL_PROTECTION_PATTERN",
     "TECHNICAL_CONTENT_PATTERNS",
     "build_all_caps_preservation_pattern",
     "build_sentence_capitalization_pattern",

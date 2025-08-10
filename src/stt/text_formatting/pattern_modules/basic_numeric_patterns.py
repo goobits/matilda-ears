@@ -436,7 +436,7 @@ def build_numeric_range_pattern(language: str = "en") -> re.Pattern[str]:
         (                       # Capture group 1: Start of range
             {number_word_sequence}
         )
-        \s+to\s+                # The word "to"
+        \s+(?:to|through)\s+    # The word "to" or "through"
         (                       # Capture group 2: End of range
             {number_word_sequence}
         )

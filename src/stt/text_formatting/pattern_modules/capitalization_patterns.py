@@ -72,6 +72,12 @@ def build_temperature_protection_pattern() -> re.Pattern[str]:
     return re.compile(r"-?\d+(?:\.\d+)?°[CF]?")
 
 
+@cached_pattern
+def build_decimal_protection_pattern() -> re.Pattern[str]:
+    """Build pattern for decimal numbers protection (prevent punctuation model from corrupting them)."""
+    return re.compile(r"\b\d+\.\d+%", re.IGNORECASE)
+
+
 def get_all_caps_preservation_pattern() -> re.Pattern[str]:
     """Get the compiled all-caps preservation pattern."""
     return ALL_CAPS_PRESERVATION_PATTERN
@@ -97,12 +103,18 @@ def get_temperature_protection_pattern() -> re.Pattern[str]:
     return TEMPERATURE_PROTECTION_PATTERN
 
 
+def get_decimal_protection_pattern() -> re.Pattern[str]:
+    """Get the decimal number protection pattern."""
+    return DECIMAL_PROTECTION_PATTERN
+
+
 # Pre-compiled patterns
 ALL_CAPS_PRESERVATION_PATTERN = build_all_caps_preservation_pattern()
 SENTENCE_CAPITALIZATION_PATTERN = build_sentence_capitalization_pattern()
 PRONOUN_I_PATTERN = build_pronoun_i_pattern()
 PRONOUN_I_STANDALONE_PATTERN = build_pronoun_i_standalone_pattern()
 TEMPERATURE_PROTECTION_PATTERN = build_temperature_protection_pattern()
+DECIMAL_PROTECTION_PATTERN = build_decimal_protection_pattern()
 
 
 # ==============================================================================

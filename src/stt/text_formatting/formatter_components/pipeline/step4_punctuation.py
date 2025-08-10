@@ -99,6 +99,13 @@ def add_punctuation(
                 temp_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
+            # Protect decimal numbers from the punctuation model
+            decimal_placeholders = {}
+            for i, match in enumerate(regex_patterns.DECIMAL_PROTECTION_PATTERN.finditer(protected_text)):
+                placeholder = f"__DECIMAL_{i}__"
+                decimal_placeholders[placeholder] = match.group(0)
+                protected_text = protected_text.replace(match.group(0), placeholder, 1)
+
             # Apply punctuation to the protected text
             result = punctuator.restore_punctuation(protected_text)
 
@@ -121,6 +128,10 @@ def add_punctuation(
             # Restore temperature expressions
             for placeholder, temp in temp_placeholders.items():
                 result = re.sub(rf"\b{re.escape(placeholder)}\b", temp, result)
+
+            # Restore decimal numbers
+            for placeholder, decimal in decimal_placeholders.items():
+                result = re.sub(rf"\b{re.escape(placeholder)}\b", decimal, result)
 
             # Post-process punctuation using grammatical context
             if nlp:

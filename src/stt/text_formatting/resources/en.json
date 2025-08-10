@@ -274,7 +274,7 @@
     "idiomatic_phrases": {
       "first": ["class", "rate", "person", "aid", "hand", "base", "string", "impression", "thing", "things", "time", "place", "step", "choice", "option", "priority", "item", "come", "of", "we", "they", "I"],
       "second": ["nature", "hand", "string", "thoughts", "class", "rate", "person", "time", "step", "choice", "option", "priority", "item", "to", "the", "we", "they", "I"],
-      "third": ["party", "person", "string", "wheel", "base", "class", "rate", "step", "choice", "option", "priority", "item", "implementation", "we", "they", "I"],
+      "third": ["party", "person", "string", "wheel", "base", "class", "rate", "step", "choice", "option", "priority", "item", "implementation", "time", "we", "they", "I"],
       "fourth": ["wall", "estate", "dimension", "step", "choice", "option", "priority", "item"],
       "fifth": ["wheel", "column", "amendment", "step", "choice", "option", "priority", "item"],
       "sixth": ["sense", "time", "place", "step", "choice", "option", "priority", "item"],
@@ -286,9 +286,13 @@
     },
     "multi_word_idioms": [
       "catch twenty two",
-      "cloud nine",
+      "cloud nine", 
       "four score and seven",
-      "behind the eight ball"
+      "behind the eight ball",
+      "third time's the charm",
+      "first things first",
+      "second to none",
+      "first come first served"
     ],
     "ordinal_words": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "thirtieth", "fortieth", "fiftieth", "sixtieth", "seventieth", "eightieth", "ninetieth", "hundredth", "thousandth"],
     "ordinal_suffixes": {
