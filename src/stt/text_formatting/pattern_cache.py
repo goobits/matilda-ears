@@ -114,7 +114,7 @@ def _update_access_order(cache_key: str) -> None:
 
 
 def cached_pattern(func: F) -> F:
-    """
+    r"""
     Decorator to cache compiled regex patterns with thread-safe LRU eviction.
     
     This decorator wraps pattern building functions to cache their results,

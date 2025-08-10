@@ -82,16 +82,22 @@ class CommandDetector:
             pattern = rf"\b{re.escape(command)}\b"
             for match in re.finditer(pattern, text, re.IGNORECASE):
                 if not is_inside_entity(match.start(), match.end(), all_entities):
-                    new_entity = Entity(
-                        start=match.start(),
-                        end=match.end(),
-                        text=match.group(0),
-                        type=EntityType.CLI_COMMAND,
-                        metadata={"command": match.group(0)},
-                    )
-                    entities.append(new_entity)
-                    # Update all_entities to include newly found entity for subsequent overlap checks
-                    all_entities.append(new_entity)
+                    # Check if this command is in a filename context (preceded by "dot")
+                    # This prevents CLI commands like "java" from being detected when they're
+                    # part of filename patterns like "user service dot java"
+                    is_filename_context = self._is_in_filename_context(text, match)
+                    
+                    if not is_filename_context:
+                        new_entity = Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.CLI_COMMAND,
+                            metadata={"command": match.group(0)},
+                        )
+                        entities.append(new_entity)
+                        # Update all_entities to include newly found entity for subsequent overlap checks
+                        all_entities.append(new_entity)
 
     def detect_command_flags(
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
@@ -245,3 +251,28 @@ class CommandDetector:
                         metadata={"command": command, "parameters": parameters},
                     )
                 )
+
+    def _is_in_filename_context(self, text: str, match: re.Match) -> bool:
+        """
+        Check if a command match is in a filename context.
+        
+        A command is considered to be in filename context if it's preceded by "dot"
+        as part of a filename pattern like "script dot py" or "config dot java".
+        
+        Args:
+            text: The full text being analyzed
+            match: The regex match object for the potential command
+            
+        Returns:
+            True if the command appears to be part of a filename pattern
+        """
+        # Look backwards from the match to see if it's preceded by "dot"
+        context_start = max(0, match.start() - 20)  # Look back up to 20 characters
+        context = text[context_start:match.start()].lower().strip()
+        
+        # Check if the context ends with "dot" (indicating filename pattern)
+        if context.endswith(" dot"):
+            logger.debug(f"Command '{match.group()}' appears to be in filename context (preceded by 'dot')")
+            return True
+            
+        return False
