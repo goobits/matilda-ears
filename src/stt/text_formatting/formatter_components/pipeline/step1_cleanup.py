@@ -45,6 +45,14 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
     Returns:
         Cleaned text with artifacts removed and whitespace normalized
     """
+    # Early special phrase replacements to prevent incorrect number parsing
+    temporal_resources = resources.get("temporal", {})
+    special_phrases = temporal_resources.get("special_phrases", {})
+    
+    for phrase, replacement in special_phrases.items():
+        # Use word boundaries to avoid partial matches
+        pattern = r'\b' + re.escape(phrase) + r'\b'
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
     # Get context words from resources for i18n support
     meta_discussion_words = resources.get("context_words", {}).get(
         "meta_discussion",

@@ -41,6 +41,15 @@ def build_time_am_pm_space_pattern(language: str = "en") -> re.Pattern[str]:
     return re.compile(r"\b(\d+)\s+([ap])\s+m\b", re.IGNORECASE)
 
 
+@cached_pattern  
+def build_twenty_four_seven_pattern(language: str = "en") -> re.Pattern[str]:
+    """Build pattern for 'twenty four seven' -> '24/7'."""
+    return re.compile(
+        r"\b(?:twenty[\s-]?four|24)[\s-]?(?:seven|7)\b",
+        re.IGNORECASE
+    )
+
+
 @cached_pattern
 def build_time_expression_patterns(language: str = "en") -> list[re.Pattern[str]]:
     """Build the time expression patterns for various time formats."""
@@ -110,6 +119,18 @@ def build_time_expression_patterns(language: str = "en") -> list[re.Pattern[str]
             """,
             re.VERBOSE | re.IGNORECASE,
         ),
+        # O'clock expressions: "by five o'clock", "at three o'clock"
+        re.compile(
+            r"""
+            \b                              # Word boundary
+            (by|at)\s+                      # "by " or "at " prefix
+            (one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)  # Hour
+            \s+                             # Space
+            (o\'clock|oclock)               # O'clock indicator
+            \b                              # Word boundary
+            """,
+            re.VERBOSE | re.IGNORECASE,
+        ),
     ]
 
 
@@ -131,6 +152,11 @@ def get_time_am_pm_colon_pattern(language: str = "en") -> re.Pattern[str]:
 def get_time_am_pm_space_pattern(language: str = "en") -> re.Pattern[str]:
     """Get the time AM/PM space pattern for the specified language."""
     return build_time_am_pm_space_pattern(language)
+
+
+def get_twenty_four_seven_pattern(language: str = "en") -> re.Pattern[str]:
+    """Get the twenty four seven pattern for the specified language."""
+    return build_twenty_four_seven_pattern(language)
 
 
 def get_time_expression_patterns(language: str = "en") -> list[re.Pattern[str]]:

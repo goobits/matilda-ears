@@ -40,6 +40,10 @@ class TemporalConverter(BaseNumericConverter):
         if not entity.metadata:
             return entity.text
 
+        # Handle special phrases first (like "twenty four seven" -> "24/7")
+        if "special_phrase" in entity.metadata and "replacement" in entity.metadata:
+            return entity.metadata["replacement"]
+
         # Check if the number part is an ordinal word - if so, this shouldn't be a TIME_DURATION
         if "number" in entity.metadata:
             number_text = entity.metadata["number"].lower()
@@ -113,6 +117,15 @@ class TemporalConverter(BaseNumericConverter):
         SpaCy detects phrases like "five hours thirty minutes" as TIME entities.
         """
         text = entity.text.lower()
+
+        # Check for special temporal phrases first
+        temporal_resources = self.resources.get("temporal", {})
+        special_phrases = temporal_resources.get("special_phrases", {})
+        
+        # Check for "twenty four seven" → "24/7" conversion
+        for phrase, replacement in special_phrases.items():
+            if phrase in text:
+                return replacement
 
         # Check if this is a compound duration pattern
         # Pattern: number + time_unit + number + time_unit
@@ -220,6 +233,13 @@ class TemporalConverter(BaseNumericConverter):
                         hour = self.time_word_mappings.get(groups[0].lower(), groups[0])
                         ampm = "AM" if groups[1].lower() == "a" else "PM"
                         return f"{hour} {ampm}"
+                        
+                # Handle o'clock patterns: "by five o'clock", "at three o'clock"
+                if len(groups) == 3 and groups[2].lower() in ["o'clock", "oclock"]:
+                    # Pattern: "by five o'clock" -> groups: ["by", "five", "o'clock"]
+                    context = groups[0]  # "by" or "at"
+                    hour = self.time_word_mappings.get(groups[1].lower(), groups[1])
+                    return f"{context} {hour} o'clock"
 
         return entity.text
 

@@ -35,6 +35,23 @@ class TemporalDetector:
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect time expressions in spoken form."""
+        # First, detect special "24/7" patterns with high priority
+        from stt.text_formatting.pattern_modules.temporal_patterns import get_twenty_four_seven_pattern
+        
+        twenty_four_seven_pattern = get_twenty_four_seven_pattern()
+        for match in twenty_four_seven_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                entities.append(
+                    Entity(
+                        start=match.start(),
+                        end=match.end(),
+                        text=match.group(),
+                        type=EntityType.TIME_DURATION,  # Use TIME_DURATION for special handling
+                        metadata={"special_phrase": "twenty_four_seven", "replacement": "24/7"}
+                    )
+                )
+        
         # Use centralized time expression patterns
         time_patterns = [
             (regex_patterns.TIME_EXPRESSION_PATTERNS[0], EntityType.TIME_CONTEXT),
@@ -42,6 +59,7 @@ class TemporalDetector:
             (regex_patterns.TIME_EXPRESSION_PATTERNS[2], EntityType.TIME_AMPM),  # Spoken "a m"/"p m"
             (regex_patterns.TIME_EXPRESSION_PATTERNS[3], EntityType.TIME_AMPM),  # "at three PM"
             (regex_patterns.TIME_EXPRESSION_PATTERNS[4], EntityType.TIME_AMPM),  # "three PM"
+            (regex_patterns.TIME_EXPRESSION_PATTERNS[5], EntityType.TIME_AMPM),  # "by five o'clock"
         ]
 
         # Units that indicate this is NOT a time expression

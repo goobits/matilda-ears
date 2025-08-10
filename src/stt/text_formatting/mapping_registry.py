@@ -214,7 +214,8 @@ class MappingRegistry:
                     "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
                     "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
                     "eleven": "11", "twelve": "12", "fifteen": "15", "twenty": "20",
-                    "thirty": "30", "forty five": "45", "forty-five": "45", "oh": "0"
+                    "thirty": "30", "forty five": "45", "forty-five": "45", "oh": "0",
+                    "o'clock": "o'clock", "oclock": "o'clock"
                 }
                 
         except (FileNotFoundError, json.JSONDecodeError):
@@ -234,7 +235,8 @@ class MappingRegistry:
                 "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
                 "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
                 "eleven": "11", "twelve": "12", "fifteen": "15", "twenty": "20",
-                "thirty": "30", "forty five": "45", "forty-five": "45", "oh": "0"
+                "thirty": "30", "forty five": "45", "forty-five": "45", "oh": "0",
+                "o'clock": "o'clock", "oclock": "o'clock"
             }
         
         # Denominator mappings for fractions

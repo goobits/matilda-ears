@@ -39,6 +39,15 @@ class BasicNumericConverter(BaseNumericConverter):
         if entity.metadata and entity.metadata.get("consecutive_digits"):
             return entity.metadata.get("parsed_value", entity.text)
 
+        # Check for special temporal phrases like "twenty four seven"
+        text_lower = entity.text.lower()
+        temporal_resources = self.resources.get("temporal", {})
+        special_phrases = temporal_resources.get("special_phrases", {})
+        
+        for phrase, replacement in special_phrases.items():
+            if phrase in text_lower:
+                return replacement
+
         # Don't convert numbers that are part of hyphenated compounds
         if self.is_hyphenated_compound(entity, full_text):
             return entity.text
