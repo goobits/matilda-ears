@@ -93,7 +93,11 @@ def restore_abbreviations(text: str, resources: dict) -> str:
     text = batch_abbreviation_processing(text)
     
     # Handle additional edge cases that aren't in the batch processor
+    # Fix: Properly handle comma placement with introductory phrases
+    # Pattern 1: Remove comma between introductory phrase and abbreviation
     text = re.sub(r"\b(for example|in other words|that is),\s+(e\.g\.|i\.e\.)([,.]?)(\s)", r"\1 \2\3\4", text, flags=re.IGNORECASE)
+    # Pattern 2: Fix case where comma is after first word of phrase - "For example, e.g." -> "For example e.g.,"
+    text = re.sub(r"\b(For|for)\s+(example|other words|is),\s+(e\.g\.|i\.e\.)([,.]?)(\s)", r"\1 \2 \3\4\5", text, flags=re.IGNORECASE)
     
     return text
 

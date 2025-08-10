@@ -189,8 +189,36 @@ def build_long_flag_pattern(language: str = "en") -> re.Pattern[str]:
     dash_escaped = [re.escape(k) for k in dash_keywords_sorted]
     dash_pattern = f"(?:{'|'.join(dash_escaped)})"
 
+    # Two-tier approach:
+    # 1. Match known compound flags like "save dev" → "--save-dev"
+    # 2. Match single-word flags like "verbose" → "--verbose"
+    # This prevents issues like "verbose enables" matching both words
+    
+    # Define known compound flags that should be matched as two words
+    compound_flag_names = [
+        "save dev", "dry run", "no cache", "cache dir", "output dir", 
+        "config file", "help text", "version info", "no deps", "dev deps"
+    ]
+    
+    # Create patterns for compound flags (must come first to have priority)
+    compound_patterns = []
+    for compound in compound_flag_names:
+        # Match the compound with flexible spacing, no individual capture groups
+        escaped = re.escape(compound).replace(r'\ ', r'\s+')
+        compound_patterns.append(escaped)
+    
+    # Create the final pattern that captures the flag name (compound or single)
+    if compound_patterns:
+        # Use non-capturing groups for alternation, with one overall capture group
+        compound_part = f"(?:{'|'.join(compound_patterns)})"
+        single_word_part = r"[a-zA-Z][a-zA-Z0-9_-]*"
+        # Create a single capture group that encompasses both options
+        flag_name_pattern = f"({compound_part}|{single_word_part})"
+    else:
+        flag_name_pattern = r"([a-zA-Z][a-zA-Z0-9_-]*)"
+    
     return re.compile(
-        rf"\b{dash_pattern}\s+{dash_pattern}\s+([a-zA-Z][a-zA-Z0-9_-]*(?:\s+[a-zA-Z][a-zA-Z0-9_-]*)?)",
+        rf"\b{dash_pattern}\s+{dash_pattern}\s+{flag_name_pattern}\b",
         re.IGNORECASE,
     )
 

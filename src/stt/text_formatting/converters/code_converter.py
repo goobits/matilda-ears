@@ -40,7 +40,7 @@ class CodePatternConverter(BasePatternConverter):
         converter_method = self.get_converter_method(entity.type)
         if converter_method and hasattr(self, converter_method):
             # Some methods need full_text for context
-            if entity.type in [EntityType.FILENAME]:
+            if entity.type in [EntityType.FILENAME, EntityType.ABBREVIATION]:
                 return getattr(self, converter_method)(entity, full_text)
             else:
                 return getattr(self, converter_method)(entity)
@@ -282,7 +282,7 @@ class CodePatternConverter(BasePatternConverter):
             return f"{left} == {right}"
         return entity.text
 
-    def convert_abbreviation(self, entity: Entity) -> str:
+    def convert_abbreviation(self, entity: Entity, full_text: str = "") -> str:
         """Convert abbreviations to proper format with comma when appropriate"""
         # Special case: protected idioms should preserve their original text
         if entity.metadata and entity.metadata.get("idiom"):
@@ -319,17 +319,30 @@ class CodePatternConverter(BasePatternConverter):
         
         # Check if this abbreviation typically requires a comma
         if any(converted.startswith(abbrev.rstrip('.')) for abbrev in comma_requiring_abbreviations):
-            # Only add comma when the abbreviation is at the beginning of a phrase that introduces examples
-            # Don't add comma when the abbreviation is used in the middle of a sentence for clarification
-            # Context check: if the entity text starts with the full phrase like "for example", add comma
-            # But if it's just the abbreviation like "i.e." in context, don't auto-add comma
+            # Check context from full text to see if there's already an introductory phrase
+            context_before = ""
+            if full_text and hasattr(entity, 'start') and entity.start > 0:
+                # Look at text before this entity for context
+                start_context = max(0, entity.start - 20)
+                context_before = full_text[start_context:entity.start]
+            
             original_text = entity.text.lower().strip()
             
             # Add comma only for standalone abbreviations that clearly introduce examples
+            # If there's already an introductory phrase like "for example" before this abbreviation,
+            # don't add comma since the phrase already serves that function
+            has_intro_phrase_before = (
+                "for example" in context_before.lower() or
+                "that is" in context_before.lower()
+            )
+            
             should_add_comma = (
-                original_text in ["e g", "e.g."] or  # Standalone e.g.
-                (converted in ["e.g.", "i.e."] and 
-                 original_text.startswith(("for example", "that is")))  # Full phrase conversions
+                original_text in ["e g", "e.g.", "i e", "i.e."] and
+                not original_text.startswith(("for example", "that is")) and  # Full phrase conversions
+                not has_intro_phrase_before  # No intro phrase in context
+            ) or (
+                converted in ["e.g.", "i.e."] and 
+                original_text.startswith(("for example", "that is"))  # Full phrase conversions
             )
             
             if should_add_comma and not converted.endswith(','):
