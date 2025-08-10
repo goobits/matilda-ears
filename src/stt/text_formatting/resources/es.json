@@ -98,7 +98,7 @@
     "filename_actions": ["abrir", "editar", "guardar", "ejecutar", "verificar", "cargar", "importar", "exportar", "crear", "borrar"],
     "filename_linking": ["ser", "es", "son", "fue", "fueron", "llamado", "nombrado", "titulado"],
     "filename_stop_words": ["el", "la", "un", "una", "este", "esta", "archivo", "guión", "documento", "es", "son", "fue", "fueron"],
-    "email_actions": ["mi email es", "mi correo es", "email", "correo", "contactar", "escribir a", "enviar a", "notificar", "contacta a", "envía a", "escribe a"],
+    "email_actions": ["mi email es", "mi correo es", "email", "correo", "contactar", "escribir a", "enviar a", "notificar", "contacta a", "envía a", "escribe a", "email a", "correo a"],
     "location_nouns": ["docs", "documentación", "api", "sitio", "website", "página", "servidor"],
     "ambiguous_nouns": ["ayuda", "soporte"],
     "command_words": ["editar", "abrir", "ejecutar", "construir", "reproducir", "iniciar", "parar", "crear", "borrar", "instalar"],
@@ -193,6 +193,7 @@
       "mil": 1000,
       "millón": 1000000,
       "millones": 1000000,
+      "mil millones": 1000000000,
       "billón": 1000000000000,
       "billones": 1000000000000
     },

@@ -151,25 +151,49 @@ class TextFormatter:
 
         # STEP 2: Detect all entities with deduplication
         logger.debug(f"Step 2 - Starting entity detection on: '{text}'")
-        detectors = {
-            "web_detector": self.web_detector,
-            "spoken_letter_detector": self.spoken_letter_detector,
-            "code_detector": self.code_detector,
-            "numeric_detector": self.numeric_detector,
-            "entity_detector": self.entity_detector,
-        }
+        
+        # If language override is provided, create temporary detectors with the override language
+        if current_language != self.language:
+            logger.debug(f"Creating temporary detectors for language override: {current_language}")
+            detectors = {
+                "web_detector": WebEntityDetector(nlp=self.nlp, language=current_language),
+                "spoken_letter_detector": SpokenLetterDetector(language=current_language),
+                "code_detector": CodeEntityDetector(nlp=self.nlp, language=current_language),
+                "numeric_detector": NumericalEntityDetector(nlp=self.nlp, language=current_language),
+                "entity_detector": EntityDetector(nlp=self.nlp, language=current_language),
+            }
+        else:
+            # Use instance detectors for default language
+            detectors = {
+                "web_detector": self.web_detector,
+                "spoken_letter_detector": self.spoken_letter_detector,
+                "code_detector": self.code_detector,
+                "numeric_detector": self.numeric_detector,
+                "entity_detector": self.entity_detector,
+            }
         
         filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc)
         logger.debug(f"Step 2 - Final entities: {len(filtered_entities)} entities detected")
 
         # STEP 3: Convert entities to their final representations
         logger.debug(f"Step 3 - Before entity conversion: '{text}'")
-        processed_text, converted_entities = convert_entities(text, filtered_entities, self.pattern_converter)
+        
+        # Use appropriate pattern converter based on language
+        if current_language != self.language:
+            # Create temporary pattern converter for language override
+            temp_pattern_converter = PatternConverter(language=current_language)
+            processed_text, converted_entities = convert_entities(text, filtered_entities, temp_pattern_converter)
+        else:
+            # Use instance pattern converter for default language
+            processed_text, converted_entities = convert_entities(text, filtered_entities, self.pattern_converter)
+            
         logger.debug(f"Step 3 - After entity conversion: '{processed_text}'")
 
         # STEP 4: Apply punctuation and clean standalone entity punctuation
         logger.debug(f"Step 4 - Before punctuation: '{processed_text}'")
-        is_standalone_tech = is_standalone_technical(text, filtered_entities, self.resources)
+        # Use appropriate resources based on current language
+        current_resources = get_resources(current_language) if current_language != self.language else self.resources
+        is_standalone_tech = is_standalone_technical(text, filtered_entities, current_resources)
         
         punctuated_text = add_punctuation(
             processed_text, 
@@ -199,7 +223,7 @@ class TextFormatter:
         # But always capitalize common sentence starters (English and Spanish)
         common_starters = ["version", "page", "chapter", "section", "line", "add", "multiply"]
         # Spanish common starters - only add specific words that were failing capitalization tests
-        common_starters.extend(["índice", "variable"])
+        common_starters.extend(["índice"])
         
         # Check for words with space or at end of string (for words like "índice--")
         starts_with_common_word = any(
@@ -218,9 +242,16 @@ class TextFormatter:
             logger.debug(f"SPANISH DEBUG - should_capitalize: {should_capitalize}")
         
         if should_capitalize:
-            final_text = apply_capitalization_with_entity_protection(
-                cleaned_text, converted_entities, self.smart_capitalizer, doc=doc
-            )
+            # Use appropriate capitalizer based on language
+            if current_language != self.language:
+                temp_capitalizer = SmartCapitalizer(language=current_language)
+                final_text = apply_capitalization_with_entity_protection(
+                    cleaned_text, converted_entities, temp_capitalizer, doc=doc
+                )
+            else:
+                final_text = apply_capitalization_with_entity_protection(
+                    cleaned_text, converted_entities, self.smart_capitalizer, doc=doc
+                )
         else:
             final_text = cleaned_text
             
@@ -234,7 +265,7 @@ class TextFormatter:
         logger.debug(f"Step 6 - After artifact cleanup: '{final_text}'")
 
         # Restore abbreviations
-        final_text = restore_abbreviations(final_text, self.resources)
+        final_text = restore_abbreviations(final_text, current_resources)
         logger.debug(f"Step 6 - After abbreviation restoration: '{final_text}'")
 
         # Convert orphaned keywords
@@ -242,7 +273,7 @@ class TextFormatter:
         logger.debug(f"Step 6 - After keyword conversion: '{final_text}'")
 
         # Rescue mangled domains
-        final_text = rescue_mangled_domains(final_text, self.resources)
+        final_text = rescue_mangled_domains(final_text, current_resources)
         logger.debug(f"Step 6 - After domain rescue: '{final_text}'")
         
         # Add commas for introductory phrases

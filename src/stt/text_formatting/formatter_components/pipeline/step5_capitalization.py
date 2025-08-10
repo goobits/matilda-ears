@@ -176,6 +176,7 @@ def is_standalone_technical(text: str, entities: list[Entity], resources: dict) 
         EntityType.INCREMENT_OPERATOR,
         EntityType.DECREMENT_OPERATOR,
         EntityType.UNDERSCORE_DELIMITER,
+        EntityType.SIMPLE_UNDERSCORE_VARIABLE,
     }
 
     non_technical_entities = [e for e in entities if e.type not in technical_only_types]
