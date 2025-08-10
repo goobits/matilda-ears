@@ -327,6 +327,7 @@ class MathematicalExpressionDetector:
         # Uses fallback pattern string for regex building (actual spaCy detection happens in pipeline)
         ordinal_pattern = self._get_ordinal_pattern_string()
 
+        # Simplified scientific notation pattern - focus on core patterns
         sci_pattern = re.compile(
             r"\b("
             + number_pattern
@@ -340,9 +341,7 @@ class MathematicalExpressionDetector:
             + ordinal_pattern
             + r"|"
             + number_pattern
-            + r")(?:\s+(?:"
-            + number_pattern
-            + r"))*)",
+            + r"))",
             re.IGNORECASE,
         )
 
@@ -448,8 +447,13 @@ class MathematicalExpressionDetector:
     def detect_all_mathematical(
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
-        """Detect all types of mathematical expressions."""
-        self.detect_math_expressions(text, entities, all_entities)
+        """Detect all types of mathematical expressions.
+        
+        Order matters - more specific patterns should be detected first to avoid
+        conflicts with more general patterns.
+        """
+        # Detect scientific notation first (most specific pattern)
+        self.detect_scientific_notation(text, entities, all_entities)
         
         all_entities = (all_entities or []) + entities
         self.detect_root_expressions(text, entities, all_entities)
@@ -458,10 +462,11 @@ class MathematicalExpressionDetector:
         self.detect_mathematical_constants(text, entities, all_entities)
         
         all_entities = (all_entities or []) + entities
-        self.detect_scientific_notation(text, entities, all_entities)
-        
-        all_entities = (all_entities or []) + entities
         self.detect_negative_numbers(text, entities, all_entities)
         
         all_entities = (all_entities or []) + entities
         self.detect_roots_and_powers(text, entities, all_entities)
+        
+        # Detect general math expressions last (most general pattern)
+        all_entities = (all_entities or []) + entities
+        self.detect_math_expressions(text, entities, all_entities)

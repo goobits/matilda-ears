@@ -118,17 +118,28 @@ class MathematicalConverter(BaseNumericConverter):
         """Convert individual math tokens"""
         token_lower = str(token).lower()
 
-        # Convert operators
+        # Convert operators - explicit handling for common math operators first
+        if token_lower == "plus":
+            return "+"
+        if token_lower == "minus":
+            return "-" 
+        if token_lower == "times":
+            return "×"
+        if token_lower == "over":
+            return "/"
+        if token_lower == "equals":
+            return "="
+        if token_lower == "divided":
+            return "÷"
+        
+        # Check operator mappings for any other operators
         if token_lower in self.operator_mappings:
             return self.operator_mappings[token_lower]
 
-        # Handle special math symbols
-        if token_lower == "times":
-            return "×"
-        if token_lower == "over":  # Added handling for "over"
-            return "/"
-
-        # Convert number words
+        # Convert number words (including explicit zero handling)
+        if token_lower == "zero":
+            return "0"
+        
         parsed_num = self.number_parser.parse(token_lower)
         if parsed_num:
             return parsed_num
