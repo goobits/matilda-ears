@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from stt.core.config import setup_logging
+from stt.text_formatting.constants import get_nested_resource
 
 logger = setup_logging(__name__)
 
@@ -33,9 +34,16 @@ except ImportError:
 class MathExpressionParser:
     """Robust math expression parser using pyparsing"""
 
-    def __init__(self):
+    def __init__(self, language: str = "en"):
         if not PYPARSING_AVAILABLE:
             raise ImportError("pyparsing is required but not available")
+        
+        self.language = language
+        
+        # Cache for loaded mathematical terms
+        self._math_constants_cache = None
+        self._power_expressions_cache = None
+        self._operators_cache = None
 
         try:
             # Define number words (comprehensive list)
@@ -77,8 +85,9 @@ class MathExpressionParser:
                 ]
             )
 
-            # Define mathematical constants
-            math_constants = oneOf(["pi", "e", "infinity", "inf"])
+            # Define mathematical constants (from resources)
+            constants_list = self._get_math_constants()
+            math_constants = oneOf(constants_list)
             math_constants.setParseAction(lambda t: t[0])  # Return the raw token
 
             # Define variables (order matters: longer matches first to avoid greedy single-char matching)
@@ -93,16 +102,18 @@ class MathExpressionParser:
             # Define operands (variables, numbers, constants, or expressions with powers)
             operand = math_constants | variable | number
 
-            # Define power expressions (squared, cubed, etc.)
-            power_word = oneOf(["squared", "cubed", "to the power of"])
+            # Define power expressions (from resources)
+            power_expressions = self._get_power_expressions()
+            power_word = oneOf(power_expressions)
             powered_expr = operand + OptionalPP(power_word + OptionalPP(number))
 
-            # Define operators
-            plus_op = oneOf(["plus", "+"])
-            minus_op = oneOf(["minus", "-"])
-            times_op = oneOf(["times", "multiplied by", "*", "×"])
-            div_op = oneOf(["divided by", "over", "/", "÷"])  # Added "over"
-            equals_op = oneOf(["equals", "is", "="])
+            # Define operators (from resources)
+            operators = self._get_math_operators()
+            plus_op = oneOf(operators["plus"])
+            minus_op = oneOf(operators["minus"])
+            times_op = oneOf(operators["times"])
+            div_op = oneOf(operators["div"])
+            equals_op = oneOf(operators["equals"])
 
             # Build expression grammar
             expr = infixNotation(
@@ -128,6 +139,95 @@ class MathExpressionParser:
         except Exception as e:
             logger.error(f"Failed to initialize pyparsing math parser: {e}")
             raise
+    
+    def _get_math_constants(self) -> list[str]:
+        """Get mathematical constants from resources with fallback."""
+        if self._math_constants_cache is not None:
+            return self._math_constants_cache
+        
+        try:
+            constants_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "constants")
+            constants = list(constants_dict.keys())
+            self._math_constants_cache = constants
+            return constants
+        except (KeyError, ValueError) as e:
+            logger.debug(f"Failed to load math constants from resources for {self.language}: {e}")
+            # Fallback to hardcoded constants
+            fallback = ["pi", "e", "infinity", "inf"]
+            self._math_constants_cache = fallback
+            return fallback
+    
+    def _get_power_expressions(self) -> list[str]:
+        """Get power expressions from resources with fallback."""
+        if self._power_expressions_cache is not None:
+            return self._power_expressions_cache
+        
+        try:
+            operations_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "operations")
+            # Extract power-related operations
+            power_ops = []
+            for key, value in operations_dict.items():
+                if value in ["²", "³", "^"]:
+                    power_ops.append(key)
+            self._power_expressions_cache = power_ops
+            return power_ops
+        except (KeyError, ValueError) as e:
+            logger.debug(f"Failed to load power expressions from resources for {self.language}: {e}")
+            # Fallback to hardcoded expressions
+            fallback = ["squared", "cubed", "to the power of"]
+            self._power_expressions_cache = fallback
+            return fallback
+    
+    def _get_math_operators(self) -> dict[str, list[str]]:
+        """Get mathematical operators from resources with fallback."""
+        if self._operators_cache is not None:
+            return self._operators_cache
+        
+        try:
+            operations_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "operations")
+            
+            # Group operators by type
+            operators = {
+                "plus": [],
+                "minus": [],
+                "times": [],
+                "div": [],
+                "equals": []
+            }
+            
+            for key, value in operations_dict.items():
+                if value == "+":
+                    operators["plus"].append(key)
+                elif value == "-":
+                    operators["minus"].append(key)
+                elif value == "×":
+                    operators["times"].append(key)
+                elif value in ["/", "÷"]:
+                    operators["div"].append(key)
+                elif value == "=":
+                    operators["equals"].append(key)
+            
+            # Add symbol fallbacks
+            operators["plus"].extend(["+"])
+            operators["minus"].extend(["-"])
+            operators["times"].extend(["*", "×"])
+            operators["div"].extend(["/", "÷"])
+            operators["equals"].extend(["="])
+            
+            self._operators_cache = operators
+            return operators
+        except (KeyError, ValueError) as e:
+            logger.debug(f"Failed to load math operators from resources for {self.language}: {e}")
+            # Fallback to hardcoded operators
+            fallback = {
+                "plus": ["plus", "+"],
+                "minus": ["minus", "-"],
+                "times": ["times", "multiplied by", "*", "×"],
+                "div": ["divided by", "over", "/", "÷"],
+                "equals": ["equals", "is", "="]
+            }
+            self._operators_cache = fallback
+            return fallback
 
     def parse_expression(self, text: str) -> dict[str, Any] | None:
         """Parse math expression and return structured result"""

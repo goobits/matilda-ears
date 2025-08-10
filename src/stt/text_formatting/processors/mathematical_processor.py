@@ -18,6 +18,10 @@ from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_
 from stt.text_formatting import pattern_modules
 from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 from stt.text_formatting.priority_config import ProcessorType, get_current_config
+from stt.text_formatting.constants import get_nested_resource
+from stt.core.config import setup_logging
+
+logger = setup_logging(__name__)
 
 
 class MathematicalProcessor(BaseNumericProcessor):
@@ -29,7 +33,7 @@ class MathematicalProcessor(BaseNumericProcessor):
         
         # Initialize math expression parser
         try:
-            self.math_parser = MathExpressionParser()
+            self.math_parser = MathExpressionParser(language=language)
         except ImportError:
             self.math_parser = None
         
@@ -77,9 +81,9 @@ class MathematicalProcessor(BaseNumericProcessor):
             priority=113
         ))
         
-        # 3. Mathematical constants (pi, infinity)
+        # 3. Mathematical constants (from resources)
         rules.append(ProcessingRule(
-            pattern=re.compile(r"\b(pi|infinity|inf)\b", re.IGNORECASE),
+            pattern=self._build_math_constants_pattern(),
             entity_type=EntityType.MATH_CONSTANT,
             metadata_extractor=self._extract_constant_metadata,
             priority=110
@@ -145,6 +149,18 @@ class MathematicalProcessor(BaseNumericProcessor):
         }
     
     # Pattern builders
+    
+    def _build_math_constants_pattern(self) -> Pattern[str]:
+        """Build pattern for mathematical constants from resources."""
+        try:
+            constants_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "constants")
+            constants_list = list(constants_dict.keys())
+            pattern_str = r"\b(" + "|".join(re.escape(c) for c in constants_list) + r")\b"
+            return re.compile(pattern_str, re.IGNORECASE)
+        except (KeyError, ValueError) as e:
+            logger.debug(f"Failed to load math constants from resources for {self.language}: {e}")
+            # Fallback to hardcoded pattern
+            return re.compile(r"\b(pi|infinity|inf)\b", re.IGNORECASE)
     
     def _build_number_pattern(self) -> str:
         """Build pattern for number words."""
@@ -522,28 +538,32 @@ class MathematicalProcessor(BaseNumericProcessor):
         """Convert individual math tokens."""
         token_lower = str(token).lower()
 
-        # Convert operators
+        # Convert operators from resources first
+        try:
+            operations_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "operations")
+            if token_lower in operations_dict:
+                return operations_dict[token_lower]
+        except (KeyError, ValueError):
+            logger.debug(f"Failed to load math operations from resources for {self.language}")
+        
+        # Fallback to hardcoded operator mappings
         if token_lower in self.operator_mappings:
             return self.operator_mappings[token_lower]
-
-        # Handle special math symbols
-        if token_lower == "times":
-            return "×"
-        if token_lower == "over":  # Added handling for "over"
-            return "/"
 
         # Convert number words
         parsed_num = self.number_parser.parse(token_lower)
         if parsed_num:
             return parsed_num
 
-        # Convert powers
-        if token_lower == "squared":
-            return "²"
-        if token_lower == "cubed":
-            return "³"
-
-        # Handle math constants (Greek letters, etc.)
+        # Handle math constants from resources first
+        try:
+            constants_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "constants")
+            if token_lower in constants_dict:
+                return constants_dict[token_lower]
+        except (KeyError, ValueError):
+            logger.debug(f"Failed to load math constants from resources for {self.language}")
+        
+        # Fallback to hardcoded math constant mappings
         if token_lower in self.math_constant_mappings:
             return self.math_constant_mappings[token_lower]
 
@@ -633,7 +653,15 @@ class MathematicalProcessor(BaseNumericProcessor):
 
         constant = entity.metadata.get("constant", "").lower()
 
-        # Return the mapped constant or fallback to original text
+        # Try to get the constant from resources first
+        try:
+            constants_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "constants")
+            if constant in constants_dict:
+                return constants_dict[constant]
+        except (KeyError, ValueError):
+            logger.debug(f"Failed to load math constants from resources for {self.language}")
+        
+        # Fallback to hardcoded mappings, then original text
         return self.math_constant_mappings.get(constant, entity.text)
     
     def convert_scientific_notation(self, entity: Entity, full_text: str = "") -> str:

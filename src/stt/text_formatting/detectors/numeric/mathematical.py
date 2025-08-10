@@ -16,6 +16,7 @@ from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.spacy_doc_cache import get_global_doc_processor
 from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_idiomatic_over_expression
 from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
+from stt.text_formatting.constants import get_nested_resource
 
 logger = setup_logging(__name__)
 
@@ -37,8 +38,28 @@ class MathematicalExpressionDetector:
 
         self.nlp = nlp
         self.language = language
-        self.math_parser = MathExpressionParser()
+        self.math_parser = MathExpressionParser(language=self.language)
         self.number_parser = NumberParser(language=self.language)
+        
+        # Cache for mathematical constants pattern
+        self._constants_pattern = None
+
+    def _get_math_constants_pattern(self) -> re.Pattern[str]:
+        """Get mathematical constants pattern from resources with fallback."""
+        if self._constants_pattern is not None:
+            return self._constants_pattern
+        
+        try:
+            constants_dict = get_nested_resource(self.language, "spoken_keywords", "mathematical", "constants")
+            constants_list = list(constants_dict.keys())
+            pattern_str = r"\b(" + "|".join(re.escape(c) for c in constants_list) + r")\b"
+            self._constants_pattern = re.compile(pattern_str, re.IGNORECASE)
+        except (KeyError, ValueError) as e:
+            logger.debug(f"Failed to load math constants from resources for {self.language}: {e}")
+            # Fallback to hardcoded pattern
+            self._constants_pattern = re.compile(r"\b(pi|infinity|inf)\b", re.IGNORECASE)
+        
+        return self._constants_pattern
 
     def _get_ordinal_pattern_string(self) -> str:
         """Get ordinal pattern string for regex building (fallback pattern)."""
@@ -266,8 +287,8 @@ class MathematicalExpressionDetector:
         - "infinity" → "∞"
 
         """
-        # Pattern for math constants - only match standalone words
-        constants_pattern = re.compile(r"\b(pi|infinity|inf)\b", re.IGNORECASE)
+        # Pattern for math constants from resources
+        constants_pattern = self._get_math_constants_pattern()
 
         for match in constants_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
