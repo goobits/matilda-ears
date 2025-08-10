@@ -106,13 +106,29 @@ class MeasurementPatternConverter(BasePatternConverter):
             number_text = metric_match.group(1)
             unit_text = metric_match.group(2).lower()
 
-            # Handle decimal numbers
+            # Handle decimal numbers including "and a half/quarter" patterns
             decimal_match = re.match(r"(\w+)\s+point\s+(\w+)", number_text, re.IGNORECASE)
+            fraction_match = re.match(r"(\w+)\s+and\s+a\s+(half|quarter)", number_text, re.IGNORECASE)
+            
             if decimal_match:
                 whole_part = self.number_parser.parse(decimal_match.group(1))
-                decimal_part = self.number_parser.parse(decimal_match.group(2))
+                decimal_part = self.number_parser.parse_as_digits(decimal_match.group(2))
+                if not decimal_part:
+                    decimal_part = self.number_parser.parse(decimal_match.group(2))
                 if whole_part and decimal_part:
                     parsed_num = f"{whole_part}.{decimal_part}"
+                else:
+                    parsed_num = self.number_parser.parse(number_text)
+            elif fraction_match:
+                whole_part = self.number_parser.parse(fraction_match.group(1))
+                fraction_part = fraction_match.group(2)
+                if whole_part:
+                    if fraction_part == "half":
+                        parsed_num = f"{whole_part}.5"
+                    elif fraction_part == "quarter":
+                        parsed_num = f"{whole_part}.25"
+                    else:
+                        parsed_num = f"{whole_part}.5"
                 else:
                     parsed_num = self.number_parser.parse(number_text)
             else:
@@ -131,8 +147,8 @@ class MeasurementPatternConverter(BasePatternConverter):
         # Pattern for measurements with numbers (digits or words)
         # Match patterns like "six feet", "5 foot", "three and a half inches"
         patterns = [
-            # "X and a half feet/inches"
-            (r"(\w+)\s+and\s+a\s+half\s+(feet?|foot|inch(?:es)?)", "fraction"),
+            # "X and a half feet/inches" or "X and a quarter feet/inches"
+            (r"(\w+)\s+and\s+a\s+(half|quarter)\s+(feet?|foot|inch(?:es)?)", "fraction"),
             # "X feet Y inches" (like "six feet two inches")
             (r"(\w+)\s+(feet?|foot)\s+(\w+)\s+(inch(?:es)?)", "feet_inches"),
             # "X foot Y" (like "5 foot 10" or "five foot ten")
@@ -141,6 +157,8 @@ class MeasurementPatternConverter(BasePatternConverter):
             (r"(\w+)\s+(miles?|yards?)", "distance"),
             # "X pounds/ounces/lbs" (weight measurements)
             (r"(\w+)\s+(pounds?|lbs?|ounces?|oz)", "weight"),
+            # "X gallons/quarts/pints/fluid ounces" (volume measurements)
+            (r"(\w+)\s+(gallons?|quarts?|pints?|(?:fluid\s+)?ounces?)", "volume"),
             # "X feet/foot/inches/inch" (must come after compound patterns)
             (r"(\w+)\s+(feet?|foot|inch(?:es)?)", "simple"),
         ]
@@ -150,17 +168,26 @@ class MeasurementPatternConverter(BasePatternConverter):
             if match:
                 if pattern_type == "fraction":
                     number_part = match.group(1)
-                    unit = match.group(2)
+                    fraction_part = match.group(2)
+                    unit = match.group(3)
 
                     # Parse the number
                     parsed_num = self.number_parser.parse(number_part)
                     if parsed_num:
-                        # Add 0.5 for "and a half"
+                        # Add appropriate fraction
                         try:
-                            num_value = float(parsed_num) + 0.5
+                            if fraction_part == "half":
+                                num_value = float(parsed_num) + 0.5
+                            elif fraction_part == "quarter":
+                                num_value = float(parsed_num) + 0.25
+                            else:
+                                num_value = float(parsed_num) + 0.5  # default to half
                             number_str = str(num_value).rstrip("0").rstrip(".")
                         except (ValueError, TypeError):
-                            number_str = f"{parsed_num}.5"
+                            if fraction_part == "quarter":
+                                number_str = f"{parsed_num}.25"
+                            else:
+                                number_str = f"{parsed_num}.5"
                     else:
                         return entity.text  # Fallback if can't parse
 
@@ -226,8 +253,28 @@ class MeasurementPatternConverter(BasePatternConverter):
                     # Convert to abbreviations (avoiding currency symbols)
                     if "pound" in unit or "lbs" in unit:
                         return f"{parsed_num} lbs"
-                    if "ounce" in unit or "oz" in unit:
+                    if "ounce" in unit and "fluid" not in unit:
                         return f"{parsed_num} oz"
+
+                elif pattern_type == "volume":
+                    number_part = match.group(1)
+                    unit = match.group(2)
+
+                    # Parse the number
+                    parsed_num = self.number_parser.parse(number_part)
+                    if not parsed_num:
+                        return entity.text  # Fallback if can't parse
+
+                    # Convert to abbreviations using mapping registry
+                    unit_map = self.mapping_registry.get_measurement_unit_map()
+                    unit_clean = unit.strip().lower()
+                    
+                    # Handle fluid ounces specially
+                    if "fluid" in unit_clean or ("ounce" in unit_clean and "fluid" not in unit_clean):
+                        return f"{parsed_num} fl oz"
+                    
+                    standard_unit = unit_map.get(unit_clean, unit_clean)
+                    return f"{parsed_num} {standard_unit}"
 
                 elif pattern_type == "height":
                     feet_part = match.group(1)

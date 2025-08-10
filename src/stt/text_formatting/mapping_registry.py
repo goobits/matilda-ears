@@ -141,8 +141,8 @@ class MappingRegistry:
             "tons": "t",
             "tonne": "t",
             "tonnes": "t",
-            "pound": "lb",
-            "pounds": "lb",
+            "pound": "lbs",
+            "pounds": "lbs",
             "ounce": "oz",
             "ounces": "oz",
             # Volume units
@@ -162,6 +162,8 @@ class MappingRegistry:
             "tablespoons": "tbsp",
             "teaspoon": "tsp",
             "teaspoons": "tsp",
+            "fluid ounce": "fl oz",
+            "fluid ounces": "fl oz",
             # Temperature units
             "celsius": "°C",
             "fahrenheit": "°F",
