@@ -29,7 +29,29 @@
       "equals equals": "==",
       "times": "×",
       "divided by": "÷",
-      "over": "/"
+      "over": "/",
+      "squared": "²",
+      "cubed": "³",
+      "to the power of": "^"
+    },
+    "mathematical": {
+      "constants": {
+        "pi": "π",
+        "e": "e",
+        "infinity": "∞",
+        "inf": "∞"
+      },
+      "operations": {
+        "plus": "+",
+        "minus": "-",
+        "times": "×",
+        "divided by": "÷",
+        "over": "/",
+        "equals": "=",
+        "squared": "²",
+        "cubed": "³",
+        "to the power of": "^"
+      }
     },
     "letters": {
       "alpha": "A",
@@ -104,6 +126,22 @@
     "storage": ["byte", "bytes", "kilobyte", "kilobytes", "megabyte", "megabytes", "gigabyte", "gigabytes", "terabyte", "terabytes"]
   },
   "top_level_domains": ["com", "org", "net", "edu", "gov", "io", "co", "uk", "ca", "au", "de", "fr"],
+  "file_extensions": {
+    "document": ["md", "txt", "pdf", "doc", "docx"],
+    "web": ["html", "css", "js", "php"],
+    "code": ["py", "java", "cpp", "c"]
+  },
+  "emoji_mappings": {
+    "smiley face": "🙂",
+    "sad face": "🙁",
+    "thumbs up": "👍",
+    "thumbs down": "👎",
+    "heart": "❤️",
+    "fire": "🔥",
+    "star": "⭐",
+    "check mark": "✅",
+    "cross mark": "❌"
+  },
   "number_words": {
     "ones": {
       "zero": 0,
@@ -168,6 +206,9 @@
     "date_ordinals": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty first", "twenty second", "twenty third", "thirtieth", "thirty first"]
   },
   "units": {
+    "temperature_units": ["celsius", "centigrade", "fahrenheit", "c", "f"],
+    "imperial_length": ["foot", "feet", "inch", "inches"],
+    "imperial_weight": ["pound", "pounds", "ounce", "ounces"],
     "currency_map": {
       "dollar": "$",
       "dollars": "$",
@@ -196,10 +237,17 @@
       "reais": "R$"
     },
     "time_units": ["second", "seconds", "minute", "minutes", "hour", "hours", "day", "days", "week", "weeks", "month", "months", "year", "years", "millisecond", "milliseconds", "microsecond", "microseconds"],
+    "time_expressions": {
+      "quarter past": ":15",
+      "half past": ":30",
+      "quarter to": ":45",
+      "am": "AM",
+      "pm": "PM"
+    },
     "frequency_units": ["hertz", "kilohertz", "megahertz", "gigahertz", "hz", "khz", "mhz", "ghz"],
     "percent_units": ["percent", "percentage"],
-    "length_units": ["millimeter", "millimeters", "millimetre", "millimetres", "mm", "centimeter", "centimeters", "centimetre", "centimetres", "cm", "meter", "meters", "metre", "metres", "m", "kilometer", "kilometers", "kilometre", "kilometres", "km"],
-    "weight_units": ["milligram", "milligrams", "mg", "gram", "grams", "g", "kilogram", "kilograms", "kg", "metric ton", "metric tons", "tonne", "tonnes"],
+    "length_units": ["millimeter", "millimeters", "millimetre", "millimetres", "mm", "centimeter", "centimeters", "centimetre", "centimetres", "cm", "meter", "meters", "metre", "metres", "m", "kilometer", "kilometers", "kilometre", "kilometres", "km", "foot", "feet", "inch", "inches"],
+    "weight_units": ["milligram", "milligrams", "mg", "gram", "grams", "g", "kilogram", "kilograms", "kg", "metric ton", "metric tons", "tonne", "tonnes", "pound", "pounds", "ounce", "ounces"],
     "volume_units": ["milliliter", "milliliters", "millilitre", "millilitres", "ml", "liter", "liters", "litre", "litres", "l"],
     "known_units": ["megabytes", "megabyte", "mb", "gigabytes", "gigabyte", "gb", "kilobytes", "kilobyte", "kb", "terabytes", "terabyte", "tb", "dollars", "dollar", "cents", "cent", "pounds", "pound", "percent", "percentage", "hertz", "hz", "khz", "mhz", "ghz", "degrees", "celsius", "fahrenheit", "millimeters", "millimeter", "centimeters", "centimeter", "meters", "meter", "kilometers", "kilometer", "grams", "gram", "kilograms", "kilogram", "liters", "liter", "milliliters", "milliliter"],
     "action_prefixes": {
@@ -225,10 +273,10 @@
     "complete_sentence_phrases": ["yes", "no", "okay", "thanks", "hello", "goodbye", "hi", "bye", "thank you", "sure", "please", "sorry"],
     "idiomatic_phrases": {
       "first": ["class", "rate", "person", "aid", "hand", "base", "string", "impression", "thing", "things", "time", "place", "step", "choice", "option", "priority", "item", "come", "of", "we", "they", "I"],
-      "second": ["nature", "hand", "string", "thoughts", "class", "rate", "person", "time", "place", "step", "choice", "option", "priority", "item", "to", "the", "we", "they", "I"],
-      "third": ["party", "person", "string", "wheel", "base", "class", "rate", "time", "time's", "place", "step", "choice", "option", "priority", "item", "implementation", "we", "they", "I"],
-      "fourth": ["wall", "estate", "dimension", "time", "place", "step", "choice", "option", "priority", "item"],
-      "fifth": ["wheel", "column", "amendment", "time", "place", "step", "choice", "option", "priority", "item"],
+      "second": ["nature", "hand", "string", "thoughts", "class", "rate", "person", "time", "step", "choice", "option", "priority", "item", "to", "the", "we", "they", "I"],
+      "third": ["party", "person", "string", "wheel", "base", "class", "rate", "step", "choice", "option", "priority", "item", "implementation", "we", "they", "I"],
+      "fourth": ["wall", "estate", "dimension", "step", "choice", "option", "priority", "item"],
+      "fifth": ["wheel", "column", "amendment", "step", "choice", "option", "priority", "item"],
       "sixth": ["sense", "time", "place", "step", "choice", "option", "priority", "item"],
       "seventh": ["heaven", "time", "place", "step", "choice", "option", "priority", "item"],
       "eighth": ["wonder", "time", "place", "step", "choice", "option", "priority", "item"],
@@ -243,6 +291,39 @@
       "behind the eight ball"
     ],
     "ordinal_words": ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth", "thirtieth", "fortieth", "fiftieth", "sixtieth", "seventieth", "eightieth", "ninetieth", "hundredth", "thousandth"],
+    "ordinal_suffixes": {
+      "1": "1st",
+      "2": "2nd",
+      "3": "3rd",
+      "4": "4th",
+      "5": "5th",
+      "6": "6th",
+      "7": "7th",
+      "8": "8th",
+      "9": "9th",
+      "10": "10th",
+      "11": "11th",
+      "12": "12th",
+      "13": "13th",
+      "14": "14th",
+      "15": "15th",
+      "16": "16th",
+      "17": "17th",
+      "18": "18th",
+      "19": "19th",
+      "20": "20th",
+      "21": "21st",
+      "22": "22nd",
+      "23": "23rd",
+      "24": "24th",
+      "25": "25th",
+      "26": "26th",
+      "27": "27th",
+      "28": "28th",
+      "29": "29th",
+      "30": "30th",
+      "31": "31st"
+    },
     "uppercase_abbreviations": {
       "asap": "ASAP",
       "faq": "FAQ",

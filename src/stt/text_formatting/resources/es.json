@@ -29,7 +29,32 @@
       "por": "×",
       "dividido por": "÷",
       "dividido entre": "÷",
-      "sobre": "/"
+      "sobre": "/",
+      "al cuadrado": "²",
+      "al cubo": "³",
+      "elevado a la": "^",
+      "a la potencia de": "^"
+    },
+    "mathematical": {
+      "constants": {
+        "pi": "π",
+        "e": "e",
+        "infinito": "∞",
+        "inf": "∞"
+      },
+      "operations": {
+        "más": "+",
+        "menos": "-",
+        "por": "×",
+        "dividido por": "÷",
+        "dividido entre": "÷",
+        "sobre": "/",
+        "igual": "=",
+        "al cuadrado": "²",
+        "al cubo": "³",
+        "elevado a la": "^",
+        "a la potencia de": "^"
+      }
     },
     "letters": {
       "alfa": "A",
@@ -103,6 +128,22 @@
     "duration": ["segundo", "segundos", "minuto", "minutos", "hora", "horas", "día", "días", "semana", "semanas", "mes", "meses", "año", "años"]
   },
   "top_level_domains": ["com", "org", "net", "edu", "gov", "es", "mx", "co", "ar", "cl", "pe", "ve", "ec", "bo", "py", "uy"],
+  "file_extensions": {
+    "document": ["md", "txt", "pdf", "doc", "docx"],
+    "web": ["html", "css", "js", "php"],
+    "code": ["py", "java", "cpp", "c"]
+  },
+  "emoji_mappings": {
+    "cara sonriente": "🙂",
+    "cara triste": "🙁",
+    "pulgar arriba": "👍",
+    "pulgar abajo": "👎",
+    "corazón": "❤️",
+    "fuego": "🔥",
+    "estrella": "⭐",
+    "marca de verificación": "✅",
+    "marca de cruz": "❌"
+  },
   "number_words": {
     "ones": {
       "cero": 0,
@@ -180,6 +221,9 @@
     "date_ordinals": ["primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo", "undécimo", "duodécimo", "decimotercero", "decimocuarto", "decimoquinto", "decimosexto", "decimoséptimo", "decimoctavo", "decimonoveno", "vigésimo", "vigésimo primero", "vigésimo segundo", "vigésimo tercero", "vigésimo cuarto", "vigésimo quinto", "vigésimo sexto", "vigésimo séptimo", "vigésimo octavo", "vigésimo noveno", "trigésimo", "trigésimo primero"]
   },
   "units": {
+    "temperature_units": ["celsius", "centígrados", "fahrenheit", "c", "f"],
+    "imperial_length": ["pie", "pies", "pulgada", "pulgadas"],
+    "imperial_weight": ["libra", "libras", "onza", "onzas"],
     "currency_map": {
       "dólar": "$",
       "dólares": "$",
@@ -197,10 +241,18 @@
       "reales": "R$"
     },
     "time_units": ["segundo", "segundos", "minuto", "minutos", "hora", "horas", "día", "días", "semana", "semanas", "mes", "meses", "año", "años", "milisegundo", "milisegundos", "microsegundo", "microsegundos"],
+    "time_expressions": {
+      "y cuarto": ":15",
+      "y media": ":30",
+      "menos cuarto": ":45",
+      "de la mañana": "AM",
+      "de la tarde": "PM",
+      "de la noche": "PM"
+    },
     "frequency_units": ["hercio", "kilohercio", "megahercio", "gigahercio", "hz", "khz", "mhz", "ghz"],
     "percent_units": ["porciento", "porcentaje"],
-    "length_units": ["milímetro", "milímetros", "mm", "centímetro", "centímetros", "cm", "metro", "metros", "m", "kilómetro", "kilómetros", "km"],
-    "weight_units": ["miligramo", "miligramos", "mg", "gramo", "gramos", "g", "kilogramo", "kilogramos", "kg", "tonelada métrica", "toneladas métricas", "tonelada", "toneladas"],
+    "length_units": ["milímetro", "milímetros", "mm", "centímetro", "centímetros", "cm", "metro", "metros", "m", "kilómetro", "kilómetros", "km", "pie", "pies", "pulgada", "pulgadas"],
+    "weight_units": ["miligramo", "miligramos", "mg", "gramo", "gramos", "g", "kilogramo", "kilogramos", "kg", "tonelada métrica", "toneladas métricas", "tonelada", "toneladas", "libra", "libras", "onza", "onzas"],
     "volume_units": ["mililitro", "mililitros", "ml", "litro", "litros", "l"],
     "known_units": ["megabytes", "megabyte", "mb", "gigabytes", "gigabyte", "gb", "kilobytes", "kilobyte", "kb", "terabytes", "terabyte", "tb", "dólares", "dólar", "centavos", "centavo", "pesos", "peso", "porciento", "porcentaje", "hercio", "hz", "khz", "mhz", "ghz", "grados", "celsius", "fahrenheit", "milímetros", "milímetro", "centímetros", "centímetro", "metros", "metro", "kilómetros", "kilómetro", "gramos", "gramo", "kilogramos", "kilogramo", "litros", "litro", "mililitros", "mililitro"],
     "action_prefixes": {
@@ -239,6 +291,39 @@
       "décimo": ["enmienda"]
     },
     "ordinal_words": ["primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo", "noveno", "décimo", "undécimo", "duodécimo", "decimotercero", "decimocuarto", "decimoquinto", "decimosexto", "decimoséptimo", "decimoctavo", "decimonoveno", "vigésimo", "trigésimo", "cuadragésimo", "quincuagésimo", "sexagésimo", "septuagésimo", "octogésimo", "nonagésimo", "centésimo", "milésimo"],
+    "ordinal_suffixes": {
+      "1": "1º",
+      "2": "2º",
+      "3": "3º",
+      "4": "4º",
+      "5": "5º",
+      "6": "6º",
+      "7": "7º",
+      "8": "8º",
+      "9": "9º",
+      "10": "10º",
+      "11": "11º",
+      "12": "12º",
+      "13": "13º",
+      "14": "14º",
+      "15": "15º",
+      "16": "16º",
+      "17": "17º",
+      "18": "18º",
+      "19": "19º",
+      "20": "20º",
+      "21": "21º",
+      "22": "22º",
+      "23": "23º",
+      "24": "24º",
+      "25": "25º",
+      "26": "26º",
+      "27": "27º",
+      "28": "28º",
+      "29": "29º",
+      "30": "30º",
+      "31": "31º"
+    },
     "uppercase_abbreviations": {
       "api": "API",
       "url": "URL",
