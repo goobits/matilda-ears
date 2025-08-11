@@ -182,7 +182,7 @@ class TextFormatter:
                 "entity_detector": self.entity_detector,
             }
         
-        filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc, pipeline_state=pipeline_state)
+        filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc, pipeline_state=pipeline_state, language=current_language)
         logger.debug(f"Step 2 - Final entities: {len(filtered_entities)} entities detected")
         
         # THEORY 8: Register all detected entities in universal tracking system
@@ -198,7 +198,7 @@ class TextFormatter:
             logger.debug(f"Theory 8: Registered {len(filtered_entities)} entities in universal tracker")
 
         # STEP 3: Convert entities to their final representations
-        logger.debug(f"Step 3 - Before entity conversion: '{text}'")
+        logger.debug(f"Step 3 - Before entity conversion: '{text}' (entities: {len(filtered_entities)})")
         
         # Use appropriate pattern converter based on language (pipeline_state already created in step 2)
         if current_language != self.language:
@@ -234,6 +234,7 @@ class TextFormatter:
 
         # STEP 5: Apply capitalization with entity protection
         logger.debug(f"Step 5 - Before capitalization: '{cleaned_text}'")
+        logger.debug(f"Step 5 - Converted entities for protection: {[(e.type, e.text, e.start, e.end) for e in converted_entities]}")
         
         # Check if we should skip capitalization
         punctuation_was_removed = cleaned_text != punctuated_text
@@ -266,14 +267,24 @@ class TextFormatter:
         
         if should_capitalize:
             # Use appropriate capitalizer based on language
+            
+            # THEORY 9 FIX: Don't pass doc if text has been significantly modified by entity conversion
+            # This prevents SmartCapitalizer from getting confused when doc.text != actual_text
+            text_modified = cleaned_text != text  # Compare with original text
+            doc_to_use = None if text_modified else doc
+            
+            if text_modified:
+                logger.debug(f"Text modified by entity conversion, not passing doc to capitalizer")
+                logger.debug(f"Original: '{text}' vs Cleaned: '{cleaned_text}'")
+            
             if current_language != self.language:
                 temp_capitalizer = SmartCapitalizer(language=current_language)
                 final_text = apply_capitalization_with_entity_protection(
-                    cleaned_text, converted_entities, temp_capitalizer, doc=doc
+                    cleaned_text, converted_entities, temp_capitalizer, doc=doc_to_use
                 )
             else:
                 final_text = apply_capitalization_with_entity_protection(
-                    cleaned_text, converted_entities, self.smart_capitalizer, doc=doc
+                    cleaned_text, converted_entities, self.smart_capitalizer, doc=doc_to_use
                 )
         else:
             final_text = cleaned_text

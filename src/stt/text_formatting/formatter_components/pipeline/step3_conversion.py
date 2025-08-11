@@ -15,7 +15,7 @@ This is Step 3 of the 4-step formatting pipeline:
 from __future__ import annotations
 
 from ..pattern_converter import PatternConverter
-from ...common import Entity
+from stt.text_formatting.common import Entity
 from ..pipeline_state import PipelineState
 
 

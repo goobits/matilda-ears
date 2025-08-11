@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from ..constants import get_resources
-from ..common import Entity, EntityType
+from stt.text_formatting.common import Entity, EntityType
 
 
 class EntityState(Enum):

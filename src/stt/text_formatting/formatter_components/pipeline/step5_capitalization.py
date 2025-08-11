@@ -61,6 +61,7 @@ def apply_capitalization_with_entity_protection(
     # Phase 1: Use the converted entities with their correct positions in the final text
     # Pass the entities directly to the capitalizer for protection
     logger.debug(f"Sending to capitalizer: '{text}'")
+    logger.debug(f"Entities being passed to capitalizer: {[(e.type, e.text, e.start, e.end) for e in entities]}")
 
     # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
     capitalized_text = capitalizer.capitalize(text, entities, doc=doc)

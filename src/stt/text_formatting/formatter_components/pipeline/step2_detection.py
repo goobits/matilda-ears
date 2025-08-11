@@ -28,89 +28,32 @@ except ImportError:
 # Local imports - common data structures
 from stt.text_formatting.common import Entity, EntityType
 
+# Local imports - universal priority system
+from stt.text_formatting.universal_priority_manager import get_priority_manager
+
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 
-# Define entity priority (higher number = higher priority)
-# Originally from TextFormatter.format_transcription() (lines 167-245)
-ENTITY_PRIORITIES = {
-    # User-defined exact patterns (80-100)
-    EntityType.SPOKEN_LETTER: 100,  # Individual letters should have highest priority
-    EntityType.LETTER_SEQUENCE: 95,  # Letter sequences should have high priority
-    EntityType.FILENAME: 90,  # Filenames are user-specific patterns
-    EntityType.URL: 85,  # URLs need to preserve exact case
-    EntityType.SPOKEN_URL: 85,
-    EntityType.SPOKEN_PROTOCOL_URL: 85,
-    EntityType.EMAIL: 80,
-    EntityType.SPOKEN_EMAIL: 80,
+# Legacy entity priorities for backward compatibility
+# Now replaced by the Universal Priority Manager system
+ENTITY_PRIORITIES = None  # Will be set by get_entity_priorities() function
+
+
+def get_entity_priorities(language: str = "en") -> Dict[EntityType, int]:
+    """
+    Get entity priorities for the specified language using the Universal Priority Manager.
     
-    # Technical patterns (60-80)
-    EntityType.MATH_EXPRESSION: 75,
-    EntityType.MATH: 75,
-    EntityType.ROOT_EXPRESSION: 74,
-    EntityType.SCIENTIFIC_NOTATION: 73,
-    EntityType.COMPARISON: 70,
-    EntityType.ASSIGNMENT: 70,
-    EntityType.INCREMENT_OPERATOR: 68,
-    EntityType.DECREMENT_OPERATOR: 68,
-    EntityType.SLASH_COMMAND: 65,
-    EntityType.CLI_COMMAND: 65,
-    EntityType.PROGRAMMING_KEYWORD: 63,
-    EntityType.COMMAND_FLAG: 62,
-    EntityType.UNDERSCORE_DELIMITER: 60,
-    EntityType.SIMPLE_UNDERSCORE_VARIABLE: 60,
+    This function replaces the hardcoded ENTITY_PRIORITIES dictionary with
+    language-aware priority resolution.
     
-    # Path patterns (55-60)
-    EntityType.UNIX_PATH: 58,
-    EntityType.WINDOWS_PATH: 58,
-    
-    # Financial patterns (50-70)
-    EntityType.DOLLAR_CENTS: 65,
-    EntityType.DOLLARS: 64,
-    EntityType.CENTS: 63,
-    EntityType.CURRENCY: 62,
-    EntityType.POUNDS: 61,
-    EntityType.EUROS: 61,
-    EntityType.MONEY: 50,  # Generic money entity (SpaCy)
-    
-    # Technical measurements (45-55)
-    EntityType.DATA_SIZE: 55,
-    EntityType.FREQUENCY: 54,
-    EntityType.VERSION: 53,
-    EntityType.PORT_NUMBER: 52,
-    EntityType.TEMPERATURE: 80,
-    EntityType.METRIC_LENGTH: 50,
-    EntityType.METRIC_WEIGHT: 50,
-    EntityType.METRIC_VOLUME: 50,
-    
-    # Time patterns (40-50)
-    EntityType.TIME_AMPM: 48,
-    EntityType.TIME: 47,
-    EntityType.TIME_DURATION: 46,
-    EntityType.TIME_CONTEXT: 45,
-    EntityType.TIME_RELATIVE: 44,
-    EntityType.DATE: 42,
-    
-    # Numeric patterns (30-40)
-    EntityType.PHONE_LONG: 40,
-    EntityType.NUMERIC_RANGE: 38,
-    EntityType.FRACTION: 36,
-    EntityType.PERCENT: 35,
-    EntityType.ORDINAL: 32,
-    EntityType.QUANTITY: 30,
-    
-    # Generic SpaCy entities (10-30)
-    EntityType.CARDINAL: 20,  # Basic numbers
-    EntityType.ABBREVIATION: 105,  # Higher than SPOKEN_LETTER to prevent conflicts
-    
-    # Special patterns (20-40)
-    EntityType.PHYSICS_SQUARED: 35,
-    EntityType.PHYSICS_TIMES: 35,
-    EntityType.MATH_CONSTANT: 34,
-    EntityType.MUSIC_NOTATION: 30,
-    EntityType.SPOKEN_EMOJI: 28,
-    EntityType.PROTOCOL: 26,
-}
+    Args:
+        language: Language code (e.g., 'en', 'es', 'fr')
+        
+    Returns:
+        Dictionary mapping EntityType to priority values
+    """
+    priority_manager = get_priority_manager(language)
+    return priority_manager.get_all_priorities()
 
 
 def detect_all_entities(
@@ -119,10 +62,14 @@ def detect_all_entities(
     nlp_model: Optional[Any] = None,
     existing_entities: Optional[List[Entity]] = None,
     doc: Optional[Any] = None,
-    pipeline_state: Optional[Any] = None
+    pipeline_state: Optional[Any] = None,
+    language: str = "en"
 ) -> List[Entity]:
     """
     Run all entity detectors in priority order and return deduplicated final entities.
+    
+    Theory 9: Universal Cross-Language Entity Priority System
+    Uses language-specific priority matrices for smart conflict resolution.
     
     Phase D Optimized: Uses interval trees for O(n log n) entity deduplication and filtering
     vs original O(n²) performance. Maintains identical behavior and logic.
@@ -140,6 +87,8 @@ def detect_all_entities(
         nlp_model: SpaCy model instance (unused in current implementation)
         existing_entities: Pre-existing entities to include (default: empty list)
         doc: Pre-processed SpaCy document for efficiency
+        pipeline_state: Pipeline state object for context
+        language: Language code for priority resolution (e.g., 'en', 'es')
         
     Returns:
         List of deduplicated entities sorted by start position
@@ -189,11 +138,14 @@ def detect_all_entities(
         f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}"
     )
     
-    # Apply deduplication and overlap resolution
-    deduplicated_entities = _deduplicate_entities(final_entities)
+    # Get language-specific priorities for this processing run
+    entity_priorities = get_entity_priorities(language)
+    
+    # Apply deduplication and overlap resolution with language-aware priorities
+    deduplicated_entities = _deduplicate_entities(final_entities, entity_priorities)
     
     # Apply priority-based filtering to remove contained/overlapping lower-priority entities
-    priority_filtered_entities = _apply_priority_filtering(deduplicated_entities)
+    priority_filtered_entities = _apply_priority_filtering(deduplicated_entities, entity_priorities)
     
     # Performance monitoring
     elapsed = time.perf_counter() - start_time
@@ -209,28 +161,33 @@ def detect_all_entities(
     return sorted(priority_filtered_entities, key=lambda e: e.start)
 
 
-def _deduplicate_entities(entities: List[Entity]) -> List[Entity]:
+def _deduplicate_entities(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
     """
     Deduplicate entities with identical boundaries and resolve overlapping entities.
+    
+    Theory 9: Uses language-specific priority matrices for conflict resolution.
     
     Optimized using interval trees for O(n log n) performance vs original O(n²).
     Maintains IDENTICAL behavior and logic to the original implementation.
     
     Args:
         entities: List of entities that may have overlaps or duplicates
+        entity_priorities: Language-specific priority dictionary
         
     Returns:
         List of entities with overlaps resolved based on priority and length
     """
     if INTERVAL_TREE_AVAILABLE and len(entities) > 50:  # Use optimization for larger entity sets
-        return _deduplicate_entities_optimized(entities)
+        return _deduplicate_entities_optimized(entities, entity_priorities)
     else:
-        return _deduplicate_entities_fallback(entities)
+        return _deduplicate_entities_fallback(entities, entity_priorities)
 
 
-def _deduplicate_entities_optimized(entities: List[Entity]) -> List[Entity]:
+def _deduplicate_entities_optimized(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
     """
     Optimized O(n log n) deduplication using interval trees.
+    
+    Theory 9: Uses language-specific priority matrices for conflict resolution.
     
     Maintains IDENTICAL behavior to original implementation.
     """
@@ -256,8 +213,8 @@ def _deduplicate_entities_optimized(entities: List[Entity]) -> List[Entity]:
             existing_length = existing.end - existing.start
             
             # Get priorities for both entities
-            entity_priority = ENTITY_PRIORITIES.get(entity.type, 0)
-            existing_priority = ENTITY_PRIORITIES.get(existing.type, 0)
+            entity_priority = entity_priorities.get(entity.type, 0)
+            existing_priority = entity_priorities.get(existing.type, 0)
 
             # Priority is the primary factor - length is only a tiebreaker for same priority
             if entity_priority > existing_priority:
@@ -307,9 +264,11 @@ def _deduplicate_entities_optimized(entities: List[Entity]) -> List[Entity]:
     return deduplicated_entities
 
 
-def _deduplicate_entities_fallback(entities: List[Entity]) -> List[Entity]:
+def _deduplicate_entities_fallback(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
     """
     Original O(n²) deduplication for compatibility/fallback.
+    
+    Theory 9: Uses language-specific priority matrices for conflict resolution.
     
     Identical to original TextFormatter.format_transcription() (lines 247-306).
     """
@@ -334,8 +293,8 @@ def _deduplicate_entities_fallback(entities: List[Entity]) -> List[Entity]:
                 existing_length = existing.end - existing.start
                 
                 # Get priorities for both entities
-                entity_priority = ENTITY_PRIORITIES.get(entity.type, 0)
-                existing_priority = ENTITY_PRIORITIES.get(existing.type, 0)
+                entity_priority = entity_priorities.get(entity.type, 0)
+                existing_priority = entity_priorities.get(existing.type, 0)
 
                 # Priority is the primary factor - length is only a tiebreaker for same priority
                 if entity_priority > existing_priority:
@@ -378,9 +337,11 @@ def _deduplicate_entities_fallback(entities: List[Entity]) -> List[Entity]:
     return deduplicated_entities
 
 
-def _apply_priority_filtering(entities: List[Entity]) -> List[Entity]:
+def _apply_priority_filtering(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
     """
     Remove smaller entities that are completely contained within larger, higher-priority entities.
+    
+    Theory 9: Uses language-specific priority matrices for conflict resolution.
     
     Optimized using interval trees for O(n log n) performance vs original O(n²).
     Maintains IDENTICAL behavior and logic to the original implementation.
@@ -389,6 +350,7 @@ def _apply_priority_filtering(entities: List[Entity]) -> List[Entity]:
     
     Args:
         entities: List of deduplicated entities
+        entity_priorities: Language-specific priority dictionary
         
     Returns:
         List of entities with contained lower-priority entities removed
@@ -397,21 +359,23 @@ def _apply_priority_filtering(entities: List[Entity]) -> List[Entity]:
         return []
     
     if INTERVAL_TREE_AVAILABLE and len(entities) > 50:  # Use optimization for larger entity sets
-        return _apply_priority_filtering_optimized(entities)
+        return _apply_priority_filtering_optimized(entities, entity_priorities)
     else:
-        return _apply_priority_filtering_fallback(entities)
+        return _apply_priority_filtering_fallback(entities, entity_priorities)
 
 
-def _apply_priority_filtering_optimized(entities: List[Entity]) -> List[Entity]:
+def _apply_priority_filtering_optimized(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
     """
     Optimized O(n log n) priority filtering using interval trees.
+    
+    Theory 9: Uses language-specific priority matrices for conflict resolution.
     
     Maintains IDENTICAL behavior to original implementation.
     """
     start_time = time.perf_counter()
     
     # Sort entities by priority (highest first) for efficient processing
-    sorted_entities = sorted(entities, key=lambda e: (-ENTITY_PRIORITIES.get(e.type, 0), e.start))
+    sorted_entities = sorted(entities, key=lambda e: (-entity_priorities.get(e.type, 0), e.start))
     
     # Build interval tree with accepted entities
     interval_tree = IntervalTree()
@@ -422,14 +386,14 @@ def _apply_priority_filtering_optimized(entities: List[Entity]) -> List[Entity]:
     
     for entity in sorted_entities:
         is_contained = False
-        entity_priority = ENTITY_PRIORITIES.get(entity.type, 0)
+        entity_priority = entity_priorities.get(entity.type, 0)
         
         # Find all overlapping intervals
         overlapping_intervals = list(interval_tree.overlap(entity.start, entity.end))
         
         for interval in overlapping_intervals:
             other_entity = entity_map[interval]
-            other_priority = ENTITY_PRIORITIES.get(other_entity.type, 0)
+            other_priority = entity_priorities.get(other_entity.type, 0)
             
             if other_priority > entity_priority:
                 # Check if entity is completely contained within other_entity OR overlaps with higher priority
@@ -460,9 +424,11 @@ def _apply_priority_filtering_optimized(entities: List[Entity]) -> List[Entity]:
     return priority_filtered_entities
 
 
-def _apply_priority_filtering_fallback(entities: List[Entity]) -> List[Entity]:
+def _apply_priority_filtering_fallback(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
     """
     Original O(n²) priority filtering for compatibility/fallback.
+    
+    Theory 9: Uses language-specific priority matrices for conflict resolution.
     
     Identical to original TextFormatter.format_transcription() (lines 308-335).
     """
@@ -487,7 +453,7 @@ def _apply_priority_filtering_fallback(entities: List[Entity]) -> List[Entity]:
             # This is IDENTICAL to the original algorithm logic
             is_contained_within = other_entity.start <= entity.start and entity.end <= other_entity.end
             is_overlapping = not (entity.end <= other_entity.start or other_entity.end <= entity.start)
-            has_higher_priority = ENTITY_PRIORITIES.get(other_entity.type, 0) > ENTITY_PRIORITIES.get(
+            has_higher_priority = entity_priorities.get(other_entity.type, 0) > entity_priorities.get(
                 entity.type, 0
             )
 

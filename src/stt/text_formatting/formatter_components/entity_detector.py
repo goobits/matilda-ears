@@ -10,7 +10,7 @@ from __future__ import annotations
 from ...core.config import setup_logging
 
 # Import common data structures
-from ..common import Entity
+from stt.text_formatting.common import Entity
 
 # Import resource loader for i18n constants
 from ..nlp_provider import get_nlp
