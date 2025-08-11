@@ -35,6 +35,9 @@ from stt.text_formatting.universal_priority_manager import get_priority_manager
 from stt.text_formatting.entity_conflict_resolver import resolve_entity_conflicts
 from stt.text_formatting.filename_post_processor import post_process_filename_entities
 
+# Theory 17: Spanish Conversational Flow Preservation
+from stt.text_formatting.spanish_conversational_flow import SpanishConversationalFlowAnalyzer
+
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 
@@ -108,6 +111,34 @@ def detect_all_entities(
     logger.debug(f"Phase D: Starting entity detection for text of length {len(text)}")
     logger.debug(f"Phase D: Interval tree optimization {'ENABLED' if INTERVAL_TREE_AVAILABLE else 'DISABLED'}")
     
+    # Theory 17: Initialize conversational flow analysis for Spanish
+    conversational_analyzer = None
+    conversational_entities = []
+    if language == "es":
+        conversational_analyzer = SpanishConversationalFlowAnalyzer(language)
+        if conversational_analyzer.is_conversational_instruction(text):
+            logger.info("THEORY_17: Detected conversational Spanish instruction context")
+            
+            # Detect conversational entities and convert them to standard Entity objects
+            conv_entities = conversational_analyzer.identify_conversational_entities(text)
+            for conv_entity in conv_entities:
+                # Create standard Entity objects from conversational entities
+                if conv_entity.conversational_replacement:
+                    standard_entity = Entity(
+                        text=conv_entity.text,
+                        start=conv_entity.start,
+                        end=conv_entity.end,
+                        type=conv_entity.entity_type
+                    )
+                    conversational_entities.append(standard_entity)
+            
+            logger.info(f"THEORY_17: Found {len(conversational_entities)} conversational entities")
+            
+            # Store conversational context in pipeline state for downstream processing
+            if pipeline_state:
+                pipeline_state.conversational_context = True
+                pipeline_state.conversational_analyzer = conversational_analyzer
+    
     # Run detectors from most specific to most general.
     # Each detector is passed the list of entities found so far and should not
     # create new entities that overlap with existing ones.
@@ -141,6 +172,11 @@ def detect_all_entities(
     logger.info(
         f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}"
     )
+    
+    # Theory 17: Add conversational entities to the final list
+    final_entities.extend(conversational_entities)
+    if conversational_entities:
+        logger.info(f"THEORY_17: Added {len(conversational_entities)} conversational entities to final list")
     
     # Get language-specific priorities for this processing run
     entity_priorities = get_entity_priorities(language)

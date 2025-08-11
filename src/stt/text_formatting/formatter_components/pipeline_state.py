@@ -209,6 +209,11 @@ class PipelineState:
     # UNIVERSAL ENTITY STATE COORDINATION (Theory 8)
     entity_tracker: UniversalEntityTracker = field(default_factory=UniversalEntityTracker)
     
+    # THEORY 17: Spanish Conversational Flow Preservation
+    conversational_context: bool = field(default=False)  # Whether text is in conversational context
+    conversational_analyzer: Optional[Any] = field(default=None)  # Reference to conversational analyzer
+    original_text: str = field(default="")  # Original text before pipeline processing
+    
     def has_pending_abbreviation_at(self, position: int, window: int = 5) -> bool:
         """Check if there's a pending abbreviation within window of position"""
         for start, end, pattern in self.pending_abbreviations:
@@ -382,7 +387,8 @@ class PipelineStateManager:
             comma_exclusion_zones=comma_exclusion_zones,
             entity_boundaries={},
             filename_contexts=filename_contexts,
-            language=self.language
+            language=self.language,
+            original_text=text  # Store original text for conversational analysis
         )
     
     def _detect_pending_abbreviations(self, text: str) -> List[Tuple[int, int, str]]:

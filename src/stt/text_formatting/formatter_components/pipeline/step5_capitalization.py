@@ -26,7 +26,8 @@ def apply_capitalization_with_entity_protection(
     text: str, 
     entities: list[Entity], 
     capitalizer: 'SmartCapitalizer',
-    doc=None
+    doc=None,
+    pipeline_state=None
 ) -> str:
     """
     Apply capitalization while protecting entities - Phase 1 simplified version.
@@ -63,8 +64,29 @@ def apply_capitalization_with_entity_protection(
     logger.debug(f"Sending to capitalizer: '{text}'")
     logger.debug(f"Entities being passed to capitalizer: {[(e.type, e.text, e.start, e.end) for e in entities]}")
 
-    # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
-    capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+    # Theory 17: Check for conversational flow preservation
+    preserve_conversational_case = False
+    if (pipeline_state and 
+        getattr(pipeline_state, 'conversational_context', False) and
+        getattr(pipeline_state, 'conversational_analyzer', None)):
+        
+        analyzer = pipeline_state.conversational_analyzer
+        original_text = getattr(pipeline_state, 'original_text', '')
+        preserve_conversational_case = analyzer.should_preserve_conversational_capitalization(
+            text, original_text=original_text
+        )
+        
+        if preserve_conversational_case:
+            logger.info("THEORY_17: Preserving conversational capitalization flow")
+            # For conversational contexts, skip automatic capitalization to preserve natural flow
+            # The conversational entity processor has already handled the necessary conversions
+            capitalized_text = text
+        else:
+            capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+    else:
+        # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
+        capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+    
     logger.debug(f"Received from capitalizer: '{capitalized_text}'")
 
     return capitalized_text

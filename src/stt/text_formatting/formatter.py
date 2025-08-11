@@ -289,11 +289,11 @@ class TextFormatter:
             if current_language != self.language:
                 temp_capitalizer = SmartCapitalizer(language=current_language)
                 final_text = apply_capitalization_with_entity_protection(
-                    cleaned_text, converted_entities, temp_capitalizer, doc=doc_to_use
+                    cleaned_text, converted_entities, temp_capitalizer, doc=doc_to_use, pipeline_state=pipeline_state
                 )
             else:
                 final_text = apply_capitalization_with_entity_protection(
-                    cleaned_text, converted_entities, self.smart_capitalizer, doc=doc_to_use
+                    cleaned_text, converted_entities, self.smart_capitalizer, doc=doc_to_use, pipeline_state=pipeline_state
                 )
         else:
             final_text = cleaned_text

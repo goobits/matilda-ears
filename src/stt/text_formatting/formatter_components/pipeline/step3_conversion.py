@@ -27,6 +27,9 @@ from stt.text_formatting.entity_conflict_resolver import resolve_entity_conflict
 # Theory 14: Post-Conversion Entity Boundary Preservation
 from stt.text_formatting.entity_boundary_tracker import EntityBoundaryTracker
 
+# Theory 17: Spanish Conversational Flow Preservation
+from stt.text_formatting.conversational_entity_processor import ConversationalEntityProcessor
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -65,6 +68,21 @@ def convert_entities(
         
     language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
     logger.info(f"THEORY_14_DEBUG: Processing {len(entities)} entities for language '{language}'")
+    
+    # Theory 17: Apply conversational entity processing for Spanish
+    logger.debug(f"THEORY_17 DEBUG: language='{language}', pipeline_state={pipeline_state is not None}, conversational_context={getattr(pipeline_state, 'conversational_context', 'NOT_FOUND') if pipeline_state else 'NO_PIPELINE_STATE'}")
+    
+    if language == 'es' and pipeline_state and getattr(pipeline_state, 'conversational_context', False):
+        logger.info("THEORY_17: Applying conversational entity processing")
+        
+        # Apply conversational replacements before standard entity conversion
+        analyzer = getattr(pipeline_state, 'conversational_analyzer', None)
+        if analyzer:
+            conversational_result = analyzer.process_conversational_flow(text, entities)
+            if conversational_result[0] != text:  # If text changed
+                logger.info(f"THEORY_17: Applied conversational flow processing: '{text}' -> '{conversational_result[0]}'")
+                text = conversational_result[0]
+                entities = conversational_result[1]
     
     # Step 3a: Pre-conversion conflict check
     # Resolve any remaining conflicts before conversion to prevent position tracking issues
