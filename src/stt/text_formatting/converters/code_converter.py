@@ -99,12 +99,10 @@ class CodePatternConverter(BasePatternConverter):
                 context = full_text[context_start : entity.end]
                 has_spoken_underscores = " underscore " in context.lower()
 
-        # First, handle all spoken separators to create a clean string
-        # Handle consecutive underscores first (for dunder patterns like __init__)
+        # Handle spoken separators BEFORE processing compound filename logic
+        # Use unique placeholder for underscore to preserve compound detection logic
         text = re.sub(r"\bunderscore\s+underscore\b", "__", text, flags=re.IGNORECASE)
-        
-        # Then handle single underscores
-        text = re.sub(r"\s+underscore\s+", "_", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*underscore\s+", "🔸", text, flags=re.IGNORECASE)  # Use unique placeholder
         text = re.sub(r"\s*dash\s*", "-", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE)
 
@@ -136,29 +134,42 @@ class CodePatternConverter(BasePatternConverter):
         )
         filename_part = re.sub(number_word_pattern, number_word_replacer, filename_part, flags=re.IGNORECASE)
         
-        # Handle compound filename patterns AFTER number conversion
-        # Insert underscores for common filename patterns like "file version", "test case", etc.
-        underscore_patterns = [
-            (r"\b(\w+)\s+(version)\s+(\d+)\b", r"\1_\2_\3"),  # "report version 2" -> "report_version_2"
-            (r"\b(\w+)\s+(file)\s+(\d+)\b", r"\1_\2_\3"),    # "log file 100" -> "log_file_100" 
-            (r"\b(test)\s+(case)\s+(\d+)\b", r"\1_\2_\3"),    # "test case 3" -> "test_case_3"
-            (r"\b(config)\s+(v)(\d+)\b", r"\1_\2\3"),         # "config v1" -> "config_v1"
-        ]
+        # Enhanced compound filename detection with quality gates to prevent regressions
+        # Only apply compound patterns if we have clear filename context indicators
+        compound_filename_indicators = self._has_compound_filename_context(filename_part, full_text, entity)
         
-        for pattern, replacement in underscore_patterns:
-            filename_part = re.sub(pattern, replacement, filename_part, flags=re.IGNORECASE)
+        if compound_filename_indicators:
+            # Apply enhanced compound patterns from stash@{7} with safety checks
+            compound_patterns = [
+                # Version patterns: "config v1" (no underscore before number for v), "report version 2" (underscore before number for version)
+                (r"\b(\w+)\s+(v)\s+(\d+)\b", r"\1_\2\3"),           # "config v1" -> "config_v1"
+                (r"\b(\w+)\s+(version)\s+(\d+)\b", r"\1_\2_\3"),     # "report version 2" -> "report_version_2"
+                # Test/case patterns: "test case 3", "use case 1"
+                (r"\b(\w+)\s+(case|test)\s+(\d+)\b", r"\1_\2_\3"),
+                # File patterns: "log file 100" - ONLY with numbers to prevent false positives
+                (r"\b(\w+)\s+(file)\s+(\d+)\b", r"\1_\2_\3"),
+                # General compound with numbers: "report data 5"
+                (r"\b(\w+)\s+(\w+)\s+(\d+)\b", r"\1_\2_\3"),
+            ]
+            
+            for pattern, replacement in compound_patterns:
+                if re.search(pattern, filename_part, re.IGNORECASE):
+                    filename_part = re.sub(pattern, replacement, filename_part, flags=re.IGNORECASE)
+                    has_spoken_underscores = True  # Mark as having underscores due to compound logic
+                    break
 
-        # If underscores were spoken, they dictate the format
-        if has_spoken_underscores:
+        # If underscores were spoken OR compound patterns were detected, use underscore format
+        if has_spoken_underscores or "🔸" in filename_part:
+            # Convert placeholder back to underscore and handle remaining spaces
+            filename_part = filename_part.replace("🔸", "_")
+            
             # Special handling for dunder patterns (e.g., "__init__")
-            # Check if this is already a properly formatted dunder pattern
             if re.match(r'^__\w+__$', filename_part.replace(' ', '')):
-                # This is a dunder pattern, just remove spaces without adding underscores
                 formatted_filename = filename_part.replace(' ', '').lower()
             else:
-                # Regular underscore handling
-                formatted_filename = filename_part.replace(' ', '_').lower()
-            return f"{formatted_filename}.{extension}"
+                # For compound filenames, convert remaining spaces to underscores
+                formatted_filename = filename_part.replace(" ", "_")
+            return f"{formatted_filename.lower()}.{extension}"
 
         # Otherwise, apply casing rules based on the config
         format_rule = self.config.get_filename_format(extension)
@@ -169,6 +180,9 @@ class CodePatternConverter(BasePatternConverter):
         # Collapse "v <number>" patterns into "v<number>" to treat as single units
         version_collapse_pattern = r"\bv\s+(\d+(?:\.\d+)*)\b"
         filename_part = re.sub(version_collapse_pattern, r"v\1", filename_part, flags=re.IGNORECASE)
+
+        # Convert any remaining placeholders back to underscores
+        filename_part = filename_part.replace("🔸", "_")
 
         # Now split on spaces, underscores, and hyphens
         casing_words = re.split(r"[ _-]", filename_part)
@@ -196,16 +210,59 @@ class CodePatternConverter(BasePatternConverter):
             formatted_filename = "-".join(casing_words)
         elif format_rule == "UPPER_SNAKE":
             formatted_filename = "_".join(w.upper() for w in casing_words)
-        else:  # Default is lower_snake, but with exceptions for natural language contexts
-            # Special case: preserve spaces for compound concepts in configuration files
-            # Only for JSON files that represent compound concepts like "config file settings"
-            if (extension.lower() == "json" and len(casing_words) > 2 and 
-                any(word in casing_words for word in ["config", "file", "settings"])):
-                formatted_filename = " ".join(casing_words)  # Preserve spaces for compound concepts
-            else:
-                formatted_filename = "_".join(casing_words)  # Standard lower_snake format
+        else:  # Default is lower_snake - always use underscores for filenames
+            formatted_filename = "_".join(casing_words)  # Standard lower_snake format for all filenames
 
         return f"{formatted_filename}.{extension}"
+
+    def _has_compound_filename_context(self, filename_part: str, full_text: str, entity: Entity) -> bool:
+        """
+        Quality gate to determine if compound filename processing should be applied.
+        This prevents regressions by only applying compound logic in clear filename contexts.
+        
+        Args:
+            filename_part: The filename portion being processed
+            full_text: Full input text for context analysis
+            entity: The filename entity being processed
+            
+        Returns:
+            True if compound filename processing should be applied
+        """
+        # ULTRA-STRICT Quality gate: Only apply to very specific patterns to prevent regressions
+        
+        # Quality gate 1: Must contain explicit compound indicators WITH NUMBERS
+        # Be ultra restrictive - only apply to patterns that have numbers in them
+        strict_compound_patterns = [
+            r'\b(report|config|test|log)\s+(version|v)\s+\d+\b',  # "report version 2", "config v1"
+            r'\b(test|use)\s+case\s+\d+\b',                      # "test case 3", "use case 1"  
+            r'\b\w+\s+file\s+\d+\b'                              # "log file 100" - only with numbers
+        ]
+        
+        # Only apply if we match one of these strict patterns
+        has_strict_compound_pattern = any(
+            re.search(pattern, filename_part, re.IGNORECASE) 
+            for pattern in strict_compound_patterns
+        )
+        
+        if not has_strict_compound_pattern:
+            return False
+        
+        # Quality gate 2: Context check - must be in filename context, not sentence context  
+        if full_text and hasattr(entity, 'text'):
+            entity_pos = full_text.find(entity.text)
+            if entity_pos > 0:
+                # Check if this is at sentence start (would indicate sentence processing, not filename)
+                context_before = full_text[max(0, entity_pos - 50):entity_pos].strip()
+                
+                # If the filename entity starts right after sentence starters, be extra careful
+                sentence_starters = ["check", "create", "edit", "open", "run", "import"]
+                words_before = context_before.lower().split()
+                if len(words_before) >= 1 and words_before[-1] in sentence_starters:
+                    # This suggests we're processing sentence + filename, need to be very careful
+                    # Only apply compound logic if we have very clear indicators
+                    return bool(re.search(r'\b(report|config|test)\s+(version|v)\s+\d+\b', filename_part, re.IGNORECASE))
+        
+        return True
 
     def convert_increment_operator(self, entity: Entity) -> str:
         """Convert increment operators using language-specific keywords."""
