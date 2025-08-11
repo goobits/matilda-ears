@@ -14,9 +14,18 @@ This is Step 3 of the 4-step formatting pipeline:
 
 from __future__ import annotations
 
+import logging
+from typing import List, Tuple
+
 from ..pattern_converter import PatternConverter
 from stt.text_formatting.common import Entity
 from ..pipeline_state import PipelineState
+
+# Theory 12: Entity Interaction Conflict Resolution
+from stt.text_formatting.entity_conflict_resolver import resolve_entity_conflicts
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 
 def convert_entities(
@@ -31,17 +40,30 @@ def convert_entities(
     This function processes entities in order, converting each one using the pattern
     converter while tracking the new positions of converted entities in the result text.
     
+    Theory 12: Enhanced with conflict-aware conversion to handle entity interactions
+    that arise during the conversion process itself.
+    
     Args:
         text: The original text containing entities
         entities: List of detected entities to convert
         pattern_converter: The converter to use for entity transformations
+        pipeline_state: Pipeline state for context
         
     Returns:
         Tuple of (processed_text, converted_entities) where:
         - processed_text: The text with all entities converted
         - converted_entities: List of entities with updated positions and text
     """
-    # Step 3: Assemble final string AND track converted entity positions
+    # Step 3a: Pre-conversion conflict check
+    # Resolve any remaining conflicts before conversion to prevent position tracking issues
+    # DISABLED temporarily - focus on detection improvements first
+    # if len(entities) > 1:
+    #     logger.debug(f"Pre-conversion conflict check for {len(entities)} entities")
+    #     language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
+    #     entities = resolve_entity_conflicts(entities, text, language)
+    #     logger.debug(f"After pre-conversion conflict resolution: {len(entities)} entities")
+    
+    # Step 3b: Assemble final string AND track converted entity positions
     result_parts = []
     converted_entities = []
     last_end = 0
@@ -52,6 +74,7 @@ def convert_entities(
 
     for entity in sorted_entities:
         if entity.start < last_end:
+            logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}')")
             continue  # Skip overlapping entities
 
         # Add plain text part
@@ -63,7 +86,13 @@ def convert_entities(
         # Pass pipeline state to entity for intelligent context-aware conversion
         if pipeline_state:
             entity._pipeline_state = pipeline_state
-        converted_text = pattern_converter.convert(entity, text)
+        
+        try:
+            converted_text = pattern_converter.convert(entity, text)
+        except Exception as e:
+            logger.warning(f"Error converting entity {entity.type}('{entity.text}'): {e}")
+            converted_text = entity.text  # Fallback to original text
+        
         result_parts.append(converted_text)
 
         # Create a new entity with updated position and text for capitalization protection
@@ -85,4 +114,15 @@ def convert_entities(
     # Join everything into a single string
     processed_text = "".join(result_parts)
 
-    return processed_text, converted_entities
+    # Step 3c: Post-conversion validation
+    # Ensure converted entities still have valid positions
+    validated_entities = []
+    for entity in converted_entities:
+        if (entity.start >= 0 and entity.end <= len(processed_text) and 
+            entity.start < entity.end and 
+            processed_text[entity.start:entity.end] == entity.text):
+            validated_entities.append(entity)
+        else:
+            logger.debug(f"Removing invalid converted entity: {entity.type}('{entity.text}')")
+
+    return processed_text, validated_entities

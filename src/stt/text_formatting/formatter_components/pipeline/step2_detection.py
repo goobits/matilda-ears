@@ -31,6 +31,10 @@ from stt.text_formatting.common import Entity, EntityType
 # Local imports - universal priority system
 from stt.text_formatting.universal_priority_manager import get_priority_manager
 
+# Theory 12: Entity Interaction Conflict Resolution
+from stt.text_formatting.entity_conflict_resolver import resolve_entity_conflicts
+from stt.text_formatting.filename_post_processor import post_process_filename_entities
+
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 
@@ -147,10 +151,20 @@ def detect_all_entities(
     # Apply priority-based filtering to remove contained/overlapping lower-priority entities
     priority_filtered_entities = _apply_priority_filtering(deduplicated_entities, entity_priorities)
     
+    # Theory 12: Apply targeted fixes for specific entity detection issues
+    # Focus on filename over-detection which causes many test failures
+    post_processed_entities = post_process_filename_entities(priority_filtered_entities, text)
+    
+    # Theory 12: Apply advanced entity conflict resolution for remaining edge cases
+    # This handles complex interaction conflicts that basic priority filtering misses
+    # DISABLED temporarily - existing system works well, focus on detection improvements
+    # conflict_resolved_entities = resolve_entity_conflicts(post_processed_entities, text, language)
+    conflict_resolved_entities = post_processed_entities
+    
     # Performance monitoring
     elapsed = time.perf_counter() - start_time
     total_entities = len(final_entities)
-    final_count = len(priority_filtered_entities)
+    final_count = len(conflict_resolved_entities)
     
     logger.debug(f"Phase D: Entity detection completed in {elapsed:.4f}s")
     logger.debug(f"Phase D: Processed {total_entities} raw entities -> {final_count} final entities")
@@ -158,7 +172,7 @@ def detect_all_entities(
         logger.info(f"Phase D: Large entity set processed ({total_entities} entities) in {elapsed:.4f}s")
     
     # Return final sorted list
-    return sorted(priority_filtered_entities, key=lambda e: e.start)
+    return sorted(conflict_resolved_entities, key=lambda e: e.start)
 
 
 def _deduplicate_entities(entities: List[Entity], entity_priorities: Dict[EntityType, int]) -> List[Entity]:
