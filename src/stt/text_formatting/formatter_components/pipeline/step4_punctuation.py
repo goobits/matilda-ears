@@ -30,7 +30,8 @@ def add_punctuation(
     filtered_entities: list[Entity] | None = None,
     nlp=None,
     language: str = "en",
-    doc=None
+    doc=None,
+    pipeline_state=None
 ) -> str:
     """Add punctuation - treat all text as sentences unless single standalone technical entity"""
     if filtered_entities is None:
@@ -54,7 +55,8 @@ def add_punctuation(
         return text
 
     # Add comma insertion for common introductory phrases BEFORE punctuation model processing
-    text = _add_comma_for_introductory_phrases(text, language)
+    # THEORY 8: Pass pipeline state for universal entity coordination
+    text = _add_comma_for_introductory_phrases(text, language, pipeline_state)
     
     # Initialize filename placeholders outside the try block (Theory 7 fix)
     filename_placeholders = {}
@@ -116,6 +118,18 @@ def add_punctuation(
                 placeholder = f"__DECIMAL_{i}__"
                 decimal_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
+            
+            # THEORY 8: Protect already-formatted abbreviations from punctuation model corruption
+            abbreviation_placeholders = {}
+            # Pattern to match common abbreviations that are already formatted (e.g., i.e., e.g., etc.)
+            # Include some context to prevent punctuation model from adding unwanted punctuation around them
+            # Note: Don't use word boundaries after periods as periods are not word characters
+            abbrev_pattern = re.compile(r'(\s)(i\.e\.|e\.g\.|etc\.|vs\.|cf\.)(\s)', re.IGNORECASE)
+            for i, match in enumerate(abbrev_pattern.finditer(protected_text)):
+                placeholder = f"__ABBREV_{i}__"
+                # Store the entire match including surrounding spaces to preserve context
+                abbreviation_placeholders[placeholder] = match.group(0)
+                protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
             # Apply punctuation to the protected text
             result = punctuator.restore_punctuation(protected_text)
@@ -143,6 +157,10 @@ def add_punctuation(
             # Restore decimal numbers
             for placeholder, decimal in decimal_placeholders.items():
                 result = re.sub(rf"\b{re.escape(placeholder)}\b", decimal, result)
+            
+            # THEORY 8: Restore protected abbreviations
+            for placeholder, abbreviation in abbreviation_placeholders.items():
+                result = re.sub(rf"\b{re.escape(placeholder)}\b", abbreviation, result)
 
             # NOTE: Filename restoration moved to end after all post-processing
 
@@ -375,7 +393,7 @@ def _add_sentence_ending_punctuation(text: str, is_standalone_technical: bool = 
     return text
 
 
-def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
+def _add_comma_for_introductory_phrases(text: str, language: str = "en", pipeline_state=None) -> str:
     """
     Add commas after common introductory phrases that require them.
     
@@ -385,13 +403,14 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
     - "by the way" → "by the way,"
     - "in other words" → "in other words,"
     
-    PIPELINE STATE INTEGRATION: Now uses pipeline state manager to detect
-    pending abbreviations and prevent comma insertion that would create
+    THEORY 8 INTEGRATION: Now uses Universal Entity State Coordination to detect
+    abbreviation entities and prevent comma insertion that would create
     double punctuation after abbreviation restoration.
     
     Args:
         text: The text to process
         language: Language code ("en", "es", etc.)
+        pipeline_state: Pipeline state with universal entity tracking
         
     Returns:
         Text with commas added after introductory phrases
@@ -399,15 +418,16 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
     if not text.strip():
         return text
 
-    # Initialize pipeline state manager for abbreviation detection
-    try:
-        from ..pipeline_state import create_pipeline_state_manager
-        state_manager = create_pipeline_state_manager(language)
-        pipeline_state = state_manager.create_state(text)
-    except Exception as e:
-        # Fallback to original behavior if pipeline state manager is not available
-        pipeline_state = None
-        state_manager = None
+    # Initialize pipeline state manager for abbreviation detection if not provided
+    if pipeline_state is None:
+        try:
+            from ..pipeline_state import create_pipeline_state_manager
+            state_manager = create_pipeline_state_manager(language)
+            pipeline_state = state_manager.create_state(text)
+        except Exception as e:
+            # Fallback to original behavior if pipeline state manager is not available
+            pipeline_state = None
+            state_manager = None
 
     # Define comma-requiring introductory phrases with their patterns
     introductory_patterns = [
@@ -432,6 +452,12 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
             matched_phrase = match.group(0)
             start_pos = match.start()
             end_pos = match.end()
+            
+            # THEORY 8: Use Universal Entity State Coordination for conflict detection
+            if pipeline_state:
+                # Check if comma insertion would conflict with tracked entities
+                if pipeline_state.should_skip_punctuation_modification("step4_punctuation", start_pos, end_pos + 1, "comma"):
+                    return matched_phrase  # Skip comma due to entity conflict
             
             # Check what comes after the phrase
             remaining_text = text[end_pos:].lstrip()

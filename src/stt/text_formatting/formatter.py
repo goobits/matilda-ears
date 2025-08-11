@@ -184,6 +184,18 @@ class TextFormatter:
         
         filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc, pipeline_state=pipeline_state)
         logger.debug(f"Step 2 - Final entities: {len(filtered_entities)} entities detected")
+        
+        # THEORY 8: Register all detected entities in universal tracking system
+        if pipeline_state:
+            for entity in filtered_entities:
+                entity_id = pipeline_state.register_entity(entity)
+                
+                # Protect abbreviation entities immediately to prevent punctuation conflicts
+                if entity.type == EntityType.ABBREVIATION:
+                    pipeline_state.protect_entity_region(entity_id, buffer=8)
+                    logger.debug(f"Theory 8: Protected abbreviation entity '{entity.text}' at {entity.start}-{entity.end}")
+            
+            logger.debug(f"Theory 8: Registered {len(filtered_entities)} entities in universal tracker")
 
         # STEP 3: Convert entities to their final representations
         logger.debug(f"Step 3 - Before entity conversion: '{text}'")
@@ -212,7 +224,8 @@ class TextFormatter:
             filtered_entities,
             nlp=self.nlp,
             language=current_language,
-            doc=doc
+            doc=doc,
+            pipeline_state=pipeline_state
         )
         logger.debug(f"Step 4 - After punctuation: '{punctuated_text}'")
 

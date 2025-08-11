@@ -434,7 +434,21 @@ class CodePatternConverter(BasePatternConverter):
                 original_text.startswith(("for example", "that is"))  # Full phrase conversions
             )
             
-            if should_add_comma and not converted.endswith(','):
+            # THEORY 8: Check if this entity is protected by Universal Entity State Coordination
+            # Don't modify entities that are already in their final form or protected
+            is_protected = False
+            if (hasattr(entity, '_pipeline_state') and entity._pipeline_state and 
+                hasattr(entity, 'start') and hasattr(entity, 'end')):
+                pipeline_state = entity._pipeline_state
+                # Check if this modification would conflict with entity protection
+                if not pipeline_state.is_modification_safe("step3_conversion", entity.start, entity.end + 1):
+                    is_protected = True
+            
+            # Also don't add comma to abbreviations that are already properly formatted
+            # This prevents double modification of entities that were already correct in input
+            already_formatted = (original_text == converted and "." in original_text)
+            
+            if should_add_comma and not converted.endswith(',') and not is_protected and not already_formatted:
                 converted = converted + ","
         
         return converted
