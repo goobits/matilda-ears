@@ -64,6 +64,27 @@ def apply_capitalization_with_entity_protection(
     logger.debug(f"Sending to capitalizer: '{text}'")
     logger.debug(f"Entities being passed to capitalizer: {[(e.type, e.text, e.start, e.end) for e in entities]}")
 
+    # THEORY 19: Check for entity-capitalization coordination guidance
+    coordination_overrides = {}
+    if pipeline_state and hasattr(pipeline_state, 'entity_capitalization_coordinator'):
+        logger.debug("THEORY_19: Checking for entity-capitalization coordination guidance")
+        
+        # Check each entity for coordination guidance
+        for entity in entities:
+            should_coordinate, coordination_type = pipeline_state.should_coordinate_entity_capitalization(
+                entity.type, entity.start
+            )
+            
+            if should_coordinate:
+                guidance = pipeline_state.get_entity_capitalization_guidance(entity.start)
+                if guidance:
+                    coordination_overrides[entity.start] = {
+                        'entity': entity,
+                        'guidance': guidance,
+                        'coordination_type': coordination_type
+                    }
+                    logger.debug(f"THEORY_19: Found coordination guidance for {entity.type} at {entity.start}: {coordination_type}")
+    
     # Theory 17: Check for conversational flow preservation
     preserve_conversational_case = False
     if (pipeline_state and 
@@ -82,13 +103,136 @@ def apply_capitalization_with_entity_protection(
             # The conversational entity processor has already handled the necessary conversions
             capitalized_text = text
         else:
-            capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+            # THEORY 19: Apply coordination-aware capitalization
+            if coordination_overrides:
+                capitalized_text = apply_coordination_aware_capitalization(
+                    text, entities, capitalizer, coordination_overrides, doc
+                )
+            else:
+                capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
     else:
-        # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
-        capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+        # THEORY 19: Apply coordination-aware capitalization  
+        if coordination_overrides:
+            capitalized_text = apply_coordination_aware_capitalization(
+                text, entities, capitalizer, coordination_overrides, doc
+            )
+        else:
+            # --- CHANGE 3: Pass the `doc` object to the capitalizer ---
+            capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
     
     logger.debug(f"Received from capitalizer: '{capitalized_text}'")
 
+    return capitalized_text
+
+
+def apply_coordination_aware_capitalization(
+    text: str, 
+    entities: list[Entity], 
+    capitalizer: 'SmartCapitalizer',
+    coordination_overrides: dict,
+    doc=None
+) -> str:
+    """
+    Apply capitalization with entity-capitalization coordination guidance.
+    
+    THEORY 19: This function implements the coordination between entity conversion
+    and capitalization steps by applying specific capitalization rules based on
+    guidance from the EntityCapitalizationCoordinator.
+    
+    Args:
+        text: Text to capitalize
+        entities: List of entities
+        capitalizer: SmartCapitalizer instance
+        coordination_overrides: Dictionary of coordination guidance by position
+        doc: Optional spaCy doc object
+        
+    Returns:
+        Capitalized text with coordination overrides applied
+    """
+    logger.debug(f"THEORY_19: Applying coordination-aware capitalization with {len(coordination_overrides)} overrides")
+    
+    # First apply standard capitalization
+    capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+    
+    # Then apply coordination overrides
+    # Sort by position (reverse order to maintain string positions)
+    override_positions = sorted(coordination_overrides.keys(), reverse=True)
+    
+    for position in override_positions:
+        override_info = coordination_overrides[position]
+        entity = override_info['entity']
+        guidance = override_info['guidance']
+        coordination_type = override_info['coordination_type']
+        
+        logger.debug(f"THEORY_19: Applying {coordination_type} coordination for {entity.type} at {position}")
+        
+        # Apply specific coordination based on guidance
+        if guidance.should_preserve_case:
+            # Preserve the exact case from the converted entity
+            if entity.start < len(capitalized_text) and entity.end <= len(capitalized_text):
+                # Keep the converted text case exactly as it is
+                logger.debug(f"THEORY_19: Preserving case for {entity.type}: '{entity.text}'")
+                # The case is already preserved by entity protection in the capitalizer
+                
+        elif guidance.should_force_lowercase:
+            # Force entity to lowercase (e.g., --flags, filenames)
+            if entity.start < len(capitalized_text) and entity.end <= len(capitalized_text):
+                current_entity_text = capitalized_text[entity.start:entity.end]
+                if current_entity_text != entity.text.lower():
+                    logger.debug(f"THEORY_19: Forcing lowercase for {entity.type}: '{current_entity_text}' -> '{entity.text.lower()}'")
+                    capitalized_text = (
+                        capitalized_text[:entity.start] + 
+                        entity.text.lower() + 
+                        capitalized_text[entity.end:]
+                    )
+                    
+        elif guidance.should_force_title_case:
+            # Force entity to title case (rare for technical entities)
+            if entity.start < len(capitalized_text) and entity.end <= len(capitalized_text):
+                current_entity_text = capitalized_text[entity.start:entity.end]
+                title_cased = entity.text.title()
+                if current_entity_text != title_cased:
+                    logger.debug(f"THEORY_19: Forcing title case for {entity.type}: '{current_entity_text}' -> '{title_cased}'")
+                    capitalized_text = (
+                        capitalized_text[:entity.start] + 
+                        title_cased + 
+                        capitalized_text[entity.end:]
+                    )
+        
+        # Handle specific coordination contexts
+        if guidance.capitalization_context == "long_flag_command":
+            # Ensure flags like "--version" stay lowercase even at sentence start
+            if entity.start == 0 or (entity.start == 1 and capitalized_text[0].isupper()):
+                # This is at sentence start but should stay lowercase
+                if entity.text.startswith('--') and entity.start < len(capitalized_text):
+                    current_text = capitalized_text[entity.start:entity.end]
+                    if current_text != entity.text.lower():
+                        logger.debug(f"THEORY_19: Preserving lowercase flag at sentence start: '{entity.text}'")
+                        capitalized_text = (
+                            capitalized_text[:entity.start] + 
+                            entity.text.lower() + 
+                            capitalized_text[entity.end:]
+                        )
+        
+        elif guidance.capitalization_context == "underscore_variable":
+            # Ensure underscore variables maintain their case
+            if '_' in entity.text:
+                logger.debug(f"THEORY_19: Preserving underscore variable case: '{entity.text}'")
+                # Case preservation is already handled above
+                
+        elif guidance.capitalization_context == "dot_filename":
+            # Ensure dot filenames stay lowercase
+            if '.' in entity.text and entity.start < len(capitalized_text):
+                current_text = capitalized_text[entity.start:entity.end]
+                if current_text != entity.text.lower():
+                    logger.debug(f"THEORY_19: Forcing lowercase for dot filename: '{entity.text}'")
+                    capitalized_text = (
+                        capitalized_text[:entity.start] + 
+                        entity.text.lower() + 
+                        capitalized_text[entity.end:]
+                    )
+    
+    logger.debug(f"THEORY_19: Coordination-aware capitalization complete")
     return capitalized_text
 
 

@@ -133,6 +133,17 @@ def convert_entities(
             logger.warning(f"Error converting entity {entity.type}('{entity.text}'): {e}")
             converted_text = entity.text  # Fallback to original text
         
+        # THEORY 19: Record conversion for capitalization coordination
+        if pipeline_state and hasattr(pipeline_state, 'entity_capitalization_coordinator'):
+            # Get entity ID from the universal entity tracker
+            entity_id = pipeline_state.entity_tracker.generate_entity_id(entity)
+            if converted_text != entity.text:  # Only record actual conversions
+                guidance = pipeline_state.record_entity_conversion(
+                    entity_id, entity.type, "step3_conversion", 
+                    entity.text, converted_text, entity.start
+                )
+                logger.debug(f"THEORY_19: Recorded conversion guidance for {entity.type}: {guidance.capitalization_context}")
+        
         result_parts.append(converted_text)
 
         # Create a new entity with updated position and text for capitalization protection
@@ -241,6 +252,15 @@ def convert_entities_with_boundary_tracking(
             if converted_text != original_text:
                 boundary_tracker.record_conversion(entity, original_text, converted_text)
                 logger.debug(f"Converted entity {entity.type}: '{original_text}' -> '{converted_text}'")
+                
+                # THEORY 19: Record conversion for capitalization coordination
+                if pipeline_state and hasattr(pipeline_state, 'entity_capitalization_coordinator'):
+                    entity_id = pipeline_state.entity_tracker.generate_entity_id(entity)
+                    guidance = pipeline_state.record_entity_conversion(
+                        entity_id, entity.type, "step3_boundary_conversion", 
+                        original_text, converted_text, entity.start
+                    )
+                    logger.debug(f"THEORY_19: Recorded boundary conversion guidance for {entity.type}: {guidance.capitalization_context}")
             
         except Exception as e:
             logger.warning(f"Error converting entity {entity.type}('{original_text}'): {e}")

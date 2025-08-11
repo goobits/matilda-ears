@@ -182,6 +182,180 @@ class FilenameContext:
     confidence_score: float
     context_type: str  # "action", "descriptive", "standalone", "compound"
     should_use_dots: bool
+
+
+@dataclass  
+class EntityCapitalizationGuidance:
+    """Guidance information for coordinating entity conversion and capitalization"""
+    entity_id: str
+    entity_type: EntityType
+    conversion_step: str
+    conversion_result: str
+    position_shift: int = 0  # How much the text position shifted after conversion
+    should_preserve_case: bool = False
+    should_force_lowercase: bool = False  
+    should_force_title_case: bool = False
+    capitalization_context: str = ""  # Additional context for capitalization decisions
+
+
+class EntityCapitalizationCoordinator:
+    """
+    THEORY 19: Unified Entity-Capitalization Coordination System
+    
+    Provides cross-step coordination between conversion and capitalization steps
+    to resolve boundary misalignment and inconsistent formatting decisions.
+    
+    Core Functions:
+    1. Track entity conversions and their impact on text positions
+    2. Communicate conversion results to capitalization step
+    3. Coordinate position updates across pipeline steps
+    4. Provide guidance for consistent entity-aware capitalization
+    """
+    
+    def __init__(self):
+        self.entity_conversion_guidance: Dict[str, EntityCapitalizationGuidance] = {}
+        self.position_adjustments: List[Tuple[int, int, int]] = []  # (original_pos, new_pos, shift_amount)
+        self.cross_step_metadata: Dict[str, Any] = {}
+        
+    def record_entity_conversion(self, entity_id: str, entity_type: EntityType, 
+                               step: str, original_text: str, converted_text: str,
+                               start_pos: int) -> EntityCapitalizationGuidance:
+        """Record entity conversion and provide guidance for capitalization"""
+        
+        # Calculate position shift from conversion
+        original_length = len(original_text)
+        converted_length = len(converted_text)
+        position_shift = converted_length - original_length
+        
+        # Determine capitalization guidance based on entity type and conversion
+        should_preserve_case = self._should_preserve_case_for_entity(entity_type, converted_text)
+        should_force_lowercase = self._should_force_lowercase_for_entity(entity_type, converted_text)  
+        should_force_title_case = self._should_force_title_case_for_entity(entity_type, converted_text)
+        
+        # Create guidance record
+        guidance = EntityCapitalizationGuidance(
+            entity_id=entity_id,
+            entity_type=entity_type,
+            conversion_step=step,
+            conversion_result=converted_text,
+            position_shift=position_shift,
+            should_preserve_case=should_preserve_case,
+            should_force_lowercase=should_force_lowercase,
+            should_force_title_case=should_force_title_case,
+            capitalization_context=self._get_capitalization_context(entity_type, converted_text)
+        )
+        
+        self.entity_conversion_guidance[entity_id] = guidance
+        
+        # Track position adjustment for downstream steps
+        if position_shift != 0:
+            self.position_adjustments.append((start_pos, start_pos + converted_length, position_shift))
+            
+        return guidance
+        
+    def get_capitalization_guidance_for_position(self, position: int) -> Optional[EntityCapitalizationGuidance]:
+        """Get capitalization guidance for a specific text position"""
+        
+        # Find guidance that affects this position
+        for guidance in self.entity_conversion_guidance.values():
+            # This is a simple proximity check - could be enhanced with precise position tracking
+            if abs(position - guidance.position_shift) <= 5:  # Within 5 characters
+                return guidance
+                
+        return None
+        
+    def should_coordinate_capitalization(self, entity_type: EntityType, position: int) -> Tuple[bool, str]:
+        """Check if capitalization should be coordinated for this entity type and position"""
+        
+        # Get guidance for this position
+        guidance = self.get_capitalization_guidance_for_position(position)
+        
+        if guidance:
+            # Use guidance to make capitalization decision
+            if guidance.should_preserve_case:
+                return True, "preserve_case"
+            elif guidance.should_force_lowercase:
+                return True, "force_lowercase"  
+            elif guidance.should_force_title_case:
+                return True, "force_title_case"
+                
+        # Default entity-type based coordination
+        coordinate_types = {
+            EntityType.COMMAND_FLAG, EntityType.VARIABLE, EntityType.FILENAME,
+            EntityType.CLI_COMMAND, EntityType.URL, EntityType.EMAIL
+        }
+        
+        if entity_type in coordinate_types:
+            return True, "default_entity_coordination"
+            
+        return False, "no_coordination"
+        
+    def update_positions_after_modification(self, modification_start: int, modification_end: int,
+                                          new_length: int):
+        """Update tracked positions after a text modification"""
+        
+        length_change = new_length - (modification_end - modification_start)
+        
+        # Update position adjustments that come after this modification
+        updated_adjustments = []
+        for orig_pos, new_pos, shift in self.position_adjustments:
+            if orig_pos >= modification_end:
+                # Position comes after modification, shift it
+                updated_adjustments.append((orig_pos + length_change, new_pos + length_change, shift))
+            else:
+                # Position comes before modification, keep as is
+                updated_adjustments.append((orig_pos, new_pos, shift))
+                
+        self.position_adjustments = updated_adjustments
+        
+    def _should_preserve_case_for_entity(self, entity_type: EntityType, converted_text: str) -> bool:
+        """Determine if case should be preserved for this entity type"""
+        
+        # Preserve case for technical entities that have specific casing requirements
+        preserve_case_types = {
+            EntityType.VARIABLE, EntityType.COMMAND_FLAG, EntityType.CLI_COMMAND,
+            EntityType.FILENAME, EntityType.URL, EntityType.EMAIL
+        }
+        
+        if entity_type in preserve_case_types:
+            return True
+            
+        # Preserve case if converted text has mixed case (likely intentional)
+        if converted_text and not converted_text.islower() and not converted_text.isupper():
+            return True
+            
+        return False
+        
+    def _should_force_lowercase_for_entity(self, entity_type: EntityType, converted_text: str) -> bool:
+        """Determine if entity should be forced to lowercase"""
+        
+        # Force lowercase for certain technical patterns
+        if entity_type == EntityType.COMMAND_FLAG and converted_text.startswith('--'):
+            return True
+            
+        if entity_type == EntityType.FILENAME and '.' in converted_text:
+            return True
+            
+        return False
+        
+    def _should_force_title_case_for_entity(self, entity_type: EntityType, converted_text: str) -> bool:
+        """Determine if entity should be forced to title case"""
+        
+        # Generally don't force title case for technical entities
+        # This is more for proper nouns which would be handled differently
+        return False
+        
+    def _get_capitalization_context(self, entity_type: EntityType, converted_text: str) -> str:
+        """Get contextual information for capitalization decisions"""
+        
+        if entity_type == EntityType.COMMAND_FLAG and converted_text.startswith('--'):
+            return "long_flag_command"
+        elif entity_type == EntityType.VARIABLE and '_' in converted_text:
+            return "underscore_variable"
+        elif entity_type == EntityType.FILENAME and '.' in converted_text:
+            return "dot_filename"
+            
+        return "standard"
     
     
 @dataclass
@@ -213,6 +387,9 @@ class PipelineState:
     conversational_context: bool = field(default=False)  # Whether text is in conversational context
     conversational_analyzer: Optional[Any] = field(default=None)  # Reference to conversational analyzer
     original_text: str = field(default="")  # Original text before pipeline processing
+    
+    # THEORY 19: Unified Entity-Capitalization Coordination System
+    entity_capitalization_coordinator: EntityCapitalizationCoordinator = field(default_factory=EntityCapitalizationCoordinator)
     
     def has_pending_abbreviation_at(self, position: int, window: int = 5) -> bool:
         """Check if there's a pending abbreviation within window of position"""
@@ -284,6 +461,30 @@ class PipelineState:
                 return True
         
         return False
+    
+    # THEORY 19: Entity-Capitalization Coordination Methods
+    
+    def record_entity_conversion(self, entity_id: str, entity_type: EntityType, 
+                               step: str, original_text: str, converted_text: str,
+                               start_pos: int) -> EntityCapitalizationGuidance:
+        """Record entity conversion for cross-step coordination"""
+        return self.entity_capitalization_coordinator.record_entity_conversion(
+            entity_id, entity_type, step, original_text, converted_text, start_pos
+        )
+        
+    def should_coordinate_entity_capitalization(self, entity_type: EntityType, position: int) -> Tuple[bool, str]:
+        """Check if capitalization should be coordinated for this entity type and position"""
+        return self.entity_capitalization_coordinator.should_coordinate_capitalization(entity_type, position)
+        
+    def get_entity_capitalization_guidance(self, position: int) -> Optional[EntityCapitalizationGuidance]:
+        """Get capitalization guidance for a specific position"""
+        return self.entity_capitalization_coordinator.get_capitalization_guidance_for_position(position)
+        
+    def update_entity_positions_after_modification(self, start: int, end: int, new_length: int):
+        """Update entity positions after text modification"""
+        # Update both the entity tracker and capitalization coordinator
+        # This ensures position consistency across all coordination systems
+        self.entity_capitalization_coordinator.update_positions_after_modification(start, end, new_length)
     
     def should_skip_punctuation_modification(self, step: str, start: int, end: int, modification_type: str = "comma") -> bool:
         """
