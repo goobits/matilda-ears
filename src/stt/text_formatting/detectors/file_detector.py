@@ -2,6 +2,8 @@
 """File and path-related entity detection for code transcriptions."""
 from __future__ import annotations
 
+import re
+
 from stt.core.config import setup_logging
 from stt.text_formatting import regex_patterns
 from stt.text_formatting.common import Entity, EntityType
@@ -31,8 +33,8 @@ class FileDetector:
         self.language = language
         self.resources = get_resources(language)
 
-    def detect_filenames(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
-        """Detect filenames using a simple regex anchor and robust spaCy context analysis."""
+    def detect_filenames(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None, pipeline_state=None) -> None:
+        """Detect filenames using a simple regex anchor and robust spaCy context analysis with Theory 7 intelligence."""
         if all_entities is None:
             all_entities = entities
 
@@ -82,6 +84,70 @@ class FileDetector:
         for match in regex_patterns.SPOKEN_DOT_FILENAME_PATTERN.finditer(text):
             if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
+
+            # THEORY 7 FIX: Improved action word handling
+            # Check if this match includes action words at the beginning that should be separate
+            match_text = text[match.start():match.end()]
+            action_pattern = r'^(create|edit|open|run|import|check|save|load|delete|remove)\s+(.+)$'
+            action_match = re.match(action_pattern, match_text, re.IGNORECASE)
+            
+            if action_match:
+                action_word = action_match.group(1)
+                filename_part = action_match.group(2)
+                
+                # Check if the filename part still contains a valid extension pattern
+                if ' dot ' in filename_part.lower():
+                    # Adjust the match to exclude the action word
+                    action_end = match.start() + len(action_word)
+                    # Find the start of the filename part (skip whitespace after action word)
+                    filename_start = action_end
+                    while filename_start < match.end() and text[filename_start].isspace():
+                        filename_start += 1
+                    
+                    if filename_start < match.end():
+                        # Create filename entity without the action word
+                        class AdjustedSpacyMatch:
+                            def __init__(self, start, end, text):
+                                self._start = start
+                                self._end = end
+                                self._text = text
+                            
+                            def start(self):
+                                return self._start
+                            
+                            def end(self):
+                                return self._end
+                            
+                            def group(self):
+                                return self._text
+                        
+                        match = AdjustedSpacyMatch(filename_start, match.end(), text[filename_start:match.end()])
+                        logger.debug(f"THEORY7 FIX: Adjusted filename match to exclude action word '{action_word}': '{match.group()}'")
+            
+            # THEORY 7: Check pipeline state for intelligent context override
+            if pipeline_state and hasattr(pipeline_state, 'filename_contexts'):
+                filename_context = pipeline_state.get_filename_context_at((match.start() + match.end()) // 2)
+                if filename_context and filename_context.should_use_dots:
+                    # High-confidence filename context detected by Theory 7
+                    # Create a simplified entity that preserves the natural filename structure
+                    logger.debug(f"THEORY 7: High-confidence filename context detected: '{filename_context.text}'")
+                    
+                    new_entity = Entity(
+                        start=filename_context.start, 
+                        end=filename_context.end, 
+                        text=filename_context.text, 
+                        type=EntityType.FILENAME,
+                        metadata={
+                            "theory7_context": True,
+                            "confidence_score": filename_context.confidence_score,
+                            "context_type": filename_context.context_type,
+                            "action_word": filename_context.action_word
+                        }
+                    )
+                    entities.append(new_entity)
+                    all_entities.append(new_entity)
+                    logger.debug(f"THEORY 7: Created intelligent filename entity: '{filename_context.text}'")
+                    continue
 
             logger.debug(
                 f"SPACY FILENAME: Found 'dot extension' match: '{match.group()}' at {match.start()}-{match.end()}"
@@ -231,9 +297,61 @@ class FileDetector:
             extension = match.group(2)  # e.g., "py"
             
             logger.debug(f"REGEX FALLBACK: Found match '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'")
-
-            # Skip if this looks like it includes command verbs
-            # Get the context before the match to check for command patterns
+            
+            # THEORY 7 FIX: Handle action words in regex fallback too
+            action_pattern = r'^(create|edit|open|run|import|check|save|load|delete|remove)\s+(.+)$'
+            action_match = re.match(action_pattern, full_filename, re.IGNORECASE)
+            
+            if action_match:
+                action_word = action_match.group(1)
+                remaining_text = action_match.group(2)
+                
+                # Extract the actual filename part from the remaining text
+                remaining_match = re.match(r'^(.+?)\s+dot\s+(.+)$', remaining_text, re.IGNORECASE)
+                if remaining_match:
+                    filename_part = remaining_match.group(1)
+                    extension = remaining_match.group(2)
+                    
+                    # Adjust match positions to exclude the action word
+                    action_end = match.start() + len(action_word)
+                    # Find the start of the filename part (skip whitespace after action word)
+                    filename_start = action_end
+                    while filename_start < match.end() and text[filename_start].isspace():
+                        filename_start += 1
+                    
+                    if filename_start < match.end():
+                        # Create a new match object for the adjusted range
+                        adjusted_start = filename_start
+                        adjusted_end = match.end()
+                        full_filename = text[adjusted_start:adjusted_end]
+                        
+                        # Update match positions
+                        class AdjustedMatch:
+                            def __init__(self, start, end, full_text, filename_part, ext):
+                                self._start = start
+                                self._end = end
+                                self._full_text = full_text
+                                self._filename_part = filename_part
+                                self._ext = ext
+                            
+                            def start(self):
+                                return self._start
+                            
+                            def end(self):
+                                return self._end
+                            
+                            def group(self, i=0):
+                                if i == 0:
+                                    return self._full_text
+                                elif i == 1:
+                                    return self._filename_part
+                                elif i == 2:
+                                    return self._ext
+                                return self._full_text
+                        
+                        match = AdjustedMatch(adjusted_start, adjusted_end, full_filename, filename_part, extension)
+                        
+                        logger.debug(f"REGEX FALLBACK THEORY7 FIX: Adjusted to exclude action word '{action_word}': '{full_filename}' -> filename: '{filename_part}', ext: '{extension}'")
 
             # Known filename action words that should not be part of the filename
             resources = get_resources(self.language)

@@ -118,7 +118,8 @@ def detect_all_entities(
     detectors: Dict[str, Any],
     nlp_model: Optional[Any] = None,
     existing_entities: Optional[List[Entity]] = None,
-    doc: Optional[Any] = None
+    doc: Optional[Any] = None,
+    pipeline_state: Optional[Any] = None
 ) -> List[Entity]:
     """
     Run all entity detectors in priority order and return deduplicated final entities.
@@ -170,7 +171,7 @@ def detect_all_entities(
         f"Letter entities detected: {len(letter_entities)} - {[f'{e.type}:{e.text}' for e in letter_entities]}"
     )
     
-    code_entities = detectors["code_detector"].detect(text, final_entities, doc=doc)
+    code_entities = detectors["code_detector"].detect(text, final_entities, doc=doc, pipeline_state=pipeline_state)
     final_entities.extend(code_entities)
     logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
     

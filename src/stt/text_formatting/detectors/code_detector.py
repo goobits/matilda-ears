@@ -71,7 +71,7 @@ class CodeEntityDetector:
         detector_method(text, code_entities, all_entities)
         self._update_entities_state(entities, code_entities, all_entities)
 
-    def detect(self, text: str, entities: list[Entity], doc=None) -> list[Entity]:
+    def detect(self, text: str, entities: list[Entity], doc=None, pipeline_state=None) -> list[Entity]:
         """Detects all code-related entities using specialized detectors."""
         code_entities: list[Entity] = []
 
@@ -87,7 +87,14 @@ class CodeEntityDetector:
         self._run_detector(self.command_detector.detect_cli_commands, text, entities, code_entities, all_entities)
         
         # File detection (after command flags to avoid conflicts)
-        self._run_detector(self.file_detector.detect_filenames, text, entities, code_entities, all_entities)
+        # Pass pipeline_state to file detector for Theory 7 intelligent context detection
+        if pipeline_state:
+            # Create a wrapper that passes pipeline_state to the file detector
+            def file_detector_with_state(text, code_entities, all_entities):
+                self.file_detector.detect_filenames(text, code_entities, all_entities, pipeline_state)
+            self._run_detector(file_detector_with_state, text, entities, code_entities, all_entities)
+        else:
+            self._run_detector(self.file_detector.detect_filenames, text, entities, code_entities, all_entities)
         
         # Variable detection
         self._run_detector(self.variable_detector.detect_programming_keywords, text, entities, code_entities, all_entities)

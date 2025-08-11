@@ -152,6 +152,16 @@ class TextFormatter:
         # STEP 2: Detect all entities with deduplication
         logger.debug(f"Step 2 - Starting entity detection on: '{text}'")
         
+        # Create pipeline state for intelligent context detection (Theory 7) - moved here for detectors
+        try:
+            from stt.text_formatting.formatter_components.pipeline_state import create_pipeline_state_manager
+            state_manager = create_pipeline_state_manager(current_language)
+            pipeline_state = state_manager.create_state(text)
+            logger.debug(f"Theory 7: Created pipeline state with {len(pipeline_state.filename_contexts)} filename contexts")
+        except Exception as e:
+            logger.warning(f"Could not create pipeline state: {e}")
+            pipeline_state = None
+        
         # If language override is provided, create temporary detectors with the override language
         if current_language != self.language:
             logger.debug(f"Creating temporary detectors for language override: {current_language}")
@@ -172,20 +182,20 @@ class TextFormatter:
                 "entity_detector": self.entity_detector,
             }
         
-        filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc)
+        filtered_entities = detect_all_entities(text, detectors, self.nlp, existing_entities=protected_idiom_entities, doc=doc, pipeline_state=pipeline_state)
         logger.debug(f"Step 2 - Final entities: {len(filtered_entities)} entities detected")
 
         # STEP 3: Convert entities to their final representations
         logger.debug(f"Step 3 - Before entity conversion: '{text}'")
         
-        # Use appropriate pattern converter based on language
+        # Use appropriate pattern converter based on language (pipeline_state already created in step 2)
         if current_language != self.language:
             # Create temporary pattern converter for language override
             temp_pattern_converter = PatternConverter(language=current_language)
-            processed_text, converted_entities = convert_entities(text, filtered_entities, temp_pattern_converter)
+            processed_text, converted_entities = convert_entities(text, filtered_entities, temp_pattern_converter, pipeline_state)
         else:
             # Use instance pattern converter for default language
-            processed_text, converted_entities = convert_entities(text, filtered_entities, self.pattern_converter)
+            processed_text, converted_entities = convert_entities(text, filtered_entities, self.pattern_converter, pipeline_state)
             
         logger.debug(f"Step 3 - After entity conversion: '{processed_text}'")
 

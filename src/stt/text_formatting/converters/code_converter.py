@@ -3,10 +3,12 @@
 import re
 from typing import Dict
 
-from stt.core.config import get_config
+from stt.core.config import get_config, setup_logging
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from .base import BasePatternConverter
+
+logger = setup_logging(__name__)
 
 
 class CodePatternConverter(BasePatternConverter):
@@ -55,8 +57,38 @@ class CodePatternConverter(BasePatternConverter):
         return entity.text
 
     def convert_filename(self, entity: Entity, full_text: str | None = None) -> str:
-        """Convert spoken filenames to proper format based on extension"""
+        """Convert spoken filenames to proper format based on extension with intelligent context detection"""
         text = entity.text.strip()
+        
+        # THEORY 7 FIX: Enhanced action word detection and stripping
+        # This fixes both capitalization and spacing issues by properly handling action + filename patterns
+        
+        # First, detect and handle action + filename patterns that should be treated as "action + space + filename"
+        action_filename_pattern = r'^(create|edit|open|run|import|check|save|load|delete|remove)\s+(.+)$'
+        action_match = re.match(action_filename_pattern, text, re.IGNORECASE)
+        
+        if action_match and full_text:
+            action_word = action_match.group(1)
+            filename_part = action_match.group(2)
+            
+            # Check if this looks like a complete filename (has an extension)
+            if ' dot ' in filename_part.lower() and any(ext in filename_part.lower() for ext in ['py', 'js', 'ts', 'java', 'cs', 'tsx', 'css', 'html']):
+                # This is an action + filename pattern - we should process just the filename part
+                # and let capitalization handle the action word separately
+                text = filename_part
+                logger.debug(f"THEORY7 FIX: Detected action+filename pattern: '{action_word}' + '{filename_part}'")
+        
+        # THEORY 7: Intelligent Filename Context Detection
+        # Check if we have pipeline state with filename context information
+        pipeline_state = getattr(entity, '_pipeline_state', None)
+        if pipeline_state and hasattr(pipeline_state, 'should_use_dots_for_filename'):
+            should_use_dots = pipeline_state.should_use_dots_for_filename(entity.start, entity.end)
+            if should_use_dots:
+                # High-confidence filename context - use dots but apply proper casing rules
+                # Example: "edit app dot js" -> "app.js" (camelCase for .js)
+                # Convert "dot" to "." and continue with standard filename processing
+                text = re.sub(r'\s*dot\s+', '.', text, flags=re.IGNORECASE)
+                # Continue with standard filename processing to apply proper casing rules
 
         # Strip common leading phrases to isolate the filename
         # But only if the remaining text after stripping looks like a complete filename

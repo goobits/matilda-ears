@@ -30,6 +30,18 @@ from ..common import Entity, EntityType
 
 
 @dataclass
+class FilenameContext:
+    """Tracks filename context information for intelligent processing"""
+    start: int
+    end: int
+    text: str
+    action_word: str
+    confidence_score: float
+    context_type: str  # "action", "descriptive", "standalone", "compound"
+    should_use_dots: bool
+    
+    
+@dataclass
 class PipelineState:
     """Tracks state information across pipeline steps"""
     
@@ -44,6 +56,9 @@ class PipelineState:
     
     # Entity boundary information for cross-step coordination
     entity_boundaries: Dict[str, List[Tuple[int, int]]]
+    
+    # Intelligent filename context tracking
+    filename_contexts: List[FilenameContext]
     
     # Language resources for abbreviation detection
     language: str = "en"
@@ -65,6 +80,20 @@ class PipelineState:
     def add_comma_exclusion_zone(self, start: int, end: int):
         """Add a comma exclusion zone"""
         self.comma_exclusion_zones.add((start, end))
+    
+    def get_filename_context_at(self, position: int, window: int = 10) -> Optional[FilenameContext]:
+        """Get filename context information at a given position"""
+        for context in self.filename_contexts:
+            if context.start - window <= position <= context.end + window:
+                return context
+        return None
+    
+    def should_use_dots_for_filename(self, start: int, end: int) -> bool:
+        """Determine if filename should use dots based on intelligent context analysis"""
+        context = self.get_filename_context_at((start + end) // 2)
+        if context:
+            return context.should_use_dots
+        return False  # Default to underscore if no context found
 
 
 class PipelineStateManager:
@@ -109,11 +138,15 @@ class PipelineStateManager:
             exclusion_end = end + 5  # Small buffer after abbreviation
             comma_exclusion_zones.add((exclusion_start, exclusion_end))
         
+        # Pre-scan for intelligent filename contexts
+        filename_contexts = self._detect_filename_contexts(text)
+        
         return PipelineState(
             text=text,
             pending_abbreviations=pending_abbreviations,
             comma_exclusion_zones=comma_exclusion_zones,
             entity_boundaries={},
+            filename_contexts=filename_contexts,
             language=self.language
         )
     
@@ -153,6 +186,190 @@ class PipelineStateManager:
                 return True        
         return False
     
+    def _detect_filename_contexts(self, text: str) -> List[FilenameContext]:
+        """
+        Intelligent filename context detection using action words and patterns.
+        
+        This is the core of Theory 7: Intelligent Filename Context Detection.
+        It analyzes the text to determine when "dot" should become "." vs when 
+        spaces should be converted to underscores.
+        """
+        contexts = []
+        
+        # Get action words from resources
+        filename_actions = self.resources.get("context_words", {}).get("filename_actions", [])
+        
+        # Pattern 1: Action + "the" + filename + "dot" + extension
+        # Example: "edit the config file settings dot json"
+        action_pattern = r'\b(' + '|'.join(re.escape(action) for action in filename_actions) + r')\s+(?:the\s+)?(.+?)\s+dot\s+(\w+)\b'
+        
+        for match in re.finditer(action_pattern, text, re.IGNORECASE):
+            action_word = match.group(1).lower()
+            filename_part = match.group(2).strip()
+            extension = match.group(3).lower()
+            
+            # THEORY 7 FIX: Exclude action word from filename context to fix capitalization and spacing
+            # Find where the filename part starts (after action word + optional "the")
+            action_end = match.start() + len(match.group(1))  # End of action word
+            
+            # Skip past whitespace and optional "the"
+            filename_start = action_end
+            remaining_text = text[filename_start:match.end()]
+            
+            # Skip whitespace
+            while filename_start < match.end() and text[filename_start].isspace():
+                filename_start += 1
+            
+            # Skip "the" if present
+            if text[filename_start:].lower().startswith('the '):
+                filename_start += 4  # len("the ")
+                while filename_start < match.end() and text[filename_start].isspace():
+                    filename_start += 1
+            
+            # Calculate confidence score based on multiple factors
+            confidence_score = self._calculate_filename_confidence_score(
+                text, filename_start, match.end(), action_word, filename_part, extension
+            )
+            
+            # Determine context type and whether to use dots
+            context_type, should_use_dots = self._analyze_filename_context_type(
+                filename_part, action_word, confidence_score
+            )
+            
+            # Create context that EXCLUDES the action word - this fixes both capitalization and spacing
+            context = FilenameContext(
+                start=filename_start,  # Start after action word
+                end=match.end(),
+                text=text[filename_start:match.end()],  # Just the filename part
+                action_word=action_word,
+                confidence_score=confidence_score,
+                context_type=context_type,
+                should_use_dots=should_use_dots
+            )
+            contexts.append(context)
+        
+        # Pattern 2: Standalone filename patterns (no action word)
+        # Example: "the config dot json file" or "my script dot py"
+        # Also: "main dot js", "utils dot py", "readme dot md"
+        standalone_pattern = r'\b(?:the\s+|my\s+|a\s+|is\s+in\s+)?(.+?)\s+dot\s+(\w+)(?:\s+file)?\b'
+        
+        for match in re.finditer(standalone_pattern, text, re.IGNORECASE):
+            # Skip if already covered by action pattern
+            if any(c.start <= match.start() <= c.end for c in contexts):
+                continue
+                
+            filename_part = match.group(1).strip()
+            extension = match.group(2).lower()
+            
+            # Calculate confidence score for standalone pattern
+            confidence_score = self._calculate_filename_confidence_score(
+                text, match.start(), match.end(), "", filename_part, extension
+            )
+            
+            # Analyze context type
+            context_type, should_use_dots = self._analyze_filename_context_type(
+                filename_part, "", confidence_score
+            )
+            
+            context = FilenameContext(
+                start=match.start(),
+                end=match.end(),
+                text=match.group(0),
+                action_word="",
+                confidence_score=confidence_score,
+                context_type=context_type,
+                should_use_dots=should_use_dots
+            )
+            contexts.append(context)
+        
+        return contexts
+    
+    def _calculate_filename_confidence_score(self, text: str, start: int, end: int, 
+                                           action_word: str, filename_part: str, extension: str) -> float:
+        """
+        Calculate confidence score for filename context based on multiple factors.
+        
+        Higher score = more confident this should use dots (like "settings.json")
+        Lower score = more confident this should use underscores (like "config_file_settings.json")
+        """
+        confidence = 0.5  # Base confidence
+        
+        # Factor 1: Extension type (higher confidence for common file extensions)
+        common_extensions = ["json", "py", "js", "html", "css", "md", "txt", "csv", "xml"]
+        if extension.lower() in common_extensions:
+            confidence += 0.2
+        
+        # Factor 2: Action word presence (higher confidence with clear action words)
+        strong_action_words = ["edit", "open", "create", "save", "run", "check"]
+        if action_word.lower() in strong_action_words:
+            confidence += 0.3
+        
+        # Factor 3: Filename part analysis
+        words_in_filename = filename_part.split()
+        
+        # Higher confidence for simple filenames (1-2 words) - MORE GENEROUS
+        if len(words_in_filename) <= 2:
+            confidence += 0.3  # Increased from 0.2
+        
+        # Neutral for moderate compound filenames (3 words)
+        elif len(words_in_filename) == 3:
+            confidence += 0.0  # No penalty for 3 words
+        
+        # Lower confidence for very complex compound filenames (4+ words)
+        elif len(words_in_filename) >= 4:
+            confidence -= 0.1  # Reduced penalty
+        
+        # Factor 4: Presence of "file" in filename part (lower confidence, likely descriptive)
+        if "file" in filename_part.lower():
+            confidence -= 0.3
+        
+        # Factor 5: Context position (sentence beginning suggests action context)
+        context_before = text[max(0, start - 50):start].strip()
+        if len(context_before.split()) <= 2:  # Near sentence beginning
+            confidence += 0.2
+        
+        # Factor 6: Presence of articles/determiners ("the config file" vs "config")
+        if any(word in filename_part.lower() for word in ["the ", "a ", "an ", "this ", "that "]):
+            confidence -= 0.2
+        
+        # Factor 7: Well-known filename patterns (boost confidence)
+        well_known_patterns = ["main", "index", "config", "settings", "utils", "readme", "app", "script"]
+        if any(pattern in filename_part.lower() for pattern in well_known_patterns):
+            confidence += 0.2
+        
+        # Factor 8: Context indicators for filenames ("in", "is in")
+        context_before = text[max(0, start - 20):start].lower()
+        if any(phrase in context_before for phrase in [" in ", " is in ", " at ", " from "]):
+            confidence += 0.1
+        
+        # Clamp confidence between 0 and 1
+        return max(0.0, min(1.0, confidence))
+    
+    def _analyze_filename_context_type(self, filename_part: str, action_word: str, 
+                                     confidence_score: float) -> Tuple[str, bool]:
+        """
+        Analyze the filename context type and determine formatting approach.
+        
+        Returns:
+            Tuple of (context_type, should_use_dots)
+        """
+        
+        # High confidence (>= 0.7): Use dots - this is clearly a filename
+        if confidence_score >= 0.7:
+            return "action", True
+        
+        # Medium-high confidence (>= 0.5): Use dots for simple cases
+        elif confidence_score >= 0.5:
+            words_count = len(filename_part.split())
+            if words_count <= 2 and action_word:
+                return "descriptive", True
+            else:
+                return "compound", False
+        
+        # Lower confidence (< 0.5): Use underscores - likely compound/descriptive
+        else:
+            return "compound", False
+
     def should_skip_comma_after_phrase(self, text: str, phrase_end: int, state: PipelineState) -> bool:
         """
         Determine if comma should be skipped after an introductory phrase

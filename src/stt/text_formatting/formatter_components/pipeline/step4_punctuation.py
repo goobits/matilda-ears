@@ -55,18 +55,29 @@ def add_punctuation(
 
     # Add comma insertion for common introductory phrases BEFORE punctuation model processing
     text = _add_comma_for_introductory_phrases(text, language)
+    
+    # Initialize filename placeholders outside the try block (Theory 7 fix)
+    filename_placeholders = {}
 
     # All other text is treated as a sentence - use punctuation model
     punctuator = get_punctuator()
     if punctuator:
         try:
-            # Protect URLs and technical terms from the punctuation model by temporarily replacing them
+            # Protect filenames FIRST (Theory 7 fix) - must come before URL protection
+            # since filenames like "app.js" can be mistaken for domains
+            protected_text = text
+            filename_matches = list(regex_patterns.FILENAME_WITH_EXTENSION_PATTERN.finditer(text))
+            for i, match in enumerate(filename_matches):
+                placeholder = f"__FILENAME_{i}__"
+                filename_placeholders[placeholder] = match.group(0)
+                protected_text = protected_text.replace(match.group(0), placeholder, 1)
+
+            # Now protect URLs and technical terms from the punctuation model
             # Using pre-compiled patterns for performance
             url_placeholders = {}
-            protected_text = text
 
             # Find and replace URLs with placeholders
-            for i, match in enumerate(regex_patterns.URL_PROTECTION_PATTERN.finditer(text)):
+            for i, match in enumerate(regex_patterns.URL_PROTECTION_PATTERN.finditer(protected_text)):
                 placeholder = f"__URL_{i}__"
                 url_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
@@ -132,6 +143,8 @@ def add_punctuation(
             # Restore decimal numbers
             for placeholder, decimal in decimal_placeholders.items():
                 result = re.sub(rf"\b{re.escape(placeholder)}\b", decimal, result)
+
+            # NOTE: Filename restoration moved to end after all post-processing
 
             # Post-process punctuation using grammatical context
             if nlp:
@@ -292,6 +305,10 @@ def add_punctuation(
     # Fix time formatting issues (e.g., "at 3:p m" -> "at 3 PM")
     text = re.sub(r"\b(\d+):([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
     text = re.sub(r"\b(\d+)\s+([ap])\s+m\b", r"\1 \2M", text, flags=re.IGNORECASE)
+
+    # FINAL: Restore filenames after all post-processing (Theory 7 fix)
+    for placeholder, filename in filename_placeholders.items():
+        text = re.sub(rf"\b{re.escape(placeholder)}\b", filename, text)
 
     return text
 

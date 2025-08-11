@@ -16,12 +16,14 @@ from __future__ import annotations
 
 from ..pattern_converter import PatternConverter
 from ...common import Entity
+from ..pipeline_state import PipelineState
 
 
 def convert_entities(
     text: str,
     entities: list[Entity],
-    pattern_converter: PatternConverter
+    pattern_converter: PatternConverter,
+    pipeline_state: PipelineState = None
 ) -> tuple[str, list[Entity]]:
     """
     Convert detected entities to their final text representations.
@@ -58,6 +60,9 @@ def convert_entities(
         current_pos_in_result += len(plain_text_part)
 
         # Convert entity and track its new position
+        # Pass pipeline state to entity for intelligent context-aware conversion
+        if pipeline_state:
+            entity._pipeline_state = pipeline_state
         converted_text = pattern_converter.convert(entity, text)
         result_parts.append(converted_text)
 
