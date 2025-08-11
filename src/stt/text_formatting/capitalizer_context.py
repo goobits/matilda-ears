@@ -28,6 +28,14 @@ class ContextAnalyzer:
         """
         self.rules = rules
         self.nlp = nlp
+        
+        # Load language-specific capitalization context
+        self.capitalization_context = rules.resources.get("capitalization_context", {})
+        self.continuation_words = set(self.capitalization_context.get("continuation_words", []))
+        self.entity_rules = self.capitalization_context.get("entity_capitalization_rules", {})
+        self.spanish_lowercase_after_entities = set(
+            self.capitalization_context.get("spanish_lowercase_after_entities", [])
+        )
 
     def is_technical_term(self, entity_text: str, full_text: str) -> bool:
         """Check if a PERSON entity is actually a technical term that shouldn't be capitalized.
@@ -243,6 +251,11 @@ class ContextAnalyzer:
             if self.should_skip_spacy_entity_for_technical_context(ent.text, ent.label_, text):
                 continue
 
+            # For Spanish, check if this entity contains continuation words that shouldn't be capitalized
+            if self.rules.language == "es" and self._should_skip_spanish_entity(ent.text, ent.label_, text):
+                logger.debug(f"Skipping Spanish entity '{ent.text}' due to continuation word context")
+                continue
+
             # Skip if this SpaCy entity is inside a final filtered entity
             if entities and is_inside_entity(ent.start_char, ent.end_char, entities):
                 logger.debug(
@@ -262,3 +275,204 @@ class ContextAnalyzer:
             entities_to_capitalize.append((ent.start_char, ent.end_char, ent.text))
 
         return entities_to_capitalize
+
+    def should_capitalize_after_entity(
+        self, 
+        entity_type: str, 
+        following_word: str, 
+        full_context: str = ""
+    ) -> bool:
+        """Determine if a word should be capitalized after a specific entity type.
+        
+        Args:
+            entity_type: The type of entity (e.g., "SLASH_COMMAND", "COMMAND_FLAG")
+            following_word: The word that follows the entity
+            full_context: Full text context for additional analysis
+            
+        Returns:
+            True if the word should be capitalized, False otherwise
+        """
+        # For Spanish language, check entity-specific rules
+        if self.rules.language == "es":
+            return self._should_capitalize_after_entity_spanish(
+                entity_type, following_word, full_context
+            )
+        
+        # For other languages, use default behavior (usually capitalize)
+        return True
+
+    def _should_capitalize_after_entity_spanish(
+        self, 
+        entity_type: str, 
+        following_word: str, 
+        full_context: str
+    ) -> bool:
+        """Spanish-specific logic for capitalization after entities.
+        
+        Args:
+            entity_type: The type of entity
+            following_word: The word that follows the entity
+            full_context: Full text context
+            
+        Returns:
+            True if the word should be capitalized
+        """
+        # Get entity-specific rules
+        entity_rule = self.entity_rules.get(entity_type, {})
+        
+        # Default behavior from entity rules
+        capitalize_after = entity_rule.get("capitalize_after", True)
+        
+        # Check if word is in continuation words (should not be capitalized)
+        if following_word.lower() in self.continuation_words:
+            logger.debug(f"Word '{following_word}' is a Spanish continuation word - not capitalizing")
+            return False
+        
+        # Check if word is in Spanish lowercase after entities list
+        if following_word.lower() in self.spanish_lowercase_after_entities:
+            logger.debug(f"Word '{following_word}' should remain lowercase after Spanish entities")
+            return False
+        
+        # Check for exception patterns (words that should always be capitalized)
+        exception_patterns = entity_rule.get("exception_patterns", [])
+        for pattern in exception_patterns:
+            import re
+            if re.match(pattern, following_word):
+                logger.debug(f"Word '{following_word}' matches exception pattern '{pattern}' - capitalizing")
+                return True
+        
+        # For technical entities in Spanish, default to not capitalizing unless at sentence start
+        if entity_type in ["SLASH_COMMAND", "COMMAND_FLAG", "SIMPLE_UNDERSCORE_VARIABLE", "UNDERSCORE_DELIMITER"]:
+            # Check if we're at the start of a sentence
+            if self._is_sentence_start_context(full_context, following_word):
+                return True
+            return capitalize_after
+        
+        return capitalize_after
+
+    def _is_sentence_start_context(self, full_context: str, word: str) -> bool:
+        """Check if a word appears at the start of a sentence.
+        
+        Args:
+            full_context: Full text context
+            word: The word to check
+            
+        Returns:
+            True if the word is at sentence start
+        """
+        if not full_context or not word:
+            return False
+        
+        word_pos = full_context.lower().find(word.lower())
+        if word_pos <= 0:
+            return True  # Word is at the very beginning
+        
+        # Check if preceded by sentence-ending punctuation
+        preceding_text = full_context[:word_pos].strip()
+        if not preceding_text:
+            return True
+        
+        # Look for sentence endings
+        sentence_endings = ['.', '!', '?']
+        if any(preceding_text.endswith(ending) for ending in sentence_endings):
+            return True
+        
+        return False
+
+    def get_spanish_capitalization_decision(
+        self, 
+        word: str, 
+        position: int, 
+        text: str, 
+        preceding_entities: list = None
+    ) -> dict:
+        """Get capitalization decision for Spanish text based on context.
+        
+        Args:
+            word: The word to potentially capitalize
+            position: Position of the word in text
+            text: Full text context
+            preceding_entities: List of entities that precede this word
+            
+        Returns:
+            Dictionary with capitalization decision and reasoning
+        """
+        decision = {
+            "capitalize": True,
+            "reason": "default",
+            "entity_influenced": False
+        }
+        
+        # Check if this word follows a technical entity
+        if preceding_entities:
+            for entity in preceding_entities:
+                entity_type = getattr(entity, 'type', None) or getattr(entity, 'entity_type', None)
+                if entity_type and hasattr(entity_type, 'name'):
+                    entity_type_name = entity_type.name
+                elif isinstance(entity_type, str):
+                    entity_type_name = entity_type
+                else:
+                    continue
+                
+                # Check if word should not be capitalized after this entity
+                should_cap = self.should_capitalize_after_entity(
+                    entity_type_name, word, text
+                )
+                
+                if not should_cap:
+                    decision.update({
+                        "capitalize": False,
+                        "reason": f"follows_{entity_type_name.lower()}_entity",
+                        "entity_influenced": True
+                    })
+                    logger.debug(f"Spanish capitalization: '{word}' not capitalized due to preceding {entity_type_name}")
+                    break
+        
+        # Override for sentence start
+        if self._is_sentence_start_context(text, word):
+            decision.update({
+                "capitalize": True,
+                "reason": "sentence_start",
+                "entity_influenced": False
+            })
+        
+        return decision
+
+    def _should_skip_spanish_entity(self, entity_text: str, entity_label: str, full_text: str) -> bool:
+        """Check if a SpaCy entity should be skipped in Spanish due to continuation word context.
+        
+        Args:
+            entity_text: The entity text detected by SpaCy
+            entity_label: SpaCy entity label (PERSON, ORG, etc.)
+            full_text: Full text context
+            
+        Returns:
+            True if the entity should be skipped (not capitalized)
+        """
+        # Split entity text into words
+        entity_words = entity_text.lower().split()
+        
+        # Check if any word in the entity is a Spanish continuation word
+        for word in entity_words:
+            if word in self.continuation_words:
+                logger.debug(f"Spanish entity '{entity_text}' contains continuation word '{word}' - skipping")
+                return True
+            
+            if word in self.spanish_lowercase_after_entities:
+                logger.debug(f"Spanish entity '{entity_text}' contains lowercase-after-entity word '{word}' - skipping")
+                return True
+        
+        # Check if the entity appears after a technical entity (like a command flag)
+        entity_start_pos = full_text.lower().find(entity_text.lower())
+        if entity_start_pos > 0:
+            # Look at the text before the entity to see if it contains technical indicators
+            preceding_text = full_text[:entity_start_pos].strip()
+            
+            # Common patterns that indicate the following text should not be capitalized
+            spanish_technical_patterns = ['-h', '-v', '-f', '-d', '/', '--']
+            
+            if any(pattern in preceding_text for pattern in spanish_technical_patterns):
+                logger.debug(f"Spanish entity '{entity_text}' follows technical pattern - skipping")
+                return True
+        
+        return False

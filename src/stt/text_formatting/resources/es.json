@@ -396,5 +396,42 @@
       "gps": "GPS",
       "wifi": "WiFi"
     }
+  },
+  "capitalization_context": {
+    "continuation_words": ["para", "con", "de", "en", "por", "desde", "hacia", "sin", "sobre", "y", "o", "pero", "que", "si", "como", "cuando", "donde", "mientras", "valor", "variable", "función", "método", "archivo", "documento", "resultado", "contador", "índice", "cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "mayor", "menor", "igual", "a", "la", "el", "un", "una"],
+    "entity_capitalization_rules": {
+      "SLASH_COMMAND": {
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Commands following slashes should remain lowercase unless explicitly capitalized"
+      },
+      "COMMAND_FLAG": {
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Words following command flags should remain lowercase"
+      },
+      "SIMPLE_UNDERSCORE_VARIABLE": {
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Variables with underscores should maintain their case"
+      },
+      "UNDERSCORE_DELIMITER": {
+        "capitalize_after": false,
+        "exception_patterns": ["^[A-Z]"],
+        "description": "Underscore-delimited words should maintain their case"
+      }
+    },
+    "technical_contexts": [
+      "usa -FLAG para INSTRUCTION",
+      "ejecuta /COMMAND con PARAMS",
+      "comando COMMAND para ACTION",
+      "función FUNCTION_NAME para PURPOSE",
+      "variable VARIABLE_NAME con VALUE"
+    ],
+    "spanish_lowercase_after_entities": [
+      "para", "con", "de", "en", "por", "desde", "hacia", "sin", "sobre", "ayuda", "versión", "modo", "configuración", "desarrollo", "producción", "limpio", "servidor", "web", "valor", "variable", "función", "método", "archivo", "documento", "resultado", "contador", "índice", "cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"
+    ],
+    "always_capitalize_after_period": true,
+    "capitalize_after_technical_entity": false
   }
 }

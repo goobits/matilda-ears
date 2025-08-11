@@ -142,3 +142,81 @@ class CapitalizationRules:
         """
         common_abbreviations = self.resources.get("technical", {}).get("common_abbreviations", [])
         return "|".join(abbrev.replace(".", "\\.") for abbrev in common_abbreviations)
+
+    def get_capitalization_context_rules(self) -> dict:
+        """Get language-specific capitalization context rules.
+        
+        Returns:
+            Dictionary with capitalization context rules
+        """
+        return self.resources.get("capitalization_context", {})
+
+    def should_preserve_case_after_entity(self, entity_type: EntityType, following_word: str) -> bool:
+        """Check if case should be preserved for a word following a specific entity type.
+        
+        Args:
+            entity_type: The entity type that precedes the word
+            following_word: The word that follows the entity
+            
+        Returns:
+            True if the word's case should be preserved (not auto-capitalized)
+        """
+        # Get capitalization context rules
+        context_rules = self.get_capitalization_context_rules()
+        entity_rules = context_rules.get("entity_capitalization_rules", {})
+        
+        # Check if we have specific rules for this entity type
+        entity_type_name = entity_type.name if hasattr(entity_type, 'name') else str(entity_type)
+        entity_rule = entity_rules.get(entity_type_name, {})
+        
+        # If capitalize_after is False, preserve case
+        if not entity_rule.get("capitalize_after", True):
+            return True
+        
+        # For Spanish language, check additional context
+        if self.language == "es":
+            return self._should_preserve_case_spanish(entity_type, following_word, context_rules)
+        
+        return False
+
+    def _should_preserve_case_spanish(self, entity_type: EntityType, following_word: str, context_rules: dict) -> bool:
+        """Spanish-specific case preservation logic.
+        
+        Args:
+            entity_type: The entity type
+            following_word: The word following the entity
+            context_rules: Capitalization context rules
+            
+        Returns:
+            True if case should be preserved
+        """
+        # Get Spanish-specific word lists
+        continuation_words = set(context_rules.get("continuation_words", []))
+        lowercase_after_entities = set(context_rules.get("spanish_lowercase_after_entities", []))
+        
+        # Check if word is in continuation or lowercase lists
+        word_lower = following_word.lower()
+        if word_lower in continuation_words or word_lower in lowercase_after_entities:
+            return True
+        
+        # Check if global setting says not to capitalize after technical entities
+        if not context_rules.get("capitalize_after_technical_entity", True):
+            technical_entity_types = {
+                EntityType.SLASH_COMMAND,
+                EntityType.COMMAND_FLAG, 
+                EntityType.SIMPLE_UNDERSCORE_VARIABLE,
+                EntityType.UNDERSCORE_DELIMITER
+            }
+            if entity_type in technical_entity_types:
+                return True
+        
+        return False
+
+    def get_spanish_continuation_words(self) -> set:
+        """Get Spanish words that should not be capitalized in continuation contexts.
+        
+        Returns:
+            Set of Spanish continuation words
+        """
+        context_rules = self.get_capitalization_context_rules()
+        return set(context_rules.get("continuation_words", []))

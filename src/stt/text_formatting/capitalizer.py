@@ -110,6 +110,12 @@ class SmartCapitalizer:
             if context["follows_abbreviation"]:
                 return match.group(0)  # Don't capitalize
 
+            # For Spanish language, check if we should preserve case based on entity context
+            if self.language == "es":
+                should_capitalize = self._should_capitalize_word_spanish(text, letter_pos, letter, entities)
+                if not should_capitalize:
+                    return match.group(0)  # Don't capitalize
+
             return punctuation_and_space + letter.upper()
 
         text = re.sub(r"([.!?]\s+)([a-z])", capitalize_after_sentence, text)
@@ -471,3 +477,49 @@ class SmartCapitalizer:
         Deprecated: Use context.is_technical_term() instead.
         """
         return self.context.is_technical_term(entity_text, full_text)
+
+    def _should_capitalize_word_spanish(self, text: str, word_pos: int, word: str, entities: list[Entity] = None) -> bool:
+        """Determine if a word should be capitalized in Spanish context.
+        
+        Args:
+            text: Full text context
+            word_pos: Position of the word in text
+            word: The word to potentially capitalize
+            entities: List of entities that may influence capitalization
+            
+        Returns:
+            True if the word should be capitalized, False otherwise
+        """
+        if not entities:
+            return True  # Default capitalization when no entities present
+        
+        # Find entities that precede this word position
+        preceding_entities = []
+        for entity in entities:
+            if entity.end_char <= word_pos and (word_pos - entity.end_char) <= 10:  # Within 10 chars
+                preceding_entities.append(entity)
+        
+        # If no recent preceding entities, use default capitalization
+        if not preceding_entities:
+            return True
+        
+        # Get the most recent entity
+        recent_entity = max(preceding_entities, key=lambda e: e.end_char)
+        
+        # Extract the word that would follow the entity
+        start_search = recent_entity.end_char
+        end_search = min(word_pos + len(word), len(text))
+        following_text = text[start_search:end_search].strip()
+        
+        # Extract just the first word after the entity
+        following_word = following_text.split()[0] if following_text.split() else word
+        
+        # Use the context analyzer to make the decision
+        should_capitalize = self.context.should_capitalize_after_entity(
+            recent_entity.type.name if hasattr(recent_entity.type, 'name') else str(recent_entity.type),
+            following_word,
+            text
+        )
+        
+        logger.debug(f"Spanish capitalization decision for '{word}' after {recent_entity.type}: {should_capitalize}")
+        return should_capitalize
