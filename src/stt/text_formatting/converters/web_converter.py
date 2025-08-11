@@ -430,7 +430,7 @@ class WebPatternConverter(BasePatternConverter):
                         i += 1
 
                 # Check if the first part is an action word - if so, keep it separate
-                action_words = {"email", "contact", "send", "forward", "reach", "notify", "message", "mail", "write", "communicate"}
+                action_words = {"email", "contact", "send", "forward", "reach", "notify", "message", "mail", "write", "communicate", "visit", "go", "check", "navigate"}
                 if converted_parts and converted_parts[0].lower() in action_words:
                     # Keep the action word separate, join the rest without spaces for the actual email username
                     action_word = converted_parts[0]

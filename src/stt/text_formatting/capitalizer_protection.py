@@ -139,14 +139,15 @@ class EntityProtection:
                     # Check if this is a programming statement keyword that should stay lowercase
                     code_statement_keywords = {"if", "when", "while", "unless", "until", "let", "const", "var", "for", "def", "function"}
                     if entity.text.lower() in code_statement_keywords:
-                        # Special handling for "for" - check if it's in natural language context
-                        if entity.text.lower() == "for":
-                            is_natural_language = self._is_for_in_natural_language_context(text, entity.start)
+                        # Special handling for conditional keywords - check if it's in natural language context
+                        conditional_keywords = {"for", "if", "when", "while"}
+                        if entity.text.lower() in conditional_keywords:
+                            is_natural_language = self._is_conditional_in_natural_language_context(text, entity.start, entity.text.lower())
                             if is_natural_language:
                                 logger.debug(
-                                    f"'for' detected in natural language context - allowing capitalization"
+                                    f"'{entity.text}' detected in natural language context - allowing capitalization"
                                 )
-                                # Allow capitalization for natural language "for"
+                                # Allow capitalization for natural language conditionals
                                 break
                         
                         logger.debug(
@@ -410,6 +411,109 @@ class EntityProtection:
         if any(indicator in text_lower for indicator in natural_context_indicators):
             return True
             
+        # Default: assume natural language context (safer to capitalize)
+        return True
+    
+    def _is_conditional_in_natural_language_context(self, text: str, position: int, keyword: str) -> bool:
+        """Check if a conditional keyword (if, when, while, for) is used in natural language vs programming.
+        
+        Args:
+            text: Full text
+            position: Position of the keyword in text
+            keyword: The conditional keyword ("if", "when", "while", "for")
+            
+        Returns:
+            True if the keyword is used in natural language context (should be capitalized)
+        """
+        # Look at the words following the keyword
+        keyword_len = len(keyword)
+        words_after = text[position + keyword_len:].strip().split()[:5]  # Get next 5 words for context
+        
+        # Programming context indicators for different keywords
+        programming_patterns = {
+            "if": ["x", "i", "j", "k", "value", "result", "condition", "true", "false", "null", "none", 
+                   "equals", "==", "!=", "<=", ">=", "<", ">", "and", "or", "not"],
+            "when": ["x", "i", "condition", "true", "false", "equals", "==", "event", "trigger"],  
+            "while": ["x", "i", "j", "k", "condition", "true", "false", "loop", "iterate", "equals", "<=", ">="],
+            "for": ["i", "j", "k", "x", "y", "z", "item", "element", "each", "loop", "range", "in", "iterate"]
+        }
+        
+        # Natural language patterns for different keywords
+        natural_patterns = {
+            "if": ["you", "we", "they", "he", "she", "it", "this", "that", "someone", "anyone", "everyone", 
+                   "people", "users", "clients", "the", "a", "an", "some", "any", "there",
+                   # Spanish equivalents
+                   "tú", "nosotros", "ellos", "él", "ella", "esto", "eso", "alguien", "todos", "gente", "usuarios"],
+            "when": ["you", "we", "they", "he", "she", "it", "this", "that", "someone", "the", "a", "time", 
+                     "possible", "ready", "done", "finished", "complete",
+                     # Spanish equivalents  
+                     "tú", "nosotros", "ellos", "él", "ella", "esto", "eso", "alguien", "el", "la", "tiempo", "posible"],
+            "while": ["you", "we", "they", "he", "she", "it", "this", "that", "working", "running", "waiting",
+                      "the", "a", "some", "others",
+                      # Spanish equivalents
+                      "tú", "nosotros", "ellos", "él", "ella", "esto", "eso", "trabajando", "corriendo", "esperando"],  
+            "for": ["example", "instance", "more", "information", "info", "help", "support", "details", 
+                    "questions", "the", "a", "an", "some", "any", "each", "every", "all",
+                    # Spanish equivalents
+                    "ejemplo", "más", "información", "ayuda", "soporte", "detalles", "preguntas", "el", "la", "un", "una"],
+            # Spanish keywords
+            "variable": ["nombre", "función", "método", "archivo", "documento", "el", "la", "un", "una", "mi", "tu", "su"],
+            "función": ["nombre", "método", "archivo", "documento", "el", "la", "un", "una", "mi", "tu", "su"],
+            "método": ["nombre", "función", "archivo", "documento", "el", "la", "un", "una", "mi", "tu", "su"]
+        }
+        
+        if words_after:
+            first_word = words_after[0].lower()
+            
+            # Check for explicit natural language indicators
+            if keyword in natural_patterns and first_word in natural_patterns[keyword]:
+                return True
+                
+            # Check for programming patterns
+            if keyword in programming_patterns and first_word in programming_patterns[keyword]:
+                # Additional context check for programming syntax
+                remaining_text = " ".join(words_after).lower()
+                programming_keywords = ["equals", "==", "!=", "<=", ">=", "and", "or", "not", "true", "false", 
+                                      "null", "none", "range", "len", "in", "iterate", "loop"]
+                if any(prog_word in remaining_text for prog_word in programming_keywords):
+                    return False  # Programming context
+        
+        # Look at the broader context - if sentence contains natural language indicators
+        text_lower = text.lower()
+        natural_context_indicators = [
+            # English indicators
+            "you", "think", "believe", "feel", "want", "need", "like", "love", "hate", "see", "look",
+            "visit", "go", "come", "tell", "say", "speak", "talk", "ask", "answer", "help", "support", 
+            "please", "thanks", "sorry", "excuse", "people", "person", "user", "users", "problem",
+            "issue", "question", "solution", "differently", "carefully", "quickly", "slowly",
+            # Spanish indicators
+            "tú", "usted", "nosotros", "ustedes", "piensas", "pienso", "pensamos", "crees", "creo", "creemos",
+            "sientes", "siento", "sentimos", "quieres", "quiero", "queremos", "necesitas", "necesito", "necesitamos",
+            "te gusta", "me gusta", "nos gusta", "ves", "veo", "vemos", "miras", "miro", "miramos",
+            "visitas", "visito", "visitamos", "vas", "voy", "vamos", "vienes", "vengo", "venimos",
+            "dices", "digo", "decimos", "hablas", "hablo", "hablamos", "preguntas", "pregunto", "preguntamos",
+            "respondes", "respondo", "respondemos", "ayudas", "ayudo", "ayudamos", "por favor", "gracias",
+            "perdón", "disculpa", "gente", "persona", "personas", "usuario", "usuarios", "problema",
+            "problemas", "pregunta", "preguntas", "solución", "diferente", "cuidadoso", "rápido", "lento",
+            "nombre", "función", "método", "archivo", "documento", "servidor", "sistema", "guión", "bajo"
+        ]
+        
+        if any(indicator in text_lower for indicator in natural_context_indicators):
+            return True
+            
+        # For "if" specifically, check for common natural language patterns
+        if keyword == "if" and words_after:
+            # Common natural language "if" patterns
+            if len(words_after) >= 2:
+                two_word_phrase = f"{words_after[0].lower()} {words_after[1].lower()}"
+                natural_if_phrases = [
+                    "you think", "you want", "you need", "you like", "you see", "you go", "you come",
+                    "you believe", "you feel", "you look", "we think", "we want", "we need", 
+                    "they think", "it works", "this works", "that works"
+                ]
+                if two_word_phrase in natural_if_phrases:
+                    return True
+        
         # Default: assume natural language context (safer to capitalize)
         return True
     
