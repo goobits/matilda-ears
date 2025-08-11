@@ -142,12 +142,30 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
         "arroba": "@",
         "punto": ".",
     }
+    
+    # Theory 14: Add Spanish operators for multi-word entities like "guión guión", "menos menos"
+    if language == "es":
+        operators = resources.get("spoken_keywords", {}).get("operators", {})
+        safe_keywords.update(operators)
+        logger.info(f"THEORY_14: Added Spanish operators to safe keywords: {list(operators.keys())}")
+        
+        # Also add missing "guión guión" mapping if it's not in resources
+        if "guión guión" not in safe_keywords:
+            safe_keywords["guión guión"] = "--"
+            logger.info(f"THEORY_14: Added missing 'guión guión' -> '--' mapping")
 
     # Filter to only keywords we want to convert when orphaned
     keywords_to_convert = {}
     for keyword, symbol in url_keywords.items():
         if keyword in safe_keywords and safe_keywords[keyword] == symbol:
             keywords_to_convert[keyword] = symbol
+    
+    # Theory 14: For Spanish, also add safe keywords that aren't in url_keywords but are operators
+    if language == "es":
+        for keyword, symbol in safe_keywords.items():
+            if keyword not in keywords_to_convert and " " in keyword:  # Multi-word Spanish entities
+                keywords_to_convert[keyword] = symbol
+                logger.info(f"THEORY_14: Added Spanish multi-word keyword: '{keyword}' -> '{symbol}'")
 
     # Sort by length (longest first) to handle multi-word keywords properly
     sorted_keywords = sorted(keywords_to_convert.items(), key=lambda x: len(x[0]), reverse=True)
@@ -164,9 +182,13 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
             # Use context-aware conversion for sensitive keywords
             text = _convert_context_aware_keyword(text, keyword, symbol, space_consuming_symbols, language, doc)
         else:
-            # Special handling for Spanish "guión" to avoid conflict with "guión bajo"
-            if keyword == "guión" and language == "es":
-                # Only convert "guión" if it's not followed by "bajo"
+            # Special handling for Spanish multi-word entities with proper spacing
+            if language == "es" and " " in keyword:
+                # Use Spanish-aware conversion for multi-word entities
+                logger.info(f"THEORY_14: Processing Spanish multi-word entity: '{keyword}' -> '{symbol}'")
+                text = _convert_spanish_multi_word_entity(text, keyword, symbol, language)
+            elif keyword == "guión" and language == "es":
+                # Only convert "guión" if it's not followed by "bajo"  
                 pattern = rf"\b{re.escape(keyword)}\b(?!\s+bajo)"
                 if symbol in space_consuming_symbols:
                     # For these symbols, consume surrounding spaces but preserve the negative lookahead
@@ -184,6 +206,130 @@ def convert_orphaned_keywords(text: str, language: str = "en", doc=None) -> str:
                     pattern = rf"\b{re.escape(keyword)}\b"
                     text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
+    return text
+
+
+def _convert_spanish_multi_word_entity(text: str, keyword: str, symbol: str, language: str = "es") -> str:
+    """
+    Convert Spanish multi-word entities with proper spacing preservation.
+    
+    Theory 14: Post-Conversion Entity Boundary Preservation
+    
+    Handles Spanish multi-word entities like "guión guión" -> "--" with
+    proper spacing to fix issues like "Usa--versión" -> "Usa --versión".
+    
+    Args:
+        text: Text to process
+        keyword: Multi-word Spanish keyword (e.g., "guión guión", "menos menos")
+        symbol: Target symbol (e.g., "--")
+        
+    Returns:
+        Text with properly spaced conversions
+    """
+    import re
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    # Define Spanish multi-word entity spacing rules
+    spanish_spacing_rules = {
+        "guión guión": {
+            "target": "--",
+            "preserve_leading_space": True,
+            "preserve_trailing_space": True,
+            "description": "Long command flag operator"
+        },
+        "guión bajo": {
+            "target": "_",
+            "preserve_leading_space": True,
+            "preserve_trailing_space": False,
+            "description": "Underscore connector"
+        },
+        "menos menos": {
+            "target": "--",
+            "preserve_leading_space": True,
+            "preserve_trailing_space": False,
+            "description": "Decrement operator"
+        },
+    }
+    
+    rule = spanish_spacing_rules.get(keyword.lower())
+    if not rule:
+        # Fallback to basic conversion for unknown multi-word entities
+        pattern = rf"\b{re.escape(keyword)}\b"
+        return re.sub(pattern, symbol, text, flags=re.IGNORECASE)
+    
+    # Build pattern with proper spacing logic
+    keyword_pattern = re.escape(keyword)
+    
+    def replacement_with_spacing(match):
+        """Custom replacement function that preserves proper spacing."""
+        matched_text = match.group(0)
+        full_match = match.group()
+        start_pos = match.start()
+        end_pos = match.end()
+        
+        # Get surrounding context - expand to see more context
+        context_start = max(0, start_pos - 10)
+        context_end = min(len(text), end_pos + 10)
+        before_context = text[context_start:start_pos]
+        after_context = text[end_pos:context_end]
+        
+        # Get immediate neighboring characters for precise spacing decisions
+        char_before = text[start_pos - 1] if start_pos > 0 else ""
+        char_after = text[end_pos] if end_pos < len(text) else ""
+        
+        result = rule["target"]
+        
+        # Apply Spanish-specific spacing rules
+        if keyword.lower() == "guión guión":
+            # "usa guión guión versión" -> "usa --versión" (no space after --)
+            # The key insight: -- is a flag operator that should stick to its argument
+            if char_before != " ":
+                result = " " + result
+            # For command flags, don't add trailing space - the flag sticks to its argument
+        elif keyword.lower() == "guión bajo":
+            # "archivo guión bajo configuración" -> "archivo _configuración"
+            # Space before underscore, no space after (connects words)
+            if before_context and not before_context.endswith(" "):
+                result = " " + result
+        elif keyword.lower() == "menos menos":
+            # "valor y menos menos" -> "valor y--"
+            # Preserve existing spacing, no trailing space (operator sticks to what follows)
+            pass
+            
+        logger.info(f"THEORY_14: Spanish multi-word conversion: '{matched_text}' -> '{result}' (before: '{char_before}', after: '{char_after}')")
+        return result
+    
+    # Apply the conversion with proper spacing
+    # For Spanish entities with specific spacing requirements, handle precisely
+    if language == "es" and keyword.lower() in ["guión guión", "guión bajo", "menos menos", "guión"]:
+        # Use a pattern that captures surrounding spaces for precise control
+        pattern = rf"(\s*)\b{keyword_pattern}\b(\s*)"
+        def precise_replacement(match):
+            pre_space = match.group(1)
+            post_space = match.group(2)
+            
+            if keyword.lower() == "guión guión":
+                # For "guión guión", keep leading space but remove trailing space
+                return f"{pre_space}--"
+            elif keyword.lower() == "guión bajo":
+                # For "guión bajo", remove both leading and trailing spaces (underscore connects)
+                return "_"
+            elif keyword.lower() == "menos menos":
+                # For "menos menos", keep leading space but no trailing space
+                return f"{pre_space}--"
+            elif keyword.lower() == "guión":
+                # For single "guión", no spaces (dash connects like a hyphen)
+                return "-"
+            else:
+                return f"{pre_space}{symbol}"
+                
+        text = re.sub(pattern, precise_replacement, text, flags=re.IGNORECASE)
+    else:
+        pattern = rf"\b{keyword_pattern}\b"
+        text = re.sub(pattern, replacement_with_spacing, text, flags=re.IGNORECASE)
+    
     return text
 
 
