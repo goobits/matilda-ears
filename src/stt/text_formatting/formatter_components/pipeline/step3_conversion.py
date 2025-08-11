@@ -33,6 +33,9 @@ from stt.text_formatting.conversational_entity_processor import ConversationalEn
 # Theory 18: Intelligent Word-After-Entity Classification
 from stt.text_formatting.intelligent_word_classifier import IntelligentWordClassifier
 
+# Theory 20: Spanish Technical Context Pattern Recognition
+from stt.text_formatting.spanish_technical_patterns import get_spanish_technical_recognizer
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -72,20 +75,51 @@ def convert_entities(
     language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
     logger.info(f"THEORY_14_DEBUG: Processing {len(entities)} entities for language '{language}'")
     
+    # Theory 20: Apply Spanish technical pattern recognition
+    spanish_technical_contexts = []
+    if language == 'es':
+        logger.debug("THEORY_20: Analyzing Spanish technical context patterns")
+        try:
+            recognizer = get_spanish_technical_recognizer(language)
+            spanish_technical_contexts = recognizer.analyze_spanish_technical_context(text, entities)
+            
+            if spanish_technical_contexts:
+                logger.info(f"THEORY_20: Found {len(spanish_technical_contexts)} Spanish technical contexts")
+                for ctx in spanish_technical_contexts:
+                    logger.debug(f"THEORY_20: Technical context: {ctx.context_type.value} (confidence: {ctx.confidence:.2f}) at {ctx.start_pos}-{ctx.end_pos}")
+                
+                # Store technical contexts in pipeline state for later use
+                if pipeline_state:
+                    pipeline_state.spanish_technical_contexts = spanish_technical_contexts
+        except Exception as e:
+            logger.warning(f"THEORY_20: Error in Spanish technical pattern recognition: {e}")
+            spanish_technical_contexts = []
+    
     # Theory 17: Apply conversational entity processing for Spanish
     logger.debug(f"THEORY_17 DEBUG: language='{language}', pipeline_state={pipeline_state is not None}, conversational_context={getattr(pipeline_state, 'conversational_context', 'NOT_FOUND') if pipeline_state else 'NO_PIPELINE_STATE'}")
     
     if language == 'es' and pipeline_state and getattr(pipeline_state, 'conversational_context', False):
-        logger.info("THEORY_17: Applying conversational entity processing")
+        # Theory 20: Check if we should use technical or conversational processing
+        has_technical_context = bool(spanish_technical_contexts and 
+                                   any(ctx.confidence >= 0.7 for ctx in spanish_technical_contexts))
         
-        # Apply conversational replacements before standard entity conversion
-        analyzer = getattr(pipeline_state, 'conversational_analyzer', None)
-        if analyzer:
-            conversational_result = analyzer.process_conversational_flow(text, entities)
-            if conversational_result[0] != text:  # If text changed
-                logger.info(f"THEORY_17: Applied conversational flow processing: '{text}' -> '{conversational_result[0]}'")
-                text = conversational_result[0]
-                entities = conversational_result[1]
+        if has_technical_context:
+            logger.info("THEORY_20: Using technical processing mode for Spanish entities (overriding conversational)")
+            # Set technical processing flags
+            if pipeline_state:
+                pipeline_state.use_technical_processing = True
+                pipeline_state.technical_confidence = max(ctx.confidence for ctx in spanish_technical_contexts)
+        else:
+            logger.info("THEORY_17: Applying conversational entity processing")
+            
+            # Apply conversational replacements before standard entity conversion
+            analyzer = getattr(pipeline_state, 'conversational_analyzer', None)
+            if analyzer:
+                conversational_result = analyzer.process_conversational_flow(text, entities)
+                if conversational_result[0] != text:  # If text changed
+                    logger.info(f"THEORY_17: Applied conversational flow processing: '{text}' -> '{conversational_result[0]}'")
+                    text = conversational_result[0]
+                    entities = conversational_result[1]
     
     
     # Step 3a: Pre-conversion conflict check

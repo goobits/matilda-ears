@@ -19,6 +19,13 @@ from stt.text_formatting.common import Entity, EntityType
 if TYPE_CHECKING:
     from ...capitalizer import SmartCapitalizer
 
+# Theory 20: Spanish Technical Context Pattern Recognition
+try:
+    from ...spanish_technical_patterns import get_spanish_technical_recognizer
+    _spanish_technical_available = True
+except ImportError:
+    _spanish_technical_available = False
+
 logger = setup_logging(__name__)
 
 
@@ -85,11 +92,45 @@ def apply_capitalization_with_entity_protection(
                     }
                     logger.debug(f"THEORY_19: Found coordination guidance for {entity.type} at {entity.start}: {coordination_type}")
     
+    # Theory 20: Check for Spanish technical context patterns
+    use_technical_capitalization = False
+    spanish_technical_guidance = {}
+    
+    if (pipeline_state and 
+        getattr(pipeline_state, 'language', 'en') == 'es' and 
+        _spanish_technical_available):
+        
+        # Check for stored technical contexts from conversion step
+        spanish_technical_contexts = getattr(pipeline_state, 'spanish_technical_contexts', [])
+        
+        if spanish_technical_contexts:
+            # Find highest confidence technical context
+            best_context = max(spanish_technical_contexts, key=lambda ctx: ctx.confidence)
+            
+            if best_context.confidence >= 0.7:
+                logger.info(f"THEORY_20: Using technical capitalization mode (confidence: {best_context.confidence:.2f})")
+                use_technical_capitalization = True
+                
+                # Get technical-specific capitalization guidance
+                try:
+                    recognizer = get_spanish_technical_recognizer('es')
+                    for i, char in enumerate(text):
+                        if char.isalpha():
+                            guidance = recognizer.get_capitalization_guidance(text, i, char)
+                            if guidance.get('rule') != 'standard':
+                                spanish_technical_guidance[i] = guidance
+                                
+                    if spanish_technical_guidance:
+                        logger.debug(f"THEORY_20: Applied technical guidance to {len(spanish_technical_guidance)} positions")
+                except Exception as e:
+                    logger.warning(f"THEORY_20: Error getting capitalization guidance: {e}")
+    
     # Theory 17: Check for conversational flow preservation
     preserve_conversational_case = False
     if (pipeline_state and 
         getattr(pipeline_state, 'conversational_context', False) and
-        getattr(pipeline_state, 'conversational_analyzer', None)):
+        getattr(pipeline_state, 'conversational_analyzer', None) and
+        not use_technical_capitalization):  # Technical mode overrides conversational
         
         analyzer = pipeline_state.conversational_analyzer
         original_text = getattr(pipeline_state, 'original_text', '')
@@ -110,6 +151,21 @@ def apply_capitalization_with_entity_protection(
                 )
             else:
                 capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+    elif use_technical_capitalization:
+        # THEORY 20: Apply technical-aware capitalization
+        logger.info("THEORY_20: Applying technical-aware capitalization")
+        if coordination_overrides:
+            capitalized_text = apply_coordination_aware_capitalization(
+                text, entities, capitalizer, coordination_overrides, doc
+            )
+        else:
+            capitalized_text = capitalizer.capitalize(text, entities, doc=doc)
+            
+        # Apply Spanish technical guidance post-processing
+        if spanish_technical_guidance:
+            capitalized_text = apply_spanish_technical_capitalization_guidance(
+                capitalized_text, spanish_technical_guidance
+            )
     else:
         # THEORY 19: Apply coordination-aware capitalization  
         if coordination_overrides:
@@ -234,6 +290,80 @@ def apply_coordination_aware_capitalization(
     
     logger.debug(f"THEORY_19: Coordination-aware capitalization complete")
     return capitalized_text
+
+
+def apply_spanish_technical_capitalization_guidance(text: str, guidance_map: dict) -> str:
+    """
+    Apply Spanish technical capitalization guidance to text.
+    
+    THEORY 20: This function applies technical-specific capitalization rules
+    based on Spanish technical pattern recognition results.
+    
+    Args:
+        text: Text to apply guidance to
+        guidance_map: Dictionary mapping positions to capitalization guidance
+        
+    Returns:
+        Text with technical capitalization applied
+    """
+    if not guidance_map:
+        return text
+        
+    logger.debug(f"THEORY_20: Applying technical capitalization guidance to {len(guidance_map)} positions")
+    
+    # Convert to list of characters for easy modification
+    text_chars = list(text)
+    
+    # Apply guidance in reverse order to maintain positions
+    for position in sorted(guidance_map.keys(), reverse=True):
+        if position >= len(text_chars):
+            continue
+            
+        guidance = guidance_map[position]
+        char = text_chars[position]
+        
+        if not char.isalpha():
+            continue
+            
+        rule = guidance.get('rule', 'standard')
+        preserve_case = guidance.get('preserve_case', 'false').lower() == 'true'
+        context_type = guidance.get('context_type', 'conversational')
+        
+        logger.debug(f"THEORY_20: Applying rule '{rule}' to character '{char}' at position {position} (context: {context_type})")
+        
+        if rule == 'preserve_technical' and preserve_case:
+            # Keep the character as-is (already processed by technical systems)
+            logger.debug(f"THEORY_20: Preserving technical case for '{char}' at {position}")
+            continue
+            
+        elif rule == 'force_lowercase_technical':
+            if char.isupper():
+                text_chars[position] = char.lower()
+                logger.debug(f"THEORY_20: Forced lowercase: '{char}' -> '{text_chars[position]}' at {position}")
+                
+        elif context_type in ['command_instruction', 'configuration'] and position > 0:
+            # For technical contexts, prefer lowercase for non-sentence-start positions
+            if char.isupper() and not _is_sentence_start_position(text, position):
+                text_chars[position] = char.lower()
+                logger.debug(f"THEORY_20: Technical context lowercase: '{char}' -> '{text_chars[position]}' at {position}")
+    
+    result_text = ''.join(text_chars)
+    logger.debug(f"THEORY_20: Technical capitalization guidance applied")
+    return result_text
+
+
+def _is_sentence_start_position(text: str, position: int) -> bool:
+    """Check if a position is at the start of a sentence"""
+    if position == 0:
+        return True
+        
+    # Look for sentence endings before this position
+    before_text = text[:position].rstrip()
+    if not before_text:
+        return True
+        
+    # Check for sentence-ending punctuation
+    return before_text[-1] in '.!?'
 
 
 def is_standalone_technical(text: str, entities: list[Entity], resources: dict) -> bool:
