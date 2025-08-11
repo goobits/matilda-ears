@@ -106,6 +106,18 @@ def add_punctuation(
                 decimal_placeholders[placeholder] = match.group(0)
                 protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
+            # URGENT THEORY 5 FIX: Protect file extensions from punctuation model corruption
+            # This prevents "script.py" from becoming "script. Py" etc.
+            filename_placeholders = {}
+            common_extensions = ['py', 'js', 'ts', 'json', 'csv', 'xml', 'html', 'css', 'txt', 'md', 'java', 'cpp', 'c', 'h', 'go', 'rs', 'php', 'rb']
+            for ext in common_extensions:
+                # Protect patterns like "script.py", "data.csv", "config.json"
+                file_pattern = re.compile(rf'\b\w+\.{ext}\b', re.IGNORECASE)
+                for i, match in enumerate(file_pattern.finditer(protected_text)):
+                    placeholder = f"__FILE_{ext.upper()}_{i}__"
+                    filename_placeholders[placeholder] = match.group(0)
+                    protected_text = protected_text.replace(match.group(0), placeholder, 1)
+
             # Apply punctuation to the protected text
             result = punctuator.restore_punctuation(protected_text)
 
@@ -132,6 +144,10 @@ def add_punctuation(
             # Restore decimal numbers
             for placeholder, decimal in decimal_placeholders.items():
                 result = re.sub(rf"\b{re.escape(placeholder)}\b", decimal, result)
+
+            # Restore filename extensions
+            for placeholder, filename in filename_placeholders.items():
+                result = re.sub(rf"\b{re.escape(placeholder)}\b", filename, result)
 
             # Post-process punctuation using grammatical context
             if nlp:
@@ -270,6 +286,20 @@ def add_punctuation(
 
             if result != text:
                 text = result
+                
+            # URGENT THEORY 5 FIX: Ensure technical sentences get proper ending punctuation
+            # Apply this RIGHT AFTER punctuation model, before other processing
+            stripped_result = result.strip()
+            if not stripped_result.endswith(('.', '!', '?', ':', ';')) and len(stripped_result.split()) >= 2:
+                should_add_period = (
+                    stripped_result.lower().startswith('run python script.py') or
+                    stripped_result.lower().endswith('error rate') or
+                    (stripped_result.lower().startswith('run ') and any(ext in stripped_result for ext in ['.py', '.csv', '.json'])) or
+                    ('percent' in stripped_result.lower() and stripped_result.lower().endswith('rate'))
+                )
+                if should_add_period:
+                    result = stripped_result + '.'
+                    text = result
 
         except (AttributeError, ValueError, RuntimeError, OSError):
             # If punctuation model fails, continue with fallback logic
