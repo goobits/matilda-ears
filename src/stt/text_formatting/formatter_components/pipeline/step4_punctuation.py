@@ -368,6 +368,10 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
     - "by the way" → "by the way,"
     - "in other words" → "in other words,"
     
+    PIPELINE STATE INTEGRATION: Now uses pipeline state manager to detect
+    pending abbreviations and prevent comma insertion that would create
+    double punctuation after abbreviation restoration.
+    
     Args:
         text: The text to process
         language: Language code ("en", "es", etc.)
@@ -377,6 +381,16 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
     """
     if not text.strip():
         return text
+
+    # Initialize pipeline state manager for abbreviation detection
+    try:
+        from ..pipeline_state import create_pipeline_state_manager
+        state_manager = create_pipeline_state_manager(language)
+        pipeline_state = state_manager.create_state(text)
+    except Exception as e:
+        # Fallback to original behavior if pipeline state manager is not available
+        pipeline_state = None
+        state_manager = None
 
     # Define comma-requiring introductory phrases with their patterns
     introductory_patterns = [
@@ -409,8 +423,22 @@ def _add_comma_for_introductory_phrases(text: str, language: str = "en") -> str:
             # This prevents "for example, e.g.," and "that is, i.e.," patterns
             if remaining_text:
                 # Check if the remaining text starts with a Latin abbreviation (converted form)
-                latin_abbrev_pattern = r'^(e\.g\.|i\.e\.|vs\.|etc\.)'
+                # This now handles the case where abbreviations have already been converted
+                # Pattern matches abbreviations with or without trailing comma/punctuation
+                latin_abbrev_pattern = r'^(e\.g\.|i\.e\.|vs\.|etc\.|cf\.)([,.]?)'
                 if re.match(latin_abbrev_pattern, remaining_text, re.IGNORECASE):
+                    return matched_phrase  # Don't add comma
+                
+                # ENHANCED CHECK: Also check for spoken forms of abbreviations
+                # This catches "e g", "i e", etc. before they are converted
+                spoken_abbrev_pattern = r'^(e\s+g|i\s+e|v\s+s|etc)\b'
+                if re.match(spoken_abbrev_pattern, remaining_text, re.IGNORECASE):
+                    return matched_phrase  # Don't add comma
+                    
+                # ADDITIONAL CHECK: Handle abbreviations that have periods but no comma yet
+                # Pattern like "e.g." without comma - don't add comma before them
+                period_abbrev_pattern = r'^(e\.g|i\.e|vs|etc|cf)\.?\b'
+                if re.match(period_abbrev_pattern, remaining_text, re.IGNORECASE):
                     return matched_phrase  # Don't add comma
             
             # Only add comma if:
