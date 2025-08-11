@@ -75,8 +75,7 @@ def build_temperature_protection_pattern() -> re.Pattern[str]:
 @cached_pattern
 def build_decimal_protection_pattern() -> re.Pattern[str]:
     """Build pattern for decimal numbers protection (prevent punctuation model from corrupting them)."""
-    # Enhanced pattern to protect decimal numbers with and without % sign
-    return re.compile(r"\b\d+\.\d+(?:%|\b)", re.IGNORECASE)
+    return re.compile(r"\b\d+\.\d+%", re.IGNORECASE)
 
 
 def get_all_caps_preservation_pattern() -> re.Pattern[str]:

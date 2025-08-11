@@ -53,16 +53,6 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
         # Use word boundaries to avoid partial matches
         pattern = r'\b' + re.escape(phrase) + r'\b'
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
-    
-    # URGENT THEORY 5 FIX: Handle common technical file extensions that aren't being detected properly
-    # This fixes the "script dot py" -> "script.py" issue when entity detection fails
-    common_tech_extensions = ['py', 'js', 'ts', 'json', 'csv', 'xml', 'html', 'css', 'txt', 'md', 'java', 'cpp', 'c', 'h', 'go', 'rs', 'php', 'rb']
-    for ext in common_tech_extensions:
-        # Replace " dot ext" with ".ext" for filenames in technical contexts
-        # Use word boundaries to ensure we're matching complete words
-        dot_pattern = rf'\b(\w+)\s+dot\s+{ext}\b'
-        replacement = rf'\1.{ext}'
-        text = re.sub(dot_pattern, replacement, text, flags=re.IGNORECASE)
     # Get context words from resources for i18n support
     meta_discussion_words = resources.get("context_words", {}).get(
         "meta_discussion",
