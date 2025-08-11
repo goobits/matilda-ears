@@ -15,9 +15,10 @@ This module tests the detection and formatting of:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestFilenameEntities:
+class TestFilenameEntities(BaseFormattingTest):
     """Test FILENAME entity detection and case formatting based on file extension."""
 
     def test_python_files_snake_case(self, preloaded_formatter):
@@ -32,8 +33,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_javascript_files_camel_case(self, preloaded_formatter):
         """Test JavaScript files get camelCase formatting."""
@@ -47,8 +47,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_typescript_files_pascal_case(self, preloaded_formatter):
         """Test TypeScript files get PascalCase formatting."""
@@ -62,8 +61,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_java_files_pascal_case(self, preloaded_formatter):
         """Test Java files get PascalCase formatting."""
@@ -76,8 +74,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_csharp_files_pascal_case(self, preloaded_formatter):
         """Test C# files get PascalCase formatting."""
@@ -89,8 +86,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_css_files_kebab_case(self, preloaded_formatter):
         """Test CSS files get kebab-case formatting."""
@@ -103,8 +99,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_markdown_files_upper_snake_case(self, preloaded_formatter):
         """Test Markdown files get UPPER_SNAKE_CASE formatting."""
@@ -121,8 +116,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filenames_with_numbers(self, preloaded_formatter):
         """Test filenames containing numbers."""
@@ -135,8 +129,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filenames_with_underscores(self, preloaded_formatter):
         """Test filenames with spoken underscores."""
@@ -149,8 +142,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_dunder_filenames(self, preloaded_formatter):
         """Test special dunder filenames."""
@@ -162,8 +154,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_java_package_names(self, preloaded_formatter):
         """Test Java package names as filenames."""
@@ -175,8 +166,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filenames_in_context(self, preloaded_formatter):
         """Test filenames embedded in natural sentences."""
@@ -189,8 +179,7 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_unknown_extension_filenames(self, preloaded_formatter):
         """Test filenames with unknown extensions."""
@@ -202,11 +191,10 @@ class TestFilenameEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestAssignmentOperators:
+class TestAssignmentOperators(BaseFormattingTest):
     """Test ASSIGNMENT entity detection and formatting."""
 
     def test_basic_assignments(self, preloaded_formatter):
@@ -221,12 +209,7 @@ class TestAssignmentOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Assignments are technical content so might not get punctuation
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_assignments_with_strings(self, preloaded_formatter):
         """Test assignments with string values."""
@@ -238,11 +221,7 @@ class TestAssignmentOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_assignments_with_expressions(self, preloaded_formatter):
         """Test assignments with mathematical expressions."""
@@ -254,11 +233,7 @@ class TestAssignmentOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_typed_assignments(self, preloaded_formatter):
         """Test assignments with type annotations."""
@@ -270,14 +245,10 @@ class TestAssignmentOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestIncrementDecrementOperators:
+class TestIncrementDecrementOperators(BaseFormattingTest):
     """Test INCREMENT_OPERATOR and DECREMENT_OPERATOR entities."""
 
     def test_increment_operators(self, preloaded_formatter):
@@ -291,12 +262,7 @@ class TestIncrementDecrementOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Operators are technical content so might not get punctuation
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_decrement_operators(self, preloaded_formatter):
         """Test decrement operator patterns."""
@@ -309,11 +275,7 @@ class TestIncrementDecrementOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_operators_in_context(self, preloaded_formatter):
         """Test operators in code context."""
@@ -325,14 +287,10 @@ class TestIncrementDecrementOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestComparisonOperators:
+class TestComparisonOperators(BaseFormattingTest):
     """Test COMPARISON entity detection and formatting."""
 
     def test_equality_comparisons(self, preloaded_formatter):
@@ -346,12 +304,7 @@ class TestComparisonOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Comparisons are technical content so might not get punctuation
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_comparisons_in_conditions(self, preloaded_formatter):
         """Test comparisons in conditional statements."""
@@ -363,14 +316,10 @@ class TestComparisonOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestCommandFlags:
+class TestCommandFlags(BaseFormattingTest):
     """Test COMMAND_FLAG entity detection and formatting."""
 
     def test_short_flags(self, preloaded_formatter):
@@ -384,11 +333,7 @@ class TestCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_long_flags(self, preloaded_formatter):
         """Test long command-line flags."""
@@ -402,11 +347,7 @@ class TestCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_command_flags_in_context(self, preloaded_formatter):
         """Test command flags in complete command contexts."""
@@ -419,11 +360,7 @@ class TestCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_multiple_flags(self, preloaded_formatter):
         """Test multiple flags in one command."""
@@ -434,17 +371,11 @@ class TestCommandFlags:
             ("combine dash dash verbose and dash dash output", "Combine --verbose and --output"),
         ]
 
-        for input_text, _expected in test_cases:
-            result = format_transcription(input_text)
-            # Check that both flags are present
-            assert (
-                ("-v" in result and "--debug" in result)
-                or ("-x" in result and "-f" in result)
-                or ("--verbose" in result and "--output" in result)
-            ), f"Expected multiple flags in result '{result}' for input '{input_text}'"
+        for input_text, expected in test_cases:
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestSlashCommands:
+class TestSlashCommands(BaseFormattingTest):
     """Test SLASH_COMMAND entity detection and formatting."""
 
     def test_basic_slash_commands(self, preloaded_formatter):
@@ -459,11 +390,7 @@ class TestSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_slash_commands_with_parameters(self, preloaded_formatter):
         """Test slash commands with parameters."""
@@ -475,11 +402,7 @@ class TestSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_slash_commands_at_start_of_transcription(self, preloaded_formatter):
         """Test slash commands when they appear at the start of transcription."""
@@ -497,14 +420,10 @@ class TestSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestUnderscoreDelimiters:
+class TestUnderscoreDelimiters(BaseFormattingTest):
     """Test UNDERSCORE_DELIMITER entity detection and formatting."""
 
     def test_dunder_methods(self, preloaded_formatter):
@@ -518,11 +437,7 @@ class TestUnderscoreDelimiters:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_underscore_delimited_variables(self, preloaded_formatter):
         """Test underscore-delimited variable names."""
@@ -534,14 +449,10 @@ class TestUnderscoreDelimiters:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestAbbreviations:
+class TestAbbreviations(BaseFormattingTest):
     """Test ABBREVIATION entity detection and formatting."""
 
     def test_latin_abbreviations(self, preloaded_formatter):
@@ -555,8 +466,7 @@ class TestAbbreviations:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_abbreviations_with_punctuation(self, preloaded_formatter):
         """Test abbreviations with proper punctuation formatting."""
@@ -568,8 +478,7 @@ class TestAbbreviations:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_abbreviations_in_context(self, preloaded_formatter):
         """Test abbreviations in natural sentences."""
@@ -584,11 +493,10 @@ class TestAbbreviations:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestCodeEntityInteractions:
+class TestCodeEntityInteractions(BaseFormattingTest):
     """Test interactions between different code entities."""
 
     def test_filename_with_assignment(self, preloaded_formatter):
@@ -600,8 +508,7 @@ class TestCodeEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filename_with_operators(self, preloaded_formatter):
         """Test sentences with filenames and operators."""
@@ -612,8 +519,7 @@ class TestCodeEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_command_with_flags_and_filenames(self, preloaded_formatter):
         """Test commands with both flags and filenames."""
@@ -624,8 +530,7 @@ class TestCodeEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_complex_code_statements(self, preloaded_formatter):
         """Test complex statements with multiple code entities."""
@@ -642,11 +547,10 @@ class TestCodeEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestNestedCodeEntityPatterns:
+class TestNestedCodeEntityPatterns(BaseFormattingTest):
     """Test nested and compound code entity patterns."""
 
     def test_filename_with_tld_word(self, preloaded_formatter):
@@ -657,13 +561,10 @@ class TestNestedCodeEntityPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle filename with TLD word: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestAmbiguousCodeContexts:
+class TestAmbiguousCodeContexts(BaseFormattingTest):
     """Test ambiguous contexts where keywords shouldn't be converted."""
 
     def test_colon_in_non_port_context(self, preloaded_formatter):
@@ -674,10 +575,7 @@ class TestAmbiguousCodeContexts:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should not convert 'colon' in non-port context: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_underscore_in_non_variable_context(self, preloaded_formatter):
         """Test that 'underscore' is not converted to _ in non-variable context."""
@@ -687,13 +585,10 @@ class TestAmbiguousCodeContexts:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should not convert 'underscore' in non-variable context: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestFilenameEdgeCasesAndRegressions:
+class TestFilenameEdgeCasesAndRegressions(BaseFormattingTest):
     """Test edge cases and known issues with filename detection."""
 
     def test_greedy_filename_detection_regression(self, preloaded_formatter):
@@ -717,8 +612,7 @@ class TestFilenameEdgeCasesAndRegressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # This documents the current behavior, which may be incorrect
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filename_boundary_detection(self, preloaded_formatter):
         """Test that filename detection respects word boundaries."""
@@ -734,8 +628,7 @@ class TestFilenameEdgeCasesAndRegressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Boundary detection may not work perfectly
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_ambiguous_dot_patterns(self, preloaded_formatter):
         """Test ambiguous cases where 'dot' could mean different things."""
@@ -753,7 +646,7 @@ class TestFilenameEdgeCasesAndRegressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 if __name__ == "__main__":

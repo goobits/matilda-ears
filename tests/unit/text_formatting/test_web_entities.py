@@ -12,9 +12,10 @@ This module tests the detection and formatting of:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestSpokenUrls:
+class TestSpokenUrls(BaseFormattingTest):
     """Test SPOKEN_URL entity detection and formatting."""
 
     def test_basic_spoken_urls(self, preloaded_formatter):
@@ -29,8 +30,7 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_urls_with_paths(self, preloaded_formatter):
         """Test spoken URLs with path segments."""
@@ -43,8 +43,7 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_urls_with_numbers(self, preloaded_formatter):
         """Test spoken URLs containing numbers."""
@@ -57,8 +56,7 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_urls_with_query_parameters(self, preloaded_formatter):
         """Test spoken URLs with query parameters."""
@@ -83,8 +81,7 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_urls_with_subdomains(self, preloaded_formatter):
         """Test spoken URLs with subdomains."""
@@ -97,8 +94,7 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_domain_rescue_mangled_urls(self, preloaded_formatter):
         """Test rescue of mangled domain names."""
@@ -111,8 +107,7 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_urls_in_sentences(self, preloaded_formatter):
         """Test spoken URLs embedded in natural sentences."""
@@ -125,11 +120,10 @@ class TestSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestSpokenProtocolUrls:
+class TestSpokenProtocolUrls(BaseFormattingTest):
     """Test SPOKEN_PROTOCOL_URL entity detection and formatting."""
 
     def test_basic_protocol_urls(self, preloaded_formatter):
@@ -142,12 +136,7 @@ class TestSpokenProtocolUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Protocol URLs are technical content so might not get punctuation
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_protocol_urls_with_paths(self, preloaded_formatter):
         """Test protocol URLs with path segments."""
@@ -159,11 +148,7 @@ class TestSpokenProtocolUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_protocol_urls_with_ports(self, preloaded_formatter):
         """Test protocol URLs with port numbers."""
@@ -178,11 +163,7 @@ class TestSpokenProtocolUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_protocol_urls_with_query_parameters(self, preloaded_formatter):
         """Test protocol URLs with query parameters."""
@@ -199,11 +180,7 @@ class TestSpokenProtocolUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_protocol_urls_with_authentication(self, preloaded_formatter):
         """Test protocol URLs with authentication."""
@@ -214,14 +191,10 @@ class TestSpokenProtocolUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestSpokenEmails:
+class TestSpokenEmails(BaseFormattingTest):
     """Test SPOKEN_EMAIL entity detection and formatting."""
 
     def test_spoken_emails_with_numbers(self, preloaded_formatter):
@@ -234,8 +207,7 @@ class TestSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_emails_with_special_characters(self, preloaded_formatter):
         """Test spoken emails with underscores and hyphens."""
@@ -247,8 +219,7 @@ class TestSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_emails_with_subdomains(self, preloaded_formatter):
         """Test spoken emails with subdomains."""
@@ -260,8 +231,7 @@ class TestSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_emails_with_action_verbs(self, preloaded_formatter):
         """Test spoken emails with action verbs."""
@@ -276,8 +246,7 @@ class TestSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_emails_entity_protection(self, preloaded_formatter):
         """Test that email entities are protected from capitalization."""
@@ -290,11 +259,10 @@ class TestSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should protect email text: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestStandardEmails:
+class TestStandardEmails(BaseFormattingTest):
     """Test standard EMAIL entity detection and formatting."""
 
     def test_standard_email_addresses(self, preloaded_formatter):
@@ -307,8 +275,7 @@ class TestStandardEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_standard_emails_with_punctuation(self, preloaded_formatter):
         """Test standard emails with existing punctuation."""
@@ -320,11 +287,10 @@ class TestStandardEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestPortNumbers:
+class TestPortNumbers(BaseFormattingTest):
     """Test PORT_NUMBER entity detection and formatting."""
 
     def test_basic_port_numbers(self, preloaded_formatter):
@@ -338,12 +304,7 @@ class TestPortNumbers:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Port numbers are technical content so might not get punctuation
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_port_numbers_with_ips(self, preloaded_formatter):
         """Test port numbers with IP addresses."""
@@ -358,11 +319,7 @@ class TestPortNumbers:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_port_numbers_with_domains(self, preloaded_formatter):
         """Test port numbers with domain names."""
@@ -374,11 +331,7 @@ class TestPortNumbers:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_common_service_ports(self, preloaded_formatter):
         """Test common service port numbers."""
@@ -393,14 +346,10 @@ class TestPortNumbers:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestStandardUrls:
+class TestStandardUrls(BaseFormattingTest):
     """Test standard URL entity detection and formatting."""
 
     def test_standard_urls(self, preloaded_formatter):
@@ -416,8 +365,7 @@ class TestStandardUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_standard_urls_with_punctuation(self, preloaded_formatter):
         """Test standard URLs with existing punctuation."""
@@ -429,11 +377,10 @@ class TestStandardUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestWebEntityInteractions:
+class TestWebEntityInteractions(BaseFormattingTest):
     """Test interactions between different web entities."""
 
     def test_url_vs_email_priority(self, preloaded_formatter):
@@ -448,8 +395,7 @@ class TestWebEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_url_with_email_in_path(self, preloaded_formatter):
         """Test URLs that contain email-like patterns in their paths."""
@@ -460,8 +406,7 @@ class TestWebEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_complex_web_entities_in_sentences(self, preloaded_formatter):
         """Test complex sentences with multiple web entities."""
@@ -482,11 +427,10 @@ class TestWebEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestNestedWebEntityPatterns:
+class TestNestedWebEntityPatterns(BaseFormattingTest):
     """Test nested and compound web entity patterns."""
 
     def test_url_with_multiple_numbers(self, preloaded_formatter):
@@ -497,10 +441,7 @@ class TestNestedWebEntityPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle URL with numbers: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_email_with_underscore_and_number(self, preloaded_formatter):
         """Test SPOKEN_EMAIL containing SIMPLE_UNDERSCORE_VARIABLE and CARDINAL."""
@@ -510,11 +451,10 @@ class TestNestedWebEntityPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should handle complex email: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestAmbiguousWebContexts:
+class TestAmbiguousWebContexts(BaseFormattingTest):
     """Test ambiguous contexts where keywords shouldn't be converted."""
 
     def test_at_in_non_email_context(self, preloaded_formatter):
@@ -525,10 +465,7 @@ class TestAmbiguousWebContexts:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should not convert 'at' in non-email context: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_false_email_patterns_in_conversation(self, preloaded_formatter):
         """Test that conversational patterns with 'at' are not misinterpreted as emails."""
@@ -544,13 +481,10 @@ class TestAmbiguousWebContexts:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should not be interpreted as email: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestWebEntityBasicFormatting:
+class TestWebEntityBasicFormatting(BaseFormattingTest):
     """Test basic formatting behavior for web entities."""
 
     def test_url_capitalization_protection(self, preloaded_formatter):
@@ -563,8 +497,7 @@ class TestWebEntityBasicFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_email_capitalization_protection(self, preloaded_formatter):
         """Test that emails maintain their original case."""
@@ -576,8 +509,7 @@ class TestWebEntityBasicFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_web_entities_at_sentence_start(self, preloaded_formatter):
         """Test that web entities at sentence start maintain their proper case."""
@@ -593,8 +525,7 @@ class TestWebEntityBasicFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should protect entity case: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_no_double_punctuation_with_web_entities(self, preloaded_formatter):
         """Test that we don't add double punctuation with web entities."""
@@ -605,8 +536,7 @@ class TestWebEntityBasicFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_punctuation_after_web_entities(self, preloaded_formatter):
         """Test punctuation placement after web entities."""
@@ -617,11 +547,10 @@ class TestWebEntityBasicFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestWebEntityProtection:
+class TestWebEntityProtection(BaseFormattingTest):
     """Test protection of technical web entities from capitalization."""
 
     def test_url_at_sentence_start(self, preloaded_formatter):
@@ -632,10 +561,7 @@ class TestWebEntityProtection:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should protect URL from capitalization: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_email_and_phone_sequence(self, preloaded_formatter):
         """Test SPOKEN_EMAIL followed by PHONE_LONG number."""
@@ -648,10 +574,7 @@ class TestWebEntityProtection:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle email and phone: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 if __name__ == "__main__":

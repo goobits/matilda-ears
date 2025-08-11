@@ -26,8 +26,7 @@ class TestSpanishSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_slash_commands_with_params(self, spanish_formatter):
         """Test Spanish slash commands with parameters."""
@@ -38,8 +37,7 @@ class TestSpanishSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_slash_commands_with_dashes(self, spanish_formatter):
         """Test Spanish slash commands with dashed names."""
@@ -50,8 +48,7 @@ class TestSpanishSlashCommands:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 class TestSpanishCommandFlags:
@@ -67,8 +64,7 @@ class TestSpanishCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_long_flags(self, spanish_formatter):
         """Test Spanish long command flag patterns."""
@@ -80,8 +76,7 @@ class TestSpanishCommandFlags:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 class TestSpanishUnderscorePatterns:
@@ -97,8 +92,7 @@ class TestSpanishUnderscorePatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_multiple_underscores(self, spanish_formatter):
         """Test Spanish patterns with multiple underscores."""
@@ -109,8 +103,7 @@ class TestSpanishUnderscorePatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 class TestSpanishCodeOperators:
@@ -126,8 +119,7 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_comparison_operators(self, spanish_formatter):
         """Test Spanish comparison operators."""
@@ -138,8 +130,7 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_assignment_operators(self, spanish_formatter):
         """Test Spanish assignment operators."""
@@ -151,8 +142,7 @@ class TestSpanishCodeOperators:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 class TestSpanishMixedPatterns:
@@ -167,8 +157,7 @@ class TestSpanishMixedPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_code_with_numbers(self, spanish_formatter):
         """Test Spanish code patterns with numbers."""
@@ -180,8 +169,7 @@ class TestSpanishMixedPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 if __name__ == "__main__":

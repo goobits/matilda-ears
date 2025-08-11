@@ -12,9 +12,10 @@ This module tests the detection and formatting of:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestSpokenCurrency:
+class TestSpokenCurrency(BaseFormattingTest):
     """Test SPOKEN_CURRENCY entity detection and formatting."""
 
     def test_basic_dollar_amounts(self, preloaded_formatter):
@@ -29,14 +30,13 @@ class TestSpokenCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
             # May or may not include commas in large numbers
-            assert result in [
+            self.assert_formatting_options(input_text, [
                 expected,
                 expected.replace(",", ""),
                 expected + ".",
-                expected.replace(",", "") + ".",
-            ], f"Input '{input_text}' should format to '{expected}' variant, got '{result}'"
+                expected.replace(",", "") + "."
+            ], format_transcription)
 
     def test_decimal_dollar_amounts(self, preloaded_formatter):
         """Test dollar amounts with decimal values."""
@@ -49,11 +49,7 @@ class TestSpokenCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_cents_only(self, preloaded_formatter):
         """Test amounts in cents only."""
@@ -66,14 +62,13 @@ class TestSpokenCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
             # May format as cents symbol or as $0.XX
-            assert result in [
+            self.assert_formatting_options(input_text, [
                 expected,
                 expected + ".",
                 f"${expected[:-1]}.{expected[:-1]}",
-                f"$0.{expected[:-1]}",
-            ], f"Input '{input_text}' should format to cents notation, got '{result}'"
+                f"$0.{expected[:-1]}"
+            ], format_transcription)
 
     def test_other_currencies(self, preloaded_formatter):
         """Test other currency patterns."""
@@ -86,8 +81,7 @@ class TestSpokenCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_currency_in_sentences(self, preloaded_formatter):
         """Test currency amounts in natural sentences."""
@@ -100,16 +94,12 @@ class TestSpokenCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
             # May or may not include commas
             expected_no_comma = expected.replace(",", "")
-            assert result in [
-                expected,
-                expected_no_comma,
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected_no_comma}', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected_no_comma], format_transcription)
 
 
-class TestCompoundCurrency:
+class TestCompoundCurrency(BaseFormattingTest):
     """Test COMPOUND_CURRENCY entity detection and formatting."""
 
     def test_dollars_and_cents(self, preloaded_formatter):
@@ -123,11 +113,7 @@ class TestCompoundCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_large_amounts_with_cents(self, preloaded_formatter):
         """Test large amounts with cents."""
@@ -139,15 +125,14 @@ class TestCompoundCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
             # May or may not include commas
             expected_no_comma = expected.replace(",", "")
-            assert result in [
+            self.assert_formatting_options(input_text, [
                 expected,
                 expected + ".",
                 expected_no_comma,
-                expected_no_comma + ".",
-            ], f"Input '{input_text}' should format to currency notation, got '{result}'"
+                expected_no_comma + "."
+            ], format_transcription)
 
     def test_other_compound_currencies(self, preloaded_formatter):
         """Test compound amounts in other currencies."""
@@ -159,11 +144,10 @@ class TestCompoundCurrency:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestCurrencySymbols:
+class TestCurrencySymbols(BaseFormattingTest):
     """Test CURRENCY_SYMBOL entity detection and formatting."""
 
     def test_currency_codes(self, preloaded_formatter):
@@ -177,8 +161,7 @@ class TestCurrencySymbols:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_currency_codes_with_amounts(self, preloaded_formatter):
         """Test currency codes with numeric amounts."""
@@ -190,11 +173,10 @@ class TestCurrencySymbols:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestStockSymbols:
+class TestStockSymbols(BaseFormattingTest):
     """Test STOCK_SYMBOL entity detection and formatting."""
 
     def test_common_stock_symbols(self, preloaded_formatter):
@@ -208,8 +190,7 @@ class TestStockSymbols:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_stock_symbols_in_context(self, preloaded_formatter):
         """Test stock symbols in financial contexts."""
@@ -221,11 +202,10 @@ class TestStockSymbols:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestFinancialExpressions:
+class TestFinancialExpressions(BaseFormattingTest):
     """Test financial expressions and contexts."""
 
     def test_price_expressions(self, preloaded_formatter):
@@ -238,8 +218,7 @@ class TestFinancialExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_financial_calculations(self, preloaded_formatter):
         """Test financial calculation expressions."""
@@ -251,8 +230,7 @@ class TestFinancialExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_financial_ranges(self, preloaded_formatter):
         """Test financial range expressions."""
@@ -265,11 +243,10 @@ class TestFinancialExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestCurrencyEdgeCases:
+class TestCurrencyEdgeCases(BaseFormattingTest):
     """Test edge cases in currency formatting."""
 
     def test_ambiguous_numbers(self, preloaded_formatter):
@@ -285,8 +262,7 @@ class TestCurrencyEdgeCases:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_multiple_currencies(self, preloaded_formatter):
         """Test sentences with multiple currency amounts."""
@@ -298,8 +274,7 @@ class TestCurrencyEdgeCases:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_currency_with_other_entities(self, preloaded_formatter):
         """Test currency mixed with other entity types."""
@@ -311,11 +286,10 @@ class TestCurrencyEdgeCases:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestInternationalCurrencies:
+class TestInternationalCurrencies(BaseFormattingTest):
     """Test international currency formats."""
 
     def test_european_currencies(self, preloaded_formatter):
@@ -328,8 +302,7 @@ class TestInternationalCurrencies:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_asian_currencies(self, preloaded_formatter):
         """Test Asian currency patterns."""
@@ -341,8 +314,7 @@ class TestInternationalCurrencies:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_cryptocurrency(self, preloaded_formatter):
         """Test cryptocurrency patterns."""
@@ -354,8 +326,7 @@ class TestInternationalCurrencies:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 if __name__ == "__main__":

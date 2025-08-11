@@ -23,12 +23,7 @@ class TestContextualNumbers:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Allow for optional punctuation at the end
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_number_words_that_should_convert(self, preloaded_formatter):
         """Test that number words in numeric contexts ARE converted to digits."""
@@ -46,12 +41,7 @@ class TestContextualNumbers:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Allow for optional punctuation at the end
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 class TestContextualOrdinals:
@@ -81,12 +71,7 @@ class TestContextualOrdinals:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Allow for optional punctuation at the end
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_ordinals_that_should_be_spelled_out(self, preloaded_formatter):
         """Test that ordinals in natural speech/idiomatic contexts remain spelled out."""
@@ -110,12 +95,7 @@ class TestContextualOrdinals:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Allow for optional punctuation at the end
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 class TestStandaloneEntityPunctuation:
@@ -146,8 +126,7 @@ class TestStandaloneEntityPunctuation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}' (no period), got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_sentences_with_entities_keep_punctuation(self, preloaded_formatter):
         """Test that real sentences containing entities are formatted correctly (punctuation disabled in test env)."""
@@ -162,8 +141,7 @@ class TestStandaloneEntityPunctuation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 class TestFillerWordPreservation:
@@ -190,12 +168,7 @@ class TestFillerWordPreservation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Allow for optional punctuation at the end
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filler_words_that_should_be_removed(self, preloaded_formatter):
         """Test that filler words ARE removed in appropriate contexts."""
@@ -212,12 +185,4 @@ class TestFillerWordPreservation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Allow for optional punctuation at the end
-            if expected:  # Non-empty expected output
-                assert result in [
-                    expected,
-                    expected + ".",
-                ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
-            else:  # Empty expected output
-                assert result == expected, f"Input '{input_text}' should format to empty string, got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)

@@ -12,9 +12,10 @@ This module tests the detection and formatting of:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestMathExpressions:
+class TestMathExpressions(BaseFormattingTest):
     """Test MATH_EXPRESSION entity detection and formatting."""
 
     def test_basic_arithmetic_operations(self, preloaded_formatter):
@@ -28,12 +29,8 @@ class TestMathExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
             # Math expressions might not get punctuation
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_mathematical_expressions_with_variables(self, preloaded_formatter):
         """Test mathematical expressions with variables."""
@@ -46,11 +43,7 @@ class TestMathExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_complex_mathematical_expressions(self, preloaded_formatter):
         """Test more complex mathematical expressions."""
@@ -63,8 +56,7 @@ class TestMathExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_mathematical_vs_idiomatic_context(self, preloaded_formatter):
         """Test that mathematical expressions are distinguished from idiomatic phrases."""
@@ -81,11 +73,10 @@ class TestMathExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestPhysicsEquations:
+class TestPhysicsEquations(BaseFormattingTest):
     """Test physics equation entity detection and formatting."""
 
     def test_physics_equations_in_context(self, preloaded_formatter):
@@ -98,14 +89,10 @@ class TestPhysicsEquations:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestRootExpressions:
+class TestRootExpressions(BaseFormattingTest):
     """Test ROOT_EXPRESSION entity detection and formatting."""
 
     def test_square_roots(self, preloaded_formatter):
@@ -119,11 +106,7 @@ class TestRootExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_cube_roots(self, preloaded_formatter):
         """Test cube root expression patterns."""
@@ -136,11 +119,7 @@ class TestRootExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_roots_with_expressions(self, preloaded_formatter):
         """Test root expressions with more complex arguments."""
@@ -152,8 +131,7 @@ class TestRootExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_nth_roots(self, preloaded_formatter):
         """Test nth root expressions."""
@@ -165,11 +143,10 @@ class TestRootExpressions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestScientificNotation:
+class TestScientificNotation(BaseFormattingTest):
     """Test SCIENTIFIC_NOTATION entity detection and formatting."""
 
     def test_positive_exponents(self, preloaded_formatter):
@@ -183,11 +160,7 @@ class TestScientificNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_negative_exponents(self, preloaded_formatter):
         """Test scientific notation with negative exponents."""
@@ -200,11 +173,7 @@ class TestScientificNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_scientific_constants(self, preloaded_formatter):
         """Test scientific notation for well-known constants."""
@@ -216,11 +185,7 @@ class TestScientificNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_scientific_notation_in_context(self, preloaded_formatter):
         """Test scientific notation in scientific contexts."""
@@ -238,14 +203,10 @@ class TestScientificNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestMathematicalConstants:
+class TestMathematicalConstants(BaseFormattingTest):
     """Test MATH_CONSTANT entity detection and formatting."""
 
     def test_pi_constant(self, preloaded_formatter):
@@ -259,11 +220,7 @@ class TestMathematicalConstants:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_infinity_constant(self, preloaded_formatter):
         """Test infinity constant detection and formatting."""
@@ -276,11 +233,7 @@ class TestMathematicalConstants:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_e_constant(self, preloaded_formatter):
         """Test Euler's number constant detection and formatting."""
@@ -293,8 +246,7 @@ class TestMathematicalConstants:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_other_mathematical_constants(self, preloaded_formatter):
         """Test other mathematical constant detection and formatting."""
@@ -306,11 +258,10 @@ class TestMathematicalConstants:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestAdvancedMathematicalNotation:
+class TestAdvancedMathematicalNotation(BaseFormattingTest):
     """Test advanced mathematical notation and symbols."""
 
     def test_calculus_notation(self, preloaded_formatter):
@@ -324,8 +275,7 @@ class TestAdvancedMathematicalNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_summation_notation(self, preloaded_formatter):
         """Test summation and product notation."""
@@ -337,8 +287,7 @@ class TestAdvancedMathematicalNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_set_theory_notation(self, preloaded_formatter):
         """Test set theory notation patterns."""
@@ -352,8 +301,7 @@ class TestAdvancedMathematicalNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_logic_notation(self, preloaded_formatter):
         """Test logic notation patterns."""
@@ -367,11 +315,10 @@ class TestAdvancedMathematicalNotation:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestMathematicalEntityInteractions:
+class TestMathematicalEntityInteractions(BaseFormattingTest):
     """Test interactions between different mathematical entities."""
 
     def test_constants_in_expressions(self, preloaded_formatter):
@@ -385,8 +332,7 @@ class TestMathematicalEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_scientific_notation_with_units(self, preloaded_formatter):
         """Test scientific notation combined with units."""
@@ -398,8 +344,7 @@ class TestMathematicalEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_mixed_mathematical_content(self, preloaded_formatter):
         """Test sentences with multiple types of mathematical entities."""
@@ -420,11 +365,10 @@ class TestMathematicalEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestMathematicalContextDetection:
+class TestMathematicalContextDetection(BaseFormattingTest):
     """Test that mathematical context is detected correctly."""
 
     def test_mathematical_vs_casual_context(self, preloaded_formatter):
@@ -442,8 +386,7 @@ class TestMathematicalContextDetection:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_physics_vs_general_context(self, preloaded_formatter):
         """Test distinguishing physics from general contexts."""
@@ -458,11 +401,10 @@ class TestMathematicalContextDetection:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestNestedMathEntityPatterns:
+class TestNestedMathEntityPatterns(BaseFormattingTest):
     """Test nested and compound math entity patterns."""
 
     def test_assignment_with_math_expression(self, preloaded_formatter):
@@ -473,10 +415,7 @@ class TestNestedMathEntityPatterns:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle assignment with math: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 if __name__ == "__main__":

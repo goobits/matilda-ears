@@ -11,9 +11,10 @@ This module tests how different entities interact:
 """
 
 import pytest
+from .base_test import BaseFormattingTest
 
 
-class TestEntityPriorities:
+class TestEntityPriorities(BaseFormattingTest):
     """Test entity priority resolution when entities overlap."""
 
     def test_url_vs_filename_priority(self, preloaded_formatter):
@@ -27,8 +28,7 @@ class TestEntityPriorities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_email_vs_filename_priority(self, preloaded_formatter):
         """Test that emails take priority over filenames."""
@@ -40,8 +40,7 @@ class TestEntityPriorities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_slash_command_vs_division_priority(self, preloaded_formatter):
         """Test that slash commands take priority at sentence start."""
@@ -55,11 +54,7 @@ class TestEntityPriorities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_operator_vs_math_expression_priority(self, preloaded_formatter):
         """Test priority between operators and math expressions."""
@@ -76,11 +71,7 @@ class TestEntityPriorities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_number_entity_priorities(self, preloaded_formatter):
         """Test priorities among number-related entities."""
@@ -97,8 +88,7 @@ class TestEntityPriorities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_filename_vs_url_priority_complex(self, preloaded_formatter):
         """Test complex filename vs URL conflicts."""
@@ -116,11 +106,10 @@ class TestEntityPriorities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestEntityBoundaries:
+class TestEntityBoundaries(BaseFormattingTest):
     """Test entity boundary detection and handling."""
 
     def test_word_boundary_detection(self, preloaded_formatter):
@@ -135,11 +124,7 @@ class TestEntityBoundaries:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_punctuation_boundaries(self, preloaded_formatter):
         """Test entity detection at punctuation boundaries."""
@@ -151,8 +136,7 @@ class TestEntityBoundaries:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_sentence_boundary_entities(self, preloaded_formatter):
         """Test entities at sentence boundaries."""
@@ -167,14 +151,10 @@ class TestEntityBoundaries:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestNestedEntities:
+class TestNestedEntities(BaseFormattingTest):
     """Test handling of nested or partially overlapping entities."""
 
     def test_url_with_port(self, preloaded_formatter):
@@ -187,11 +167,7 @@ class TestNestedEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
     def test_filename_with_numbers(self, preloaded_formatter):
         """Test filenames containing numbers."""
@@ -203,8 +179,7 @@ class TestNestedEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_math_with_units(self, preloaded_formatter):
         """Test mathematical expressions with units."""
@@ -216,11 +191,10 @@ class TestNestedEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Complex nested entities may not be fully implemented
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestAdjacentEntities:
+class TestAdjacentEntities(BaseFormattingTest):
     """Test formatting of adjacent entities."""
 
     def test_adjacent_urls(self, preloaded_formatter):
@@ -232,8 +206,7 @@ class TestAdjacentEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_adjacent_numbers(self, preloaded_formatter):
         """Test multiple numbers in sequence."""
@@ -245,8 +218,7 @@ class TestAdjacentEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Adjacent number handling may vary
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_adjacent_code_entities(self, preloaded_formatter):
         """Test multiple code entities in sequence."""
@@ -258,14 +230,10 @@ class TestAdjacentEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result in [
-                expected,
-                expected + ".",
-            ], f"Input '{input_text}' should format to '{expected}' or '{expected}.', got '{result}'"
+            self.assert_formatting_options(input_text, [expected, expected + "."], format_transcription)
 
 
-class TestComplexEntityInteractions:
+class TestComplexEntityInteractions(BaseFormattingTest):
     """Test complex sentences with multiple interacting entities."""
 
     def test_technical_documentation_sentences(self, preloaded_formatter):
@@ -287,8 +255,7 @@ class TestComplexEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_mathematical_physics_sentences(self, preloaded_formatter):
         """Test sentences with mathematical and physics content."""
@@ -309,8 +276,7 @@ class TestComplexEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Complex physics sentences may not format perfectly
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_mixed_technical_content(self, preloaded_formatter):
         """Test sentences mixing various technical entities."""
@@ -331,11 +297,10 @@ class TestComplexEntityInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestEntityProtectionInFormatting:
+class TestEntityProtectionInFormatting(BaseFormattingTest):
     """Test that entities are protected during capitalization and punctuation."""
 
     def test_url_protection_in_questions(self, preloaded_formatter):
@@ -348,8 +313,7 @@ class TestEntityProtectionInFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_email_protection_in_sentences(self, preloaded_formatter):
         """Test emails maintain format in various sentence positions."""
@@ -361,8 +325,7 @@ class TestEntityProtectionInFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_code_protection_in_capitalization(self, preloaded_formatter):
         """Test code entities resist improper capitalization."""
@@ -374,11 +337,10 @@ class TestEntityProtectionInFormatting:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestEdgeCaseInteractions:
+class TestEdgeCaseInteractions(BaseFormattingTest):
     """Test edge cases in entity interactions."""
 
     def test_ambiguous_entity_detection(self, preloaded_formatter):
@@ -394,8 +356,7 @@ class TestEdgeCaseInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_partial_entity_matches(self, preloaded_formatter):
         """Test cases with partial entity patterns."""
@@ -410,8 +371,7 @@ class TestEdgeCaseInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Partial matches should not trigger entity conversion
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_entity_in_quoted_text(self, preloaded_formatter):
         """Test entities within quoted text."""
@@ -423,8 +383,7 @@ class TestEdgeCaseInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # Quote handling may vary
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_spoken_url_vs_numbers(self, preloaded_formatter):
         """Test URLs with spoken numbers vs separate number entities."""
@@ -437,8 +396,7 @@ class TestEdgeCaseInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should detect as URL: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_entities_in_lists(self, preloaded_formatter):
         """Test entities in comma-separated lists."""
@@ -453,11 +411,10 @@ class TestEdgeCaseInteractions:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            # List formatting and capitalization may vary
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestMultipleAdjacentEntities:
+class TestMultipleAdjacentEntities(BaseFormattingTest):
     """Test multiple adjacent and interacting entities."""
 
     def test_slash_command_with_flag_and_filename(self, preloaded_formatter):
@@ -468,10 +425,7 @@ class TestMultipleAdjacentEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle multiple entities: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_currency_abbreviation_sequence(self, preloaded_formatter):
         """Test CURRENCY, ABBREVIATION, and another currency entity in sequence."""
@@ -481,10 +435,7 @@ class TestMultipleAdjacentEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle currency and abbreviation: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
     def test_assignment_then_increment(self, preloaded_formatter):
         """Test ASSIGNMENT followed by INCREMENT_OPERATOR."""
@@ -494,10 +445,7 @@ class TestMultipleAdjacentEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = format_transcription(input_text)
-            assert (
-                result == expected
-            ), f"Input '{input_text}' should handle assignment and increment: '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, format_transcription)
 
 
 if __name__ == "__main__":

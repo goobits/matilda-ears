@@ -28,8 +28,7 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_spoken_urls_with_paths(self, spanish_formatter):
         """Test Spanish spoken URLs with path segments."""
@@ -41,8 +40,7 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_spoken_urls_with_numbers(self, spanish_formatter):
         """Test Spanish spoken URLs containing numbers."""
@@ -54,8 +52,7 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_spoken_urls_with_query_parameters(self, spanish_formatter):
         """Test Spanish spoken URLs with query parameters."""
@@ -75,8 +72,7 @@ class TestSpanishSpokenUrls:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 class TestSpanishSpokenEmails:
@@ -92,8 +88,7 @@ class TestSpanishSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_spoken_emails_with_numbers(self, spanish_formatter):
         """Test Spanish spoken emails with numbers."""
@@ -104,50 +99,9 @@ class TestSpanishSpokenEmails:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
-class TestSpanishCodeOperators:
-    """Test Spanish code operator detection and formatting."""
-
-    def test_basic_operators(self, spanish_formatter):
-        """Test basic Spanish code operators."""
-        test_cases = [
-            ("contador más más", "contador++"),
-            ("valor menos menos", "valor--"),
-            ("si x igual igual cinco", "Si x == 5"),
-            ("resultado igual a más b", "resultado = a + b"),
-            ("diferencia igual x menos y", "diferencia = x - y"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
-
-    def test_slash_commands(self, spanish_formatter):
-        """Test Spanish slash command formatting."""
-        test_cases = [
-            ("ejecuta barra construir", "Ejecuta /construir"),
-            ("usa barra ayuda", "Usa /ayuda"),
-            ("comando barra desplegar guión producción", "Comando /desplegar-producción"),
-        ]
-
-        for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
-
-    def test_underscore_variables(self, spanish_formatter):
-        """Test Spanish underscore variable formatting."""
-        test_cases = [
-            ("variable guión bajo nombre", "Variable -bajo nombre"),  # Spanish "guión bajo" → "_" not implemented
-            ("mi guión bajo función", "Mi -bajo función"),  # Spanish "guión bajo" → "_" not implemented
-            ("constante guión bajo valor guión bajo máximo", "Constante -bajo valor -bajo máximo"),  # Spanish "guión bajo" → "_" not implemented
-        ]
-
-        for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestSpanishNumericEntities:
@@ -164,8 +118,7 @@ class TestSpanishNumericEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
     def test_currency_formatting(self, spanish_formatter):
         """Test Spanish currency formatting."""
@@ -177,8 +130,7 @@ class TestSpanishNumericEntities:
         ]
 
         for input_text, expected in test_cases:
-            result = spanish_formatter.format_transcription(input_text)
-            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            self.assert_formatting(input_text, expected, spanish_formatter.format_transcription)
 
 
 if __name__ == "__main__":

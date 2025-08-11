@@ -93,14 +93,21 @@ class TestShouldSkipCardinal:
         assert entity_detector._should_skip_cardinal(mock_ent, text) is True
 
     def test_skip_cardinal_email_context(self, entity_detector):
-        """Test that numbers in email contexts are skipped."""
+        """Test that numbers in email contexts are skipped to preserve email address integrity.
+        
+        This test validates that the _should_skip_cardinal method correctly identifies
+        numbers that appear in email-like contexts and skips their conversion to avoid
+        breaking email address formatting. Numbers like '123' in 'user123@example.com'
+        should remain as digits rather than being converted to words like 'one hundred twenty three'.
+        
+        The email context detection helps preserve the readability and functionality
+        of email addresses in transcribed text.
+        """
         text = "email user123 at example dot com"
         mock_ent = MockSpacyEntity("123", 10, 13, "CARDINAL")
-        # This might not trigger since "123" isn't detected as CARDINAL by spaCy typically
-        # but testing the logic path
+        # Numbers in email contexts should be skipped because they are part of email addresses
         result = entity_detector._should_skip_cardinal(mock_ent, text)
-        # Could be True or False depending on email detection logic
-        assert isinstance(result, bool)
+        assert result is True, "Numbers in email contexts should be skipped to preserve email address format"
 
     def test_non_cardinal_entity_not_skipped(self, entity_detector):
         """Test that non-CARDINAL entities return False immediately."""
