@@ -87,7 +87,7 @@ class PatternConverter:
             EntityType.DATA_SIZE: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
             EntityType.FREQUENCY: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
             EntityType.TIME_DURATION: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
-            EntityType.TIME: self.numeric_converter.convert,  # SpaCy detected TIME entity
+            EntityType.TIME: lambda entity, full_text="": self.temporal_processor.convert_time_or_duration(entity),  # SpaCy detected TIME entity
             EntityType.TIME_CONTEXT: self.numeric_converter.convert,
             EntityType.TIME_AMPM: self.numeric_converter.convert,
             EntityType.DATE: lambda entity, full_text="": self.temporal_processor.convert_date(entity),

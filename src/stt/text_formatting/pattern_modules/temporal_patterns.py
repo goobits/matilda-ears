@@ -131,6 +131,21 @@ def build_time_expression_patterns(language: str = "en") -> list[re.Pattern[str]
             """,
             re.VERBOSE | re.IGNORECASE,
         ),
+        # Time with seconds: "three thirty and twenty seconds PM"
+        re.compile(
+            r"""
+            \b                              # Word boundary
+            (one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)  # Hour
+            \s+                             # Space
+            (\w+)                           # Minutes
+            \s+and\s+                       # " and "
+            (\w+)                           # Seconds number
+            \s+seconds?                     # " seconds" or " second"
+            (?:\s+(AM|PM))?                 # Optional AM/PM
+            \b                              # Word boundary
+            """,
+            re.VERBOSE | re.IGNORECASE,
+        ),
         # Special time expressions: "noon", "midnight", "twelve noon", etc.
         re.compile(
             r"""

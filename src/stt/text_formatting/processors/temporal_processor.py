@@ -25,6 +25,9 @@ class TemporalProcessor(BaseNumericProcessor):
         """Initialize temporal processor."""
         super().__init__(nlp, language)
         
+        # Initialize time word mappings
+        self.time_word_mappings = self.mapping_registry.get_time_word_mappings()
+        
         # Non-time units that indicate this is NOT a time expression
         self.non_time_units = {
             "gigahertz", "megahertz", "kilohertz", "hertz",
@@ -108,9 +111,16 @@ class TemporalProcessor(BaseNumericProcessor):
                 metadata_extractor=self._extract_date_metadata,
                 priority=75
             ),
-            # Special time expressions: "noon", "midnight", "twelve noon"
+            # Time with seconds: "three thirty and twenty seconds PM"
             ProcessingRule(
                 pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[6],
+                entity_type=EntityType.TIME_AMPM,
+                metadata_extractor=self._extract_time_metadata,
+                priority=91
+            ),
+            # Special time expressions: "noon", "midnight", "twelve noon"
+            ProcessingRule(
+                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[7],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 priority=90
@@ -311,13 +321,58 @@ class TemporalProcessor(BaseNumericProcessor):
         text = entity.text.lower().strip()
         
         # Check for special time expressions first
-        temporal_resources = self.resources.get("temporal", {})
-        time_expressions = temporal_resources.get("time_expressions", {})
+        units_resources = self.resources.get("units", {})
+        time_expressions = units_resources.get("time_expressions", {})
         
         # Handle special time expressions like "noon", "midnight", "twelve noon"
+        # First try exact matches
         for phrase, replacement in time_expressions.items():
             if text == phrase:
                 return replacement
+        
+        # Check patterns from TIME_EXPRESSION_PATTERNS for SpaCy TIME entities
+        # Use the same patterns as the temporal processor rules  
+        from stt.text_formatting import regex_patterns
+        time_patterns = regex_patterns.TIME_EXPRESSION_PATTERNS
+        
+        # Check pattern 7 (special time expressions: noon, midnight, twelve noon)
+        if len(time_patterns) > 7:
+            match = time_patterns[7].search(entity.text)
+            if match:
+                groups = match.groups()
+                # For "twelve noon" -> groups: ('twelve ', 'noon')
+                # For "noon" -> groups: (None, 'noon')
+                time_word = groups[1].lower()  # "noon" or "midnight"
+                if time_word in time_expressions:
+                    # Replace the matched part while preserving the rest
+                    replacement = time_expressions[time_word]
+                    return entity.text.replace(match.group(0), replacement, 1)
+        
+        # Check pattern 6 (time with seconds)
+        if len(time_patterns) > 6:
+            match = time_patterns[6].search(entity.text)
+            if match:
+                groups = match.groups()
+                # Groups: (hour, minutes, seconds, AM/PM)
+                hour = self.time_word_mappings.get(groups[0].lower(), groups[0])
+                minute_word = groups[1].lower()
+                minute = self.time_word_mappings.get(minute_word, minute_word)
+                seconds_word = groups[2].lower()
+                seconds = self.time_word_mappings.get(seconds_word, seconds_word)
+                ampm = groups[3].upper() if groups[3] else ""
+                
+                # Ensure minute and seconds are zero-padded
+                if minute.isdigit():
+                    minute = minute.zfill(2)
+                if seconds.isdigit():
+                    seconds = seconds.zfill(2)
+                
+                time_str = f"{hour}:{minute}:{seconds}"
+                if ampm:
+                    time_str += f" {ampm}"
+                
+                # Replace the matched part while preserving the rest
+                return entity.text.replace(match.group(0), time_str, 1)
         
         # Check if this is a compound duration pattern
         compound_pattern = re.compile(
@@ -365,8 +420,8 @@ class TemporalProcessor(BaseNumericProcessor):
         """Convert time expressions."""
         # Check for special time expressions first
         text_lower = entity.text.lower().strip()
-        temporal_resources = self.resources.get("temporal", {})
-        time_expressions = temporal_resources.get("time_expressions", {})
+        units_resources = self.resources.get("units", {})
+        time_expressions = units_resources.get("time_expressions", {})
         
         # Handle special time expressions like "noon", "midnight", "twelve noon"
         for phrase, replacement in time_expressions.items():
@@ -393,7 +448,26 @@ class TemporalProcessor(BaseNumericProcessor):
             
             if entity.type == EntityType.TIME_AMPM:
                 # Handle different TIME_AMPM patterns
-                if len(groups) == 3:
+                if len(groups) == 4:
+                    # Pattern: "three thirty and twenty seconds PM"
+                    hour = self.time_word_mappings.get(groups[0].lower(), groups[0])
+                    minute_word = groups[1].lower()
+                    minute = self.time_word_mappings.get(minute_word, minute_word)
+                    seconds_word = groups[2].lower()
+                    seconds = self.time_word_mappings.get(seconds_word, seconds_word)
+                    ampm = groups[3].upper() if groups[3] else ""
+                    
+                    # Ensure minute and seconds are zero-padded
+                    if minute.isdigit():
+                        minute = minute.zfill(2)
+                    if seconds.isdigit():
+                        seconds = seconds.zfill(2)
+                    
+                    time_str = f"{hour}:{minute}:{seconds}"
+                    if ampm:
+                        time_str += f" {ampm}"
+                    return time_str
+                elif len(groups) == 3:
                     if groups[0].lower() == "at":
                         # Pattern: "at three PM"
                         hour = self.time_word_mappings.get(groups[1].lower(), groups[1])
