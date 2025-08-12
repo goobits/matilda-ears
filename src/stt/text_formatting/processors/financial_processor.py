@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional, Pattern
 from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.utils import is_inside_entity
+from stt.text_formatting.modern_pattern_cache import cached_pattern
 
 
 class FinancialProcessor(BaseNumericProcessor):
@@ -99,6 +100,7 @@ class FinancialProcessor(BaseNumericProcessor):
         """Build pattern for number words."""
         return r"\b(?:" + "|".join(sorted(self.number_parser.all_number_words, key=len, reverse=True)) + r")"
     
+    @cached_pattern(category='financial', language_aware=True)
     def _build_dollar_cents_pattern(self) -> Pattern[str]:
         """Build pattern for 'X dollars and Y cents'."""
         number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
@@ -109,6 +111,7 @@ class FinancialProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='financial', language_aware=True)
     def _build_cents_pattern(self) -> Pattern[str]:
         """Build pattern for 'X cents'."""
         number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
@@ -119,6 +122,7 @@ class FinancialProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='financial', language_aware=True)
     def _build_euro_cents_pattern(self) -> Pattern[str]:
         """Build pattern for 'X euros and Y cents'."""
         number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
@@ -129,6 +133,7 @@ class FinancialProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='financial', language_aware=True)
     def _build_pound_pence_pattern(self) -> Pattern[str]:
         """Build pattern for 'X pounds and Y pence'."""
         number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)

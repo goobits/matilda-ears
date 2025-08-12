@@ -18,6 +18,7 @@ from typing import Dict, List, Any, Optional, Pattern
 from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.utils import is_inside_entity
+from stt.text_formatting.modern_pattern_cache import cached_pattern
 
 
 class MeasurementProcessor(BaseNumericProcessor):
@@ -260,6 +261,7 @@ class MeasurementProcessor(BaseNumericProcessor):
         """Build pattern for number words."""
         return r"\b(?:" + "|".join(sorted(self.number_parser.all_number_words, key=len, reverse=True)) + r")"
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_temperature_pattern_with_units(self) -> Pattern[str]:
         """Build pattern for temperature with explicit units."""
         number_pattern = self._build_number_pattern()
@@ -273,6 +275,7 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE,
         )
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_temperature_degrees_pattern(self) -> Pattern[str]:
         """Build pattern for temperature with degrees but optional units."""
         number_pattern = self._build_number_pattern()
@@ -286,6 +289,7 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE,
         )
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_angle_degrees_pattern(self) -> Pattern[str]:
         """Build pattern for angle degrees (rotate, turn, etc.)."""
         number_pattern = self._build_number_pattern()
@@ -297,6 +301,7 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE,
         )
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_feet_inches_pattern(self) -> Pattern[str]:
         """Build pattern for 'X feet Y inches'."""
         number_pattern = self._build_number_pattern()
@@ -305,6 +310,7 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_fraction_feet_pattern(self) -> Pattern[str]:
         """Build pattern for 'X and a half feet/inches'."""
         number_pattern = self._build_number_pattern()
@@ -313,6 +319,7 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_metric_fraction_pattern(self) -> Pattern[str]:
         """Build pattern for 'X and a half kilometers/meters/etc'."""
         number_pattern = self._build_number_pattern()
@@ -401,6 +408,7 @@ class MeasurementProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='measurement', language_aware=True)
     def _build_general_measurement_pattern(self) -> Pattern[str]:
         """Build pattern for general measurements (feet, inches, pounds, miles, yards, ounces)."""
         number_pattern = self._build_number_pattern()

@@ -16,6 +16,7 @@ from stt.text_formatting.common import Entity, EntityType
 # Local imports - base processors and resources
 from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
 from stt.text_formatting import regex_patterns
+from stt.text_formatting.modern_pattern_cache import cached_pattern
 
 
 class TemporalProcessor(BaseNumericProcessor):
@@ -140,6 +141,7 @@ class TemporalProcessor(BaseNumericProcessor):
     
     # Pattern builders
     
+    @cached_pattern(category='temporal', language_aware=True)
     def _build_time_duration_pattern(self) -> Pattern[str]:
         """Build pattern for time duration expressions."""
         # Build number pattern from number parser words
@@ -155,6 +157,7 @@ class TemporalProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='temporal', language_aware=True)
     def _build_compound_duration_pattern(self) -> Pattern[str]:
         """Build pattern for compound durations like '5 hours 30 minutes'."""
         number_pattern = r"(?:\w+(?:\s+\w+)*)"  # Allow compound numbers
@@ -166,6 +169,7 @@ class TemporalProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='temporal', language_aware=True)
     def _build_relative_time_pattern(self) -> Pattern[str]:
         """Build pattern for relative time expressions."""
         relative_exprs = [
@@ -185,6 +189,7 @@ class TemporalProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    @cached_pattern(category='temporal', language_aware=True)
     def _build_date_pattern(self) -> Pattern[str]:
         """Build pattern for date expressions."""
         temporal_resources = self.resources.get("temporal", {})

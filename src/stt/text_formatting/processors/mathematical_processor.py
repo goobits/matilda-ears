@@ -18,6 +18,7 @@ from stt.text_formatting.detectors.numeric.base import MathExpressionParser, is_
 from stt.text_formatting import pattern_modules
 from stt.text_formatting.pattern_modules.basic_numeric_patterns import build_ordinal_pattern
 from stt.text_formatting.priority_config import ProcessorType, get_current_config
+from stt.text_formatting.modern_pattern_cache import cached_pattern
 from stt.text_formatting.constants import get_nested_resource
 from stt.core.config import setup_logging
 
@@ -161,6 +162,7 @@ class MathematicalProcessor(BaseNumericProcessor):
     
     # Pattern builders
     
+    @cached_pattern(category='mathematical', language_aware=True)
     def _build_math_constants_pattern(self) -> Pattern[str]:
         """Build pattern for mathematical constants from resources."""
         try:
@@ -191,6 +193,7 @@ class MathematicalProcessor(BaseNumericProcessor):
             r"thirtieth|fortieth|fiftieth|sixtieth|seventieth|eightieth|ninetieth|hundredth"
         )
     
+    @cached_pattern(category='mathematical', language_aware=True)
     def _build_scientific_notation_pattern(self) -> Pattern[str]:
         """Build pattern for scientific notation expressions."""
         number_pattern = self._build_number_pattern()
