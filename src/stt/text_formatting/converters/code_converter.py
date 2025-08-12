@@ -145,6 +145,14 @@ class CodePatternConverter(BasePatternConverter):
 
         parts = text.rsplit(".", 1)
         if len(parts) != 2:
+            # Handle filenames without extensions - check for special filenames first
+            casing_words = re.split(r"[ _-]", text)
+            casing_words = [w.lower() for w in casing_words if w]
+            
+            special_filename = self._detect_special_filename(casing_words, "")
+            if special_filename:
+                return special_filename
+            
             return text.replace(" ", "_").lower()  # Fallback for names without extensions
 
         filename_part, extension = parts
@@ -234,6 +242,12 @@ class CodePatternConverter(BasePatternConverter):
                 "read": "readme",  # Expand "read" to "readme" for .md
             }
             casing_words = [fuzzy_corrections.get(word, word) for word in casing_words]
+
+        # PHASE H: Special filename detection with intelligent case determination
+        # Check if this is a special filename that requires specific casing regardless of extension
+        special_filename = self._detect_special_filename(casing_words, extension)
+        if special_filename:
+            return f"{special_filename}.{extension}"
 
         if format_rule == "PascalCase":
             formatted_filename = "".join(w.capitalize() for w in casing_words)
@@ -698,3 +712,131 @@ class CodePatternConverter(BasePatternConverter):
             return f"{match.group(1)}_{match.group(2)}"
 
         return entity.text
+
+    def _detect_special_filename(self, casing_words: list[str], extension: str) -> str | None:
+        """
+        Detect special filenames that require specific casing regardless of extension.
+        
+        Args:
+            casing_words: List of lowercase words from the filename
+            extension: File extension (already lowercase)
+            
+        Returns:
+            Special filename with correct casing, or None if not a special file
+        """
+        # Join words to form the base filename for comparison
+        filename_base = "_".join(casing_words) if len(casing_words) > 1 else (casing_words[0] if casing_words else "")
+        
+        # Define special filenames and their correct casing
+        # These files follow specific conventions in the developer community
+        special_files = {
+            # Documentation files (uppercase)
+            "readme": "README",
+            "license": "LICENSE", 
+            "licence": "LICENSE",  # British spelling
+            "changelog": "CHANGELOG",
+            "change_log": "CHANGELOG",
+            "contributing": "CONTRIBUTING",
+            "authors": "AUTHORS",
+            "contributors": "CONTRIBUTORS",
+            "credits": "CREDITS",
+            "notice": "NOTICE",
+            "copying": "COPYING",
+            "install": "INSTALL",
+            "news": "NEWS",
+            "history": "HISTORY",
+            "todo": "TODO",
+            "bugs": "BUGS",
+            "thanks": "THANKS",
+            "acknowledgments": "ACKNOWLEDGMENTS",
+            "acknowledgements": "ACKNOWLEDGEMENTS",
+            
+            # Build files (specific casing)
+            "makefile": "Makefile",
+            "dockerfile": "Dockerfile",
+            "vagrantfile": "Vagrantfile",
+            "gemfile": "Gemfile",
+            "rakefile": "Rakefile",
+            "gulpfile": "Gulpfile",
+            "gruntfile": "Gruntfile",
+            "procfile": "Procfile",
+            "pipfile": "Pipfile",
+            "podfile": "Podfile",
+            "fastfile": "Fastfile",
+            
+            # Config files (usually lowercase, but some exceptions)
+            "gitignore": ".gitignore",  # Special case with leading dot
+            "gitattributes": ".gitattributes",
+            "gitmodules": ".gitmodules", 
+            "editorconfig": ".editorconfig",
+            "eslintrc": ".eslintrc",
+            "prettierrc": ".prettierrc",
+            "babelrc": ".babelrc",
+            "npmrc": ".npmrc",
+            "yarnrc": ".yarnrc",
+            
+            # Programming-specific files (lowercase)
+            "main": "main",
+            "index": "index", 
+            "config": "config",
+            "settings": "settings",
+            "constants": "constants",
+            "utils": "utils",
+            "helpers": "helpers",
+            "types": "types",
+            "interfaces": "interfaces",
+            "models": "models",
+            "views": "views",
+            "controllers": "controllers",
+            "services": "services",
+            "middleware": "middleware",
+            "routes": "routes",
+            "api": "api",
+            "app": "app",
+            "server": "server",
+            "client": "client",
+        }
+        
+        # Check for exact match first
+        if filename_base in special_files:
+            special_name = special_files[filename_base]
+            # Handle dotfiles specially
+            if special_name.startswith('.'):
+                return special_name  # Return without extension for dotfiles
+            return special_name
+        
+        # Check for single word matches (in case of single-word filenames)
+        if len(casing_words) == 1:
+            word = casing_words[0]
+            if word in special_files:
+                special_name = special_files[word]
+                if special_name.startswith('.'):
+                    return special_name  # Return without extension for dotfiles
+                return special_name
+        
+        # Check for compound words that might be special files
+        # Handle cases like "read me" -> "readme" -> "README"
+        if len(casing_words) == 2:
+            compound_word = "".join(casing_words)  # "readme"
+            if compound_word in special_files:
+                special_name = special_files[compound_word]
+                if special_name.startswith('.'):
+                    return special_name
+                return special_name
+            
+            # Also check underscore version
+            underscore_word = "_".join(casing_words)  # "read_me"
+            if underscore_word in special_files:
+                special_name = special_files[underscore_word]
+                if special_name.startswith('.'):
+                    return special_name
+                return special_name
+        
+        # For specific file types, apply intelligent defaults
+        if extension in ["md", "txt", "rst"]:
+            # Documentation files are often uppercase
+            uppercase_candidates = ["readme", "license", "changelog", "contributing", "authors", "install"]
+            if filename_base in uppercase_candidates:
+                return filename_base.upper()
+        
+        return None
