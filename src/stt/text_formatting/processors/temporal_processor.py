@@ -462,7 +462,11 @@ class TemporalProcessor(BaseNumericProcessor):
     
     def convert_date(self, entity: Entity) -> str:
         """Convert date expressions (january first -> January 1st)."""
+        # Check if this DATE entity is actually a mathematical expression that should be converted
         if not entity.metadata:
+            # This might be a mathematical expression like "two plus years" that was incorrectly detected as DATE
+            if self._is_mathematical_expression_in_date(entity):
+                return self._convert_mathematical_date_expression(entity)
             return entity.text
             
         month = entity.metadata.get("month", "").lower()
@@ -479,3 +483,44 @@ class TemporalProcessor(BaseNumericProcessor):
         month_capitalized = month.capitalize()
         
         return f"{month_capitalized} {ordinal_number}"
+    
+    def _is_mathematical_expression_in_date(self, entity: Entity) -> bool:
+        """Check if this DATE entity is actually a mathematical expression."""
+        text = entity.text.lower()
+        
+        # Look for mathematical patterns that were incorrectly detected as dates
+        math_patterns = [
+            r'\b\w+\s+plus\s+(?:years?|months?|weeks?|days?)\b',  # "two plus years"
+            r'\b\w+\s+minus\s+(?:years?|months?|weeks?|days?)\b',  # "two minus years"
+            r'\b\w+\s+times\s+(?:years?|months?|weeks?|days?)\b',  # "two times years"
+        ]
+        
+        for pattern in math_patterns:
+            if re.search(pattern, text):
+                return True
+        
+        return False
+    
+    def _convert_mathematical_date_expression(self, entity: Entity) -> str:
+        """Convert mathematical expressions that were detected as dates."""
+        import re
+        from stt.text_formatting.common import NumberParser
+        
+        text = entity.text
+        
+        # Pattern for "number plus years" type expressions
+        plus_pattern = r'\b(\w+)\s+plus\s+(years?|months?|weeks?|days?)\b'
+        match = re.search(plus_pattern, text, re.IGNORECASE)
+        
+        if match:
+            number_word = match.group(1)
+            time_unit = match.group(2)
+            
+            # Convert number word to digit
+            parser = NumberParser()
+            number_digit = parser.parse(number_word)
+            
+            if number_digit:
+                return text.replace(f"{number_word} plus", f"{number_digit} +")
+        
+        return entity.text

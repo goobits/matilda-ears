@@ -49,7 +49,6 @@ class NumberWordContextAnalyzer:
             # Idiomatic expressions
             r'\bone\s+(of\s+the|of\s+these|of\s+those|of\s+them)\b',
             r'\b(no|any|every|each)\s+one\b',
-            r'\b(one|two|three)\s+or\s+(two|three|four)\b',  # "one or two"
             r'\bone\s+or\s+the\s+other\b',  # "one or the other"
             r'\btwo\s+can\s+play\s+that\s+game\b',  # "two can play that game"
             r'\bone\s+\w+\s+for\s+each\s+of\s+those\s+(two|three)\b',  # "one test for each of those two issues"
@@ -83,7 +82,6 @@ class NumberWordContextAnalyzer:
             r'\bnine\s+to\s+five\b',  # "nine to five"
             r'\bdressed\s+to\s+the\s+nines\b',  # "dressed to the nines"
             r'\bback\s+to\s+square\s+one\b',  # "back to square one"
-            r'\bone\s+in\s+a\s+million\b',  # "one in a million"
             r'\btwo\s+peas\s+in\s+a\s+pod\b',  # "two peas in a pod"
             r'\bsix\s+feet\s+under\b',  # "six feet under"
             r'\bkill\s+two\s+birds\s+with\s+one\s+stone\b',  # "kill two birds with one stone"
@@ -133,6 +131,13 @@ class NumberWordContextAnalyzer:
             r'\b(\w+)\s+(users?|files?|errors?|requests?|items?|records?|operations?)\b',  # quantities
             r'\bstatus\s+code\s+(\w+)\b',  # "status code 404"
             r'\berror\s+(\w+)\b',  # "error 500"
+            
+            # Phase 14 additions - quantitative and technical contexts
+            r'\bneed\s+(\w+)\s+(?:or\s+(\w+)\s+)?(?:examples?|items?|users?|files?)\b',  # "need one or two examples"
+            r'\b(?:we|you|i)\s+(?:need|want|require)\s+(\w+)\s+(?:or\s+(\w+)\s+)?(?:examples?|items?|options?)\b',  # "we need one or two examples"
+            r'\bhave\s+(\w+)\s+plus\s+(?:years?|months?)\s+(?:of\s+)?(?:experience|training)\b',  # "have two plus years of experience"
+            r'\b(\w+)\s+plus\s+(?:years?|months?|weeks?|days?)\b',  # "two plus years" (mathematical/quantitative)
+            r'\b(?:found|process|handle|manage|created?)\s+(\w+)\s+(?:errors?|items?|files?|users?)\b',  # "found three errors"
         ]
         
         # Number words to consider - expanded to include all number words that NumberParser handles

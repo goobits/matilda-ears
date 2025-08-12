@@ -225,3 +225,59 @@ class BaseNumericConverter(ABC):
             return True
             
         return False
+    
+    def is_technical_quantitative_context(self, entity: Entity, full_text: str) -> bool:
+        """Check if the entity is in a technical or quantitative context that favors digit conversion."""
+        if not full_text:
+            return False
+            
+        # Get surrounding context
+        context_start = max(0, entity.start - 100)
+        context_end = min(len(full_text), entity.end + 100)
+        context = full_text[context_start:context_end].lower()
+        
+        # Technical/quantitative indicators that suggest numbers should be converted
+        technical_terms = [
+            'port', 'error', 'status', 'code', 'version', 'page', 'line', 
+            'step', 'item', 'api', 'http', 'server', 'client', 'request',
+            'response', 'url', 'endpoint', 'timeout', 'retry', 'config',
+            'setting', 'parameter', 'argument', 'function', 'method',
+            'class', 'variable', 'value', 'property', 'field', 'attribute',
+            'users', 'files', 'errors', 'requests', 'items', 'records', 
+            'operations', 'examples', 'bugs', 'issues', 'tests'
+        ]
+        
+        # Quantitative contexts - patterns where numbers make sense as digits
+        quantitative_patterns = [
+            r'\bneed\s+(?:\w+\s+)*(?:or\s+)?\w+\s+(?:examples?|items?|users?|files?)',  # "need one or two examples"
+            r'\bhave\s+\w+\s+plus\s+years?\s+of\s+experience',  # "have two plus years of experience"
+            r'\b(?:found|process|handle|manage|created?)\s+\w+\s+(?:errors?|items?|files?|users?)',  # "found three errors"
+            r'\b\w+\s+(?:years?|months?|weeks?|days?)\s+(?:of\s+)?(?:experience|ago|later)',  # time + experience
+            r'\b(?:up\s+to|between|from)\s+\w+\s+(?:to|or)\s+\w+',  # ranges
+            r'\b\w+\s+(?:to|or)\s+\w+\s+(?:examples?|items?|options?|choices?)',  # "one or two examples"
+            r'\bversion\s+\w+(?:\s+point\s+\w+)?',  # version numbers
+            r'\b(?:step|page|line|chapter)\s+\w+',  # sequential numbering
+        ]
+        
+        # Check for technical terms
+        for term in technical_terms:
+            if re.search(r'\b' + term + r'\b', context):
+                return True
+        
+        # Check for quantitative patterns
+        for pattern in quantitative_patterns:
+            if re.search(pattern, context):
+                return True
+        
+        # Check for mathematical/arithmetic contexts
+        math_patterns = [
+            r'\b\w+\s+(?:plus|minus|times|divided\s+by)\s+\w+',  # arithmetic
+            r'\b\w+\s*[\+\-\*/=]\s*\w+',  # math operators
+            r'\bcalculate|solve|compute|determine',  # math verbs
+        ]
+        
+        for pattern in math_patterns:
+            if re.search(pattern, context):
+                return True
+        
+        return False

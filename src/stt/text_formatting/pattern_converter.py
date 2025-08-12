@@ -25,6 +25,7 @@ from .constants import get_resources
 from .converters import TextPatternConverter, WebPatternConverter, CodePatternConverter, NumericPatternConverter
 from .processors.measurement_processor import MeasurementProcessor
 from .processors.mathematical_processor import MathematicalProcessor
+from .processors.temporal_processor import TemporalProcessor
 
 logger = setup_logging(__name__)
 
@@ -46,6 +47,7 @@ class PatternConverter:
         self.code_converter = CodePatternConverter(number_parser, language)
         self.measurement_processor = MeasurementProcessor(nlp=None, language=language)
         self.mathematical_processor = MathematicalProcessor(nlp=None, language=language)
+        self.temporal_processor = TemporalProcessor(nlp=None, language=language)
         self.numeric_converter = NumericPatternConverter(number_parser, language)
 
         # Get URL keywords for web conversions
@@ -88,6 +90,7 @@ class PatternConverter:
             EntityType.TIME: self.numeric_converter.convert,  # SpaCy detected TIME entity
             EntityType.TIME_CONTEXT: self.numeric_converter.convert,
             EntityType.TIME_AMPM: self.numeric_converter.convert,
+            EntityType.DATE: lambda entity, full_text="": self.temporal_processor.convert_date(entity),
             EntityType.PHONE_LONG: self.numeric_converter.convert,
             EntityType.CARDINAL: self.numeric_converter.convert,
             EntityType.ORDINAL: self.numeric_converter.convert,

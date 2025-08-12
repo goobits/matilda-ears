@@ -52,6 +52,11 @@ class BasicNumericConverter(BaseNumericConverter):
         if self.is_hyphenated_compound(entity, full_text):
             return entity.text
 
+        # Check for technical/quantitative context first - if found, convert to digits
+        if self.is_technical_quantitative_context(entity, full_text):
+            parsed = self.number_parser.parse(entity.text)
+            return parsed if parsed else entity.text
+
         # Don't convert simple numbers in natural speech contexts (refined logic)
         if self.is_natural_speech_context(entity, full_text):
             return entity.text  # Keep as word

@@ -1,7 +1,9 @@
 """Test contextual number handling to prevent unwanted conversions."""
 
+from .base_test import BaseFormattingTest
 
-class TestContextualNumbers:
+
+class TestContextualNumbers(BaseFormattingTest):
     """Test that number words in certain contexts are not converted to digits."""
 
     def test_number_words_in_natural_speech(self, preloaded_formatter):
@@ -44,7 +46,7 @@ class TestContextualNumbers:
             self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestContextualOrdinals:
+class TestContextualOrdinals(BaseFormattingTest):
     """Test that ordinal numbers are formatted appropriately based on context."""
 
     def test_ordinals_that_should_be_numeric(self, preloaded_formatter):
@@ -98,7 +100,7 @@ class TestContextualOrdinals:
             self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestStandaloneEntityPunctuation:
+class TestStandaloneEntityPunctuation(BaseFormattingTest):
     """Test that standalone entities don't get unnecessary punctuation."""
 
     def test_standalone_entity_cleanup(self, preloaded_formatter):
@@ -144,7 +146,7 @@ class TestStandaloneEntityPunctuation:
             self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestFillerWordPreservation:
+class TestFillerWordPreservation(BaseFormattingTest):
     """Test that certain filler words are preserved when contextually important."""
 
     def test_filler_words_in_quotes_or_examples(self, preloaded_formatter):
