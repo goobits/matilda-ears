@@ -29,6 +29,11 @@ from enum import Enum
 from ..constants import get_resources
 from stt.text_formatting.common import Entity, EntityType
 
+# PHASE 21: Debug Mode Enhancement - Pipeline State Tracing
+from stt.text_formatting.debug_utils import (
+    get_entity_debugger, DebugModule, is_debug_enabled
+)
+
 
 class EntityState(Enum):
     """Represents the current state of an entity in the pipeline"""
@@ -102,6 +107,20 @@ class UniversalEntityTracker:
         )
         
         self.entities[entity_id] = state_info
+        
+        # PHASE 21: Debug tracing - Entity registration
+        if is_debug_enabled(DebugModule.PIPELINE):
+            debugger = get_entity_debugger()
+            debugger.trace_entity_operation(
+                entity,
+                "pipeline",
+                "entity_registered",
+                DebugModule.PIPELINE,
+                entity_id=entity_id,
+                state=EntityState.DETECTED.value,
+                original_text_preview=original_text[entity.start:entity.end]
+            )
+        
         return entity_id
     
     def update_entity_position(self, entity_id: str, new_start: int, new_end: int):
@@ -191,9 +210,25 @@ class UniversalEntityTracker:
         """Mark entity as converted and track the conversion"""
         if entity_id in self.entities:
             state_info = self.entities[entity_id]
+            old_text = state_info.entity.text
             state_info.state = EntityState.CONVERTED
             state_info.converted_text = converted_text
             state_info.add_modification(step, f"converted to: {converted_text}")
+            
+            # PHASE 21: Debug tracing - Entity conversion
+            if is_debug_enabled(DebugModule.PIPELINE):
+                debugger = get_entity_debugger()
+                debugger.trace_entity_operation(
+                    state_info.entity,
+                    "pipeline",
+                    "entity_converted",
+                    DebugModule.PIPELINE,
+                    before_text=old_text,
+                    after_text=converted_text,
+                    entity_id=entity_id,
+                    conversion_step=step,
+                    state=EntityState.CONVERTED.value
+                )
     
     def protect_entity(self, entity_id: str, protection_buffer: int = 5):
         """Mark entity as protected from further modifications"""
@@ -227,6 +262,16 @@ class UniversalEntityTracker:
                 conflicts.append(conflict_msg)
                 state_info.add_conflict(conflict_msg)
                 state_info.state = EntityState.CORRUPTED
+        
+        # PHASE 21: Debug tracing - Conflict detection
+        if conflicts and is_debug_enabled(DebugModule.PIPELINE):
+            debugger = get_entity_debugger()
+            debugger.trace_entity_conflicts(
+                [(conflict, step, modification_start, modification_end) for conflict in conflicts],
+                f"conflict_detection_step_{step}",
+                len([e for e in self.entities.values() if e.state != EntityState.CORRUPTED]),
+                len([e for e in self.entities.values() if e.state != EntityState.CORRUPTED]) - len(conflicts)
+            )
         
         return conflicts
     

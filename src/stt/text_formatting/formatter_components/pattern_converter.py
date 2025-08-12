@@ -15,6 +15,11 @@ from ..pattern_converter import PatternConverter as UnifiedPatternConverter
 # Setup logging
 logger = setup_logging(__name__)
 
+# PHASE 21: Debug Mode Enhancement - Pattern Converter Tracing
+from stt.text_formatting.debug_utils import (
+    get_entity_debugger, DebugModule, is_debug_enabled
+)
+
 
 class PatternConverter:
     """Converts specific entity types to their final form"""
@@ -33,6 +38,20 @@ class PatternConverter:
 
     def convert(self, entity: Entity, full_text: str) -> str:
         """Convert entity based on its type"""
+        # PHASE 21: Debug tracing - Pattern conversion start
+        original_text = entity.text
+        if is_debug_enabled(DebugModule.CONVERSION):
+            debugger = get_entity_debugger()
+            debugger.trace_entity_operation(
+                entity,
+                "conversion",
+                "pattern_convert_start",
+                DebugModule.CONVERSION,
+                before_text=original_text,
+                context_preview=full_text[max(0, entity.start-5):entity.end+5] if entity.start >= 0 else "",
+                converter_available=entity.type in self.converters
+            )
+        
         # Check for trailing punctuation after entity in full text
         trailing_punct = ""
         if entity.end < len(full_text) and full_text[entity.end] in ".!?":
@@ -45,12 +64,35 @@ class PatternConverter:
             result = self._apply_converter(converter, entity, full_text)
 
             # Check if this entity type handles its own punctuation
-            if self._handles_own_punctuation(entity.type):
-                return result
-            return result + trailing_punct
+            final_result = result if self._handles_own_punctuation(entity.type) else result + trailing_punct
+            
+            # PHASE 21: Debug tracing - Successful pattern conversion
+            if is_debug_enabled(DebugModule.CONVERSION):
+                debugger.trace_entity_conversion(
+                    entity,
+                    original_text,
+                    final_result,
+                    f"pattern_converter_{converter.__name__ if hasattr(converter, '__name__') else 'unknown'}",
+                    success=True
+                )
+            
+            return final_result
 
         # Default fallback for unknown entity types
-        return entity.text + trailing_punct
+        fallback_result = entity.text + trailing_punct
+        
+        # PHASE 21: Debug tracing - Fallback conversion
+        if is_debug_enabled(DebugModule.CONVERSION):
+            debugger.trace_entity_conversion(
+                entity,
+                original_text,
+                fallback_result,
+                "pattern_converter_fallback",
+                success=False,
+                error=f"No converter found for {entity.type}"
+            )
+        
+        return fallback_result
 
     def _apply_converter(self, converter, entity: Entity, full_text: str) -> str:
         """Apply the converter with appropriate parameters based on entity type"""

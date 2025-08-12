@@ -42,7 +42,14 @@ from stt.text_formatting.formatter_components.validation import create_entity_va
 # Setup logging
 logger = logging.getLogger(__name__)
 
+# PHASE 21: Debug Mode Enhancement - Entity Conversion Pipeline Tracing
+from stt.text_formatting.debug_utils import (
+    get_entity_debugger, debug_entity_operation, debug_entity_list, debug_performance,
+    DebugModule, is_debug_enabled
+)
 
+
+@debug_performance("entity_conversion", DebugModule.CONVERSION)
 def convert_entities(
     text: str,
     entities: list[Entity],
@@ -77,6 +84,31 @@ def convert_entities(
         
     language = getattr(pipeline_state, 'language', 'en') if pipeline_state else 'en'
     logger.info(f"THEORY_14_DEBUG: Processing {len(entities)} entities for language '{language}'")
+    
+    # PHASE 21: Debug tracing - Conversion start
+    debugger = get_entity_debugger()
+    debugger.trace_pipeline_state(
+        "conversion_start",
+        text,
+        entities,
+        {
+            "language": language,
+            "entity_count": len(entities),
+            "pattern_converter": type(pattern_converter).__name__,
+            "has_pipeline_state": pipeline_state is not None
+        }
+    )
+    
+    if is_debug_enabled(DebugModule.CONVERSION):
+        debug_entity_list(
+            entities,
+            "conversion",
+            "entities_to_convert", 
+            DebugModule.CONVERSION,
+            text=text,
+            language=language,
+            converter_type=type(pattern_converter).__name__
+        )
     
     # Theory 20: Apply Spanish technical pattern recognition
     spanish_technical_contexts = []
@@ -164,8 +196,31 @@ def convert_entities(
         if pipeline_state:
             entity._pipeline_state = pipeline_state
         
+        # PHASE 21: Debug tracing - Before conversion
+        original_entity_text = entity.text
+        if is_debug_enabled(DebugModule.CONVERSION):
+            debug_entity_operation(
+                entity,
+                "conversion",
+                "pre_convert",
+                DebugModule.CONVERSION,
+                before_text=entity.text,
+                position=(entity.start, entity.end),
+                text_context=text[max(0, entity.start-10):entity.end+10]
+            )
+        
         try:
             converted_text = pattern_converter.convert(entity, text)
+            
+            # PHASE 21: Debug tracing - Successful conversion
+            if is_debug_enabled(DebugModule.CONVERSION):
+                debugger.trace_entity_conversion(
+                    entity,
+                    original_entity_text,
+                    converted_text,
+                    type(pattern_converter).__name__,
+                    success=True
+                )
             
             # PHASE 19: Validate entity conversion consistency
             validator = create_entity_validator(language)
@@ -178,6 +233,17 @@ def convert_entities(
         except Exception as e:
             logger.warning(f"Error converting entity {entity.type}('{entity.text}'): {e}")
             converted_text = entity.text  # Fallback to original text
+            
+            # PHASE 21: Debug tracing - Failed conversion
+            if is_debug_enabled(DebugModule.CONVERSION):
+                debugger.trace_entity_conversion(
+                    entity,
+                    original_entity_text,
+                    converted_text,
+                    type(pattern_converter).__name__,
+                    success=False,
+                    error=str(e)
+                )
         
         # POSITION TRACKING: Update entity positions when conversion changes text length
         if converted_text != entity.text and pipeline_state:
@@ -253,6 +319,32 @@ def convert_entities(
     if validated_entities:
         processed_text = _fix_entity_spacing_issues(processed_text, validated_entities)
 
+    # PHASE 21: Debug tracing - Conversion complete
+    if is_debug_enabled(DebugModule.CONVERSION):
+        debugger.trace_pipeline_state(
+            "conversion_complete",
+            processed_text,
+            validated_entities,
+            {
+                "original_text_length": len(text),
+                "processed_text_length": len(processed_text), 
+                "text_length_change": len(processed_text) - len(text),
+                "entities_input": len(entities),
+                "entities_output": len(validated_entities),
+                "entities_validated": len(converted_entities),
+                "entities_removed_invalid": len(converted_entities) - len(validated_entities)
+            }
+        )
+        
+        debug_entity_list(
+            validated_entities,
+            "conversion",
+            "final_converted_entities",
+            DebugModule.CONVERSION,
+            text=processed_text,
+            conversion_summary=f"{len(entities)} -> {len(validated_entities)}"
+        )
+
     return processed_text, validated_entities
 
 
@@ -312,6 +404,7 @@ def _fix_entity_spacing_issues(text: str, entities: list[Entity]) -> str:
     return fixed_text
 
 
+@debug_performance("boundary_tracking_conversion", DebugModule.CONVERSION)
 def convert_entities_with_boundary_tracking(
     text: str,
     entities: list[Entity],
@@ -337,6 +430,17 @@ def convert_entities_with_boundary_tracking(
         Tuple of (processed_text, converted_entities) with accurate boundaries
     """
     logger.debug(f"Converting {len(entities)} entities with boundary tracking")
+    
+    # PHASE 21: Debug tracing - Boundary tracking conversion start
+    if is_debug_enabled(DebugModule.CONVERSION):
+        debug_entity_list(
+            entities,
+            "conversion",
+            "boundary_tracking_start",
+            DebugModule.CONVERSION,
+            text=text,
+            tracking_reason="Spanish multi-word entities or large entity count"
+        )
     
     # Initialize the boundary tracker
     boundary_tracker = EntityBoundaryTracker(entities, text)
@@ -423,5 +527,21 @@ def convert_entities_with_boundary_tracking(
         logger.debug(f"Boundary tracker applied {debug_info['changes_count']} changes")
         for change in debug_info['changes'][:3]:  # Log first 3 changes
             logger.debug(f"  Change: '{change['old_text']}' -> '{change['new_text']}' (Δ{change['length_change']})")
+    
+    # PHASE 21: Debug tracing - Boundary tracking complete
+    if is_debug_enabled(DebugModule.CONVERSION):
+        debugger = get_entity_debugger()
+        debugger.trace_pipeline_state(
+            "boundary_tracking_complete",
+            final_text,
+            updated_entities,
+            {
+                "boundary_changes": debug_info['changes_count'],
+                "entities_processed": len(entities),
+                "entities_final": len(updated_entities),
+                "text_length_change": len(final_text) - len(text),
+                "tracking_effectiveness": f"{debug_info['changes_count']} boundary fixes applied"
+            }
+        )
     
     return final_text, updated_entities
