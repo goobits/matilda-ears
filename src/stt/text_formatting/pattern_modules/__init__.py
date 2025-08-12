@@ -185,6 +185,22 @@ from .text_patterns import (
     get_whitespace_normalization_pattern,
 )
 
+from .common_patterns import (
+    ABBREVIATION_SPACING_PATTERN,
+    EMAIL_BASIC_PATTERN,
+    ORDINAL_SUFFIX_PATTERN,
+    PRONOUN_I_BASIC_PATTERN,
+    build_abbreviation_spacing_pattern,
+    build_email_basic_pattern,
+    build_ordinal_suffix_pattern,
+    build_pronoun_i_basic_pattern,
+    get_abbreviation_spacing_pattern,
+    get_compiled_common_pattern,
+    get_email_basic_pattern,
+    get_ordinal_suffix_pattern,
+    get_pronoun_i_basic_pattern,
+)
+
 # Re-export everything to maintain backward compatibility
 __all__ = [
     # Code patterns
@@ -362,4 +378,18 @@ __all__ = [
     "get_technical_content_patterns",
     "get_temperature_protection_pattern",
     "get_whitespace_normalization_pattern",
+    # Common patterns
+    "ABBREVIATION_SPACING_PATTERN",
+    "EMAIL_BASIC_PATTERN", 
+    "ORDINAL_SUFFIX_PATTERN",
+    "PRONOUN_I_BASIC_PATTERN",
+    "build_abbreviation_spacing_pattern",
+    "build_email_basic_pattern",
+    "build_ordinal_suffix_pattern",
+    "build_pronoun_i_basic_pattern",
+    "get_abbreviation_spacing_pattern",
+    "get_compiled_common_pattern",
+    "get_email_basic_pattern",
+    "get_ordinal_suffix_pattern",
+    "get_pronoun_i_basic_pattern",
 ]

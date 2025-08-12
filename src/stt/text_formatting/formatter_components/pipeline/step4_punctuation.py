@@ -116,7 +116,8 @@ def add_punctuation(
             # Include some context to prevent punctuation model from adding unwanted punctuation around them
             # Note: Don't use word boundaries after periods as periods are not word characters
             # Updated pattern to handle abbreviations at start of text or with spaces
-            abbrev_pattern = re.compile(r'(^|\s)(i\.e\.|e\.g\.|etc\.|vs\.|cf\.)(\s|$)', re.IGNORECASE)
+            from ...pattern_modules.common_patterns import ABBREVIATION_SPACING_PATTERN
+            abbrev_pattern = ABBREVIATION_SPACING_PATTERN
             for i, match in enumerate(abbrev_pattern.finditer(protected_text)):
                 placeholder = f"__ABBREV_{i}__"
                 # Store the entire match including surrounding context to preserve positioning

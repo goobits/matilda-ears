@@ -4,6 +4,7 @@ import re
 from typing import Dict
 
 from stt.text_formatting.common import Entity, EntityType
+from ..pattern_modules.utility_patterns import WHITESPACE_NORMALIZATION_PATTERN
 from .base import BasePatternConverter
 
 
@@ -368,7 +369,7 @@ class WebPatternConverter(BasePatternConverter):
                 # In domain parts, remove internal spaces more aggressively
                 if '/' not in part:  # Domain part
                     # Remove spaces between words in domain parts like "my app" -> "myapp"
-                    part = re.sub(r'\s+', '', part)
+                    part = re.sub(WHITESPACE_NORMALIZATION_PATTERN, '', part)
                 else:  # Path part
                     # In path parts, be more selective
                     path_segments = part.split('/')
@@ -376,7 +377,7 @@ class WebPatternConverter(BasePatternConverter):
                     for segment in path_segments:
                         if segment.strip():  # Non-empty segment
                             # Remove spaces in path segments too, but preserve structure
-                            segment = re.sub(r'\s+', '', segment.strip())
+                            segment = re.sub(WHITESPACE_NORMALIZATION_PATTERN, '', segment.strip())
                         consolidated_segments.append(segment)
                     part = '/'.join(consolidated_segments)
                 consolidated_parts.append(part)
@@ -603,7 +604,7 @@ class WebPatternConverter(BasePatternConverter):
                 domain = re.sub(rf"\s+{re.escape(dot_keyword)}\s+", ".", domain, flags=re.IGNORECASE)
 
             # Remove spaces around domain components (but preserve dots)
-            domain = re.sub(r"\s+", "", domain)
+            domain = re.sub(WHITESPACE_NORMALIZATION_PATTERN, "", domain)
 
             result = f"{username}@{domain}"
             

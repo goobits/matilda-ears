@@ -71,7 +71,8 @@ class BasicNumericConverter(BaseNumericConverter):
         original_text = entity.text
 
         # Check if input is already numeric (1st, 2nd, etc.)
-        numeric_ordinal_pattern = re.compile(r"(\d+)(st|nd|rd|th)", re.IGNORECASE)
+        from ...pattern_modules.common_patterns import ORDINAL_SUFFIX_PATTERN
+        numeric_ordinal_pattern = ORDINAL_SUFFIX_PATTERN
         numeric_match = numeric_ordinal_pattern.match(original_text)
 
         if numeric_match:

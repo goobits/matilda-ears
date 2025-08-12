@@ -254,7 +254,8 @@ class FallbackTextFormatter:
             text = text[0].upper() + text[1:]
         
         # Capitalize "I"
-        text = re.sub(r'\bi\b', 'I', text)
+        from .pattern_modules.common_patterns import PRONOUN_I_BASIC_PATTERN
+        text = re.sub(PRONOUN_I_BASIC_PATTERN, 'I', text)
         
         # Basic punctuation
         if text and not text.rstrip()[-1] in '.!?':

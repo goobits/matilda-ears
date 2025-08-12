@@ -208,7 +208,8 @@ class SmartCapitalizer:
             # No SpaCy available, use regex approach with context check
             new_text = ""
             last_end = 0
-            for match in re.finditer(r"\bi\b", text):
+            from .pattern_modules.common_patterns import PRONOUN_I_BASIC_PATTERN
+            for match in re.finditer(PRONOUN_I_BASIC_PATTERN, text):
                 start, end = match.span()
                 new_text += text[last_end:start]
 

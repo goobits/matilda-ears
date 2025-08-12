@@ -267,7 +267,8 @@ class ConversationalEntityProcessor:
         if flow_rules.get("preserve_natural_spacing", False):
             # Clean up any double spaces that might have been created
             original_text = processed_text
-            processed_text = re.sub(r'\s+', ' ', processed_text).strip()
+            from .pattern_modules.utility_patterns import WHITESPACE_NORMALIZATION_PATTERN
+            processed_text = re.sub(WHITESPACE_NORMALIZATION_PATTERN, ' ', processed_text).strip()
             if processed_text != original_text:
                 changes += 1
                 logger.debug("THEORY_17: Applied natural spacing cleanup")

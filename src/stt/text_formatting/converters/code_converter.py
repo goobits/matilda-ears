@@ -559,7 +559,8 @@ class CodePatternConverter(BasePatternConverter):
                     # Convert chained assignments: "y equals z" -> "y = z"
                     right = re.sub(r'\b(?:equals|equal)\s+', ' = ', right, flags=re.IGNORECASE)
                     # Clean up extra spaces
-                    right = re.sub(r'\s+', ' ', right).strip()
+                    from ..pattern_modules.utility_patterns import WHITESPACE_NORMALIZATION_PATTERN
+                    right = re.sub(WHITESPACE_NORMALIZATION_PATTERN, ' ', right).strip()
                 else:
                     # Try to parse number words for simple cases (no operators)
                     parsed_right = self.number_parser.parse_with_validation(right)

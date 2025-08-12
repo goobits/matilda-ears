@@ -18,9 +18,15 @@ from .pattern_modules import (
     get_compiled_numeric_pattern,
     get_compiled_text_pattern,
     get_compiled_web_pattern,
+    get_compiled_common_pattern,
     URL_PROTECTION_PATTERN,
     EMAIL_PROTECTION_PATTERN,
     WWW_DOMAIN_RESCUE,
+    # Common patterns
+    EMAIL_BASIC_PATTERN,
+    PRONOUN_I_BASIC_PATTERN,
+    ORDINAL_SUFFIX_PATTERN,
+    ABBREVIATION_SPACING_PATTERN,
     # Pattern building functions
     get_spoken_url_pattern,
     get_slash_command_pattern,
@@ -46,7 +52,13 @@ from .pattern_modules import (
 
 def get_compiled_pattern(pattern_name: str) -> Pattern | None:
     """Get a pre-compiled pattern by name."""
-    # Check code patterns first
+    # Check common patterns first (most frequently used)
+    from .pattern_modules.common_patterns import get_compiled_common_pattern
+    common_pattern = get_compiled_common_pattern(pattern_name)
+    if common_pattern is not None:
+        return common_pattern
+    
+    # Check code patterns
     code_pattern = get_compiled_code_pattern(pattern_name)
     if code_pattern is not None:
         return code_pattern
