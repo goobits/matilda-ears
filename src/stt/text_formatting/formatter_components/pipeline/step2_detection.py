@@ -38,9 +38,6 @@ from stt.text_formatting.filename_post_processor import post_process_filename_en
 # Theory 17: Spanish Conversational Flow Preservation
 from stt.text_formatting.spanish_conversational_flow import SpanishConversationalFlowAnalyzer
 
-# PHASE 19: Entity Validation Framework
-from stt.text_formatting.formatter_components.validation import create_entity_validator
-
 # Setup logging for this module
 logger = logging.getLogger(__name__)
 
@@ -209,21 +206,9 @@ def detect_all_entities(
     # Apply priority-based filtering to remove contained/overlapping lower-priority entities
     priority_filtered_entities = _apply_priority_filtering(deduplicated_entities, entity_priorities)
     
-    # PHASE 19: Entity Validation Framework - Validate detected entities for consistency
-    validator = create_entity_validator(language)
-    is_valid, validation_warnings = validator.validate_entity_list_consistency(priority_filtered_entities, text)
-    
-    if validation_warnings:
-        logger.debug(f"PHASE_19_VALIDATION: Entity validation warnings in detection: {len(validation_warnings)} issues found")
-        for warning in validation_warnings:
-            logger.debug(f"PHASE_19_VALIDATION: {warning}")
-    
-    # Continue processing regardless of validation warnings (robustness only, no functionality change)
-    validated_entities = priority_filtered_entities
-    
     # Theory 12: Apply targeted fixes for specific entity detection issues
     # Focus on filename over-detection which causes many test failures
-    post_processed_entities = post_process_filename_entities(validated_entities, text)
+    post_processed_entities = post_process_filename_entities(priority_filtered_entities, text)
     
     # Theory 12: Apply advanced entity conflict resolution for remaining edge cases
     # This handles complex interaction conflicts that basic priority filtering misses

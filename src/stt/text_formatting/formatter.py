@@ -52,9 +52,6 @@ from .formatter_components.pipeline.step6_postprocess import (
     add_introductory_phrase_commas
 )
 
-# PHASE 19: Entity Validation Framework  
-from .formatter_components.validation import create_entity_validator
-
 # Local imports - optimization modules
 from .batch_regex import batch_cleanup_substitutions
 
@@ -241,14 +238,6 @@ class TextFormatter:
             processed_text, converted_entities = convert_entities(text, filtered_entities, self.pattern_converter, pipeline_state)
             
         logger.debug(f"Step 3 - After entity conversion: '{processed_text}'")
-        
-        # PHASE 19: Validate pipeline state consistency after conversion
-        if pipeline_state:
-            validator = create_entity_validator(current_language)
-            state_warnings = validator.validate_pipeline_state_consistency(pipeline_state, processed_text, "step3_conversion")
-            if state_warnings:
-                for warning in state_warnings:
-                    logger.debug(f"PHASE_19_VALIDATION: {warning}")
 
         # STEP 4: Apply punctuation and clean standalone entity punctuation
         logger.debug(f"Step 4 - Before punctuation: '{processed_text}'")
@@ -270,14 +259,6 @@ class TextFormatter:
 
         cleaned_text = clean_standalone_entity_punctuation(punctuated_text, converted_entities)
         logger.debug(f"Step 4 - After standalone cleanup: '{cleaned_text}'")
-        
-        # PHASE 19: Validate pipeline state consistency after punctuation
-        if pipeline_state:
-            validator = create_entity_validator(current_language)
-            state_warnings = validator.validate_pipeline_state_consistency(pipeline_state, cleaned_text, "step4_punctuation")
-            if state_warnings:
-                for warning in state_warnings:
-                    logger.debug(f"PHASE_19_VALIDATION: {warning}")
 
         # STEP 5: Apply capitalization with entity protection
         logger.debug(f"Step 5 - Before capitalization: '{cleaned_text}'")

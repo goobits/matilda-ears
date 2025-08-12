@@ -36,9 +36,6 @@ from stt.text_formatting.intelligent_word_classifier import IntelligentWordClass
 # Theory 20: Spanish Technical Context Pattern Recognition
 from stt.text_formatting.spanish_technical_patterns import get_spanish_technical_recognizer
 
-# PHASE 19: Entity Validation Framework
-from stt.text_formatting.formatter_components.validation import create_entity_validator
-
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -166,15 +163,6 @@ def convert_entities(
         
         try:
             converted_text = pattern_converter.convert(entity, text)
-            
-            # PHASE 19: Validate entity conversion consistency
-            validator = create_entity_validator(language)
-            is_valid_conversion = validator.validate_entity_conversion_consistency(
-                entity, converted_text, text
-            )
-            if not is_valid_conversion:
-                logger.debug(f"PHASE_19_VALIDATION: Conversion validation failed for {entity.type}, but continuing processing")
-            
         except Exception as e:
             logger.warning(f"Error converting entity {entity.type}('{entity.text}'): {e}")
             converted_text = entity.text  # Fallback to original text
@@ -368,14 +356,6 @@ def convert_entities_with_boundary_tracking(
         try:
             # Convert the entity
             converted_text = pattern_converter.convert(entity, boundary_tracker.current_text)
-            
-            # PHASE 19: Validate entity conversion consistency (boundary tracking version)
-            validator = create_entity_validator(language)
-            is_valid_conversion = validator.validate_entity_conversion_consistency(
-                entity, converted_text, boundary_tracker.current_text
-            )
-            if not is_valid_conversion:
-                logger.debug(f"PHASE_19_VALIDATION: Boundary conversion validation failed for {entity.type}, but continuing processing")
             
             # Apply Spanish-specific spacing rules if needed
             if language == 'es' and converted_text != original_text:
