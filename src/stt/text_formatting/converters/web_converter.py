@@ -199,6 +199,21 @@ class WebPatternConverter(BasePatternConverter):
         """Convert spoken URL patterns by replacing keywords and removing spaces."""
         url_text = entity.text
         
+        # ENTITY BOUNDARY FIX: Check if URL starts with article words that should be removed
+        # This fixes cases like "the dot com" -> ".com" where "the" is not part of the URL
+        leading_articles = ["the ", "a ", "an "]
+        
+        for article in leading_articles:
+            if url_text.lower().startswith(article):
+                # Check if this is a real article before a URL (vs part of domain name)
+                remainder = url_text[len(article):].lower()
+                # If remainder contains URL keywords, this is likely "the domain.com"
+                url_keywords_in_remainder = any(keyword in remainder for keyword in self.url_keywords.keys())
+                if url_keywords_in_remainder:
+                    # Remove the article from the URL text - the entity reconstruction will handle spacing
+                    url_text = url_text[len(article):]
+                break
+        
         # Remove command prefixes that shouldn't be part of the URL, but preserve action words
         # Sort by length (longest first) to avoid partial matches
         # NOTE: Be careful not to strip action words that should be preserved in the sentence
@@ -393,6 +408,24 @@ class WebPatternConverter(BasePatternConverter):
             trailing_punct = text[-1]
             text = text[:-1]
 
+        # ENTITY BOUNDARY FIX: Handle leading action/preposition words in email entities
+        # This fixes cases like "to user at domain dot com" -> "to user@domain.com" where spacing should be preserved
+        action_prepositions = ["to ", "for ", "from ", "with "]  # Removed "at " since it conflicts with email format
+        preserve_leading_action = False
+        
+        for preposition in action_prepositions:
+            if text.lower().startswith(preposition):
+                # Check if remainder contains email keywords (at, dot) - indicating this is an email
+                remainder = text[len(preposition):].lower()
+                has_email_keywords = " at " in remainder and " dot " in remainder
+                # Also check that it's not a complex case with multiple "at" keywords
+                at_count = remainder.count(" at ")
+                if has_email_keywords and at_count == 1:  # Single email, not complex case
+                    preserve_leading_action = True
+                    # Remove the preposition from the email text - we'll add it back at the end
+                    text = text[len(preposition):]
+                break
+
         # Split at the language-specific "at" keyword to isolate the username part
         at_keywords = [k for k, v in self.url_keywords.items() if v == "@"]
         at_pattern = "|".join(re.escape(k) for k in at_keywords)
@@ -523,7 +556,17 @@ class WebPatternConverter(BasePatternConverter):
             # Remove spaces around domain components (but preserve dots)
             domain = re.sub(r"\s+", "", domain)
 
-            return f"{username}@{domain}{trailing_punct}"
+            result = f"{username}@{domain}{trailing_punct}"
+            
+            # ENTITY BOUNDARY FIX: Add preposition back if we removed it
+            if preserve_leading_action:
+                # Find which preposition we removed and add it back
+                for preposition in action_prepositions:
+                    if entity.text.lower().startswith(preposition):
+                        result = preposition.strip() + " " + result
+                        break
+                
+            return result
 
         # Fallback: use case-insensitive regex replacement for language-specific keywords
         dot_keywords = [k for k, v in self.url_keywords.items() if v == "."]
@@ -533,7 +576,18 @@ class WebPatternConverter(BasePatternConverter):
         for at_keyword in at_keywords:
             text = re.sub(rf"\s+{re.escape(at_keyword)}\s+", "@", text, flags=re.IGNORECASE)
         text = text.replace(" ", "")
-        return text + trailing_punct
+        
+        result = text + trailing_punct
+        
+        # ENTITY BOUNDARY FIX: Add preposition back if we removed it (fallback case)
+        if preserve_leading_action:
+            # Find which preposition we removed and add it back
+            for preposition in action_prepositions:
+                if entity.text.lower().startswith(preposition):
+                    result = preposition.strip() + " " + result
+                    break
+            
+        return result
 
     def convert_port_number(self, entity: Entity) -> str:
         """Convert port numbers like 'localhost colon eight zero eight zero' to 'localhost:8080'

@@ -18,7 +18,7 @@ import logging
 from typing import List, Tuple
 
 from ..pattern_converter import PatternConverter
-from stt.text_formatting.common import Entity
+from stt.text_formatting.common import Entity, EntityType
 from ..pipeline_state import PipelineState
 
 # Theory 12: Entity Interaction Conflict Resolution
@@ -199,7 +199,7 @@ def convert_entities(
     # Join everything into a single string
     processed_text = "".join(result_parts)
 
-    # Step 3c: Post-conversion validation
+    # Step 3c: Post-conversion validation and boundary repair
     # Ensure converted entities still have valid positions
     validated_entities = []
     for entity in converted_entities:
@@ -210,7 +210,68 @@ def convert_entities(
         else:
             logger.debug(f"Removing invalid converted entity: {entity.type}('{entity.text}')")
 
+    # ENTITY BOUNDARY FIX: Additional validation for spacing issues
+    # Check for common boundary problems like missing spaces around entities
+    if validated_entities:
+        processed_text = _fix_entity_spacing_issues(processed_text, validated_entities)
+
     return processed_text, validated_entities
+
+
+def _fix_entity_spacing_issues(text: str, entities: list[Entity]) -> str:
+    """
+    Fix common entity spacing issues that occur during conversion.
+    
+    This catches problems like "Check the.com sites" and fixes them to "Check .com sites".
+    """
+    fixed_text = text
+    adjustments_made = 0  # Track cumulative position adjustments
+    
+    # Sort entities by start position to process from left to right
+    sorted_entities = sorted(entities, key=lambda e: e.start)
+    
+    for entity in sorted_entities:
+        # Adjust entity position based on previous insertions
+        adjusted_start = entity.start + adjustments_made
+        adjusted_end = entity.end + adjustments_made
+        
+        # Check for missing space before web entities that start with symbols
+        if entity.type in [EntityType.SPOKEN_URL, EntityType.URL, EntityType.SPOKEN_EMAIL, EntityType.EMAIL] and adjusted_start > 0:
+            entity_text = entity.text
+            # If entity starts with a symbol or if there's no space before the entity when there should be
+            if (entity_text.startswith(('.', '/', '@', ':')) and 
+                adjusted_start > 0 and 
+                adjusted_start < len(fixed_text) and
+                not fixed_text[adjusted_start - 1].isspace()):
+                
+                # Check if the character before is alphabetic (indicating we need a space)
+                if fixed_text[adjusted_start - 1].isalpha():
+                    logger.debug(f"ENTITY_BOUNDARY_FIX: Adding space before {entity.type} '{entity_text}' at position {adjusted_start}")
+                    # Insert space before the entity
+                    fixed_text = fixed_text[:adjusted_start] + " " + fixed_text[adjusted_start:]
+                    adjustments_made += 1
+                    
+                    # Update the current entity's stored positions
+                    entity.start += 1
+                    entity.end += 1
+            
+            # Also check for email entities that might need space before them
+            elif (entity.type in [EntityType.SPOKEN_EMAIL, EntityType.EMAIL] and 
+                  adjusted_start > 0 and 
+                  adjusted_start < len(fixed_text) and
+                  not fixed_text[adjusted_start - 1].isspace() and
+                  fixed_text[adjusted_start - 1].isalpha()):
+                
+                logger.debug(f"ENTITY_BOUNDARY_FIX: Adding space before email {entity.type} '{entity_text}' at position {adjusted_start}")
+                # Insert space before the entity
+                fixed_text = fixed_text[:adjusted_start] + " " + fixed_text[adjusted_start:]
+                adjustments_made += 1
+                
+                # Update the current entity's stored positions
+                entity.start += 1
+                entity.end += 1
+    
+    return fixed_text
 
 
 def convert_entities_with_boundary_tracking(
@@ -305,6 +366,10 @@ def convert_entities_with_boundary_tracking(
     updated_entities = boundary_tracker.get_updated_entities()
     
     logger.debug(f"Boundary tracking completed: {len(updated_entities)} entities with valid boundaries")
+    
+    # ENTITY BOUNDARY FIX: Apply spacing fixes to boundary-tracked entities too
+    if updated_entities:
+        final_text = _fix_entity_spacing_issues(final_text, updated_entities)
     
     # Log debug information for troubleshooting
     debug_info = boundary_tracker.get_debug_info()
