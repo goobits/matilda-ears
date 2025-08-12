@@ -242,3 +242,87 @@ class FinancialDetector:
                             },
                         )
                     )
+
+    def detect_euro_cents(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
+        """Detect 'X euros and Y cents' patterns and convert to EURO_CENTS entities."""
+        # Pattern to match "X euros and Y cents"
+        # Supports both word numbers and digits
+        number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
+        
+        # Pattern for numbers (digits or words)
+        number_pattern = rf"(?:\d+|(?:{number_words})(?:\s+(?:{number_words}))*)"
+        
+        # Complete pattern for "X euros and Y cents"
+        euro_cents_pattern = re.compile(
+            rf"\b({number_pattern})\s+euros?\s+and\s+({number_pattern})\s+cents?\b",
+            re.IGNORECASE
+        )
+
+        for match in euro_cents_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                euros_text = match.group(1).strip()
+                cents_text = match.group(2).strip()
+                
+                # Parse the euro and cent amounts
+                euros_value = self.number_parser.parse(euros_text)
+                cents_value = self.number_parser.parse(cents_text)
+                
+                # Only create entity if both parts parse successfully
+                if euros_value and cents_value:
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.EURO_CENTS,
+                            metadata={
+                                "euros": euros_value,
+                                "cents": cents_value
+                            },
+                        )
+                    )
+
+    def detect_pound_pence(
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
+    ) -> None:
+        """Detect 'X pounds and Y pence' patterns and convert to POUND_PENCE entities."""
+        # Pattern to match "X pounds and Y pence"
+        # Supports both word numbers and digits
+        number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
+        
+        # Pattern for numbers (digits or words)
+        number_pattern = rf"(?:\d+|(?:{number_words})(?:\s+(?:{number_words}))*)"
+        
+        # Complete pattern for "X pounds and Y pence"
+        pound_pence_pattern = re.compile(
+            rf"\b({number_pattern})\s+pounds?\s+and\s+({number_pattern})\s+pence\b",
+            re.IGNORECASE
+        )
+
+        for match in pound_pence_pattern.finditer(text):
+            check_entities = all_entities if all_entities else entities
+            if not is_inside_entity(match.start(), match.end(), check_entities):
+                pounds_text = match.group(1).strip()
+                pence_text = match.group(2).strip()
+                
+                # Parse the pound and pence amounts
+                pounds_value = self.number_parser.parse(pounds_text)
+                pence_value = self.number_parser.parse(pence_text)
+                
+                # Only create entity if both parts parse successfully
+                if pounds_value and pence_value:
+                    entities.append(
+                        Entity(
+                            start=match.start(),
+                            end=match.end(),
+                            text=match.group(0),
+                            type=EntityType.POUND_PENCE,
+                            metadata={
+                                "pounds": pounds_value,
+                                "pence": pence_value
+                            },
+                        )
+                    )

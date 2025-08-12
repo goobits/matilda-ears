@@ -94,8 +94,7 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self.basic_detector.detect_fractions(text, numerical_entities, all_entities)
 
-        all_entities = entities + numerical_entities
-        self.financial_detector.detect_dollar_cents(text, numerical_entities, all_entities)
+        # Compound currency detection moved to _detect_numerical_entities to run before individual currency detection
 
         all_entities = entities + numerical_entities
         self.financial_detector.detect_cents_only(text, numerical_entities, all_entities)
@@ -127,6 +126,17 @@ class NumericalEntityDetector:
         # Regex-based detection is handled by the measurement processor
         # self.measurement_processor.detect_general_units_with_regex(text, entities, all_entities)
         
+        # Run COMPOUND currency detection first to prevent conflicts with individual currencies
+        # This ensures "five dollars and fifty cents" is detected as $5.50 before "five dollars" → $5
+        all_entities_current = entities + (all_entities if all_entities else [])
+        self.financial_detector.detect_dollar_cents(text, entities, all_entities_current)
+        
+        all_entities_current = entities + (all_entities if all_entities else [])
+        self.financial_detector.detect_euro_cents(text, entities, all_entities_current)
+        
+        all_entities_current = entities + (all_entities if all_entities else [])
+        self.financial_detector.detect_pound_pence(text, entities, all_entities_current)
+
         # Run currency detection BEFORE basic number detection to prevent conflicts
         # This ensures "ten dollars" is detected as currency before "ten" is detected as cardinal
         all_entities_current = entities + (all_entities if all_entities else [])

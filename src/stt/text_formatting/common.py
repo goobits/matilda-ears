@@ -48,6 +48,8 @@ class EntityType(Enum):
     # Legacy entity types that may still be used
     CENTS = auto()
     DOLLAR_CENTS = auto()
+    EURO_CENTS = auto()
+    POUND_PENCE = auto()
     DOLLARS = auto()
     POUNDS = auto()
     EUROS = auto()

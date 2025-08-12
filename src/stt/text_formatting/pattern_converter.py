@@ -78,6 +78,8 @@ class PatternConverter:
             EntityType.CURRENCY: self.numeric_converter.convert,
             EntityType.MONEY: self.numeric_converter.convert,  # SpaCy detected money entity
             EntityType.DOLLAR_CENTS: self.numeric_converter.convert,
+            EntityType.EURO_CENTS: self.numeric_converter.convert,
+            EntityType.POUND_PENCE: self.numeric_converter.convert,
             EntityType.CENTS: self.numeric_converter.convert,
             EntityType.PERCENT: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),
             EntityType.DATA_SIZE: lambda entity, full_text="": self.measurement_processor.convert_entity(entity, full_text),

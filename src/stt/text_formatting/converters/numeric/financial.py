@@ -21,6 +21,8 @@ class FinancialConverter(BaseNumericConverter):
             EntityType.CURRENCY: "convert_currency",
             EntityType.MONEY: "convert_currency",  # SpaCy detected money entity
             EntityType.DOLLAR_CENTS: "convert_dollar_cents",
+            EntityType.EURO_CENTS: "convert_euro_cents",
+            EntityType.POUND_PENCE: "convert_pound_pence",
             EntityType.CENTS: "convert_cents",
         }
         
@@ -133,6 +135,42 @@ class FinancialConverter(BaseNumericConverter):
                     cents_int = int(cents) if isinstance(cents, str) else cents
                     # Format as cents symbol (preferred)
                     return f"{cents_int}¢"
+                except (ValueError, TypeError):
+                    pass
+        return entity.text
+
+    def convert_euro_cents(self, entity: Entity) -> str:
+        """Convert 'X euros and Y cents' to '€X.Y'"""
+        if entity.metadata:
+            # The metadata already contains parsed values as strings
+            euros = entity.metadata.get("euros", "0")
+            cents = entity.metadata.get("cents", "0")
+            if euros and cents:
+                # Convert to integers for proper formatting
+                try:
+                    euros_int = int(euros) if isinstance(euros, str) else euros
+                    cents_int = int(cents) if isinstance(cents, str) else cents
+                    # Ensure cents is zero-padded to 2 digits
+                    cents_str = str(cents_int).zfill(2)
+                    return f"€{euros_int}.{cents_str}"
+                except (ValueError, TypeError):
+                    pass
+        return entity.text
+
+    def convert_pound_pence(self, entity: Entity) -> str:
+        """Convert 'X pounds and Y pence' to '£X.Y'"""
+        if entity.metadata:
+            # The metadata already contains parsed values as strings
+            pounds = entity.metadata.get("pounds", "0")
+            pence = entity.metadata.get("pence", "0")
+            if pounds and pence:
+                # Convert to integers for proper formatting
+                try:
+                    pounds_int = int(pounds) if isinstance(pounds, str) else pounds
+                    pence_int = int(pence) if isinstance(pence, str) else pence
+                    # Ensure pence is zero-padded to 2 digits
+                    pence_str = str(pence_int).zfill(2)
+                    return f"£{pounds_int}.{pence_str}"
                 except (ValueError, TypeError):
                     pass
         return entity.text

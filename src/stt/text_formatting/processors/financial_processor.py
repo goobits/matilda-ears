@@ -32,6 +32,20 @@ class FinancialProcessor(BaseNumericProcessor):
                 metadata_extractor=self._extract_dollar_cents_metadata,
                 priority=60
             ),
+            # Euro-cents pattern (same priority as dollar-cents)
+            ProcessingRule(
+                pattern=self._build_euro_cents_pattern(),
+                entity_type=EntityType.EURO_CENTS,
+                metadata_extractor=self._extract_euro_cents_metadata,
+                priority=60
+            ),
+            # Pound-pence pattern (same priority as dollar-cents)
+            ProcessingRule(
+                pattern=self._build_pound_pence_pattern(),
+                entity_type=EntityType.POUND_PENCE,
+                metadata_extractor=self._extract_pound_pence_metadata,
+                priority=60
+            ),
             # Cents only pattern
             ProcessingRule(
                 pattern=self._build_cents_pattern(),
@@ -58,6 +72,8 @@ class FinancialProcessor(BaseNumericProcessor):
             EntityType.CURRENCY: "convert_currency",
             EntityType.MONEY: "convert_currency",  # SpaCy detected money entity
             EntityType.DOLLAR_CENTS: "convert_dollar_cents",
+            EntityType.EURO_CENTS: "convert_euro_cents",
+            EntityType.POUND_PENCE: "convert_pound_pence",
             EntityType.CENTS: "convert_cents",
         }
     
@@ -100,6 +116,26 @@ class FinancialProcessor(BaseNumericProcessor):
         
         return re.compile(
             rf"\b({number_pattern})\s+cents?\b",
+            re.IGNORECASE
+        )
+    
+    def _build_euro_cents_pattern(self) -> Pattern[str]:
+        """Build pattern for 'X euros and Y cents'."""
+        number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
+        number_pattern = rf"(?:\d+|(?:{number_words})(?:\s+(?:{number_words}))*)"
+        
+        return re.compile(
+            rf"\b({number_pattern})\s+euros?\s+and\s+({number_pattern})\s+cents?\b",
+            re.IGNORECASE
+        )
+    
+    def _build_pound_pence_pattern(self) -> Pattern[str]:
+        """Build pattern for 'X pounds and Y pence'."""
+        number_words = "|".join(re.escape(word) for word in self.number_parser.all_number_words)
+        number_pattern = rf"(?:\d+|(?:{number_words})(?:\s+(?:{number_words}))*)"
+        
+        return re.compile(
+            rf"\b({number_pattern})\s+pounds?\s+and\s+({number_pattern})\s+pence\b",
             re.IGNORECASE
         )
     
@@ -148,6 +184,34 @@ class FinancialProcessor(BaseNumericProcessor):
         
         return {
             "cents": cents_value
+        }
+    
+    def _extract_euro_cents_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from euro-cents matches."""
+        euros_text = match.group(1).strip()
+        cents_text = match.group(2).strip()
+        
+        # Parse the amounts
+        euros_value = self.number_parser.parse(euros_text)
+        cents_value = self.number_parser.parse(cents_text)
+        
+        return {
+            "euros": euros_value,
+            "cents": cents_value
+        }
+    
+    def _extract_pound_pence_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from pound-pence matches."""
+        pounds_text = match.group(1).strip()
+        pence_text = match.group(2).strip()
+        
+        # Parse the amounts
+        pounds_value = self.number_parser.parse(pounds_text)
+        pence_value = self.number_parser.parse(pence_text)
+        
+        return {
+            "pounds": pounds_value,
+            "pence": pence_value
         }
     
     # Context filters
@@ -321,6 +385,38 @@ class FinancialProcessor(BaseNumericProcessor):
                     cents_int = int(cents) if isinstance(cents, str) else cents
                     # Format as cents symbol (preferred)
                     return f"{cents_int}¢"
+                except (ValueError, TypeError):
+                    pass
+        return entity.text
+
+    def convert_euro_cents(self, entity: Entity) -> str:
+        """Convert 'X euros and Y cents' to '€X.Y'."""
+        if entity.metadata:
+            euros = entity.metadata.get("euros", "0")
+            cents = entity.metadata.get("cents", "0")
+            if euros and cents:
+                try:
+                    euros_int = int(euros) if isinstance(euros, str) else euros
+                    cents_int = int(cents) if isinstance(cents, str) else cents
+                    # Ensure cents is zero-padded to 2 digits
+                    cents_str = str(cents_int).zfill(2)
+                    return f"€{euros_int}.{cents_str}"
+                except (ValueError, TypeError):
+                    pass
+        return entity.text
+
+    def convert_pound_pence(self, entity: Entity) -> str:
+        """Convert 'X pounds and Y pence' to '£X.Y'."""
+        if entity.metadata:
+            pounds = entity.metadata.get("pounds", "0")
+            pence = entity.metadata.get("pence", "0")
+            if pounds and pence:
+                try:
+                    pounds_int = int(pounds) if isinstance(pounds, str) else pounds
+                    pence_int = int(pence) if isinstance(pence, str) else pence
+                    # Ensure pence is zero-padded to 2 digits
+                    pence_str = str(pence_int).zfill(2)
+                    return f"£{pounds_int}.{pence_str}"
                 except (ValueError, TypeError):
                     pass
         return entity.text

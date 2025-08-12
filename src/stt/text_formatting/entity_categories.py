@@ -89,6 +89,8 @@ class EntityHierarchy:
             EntityType.MONEY: EntityCategory.FINANCIAL,
             EntityType.CENTS: EntityCategory.FINANCIAL,
             EntityType.DOLLAR_CENTS: EntityCategory.FINANCIAL,
+            EntityType.EURO_CENTS: EntityCategory.FINANCIAL,
+            EntityType.POUND_PENCE: EntityCategory.FINANCIAL,
             EntityType.DOLLARS: EntityCategory.FINANCIAL,
             EntityType.POUNDS: EntityCategory.FINANCIAL,
             EntityType.EUROS: EntityCategory.FINANCIAL,
@@ -176,6 +178,8 @@ class EntityHierarchy:
                 EntityType.MONEY,
                 EntityType.CENTS,
                 EntityType.DOLLAR_CENTS,
+                EntityType.EURO_CENTS,
+                EntityType.POUND_PENCE,
             },
             
             # Measurement subcategories
