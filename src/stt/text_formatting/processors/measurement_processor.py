@@ -157,8 +157,8 @@ class MeasurementProcessor(BaseNumericProcessor):
         
         This overrides the base method to add SpaCy-based metric unit detection.
         """
-        # First apply regex-based rules
-        super().detect_entities(text, entities, all_entities)
+        # First apply regex-based rules with idiom protection
+        self._detect_entities_with_idiom_protection(text, entities, all_entities)
         
         # Then apply SpaCy-based detection for complex patterns
         if self.nlp:
@@ -167,6 +167,92 @@ class MeasurementProcessor(BaseNumericProcessor):
                 self._detect_metric_units_with_spacy(doc, text, entities, all_entities)
                 self._detect_general_units_with_spacy(doc, text, entities, all_entities)
                 self._detect_temperature_context_with_spacy(doc, text, entities, all_entities)
+    
+    def _detect_entities_with_idiom_protection(self, text: str, entities: List[Entity], 
+                                              all_entities: Optional[List[Entity]] = None) -> None:
+        """
+        Apply regex-based rules with idiom protection to prevent conversion of idiomatic phrases.
+        """
+        # Check for idioms before applying measurement detection
+        if self._text_contains_protected_idioms(text):
+            # Apply selective detection that avoids protected phrases
+            self._detect_non_idiom_measurements(text, entities, all_entities)
+        else:
+            # Normal detection
+            super().detect_entities(text, entities, all_entities)
+    
+    def _text_contains_protected_idioms(self, text: str) -> bool:
+        """
+        Check if text contains any protected idioms that should not be converted.
+        """
+        text_lower = text.lower()
+        
+        # Get idiom patterns from resources
+        idiom_patterns = self.resources.get("idiom_protection", {}).get("idiom_context_patterns", [])
+        
+        for pattern in idiom_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                return True
+        
+        # Also check specific exceptions
+        number_unit_exceptions = self.resources.get("idiom_protection", {}).get("number_unit_exceptions", {})
+        for exception_phrase in number_unit_exceptions.keys():
+            if exception_phrase.lower() in text_lower:
+                return True
+        
+        return False
+    
+    def _detect_non_idiom_measurements(self, text: str, entities: List[Entity], 
+                                      all_entities: Optional[List[Entity]] = None) -> None:
+        """
+        Apply measurement detection while avoiding protected idiom phrases.
+        """
+        # Get protected spans first
+        protected_spans = self._get_protected_idiom_spans(text)
+        
+        # Apply each detection rule while avoiding protected spans
+        for rule in self.detection_rules:
+            for match in rule.pattern.finditer(text):
+                # Check if this match overlaps with any protected span
+                if not self._overlaps_with_protected_spans(match.start(), match.end(), protected_spans):
+                    # Safe to process normally
+                    self._process_rule_match(rule, match, text, entities, all_entities)
+    
+    def _get_protected_idiom_spans(self, text: str) -> List[tuple]:
+        """
+        Get the start and end positions of all protected idiom phrases in the text.
+        """
+        protected_spans = []
+        text_lower = text.lower()
+        
+        # Check idiom patterns
+        idiom_patterns = self.resources.get("idiom_protection", {}).get("idiom_context_patterns", [])
+        for pattern in idiom_patterns:
+            for match in re.finditer(pattern, text_lower, re.IGNORECASE):
+                protected_spans.append((match.start(), match.end()))
+        
+        # Check specific exception phrases
+        number_unit_exceptions = self.resources.get("idiom_protection", {}).get("number_unit_exceptions", {})
+        for exception_phrase in number_unit_exceptions.keys():
+            start = 0
+            while True:
+                pos = text_lower.find(exception_phrase.lower(), start)
+                if pos == -1:
+                    break
+                protected_spans.append((pos, pos + len(exception_phrase)))
+                start = pos + 1
+        
+        return protected_spans
+    
+    def _overlaps_with_protected_spans(self, start: int, end: int, protected_spans: List[tuple]) -> bool:
+        """
+        Check if the given span overlaps with any protected span.
+        """
+        for prot_start, prot_end in protected_spans:
+            # Check for any overlap
+            if not (end <= prot_start or start >= prot_end):
+                return True
+        return False
     
     # Pattern builders
     

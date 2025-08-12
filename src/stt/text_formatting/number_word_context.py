@@ -33,6 +33,13 @@ class NumberWordContextAnalyzer:
         """Initialize with optional SpaCy model."""
         self.nlp = nlp
         
+        # Load idiom protection resources
+        try:
+            from stt.text_formatting.constants import get_resources
+            self.resources = get_resources("en")
+        except ImportError:
+            self.resources = {}
+        
         # Common patterns where numbers should remain as words
         self.keep_as_word_patterns = [
             # Determiners
@@ -64,6 +71,33 @@ class NumberWordContextAnalyzer:
             r'\bfirst\s+things\s+first\b',  # "first things first"
             r'\bsecond\s+thoughts\b',  # "second thoughts"
             r'\bthird\s+time\'s\s+the\s+charm\b',  # "third time's the charm"
+            
+            # Additional comprehensive idiom patterns
+            r'\b(the\s+)?whole\s+nine\s+yards\b',  # "the whole nine yards", "whole nine yards"
+            r'\bcloud\s+nine\b',  # "cloud nine"
+            r'\bon\s+cloud\s+nine\b',  # "on cloud nine"
+            r'\bbehind\s+the\s+eight\s+ball\b',  # "behind the eight ball"
+            r'\b(in\s+)?one\s+fell\s+swoop\b',  # "one fell swoop", "in one fell swoop"
+            r'\b(my\s+)?two\s+cents\b(?!\s+(worth|per|each|coin))',  # "two cents", "my two cents" but not "two cents worth"
+            r'\b(the\s+)?seven\s+deadly\s+sins\b',  # "seven deadly sins", "the seven deadly sins"
+            r'\bnine\s+to\s+five\b',  # "nine to five"
+            r'\bdressed\s+to\s+the\s+nines\b',  # "dressed to the nines"
+            r'\bback\s+to\s+square\s+one\b',  # "back to square one"
+            r'\bone\s+in\s+a\s+million\b',  # "one in a million"
+            r'\btwo\s+peas\s+in\s+a\s+pod\b',  # "two peas in a pod"
+            r'\bsix\s+feet\s+under\b',  # "six feet under"
+            r'\bkill\s+two\s+birds\s+with\s+one\s+stone\b',  # "kill two birds with one stone"
+            r'\bsix\s+of\s+one\s+half\s+a\s+dozen\s+of\s+the\s+other\b',  # "six of one half a dozen of the other"
+            r'\b(the\s+)?seven\s+year\s+itch\b',  # "seven year itch", "the seven year itch"
+            r'\btwenty\s+twenty\s+(vision|hindsight)\b',  # "twenty twenty vision", "twenty twenty hindsight"
+            r'\bzero\s+tolerance\b',  # "zero tolerance"
+            r'\bfour\s+score\s+and\s+seven\b',  # "four score and seven"
+            r'\b(a\s+)?picture\s+(is\s+)?worth\s+a\s+thousand\s+words\b',  # "a picture is worth a thousand words"
+            r'\bone\s+foot\s+in\s+the\s+grave\b',  # "one foot in the grave"
+            r'\bone\s+for\s+the\s+road\b',  # "one for the road"
+            r'\btwo\s+wrongs\s+don\'t\s+make\s+a\s+right\b',  # "two wrongs don't make a right"
+            r'\bthree\s+sheets\s+to\s+the\s+wind\b',  # "three sheets to the wind"
+            r'\bat\s+sixes\s+and\s+sevens\b',  # "at sixes and sevens"
         ]
         
         # Patterns where numbers should be converted to digits
@@ -141,6 +175,10 @@ class NumberWordContextAnalyzer:
         for pattern in self.keep_as_word_patterns:
             if re.search(pattern, context, re.IGNORECASE):
                 return NumberWordDecision.KEEP_WORD
+        
+        # Check resource-based idiom patterns
+        if self._is_in_protected_idiom(text, word_start, word_end):
+            return NumberWordDecision.KEEP_WORD
         
         # Check convert-to-digit patterns
         for pattern in self.convert_to_digit_patterns:
@@ -228,6 +266,31 @@ class NumberWordContextAnalyzer:
         
         for pattern in technical_patterns:
             if re.search(pattern, context):
+                return True
+        
+        return False
+    
+    def _is_in_protected_idiom(self, text: str, word_start: int, word_end: int) -> bool:
+        """
+        Check if the number word is part of a protected idiom using resource patterns.
+        """
+        # Get context around the word (wider window for idiom detection)
+        context_start = max(0, word_start - 100)
+        context_end = min(len(text), word_end + 100)
+        context = text[context_start:context_end].lower()
+        
+        # Check idiom patterns from resources
+        idiom_patterns = self.resources.get("idiom_protection", {}).get("idiom_context_patterns", [])
+        for pattern in idiom_patterns:
+            # Remove double backslashes from the pattern (they're for JSON escaping)
+            clean_pattern = pattern.replace('\\\\', '\\')
+            if re.search(clean_pattern, context, re.IGNORECASE):
+                return True
+        
+        # Check specific exception phrases
+        number_unit_exceptions = self.resources.get("idiom_protection", {}).get("number_unit_exceptions", {})
+        for exception_phrase in number_unit_exceptions.keys():
+            if exception_phrase.lower() in context:
                 return True
         
         return False

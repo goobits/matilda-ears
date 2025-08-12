@@ -8,6 +8,7 @@ extracted from entity_detector.py for better modularity and maintainability.
 from __future__ import annotations
 
 import contextlib
+import re
 
 from ...core.config import setup_logging
 from ..constants import get_resources
@@ -60,7 +61,7 @@ class EntityValidator:
                 logger.debug(f"Skipping CARDINAL '{ent.text}' because it appears to be part of an email address")
                 return True
 
-        # Check for specific idiomatic patterns
+        # Check for specific idiomatic patterns (existing patterns)
         if ent.text.lower() == "twenty two" and prefix_text.endswith("catch"):
             logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of 'catch twenty two'.")
             return True
@@ -71,6 +72,10 @@ class EntityValidator:
 
         if ent.text.lower() == "eight" and "behind the" in prefix_text:
             logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of 'behind the eight ball'.")
+            return True
+        
+        # Comprehensive idiom protection using resource patterns
+        if self._is_in_protected_idiom(ent, text):
             return True
 
         # Check if this looks like a numeric range pattern (e.g., "ten to twenty")
@@ -194,6 +199,42 @@ class EntityValidator:
                             logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by idiomatic '{remaining_words[0]} {next_word}' pattern")
                             return True
 
+        return False
+    
+    def _is_in_protected_idiom(self, ent, text: str) -> bool:
+        """
+        Check if the entity is part of a protected idiom using comprehensive patterns.
+        """
+        # Get wider context around the entity
+        context_start = max(0, ent.start_char - 50)
+        context_end = min(len(text), ent.end_char + 50)
+        context = text[context_start:context_end].lower()
+        
+        # Check idiom patterns from resources
+        idiom_patterns = self.resources.get("idiom_protection", {}).get("idiom_context_patterns", [])
+        for pattern in idiom_patterns:
+            # Remove double backslashes from the pattern (they're for JSON escaping)
+            clean_pattern = pattern.replace('\\\\', '\\')
+            if re.search(clean_pattern, context, re.IGNORECASE):
+                logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of protected idiom pattern: {clean_pattern}")
+                return True
+        
+        # Check specific exception phrases that might contain this entity
+        number_unit_exceptions = self.resources.get("idiom_protection", {}).get("number_unit_exceptions", {})
+        for exception_phrase in number_unit_exceptions.keys():
+            if exception_phrase.lower() in context:
+                # Check if our entity is actually part of this exception phrase
+                phrase_start = context.find(exception_phrase.lower())
+                if phrase_start != -1:
+                    # Convert back to original text coordinates
+                    abs_phrase_start = context_start + phrase_start
+                    abs_phrase_end = abs_phrase_start + len(exception_phrase)
+                    
+                    # Check if our entity overlaps with this phrase
+                    if not (ent.end_char <= abs_phrase_start or ent.start_char >= abs_phrase_end):
+                        logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of protected idiom: '{exception_phrase}'")
+                        return True
+        
         return False
 
     def should_skip_quantity(self, ent, text: str) -> bool:
