@@ -224,9 +224,8 @@ class WebPatternConverter(BasePatternConverter):
             if url_text.lower().startswith(prefix):
                 url_text = url_text[len(prefix):]
                 break
-        trailing_punct = ""
+        # Check for trailing punctuation and remove it (don't add it back)
         if url_text and url_text[-1] in ".!?":
-            trailing_punct = url_text[-1]
             url_text = url_text[:-1]
 
         # Handle query parameters separately first (before converting keywords)
@@ -250,7 +249,7 @@ class WebPatternConverter(BasePatternConverter):
             # This method handles both number words and keyword conversion in the right order
             url_text = self._convert_url_keywords(url_text)
 
-        return url_text + trailing_punct
+        return url_text
 
     def _convert_url_keywords(self, url_text: str) -> str:
         """Convert URL keywords in base URL text, properly handling numbers."""
@@ -357,6 +356,32 @@ class WebPatternConverter(BasePatternConverter):
                 if symbol in ['.', '/', '@']:
                     text = re.sub(rf'{re.escape(symbol)}\s+', symbol, text)
         
+        # Additional consolidation for URL contexts - remove spaces between adjacent words
+        # when they are clearly part of a domain name or URL path
+        # Pattern: word space word -> wordword when followed by URL symbols
+        if any(symbol in text for symbol in ['.', '/']):
+            # More aggressive space removal for clear URL patterns
+            # Remove spaces between words when we see URL structure indicators
+            parts = text.split('.')
+            consolidated_parts = []
+            for part in parts:
+                # In domain parts, remove internal spaces more aggressively
+                if '/' not in part:  # Domain part
+                    # Remove spaces between words in domain parts like "my app" -> "myapp"
+                    part = re.sub(r'\s+', '', part)
+                else:  # Path part
+                    # In path parts, be more selective
+                    path_segments = part.split('/')
+                    consolidated_segments = []
+                    for segment in path_segments:
+                        if segment.strip():  # Non-empty segment
+                            # Remove spaces in path segments too, but preserve structure
+                            segment = re.sub(r'\s+', '', segment.strip())
+                        consolidated_segments.append(segment)
+                    part = '/'.join(consolidated_segments)
+                consolidated_parts.append(part)
+            text = '.'.join(consolidated_parts)
+        
         return text
 
     def convert_url(self, entity: Entity) -> str:
@@ -366,25 +391,21 @@ class WebPatternConverter(BasePatternConverter):
         # Fix for http// or https// patterns
         url_text = re.sub(r"\b(https?)//", r"\1://", url_text)
 
-        # Check for trailing punctuation
-        trailing_punct = ""
+        # Check for trailing punctuation and remove it (don't add it back)
         if url_text and url_text[-1] in ".!?":
-            trailing_punct = url_text[-1]
             url_text = url_text[:-1]
 
         # For SpaCy-detected URLs, the text is already clean and formatted
-        # We only need to normalize protocol to lowercase and preserve punctuation
+        # We only need to normalize protocol to lowercase
         url_text = re.sub(r"^(HTTPS?|FTP)://", lambda m: m.group(0).lower(), url_text)
 
-        return url_text + trailing_punct
+        return url_text
 
     def convert_email(self, entity: Entity) -> str:
         """Convert email patterns"""
-        # Check for trailing punctuation
+        # Check for trailing punctuation and remove it (don't add it back)
         text = entity.text
-        trailing_punct = ""
         if text and text[-1] in ".!?":
-            trailing_punct = text[-1]
             text = text[:-1]
 
         # For SpaCy-detected emails, the text is already clean and formatted
@@ -392,10 +413,10 @@ class WebPatternConverter(BasePatternConverter):
         if entity.metadata and "username" in entity.metadata and "domain" in entity.metadata:
             username = entity.metadata["username"]
             domain = entity.metadata["domain"]
-            return f"{username}@{domain}{trailing_punct}"
+            return f"{username}@{domain}"
 
         # For clean SpaCy-detected emails, just return the text as-is
-        return text + trailing_punct
+        return text
 
     def convert_spoken_email(self, entity: Entity, full_text: str | None = None) -> str:
         """
@@ -405,9 +426,8 @@ class WebPatternConverter(BasePatternConverter):
         Action phrases are handled separately by the formatter.
         """
         text = entity.text.strip()  # Strip leading/trailing spaces
-        trailing_punct = ""
+        # Check for trailing punctuation and remove it (don't add it back)
         if text and text[-1] in ".!?":
-            trailing_punct = text[-1]
             text = text[:-1]
 
         # ENTITY BOUNDARY FIX: Handle leading action/preposition words in email entities
@@ -454,32 +474,48 @@ class WebPatternConverter(BasePatternConverter):
 
                     # Check if this part starts a number sequence
                     if part.lower() in self.number_parser.all_number_words:
-                        # Look for consecutive number words
+                        # Look for consecutive number words - be more aggressive in collecting them
                         number_sequence = [part]
                         j = i + 1
-                        while (
-                            j < len(username_parts) and username_parts[j].lower() in self.number_parser.all_number_words
-                        ):
-                            number_sequence.append(username_parts[j])
-                            j += 1
+                        while j < len(username_parts):
+                            next_part = username_parts[j].lower()
+                            # Include all number words, even if not strictly consecutive in number_parser
+                            if next_part in self.number_parser.all_number_words:
+                                number_sequence.append(username_parts[j])
+                                j += 1
+                            else:
+                                break
 
-                        # Try to parse the sequence as digits first, then as a number
+                        # Try to parse the sequence as digits first (this handles "one two three" -> "123")
                         sequence_text = " ".join(number_sequence)
                         parsed = self.number_parser.parse_as_digits(sequence_text)
                         if parsed:
                             converted_parts.append(parsed)
                         else:
+                            # Try regular parsing for compound numbers
                             parsed = self.number_parser.parse(sequence_text)
                             if parsed and parsed.isdigit():
                                 converted_parts.append(parsed)
                             else:
-                                # Fall back to individual parsing
+                                # Parse each word individually and concatenate digits
+                                digit_parts = []
                                 for seq_part in number_sequence:
-                                    individual_parsed = self.number_parser.parse(seq_part)
-                                    if individual_parsed and individual_parsed.isdigit():
-                                        converted_parts.append(individual_parsed)
+                                    individual_parsed = self.number_parser.parse_as_digits(seq_part)
+                                    if individual_parsed:
+                                        digit_parts.append(individual_parsed)
                                     else:
-                                        converted_parts.append(seq_part)
+                                        # Try regular parsing
+                                        individual_parsed = self.number_parser.parse(seq_part)
+                                        if individual_parsed and individual_parsed.isdigit():
+                                            digit_parts.append(individual_parsed)
+                                        else:
+                                            digit_parts.append(seq_part)
+                                
+                                # If we have digit parts, join them; otherwise keep original sequence
+                                if digit_parts and all(p.isdigit() or len(p) == 1 for p in digit_parts):
+                                    converted_parts.append(''.join(digit_parts))
+                                else:
+                                    converted_parts.extend(number_sequence)
                         i = j
                     else:
                         # Not a number word, keep as is
@@ -569,7 +605,7 @@ class WebPatternConverter(BasePatternConverter):
             # Remove spaces around domain components (but preserve dots)
             domain = re.sub(r"\s+", "", domain)
 
-            result = f"{username}@{domain}{trailing_punct}"
+            result = f"{username}@{domain}"
             
             # ENTITY BOUNDARY FIX: Add preposition back if we removed it
             if preserve_leading_action:
@@ -590,7 +626,7 @@ class WebPatternConverter(BasePatternConverter):
             text = re.sub(rf"\s+{re.escape(at_keyword)}\s+", "@", text, flags=re.IGNORECASE)
         text = text.replace(" ", "")
         
-        result = text + trailing_punct
+        result = text
         
         # ENTITY BOUNDARY FIX: Add preposition back if we removed it (fallback case)
         if preserve_leading_action:

@@ -387,28 +387,42 @@ class WebEntityDetector:
         for token in doc:
             # Check for URL tokens
             if token.like_url:
-                # Get the exact character positions
+                # Get the exact character positions and clean trailing punctuation
+                url_text = token.text
                 start_pos = token.idx
-                end_pos = token.idx + len(token.text)
+                
+                # Remove trailing punctuation from URL detection boundaries
+                if url_text and url_text[-1] in ".!?":
+                    url_text = url_text[:-1]
+                    end_pos = token.idx + len(url_text)
+                else:
+                    end_pos = token.idx + len(token.text)
 
-                if not is_inside_entity(start_pos, end_pos, existing_entities):
-                    entities.append(Entity(start=start_pos, end=end_pos, text=token.text, type=EntityType.URL))
+                if url_text and not is_inside_entity(start_pos, end_pos, existing_entities):
+                    entities.append(Entity(start=start_pos, end=end_pos, text=url_text, type=EntityType.URL))
 
             # Check for email tokens
             elif token.like_email:
-                # Get the exact character positions
+                # Get the exact character positions and clean trailing punctuation
+                email_text = token.text
                 start_pos = token.idx
-                end_pos = token.idx + len(token.text)
+                
+                # Remove trailing punctuation from email detection boundaries
+                if email_text and email_text[-1] in ".!?":
+                    email_text = email_text[:-1]
+                    end_pos = token.idx + len(email_text)
+                else:
+                    end_pos = token.idx + len(token.text)
 
-                if not is_inside_entity(start_pos, end_pos, existing_entities):
+                if email_text and not is_inside_entity(start_pos, end_pos, existing_entities):
                     # Parse email to extract username and domain
-                    parts = token.text.split("@")
+                    parts = email_text.split("@")
                     metadata = {}
                     if len(parts) == 2:
                         metadata = {"username": parts[0], "domain": parts[1]}
 
                     entities.append(
-                        Entity(start=start_pos, end=end_pos, text=token.text, type=EntityType.EMAIL, metadata=metadata)
+                        Entity(start=start_pos, end=end_pos, text=email_text, type=EntityType.EMAIL, metadata=metadata)
                     )
 
     def _detect_links_regex_fallback(self, text: str, entities: list[Entity], existing_entities: list[Entity]) -> None:
