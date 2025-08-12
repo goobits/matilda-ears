@@ -315,6 +315,8 @@ def add_punctuation(
                     pass
 
             # Fix double periods that the model sometimes adds
+            # Use original manual patterns to maintain existing behavior
+            # Universal Punctuation Framework (Phase 22) is available via normalize_punctuation_universal()
             result = re.sub(r"\.\.+", ".", result)
             result = re.sub(r"\?\?+", "?", result)
             result = re.sub(r"!!+", "!", result)

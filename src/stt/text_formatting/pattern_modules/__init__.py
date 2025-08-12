@@ -185,6 +185,18 @@ from .text_patterns import (
     get_whitespace_normalization_pattern,
 )
 
+# Universal Punctuation Framework (Phase 22)
+from ..universal_punctuation_normalizer import (
+    UniversalPunctuationNormalizer,
+    get_universal_punctuation_normalizer,
+    get_universal_punctuation_patterns,
+    normalize_punctuation_universal,
+    validate_punctuation_framework,
+    PunctuationType,
+    PunctuationRule,
+    LanguagePunctuationInterface,
+)
+
 from .common_patterns import (
     ABBREVIATION_SPACING_PATTERN,
     EMAIL_BASIC_PATTERN,
@@ -371,6 +383,15 @@ __all__ = [
     "get_repeated_exclamation_marks_pattern",
     "get_repeated_punctuation_patterns",
     "get_repeated_question_marks_pattern",
+    # Universal Punctuation Framework (Phase 22)
+    "UniversalPunctuationNormalizer",
+    "get_universal_punctuation_normalizer", 
+    "get_universal_punctuation_patterns",
+    "normalize_punctuation_universal",
+    "validate_punctuation_framework",
+    "PunctuationType",
+    "PunctuationRule",
+    "LanguagePunctuationInterface",
     "get_sentence_capitalization_pattern",
     "get_spoken_emoji_explicit_map",
     "get_spoken_emoji_implicit_map",

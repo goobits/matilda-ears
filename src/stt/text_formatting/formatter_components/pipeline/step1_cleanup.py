@@ -140,6 +140,8 @@ def clean_artifacts(text: str, resources: Dict[str, Any]) -> str:
     text = re.sub(r",\s*,", ",", text)
 
     # Normalize repeated punctuation using centralized patterns
+    # Use original pattern-based approach to maintain existing behavior
+    # Universal Punctuation Framework (Phase 22) is available via normalize_punctuation_universal()
     for pattern, replacement in regex_patterns.REPEATED_PUNCTUATION_PATTERNS:
         text = pattern.sub(replacement, text)
 
