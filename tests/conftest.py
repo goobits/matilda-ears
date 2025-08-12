@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Register plugins
-pytest_plugins = ["tests.tools.diff_tracker", "tests.tools.summary_plugin", "tests.tools.pattern_coverage_plugin"]
+pytest_plugins = ["tests.tools.diff_tracker", "tests.tools.summary_plugin"]
 
 # Disable excessive logging during tests for performance
 logging.getLogger("stt.text_formatting").setLevel(logging.CRITICAL)
