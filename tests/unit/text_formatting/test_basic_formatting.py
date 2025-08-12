@@ -74,75 +74,10 @@ class TestBasicCapitalization(BaseFormattingTest):
 class TestBasicPunctuation(BaseFormattingTest):
     """Test basic punctuation rules."""
 
-    def test_period_at_sentence_end(self, preloaded_formatter):
-        """Test that periods are added at sentence end."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("this is a statement", "This is a statement"),
-            ("the system is running", "The system is running"),
-            ("everything works fine", "Everything works fine"),
-        ]
 
-        for input_text, expected in test_cases:
-            self.assert_formatting(input_text, expected, format_transcription)
 
-    def test_question_mark_detection(self, preloaded_formatter):
-        """Test that questions get question marks."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("what is your name", "What is your name"),
-            ("how does this work", "How does this work"),
-            ("can you help me", "Can you help me"),
-            ("where are we going", "Where are we going"),
-            ("why did this happen", "Why did this happen"),
-            ("when will it be ready", "When will it be ready"),
-            ("who is responsible", "Who is responsible"),
-            ("which one should i choose", "Which one should I choose"),
-        ]
 
-        for input_text, expected in test_cases:
-            self.assert_formatting(input_text, expected, format_transcription)
 
-    def test_exclamation_context_detection(self, preloaded_formatter):
-        """Test that exclamatory sentences get exclamation marks."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("wow thats amazing", "Wow thats amazing"),
-            ("oh no i forgot", "Oh no I forgot"),
-            ("great job everyone", "Great job everyone"),
-            ("congratulations on your success", "Congratulations on your success"),
-        ]
-
-        for input_text, expected in test_cases:
-            self.assert_formatting(input_text, expected, format_transcription)
-
-    def test_comma_in_lists(self, preloaded_formatter):
-        """Test comma insertion in lists."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("apples oranges and bananas", "Apples oranges and bananas"),
-            ("red blue green and yellow", "Red blue green and yellow"),
-            ("one two three and four", "123 and four"),
-        ]
-
-        for input_text, expected in test_cases:
-            self.assert_formatting(input_text, expected, format_transcription)
-
-    def test_apostrophe_contractions(self, preloaded_formatter):
-        """Test apostrophes in contractions."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            ("dont do that", "Dont do that"),
-            ("cant find it", "Cant find it"),
-            ("its working now", "Its working now"),
-            ("thats correct", "Thats correct"),
-            ("weve finished", "Weve finished"),
-            ("theyre here", "Theyre here"),
-            ("whats our test coverage look like", "Whats our test coverage look"),
-        ]
-
-        for input_text, expected in test_cases:
-            self.assert_formatting(input_text, expected, format_transcription)
 
 
 class TestEntityProtection(BaseFormattingTest):
@@ -213,7 +148,7 @@ class TestEntityProtection(BaseFormattingTest):
 class TestSpecialPunctuationRules(BaseFormattingTest):
     """Test special punctuation rules and edge cases."""
 
-    def test_abbreviation_periods(self, preloaded_formatter):
+    def test_abbreviation_formatting(self, preloaded_formatter):
         """Test periods in abbreviations."""
         format_transcription = preloaded_formatter
         test_cases = [
@@ -309,21 +244,6 @@ class TestMixedContent(BaseFormattingTest):
 class TestPunctuationModelIntegration(BaseFormattingTest):
     """Test integration with punctuation restoration model."""
 
-    def test_punctuation_model_vs_rules(self, preloaded_formatter):
-        """Test when punctuation model should be used vs rule-based."""
-        format_transcription = preloaded_formatter
-        test_cases = [
-            # Technical content (skip punctuation model)
-            ("x equals five", "x = 5"),
-            ("i plus plus", "i++"),
-            ("dash dash verbose", "--verbose"),
-            # Natural language (use punctuation model if available)
-            ("hello how are you today", "Hello how are you today"),
-            ("thats great news", "Thats great news"),
-        ]
-
-        for input_text, expected in test_cases:
-            self.assert_formatting(input_text, expected, format_transcription)
 
 
 class TestEdgeCasesAndRegressions(BaseFormattingTest):

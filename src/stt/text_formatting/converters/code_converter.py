@@ -389,18 +389,16 @@ class CodePatternConverter(BasePatternConverter):
         abbreviations = self.resources.get("abbreviations", {})
         converted = abbreviations.get(text, None)
         
-        # If found in resources but punctuation is disabled, strip periods
-        if converted is not None and punctuation_disabled and converted.endswith('.'):
-            converted = converted.rstrip('.')
+        # Keep periods for abbreviations even if punctuation is disabled, as they are part of the standard format
         
         # If we didn't find it in the map, handle common patterns manually
         if converted is None:
             if text == "v s":
                 converted = "vs." if not punctuation_disabled else "vs"
             elif text == "i e":
-                converted = "i.e." if not punctuation_disabled else "i.e"
+                converted = "i.e." if not punctuation_disabled else "i.e."
             elif text == "e g":
-                converted = "e.g." if not punctuation_disabled else "e.g"
+                converted = "e.g." if not punctuation_disabled else "e.g."
             elif text == "etc":
                 converted = "etc." if not punctuation_disabled else "etc"
             elif text in ["i.e.", "e.g.", "vs.", "cf.", "etc."]:

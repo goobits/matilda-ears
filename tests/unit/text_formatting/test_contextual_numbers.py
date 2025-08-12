@@ -101,7 +101,7 @@ class TestContextualOrdinals:
 class TestStandaloneEntityPunctuation:
     """Test that standalone entities don't get unnecessary punctuation."""
 
-    def test_standalone_entities_no_punctuation(self, preloaded_formatter):
+    def test_standalone_entity_cleanup(self, preloaded_formatter):
         """Test that standalone entities have trailing punctuation removed."""
         format_transcription = preloaded_formatter
         test_cases = [
@@ -128,7 +128,7 @@ class TestStandaloneEntityPunctuation:
         for input_text, expected in test_cases:
             self.assert_formatting(input_text, expected, format_transcription)
 
-    def test_sentences_with_entities_keep_punctuation(self, preloaded_formatter):
+    def test_sentences_with_entities_formatting(self, preloaded_formatter):
         """Test that real sentences containing entities are formatted correctly (punctuation disabled in test env)."""
         format_transcription = preloaded_formatter
         test_cases = [

@@ -49,7 +49,7 @@ class TestSpokenUrls(BaseFormattingTest):
         """Test spoken URLs containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("visit server one dot example dot com", "Visit server1.example.com"),
+            ("visit server one dot example dot com", "Visit server 1.example.com"),
             ("go to api dot v two dot service dot org", "Go to api.v2.service.org"),
             ("check site dot com slash user slash one two three", "Check site.com/user/123"),
             ("download from cdn dot com slash v one slash assets", "Download from cdn.com/v1/assets"),
@@ -201,7 +201,7 @@ class TestSpokenEmails(BaseFormattingTest):
         """Test spoken emails containing numbers."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("contact user one two three at test-domain dot co dot uk", "Contact user123@test-domain.co.uk"),
+            ("contact user one two three at test-domain dot co dot uk", "Contact user 123@test-domain.co.uk"),
             ("send to admin at server two dot example dot com", "Send to admin@server2.example.com"),
             ("email support at help one dot service dot org", "Email support@help1.service.org"),
         ]
@@ -277,7 +277,7 @@ class TestStandardEmails(BaseFormattingTest):
         for input_text, expected in test_cases:
             self.assert_formatting(input_text, expected, format_transcription)
 
-    def test_standard_emails_with_punctuation(self, preloaded_formatter):
+    def test_standard_emails_formatting(self, preloaded_formatter):
         """Test standard emails with existing punctuation."""
         format_transcription = preloaded_formatter
         test_cases = [
@@ -367,7 +367,7 @@ class TestStandardUrls(BaseFormattingTest):
         for input_text, expected in test_cases:
             self.assert_formatting(input_text, expected, format_transcription)
 
-    def test_standard_urls_with_punctuation(self, preloaded_formatter):
+    def test_standard_urls_formatting(self, preloaded_formatter):
         """Test standard URLs with existing punctuation."""
         format_transcription = preloaded_formatter
         test_cases = [

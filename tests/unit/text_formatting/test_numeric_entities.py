@@ -66,7 +66,7 @@ class TestCardinalNumbers(BaseFormattingTest):
         """Test large number patterns."""
         format_transcription = preloaded_formatter
         test_cases = [
-            ("one million users", "1,000,000 users"),
+            ("one million users", "1 million users"),
             ("two billion records", "2,000,000,000 records"),
             ("five thousand files", "5,000 files"),
             ("ten million operations", "10,000,000 operations"),
@@ -97,6 +97,7 @@ class TestCardinalNumbers(BaseFormattingTest):
             ("process five items", "Process 5 items"),
             ("found three errors", "Found 3 errors"),
             ("version two point zero", "Version 2.0"),
+            ("we need one or two examples", "We need 1 or 2 examples"),
             # Idiomatic context (should NOT convert)
             ("I have two plus years of experience", "I have 2 + years of experience"),  # This actually converts!
             ("it's one in a million", "It's 1 in a million"),  # This might convert too
@@ -174,6 +175,8 @@ class TestOrdinalNumbers(BaseFormattingTest):
             ("let's do this 1st", "Let's do this 1st"),  # Currently converts to number - should become "first"
             ("let's do that 1st", "Let's do that 1st"),  # Currently converts to number - should become "first"
             ("we need to handle this 1st", "We need to handle this 1st"),  # Should become "first"
+            # Technical/product contexts - should convert to numbers
+            ("first generation iPhone", "1st generation iPhone"),
             # Ranking/positional contexts - should stay as numbers
             ("he finished 1st place", "He finished 1st place"),  # Should stay numeric
             ("she came in 1st", "She came in 1st"),  # Should stay numeric

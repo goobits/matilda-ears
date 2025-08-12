@@ -468,7 +468,7 @@ class TestAbbreviations(BaseFormattingTest):
         for input_text, expected in test_cases:
             self.assert_formatting(input_text, expected, format_transcription)
 
-    def test_abbreviations_with_punctuation(self, preloaded_formatter):
+    def test_abbreviations_formatting(self, preloaded_formatter):
         """Test abbreviations with proper punctuation formatting."""
         format_transcription = preloaded_formatter
         test_cases = [
@@ -601,7 +601,7 @@ class TestFilenameEdgeCasesAndRegressions(BaseFormattingTest):
         format_transcription = preloaded_formatter
         test_cases = [
             # KNOWN ISSUE: Everything before 'dot js' is consumed as filename
-            ("function opens the door dot js", "Function opens the door dot js"),
+            ("function opens the door dot js", "Function opens the door.js"),
             # Expected: "Function opens the door.js" or similar
             # Actual: The entire phrase becomes a filename entity
             # More examples of the greedy behavior
@@ -635,7 +635,7 @@ class TestFilenameEdgeCasesAndRegressions(BaseFormattingTest):
         format_transcription = preloaded_formatter
         test_cases = [
             # Could be filename or sentence about a dot
-            ("red dot py", "Red dot py"),
+            ("red dot py", "red.py"),
             # Is this 'red.py' or 'red dot py'?
             # Sentence ending with extension-like word
             ("i love dot com", "I love .com"),

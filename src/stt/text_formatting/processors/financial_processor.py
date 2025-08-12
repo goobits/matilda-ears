@@ -164,10 +164,8 @@ class FinancialProcessor(BaseNumericProcessor):
         currency_contexts = self.resources.get("context_words", {}).get("currency_contexts", [])
         weight_contexts = self.resources.get("context_words", {}).get("weight_contexts", [])
         
-        # If it has clear weight context OR lacks currency context, filter out
-        if any(ctx in prefix_context for ctx in weight_contexts) or not any(
-            ctx in prefix_context for ctx in currency_contexts
-        ):
+        # If it has clear weight context, filter out. Default to currency for ambiguous cases.
+        if any(ctx in prefix_context for ctx in weight_contexts):
             return False
         
         return True

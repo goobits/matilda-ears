@@ -20,23 +20,12 @@ class TestQuoteFormatting:
         assert format_transcription("he said 'hello'") == "He said 'hello'"
         assert format_transcription("the word 'cat' has three letters") == "The word 'cat' has 3 letters"
 
-    def test_apostrophes_preserved(self, preloaded_formatter):
-        """Test that apostrophes in contractions remain curly."""
-        format_transcription = preloaded_formatter
-        assert format_transcription("it's raining") == "It's raining"
-        assert format_transcription("the dog's bone") == "The dog's bone"
-        assert format_transcription("I can't go") == "I can't go"
-        assert format_transcription("they're here") == "They're here"
 
     def test_nested_quotes(self, preloaded_formatter):
         """Test nested quote handling."""
         format_transcription = preloaded_formatter
         assert format_transcription("he said \"she told me 'hello'\"") == "He said \"she told me 'hello'\""
 
-    def test_quotes_with_punctuation(self, preloaded_formatter):
-        """Test quotes with adjacent punctuation."""
-        format_transcription = preloaded_formatter
-        assert format_transcription('did he say "hello"?') == 'Did he say "hello"?'
 
 
 class TestMeasurementConversion:

@@ -471,7 +471,7 @@ class MappingRegistry:
             )
             with open(resource_path, "r", encoding="utf-8") as f:
                 resources = json.load(f)
-                self._mappings["currency_map"] = resources.get("currency_map", {})
+                self._mappings["currency_map"] = resources.get("units", {}).get("currency_map", {})
         except (FileNotFoundError, json.JSONDecodeError):
             # Fallback to default currency mappings
             self._mappings["currency_map"] = {
