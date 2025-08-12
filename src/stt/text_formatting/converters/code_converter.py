@@ -416,11 +416,9 @@ class CodePatternConverter(BasePatternConverter):
             elif text == "etc":
                 converted = "etc." if not punctuation_disabled else "etc"
             elif text in ["i.e.", "e.g.", "vs.", "cf.", "etc."]:
-                # Already has periods, strip them if punctuation is disabled
-                if punctuation_disabled:
-                    converted = text.rstrip('.')
-                else:
-                    converted = text
+                # Already has periods, keep them even if punctuation is disabled
+                # as they are part of the standard abbreviation format
+                converted = text
             else:
                 # Fallback: assume it's already in proper format
                 converted = text
