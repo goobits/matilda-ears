@@ -131,6 +131,15 @@ def build_time_expression_patterns(language: str = "en") -> list[re.Pattern[str]
             """,
             re.VERBOSE | re.IGNORECASE,
         ),
+        # Special time expressions: "noon", "midnight", "twelve noon", etc.
+        re.compile(
+            r"""
+            \b                              # Word boundary
+            (twelve\s+)?(noon|midnight)     # Optional "twelve" + "noon" or "midnight"
+            \b                              # Word boundary
+            """,
+            re.VERBOSE | re.IGNORECASE,
+        ),
     ]
 
 

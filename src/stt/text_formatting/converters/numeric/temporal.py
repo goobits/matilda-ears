@@ -116,10 +116,18 @@ class TemporalConverter(BaseNumericConverter):
         This handles both regular time expressions and compound durations.
         SpaCy detects phrases like "five hours thirty minutes" as TIME entities.
         """
-        text = entity.text.lower()
+        text = entity.text.lower().strip()
 
-        # Check for special temporal phrases first
+        # Check for special time expressions first
         temporal_resources = self.resources.get("temporal", {})
+        time_expressions = temporal_resources.get("time_expressions", {})
+        
+        # Handle special time expressions like "noon", "midnight", "twelve noon"
+        for phrase, replacement in time_expressions.items():
+            if text == phrase:
+                return replacement
+
+        # Check for special temporal phrases
         special_phrases = temporal_resources.get("special_phrases", {})
         
         # Check for "twenty four seven" → "24/7" conversion

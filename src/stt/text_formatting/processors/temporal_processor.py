@@ -101,6 +101,20 @@ class TemporalProcessor(BaseNumericProcessor):
                 metadata_extractor=self._extract_relative_time_metadata,
                 priority=80
             ),
+            # Date expressions (e.g., "january first", "march third")
+            ProcessingRule(
+                pattern=self._build_date_pattern(),
+                entity_type=EntityType.DATE,
+                metadata_extractor=self._extract_date_metadata,
+                priority=75
+            ),
+            # Special time expressions: "noon", "midnight", "twelve noon"
+            ProcessingRule(
+                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[6],
+                entity_type=EntityType.TIME_AMPM,
+                metadata_extractor=self._extract_time_metadata,
+                priority=90
+            ),
         ]
     
     def _init_conversion_methods(self) -> Dict[EntityType, str]:
@@ -111,6 +125,7 @@ class TemporalProcessor(BaseNumericProcessor):
             EntityType.TIME_CONTEXT: "convert_time",
             EntityType.TIME_AMPM: "convert_time",
             EntityType.TIME_RELATIVE: "convert_time_relative",
+            EntityType.DATE: "convert_date",
         }
     
     # Pattern builders
@@ -160,6 +175,21 @@ class TemporalProcessor(BaseNumericProcessor):
             re.IGNORECASE
         )
     
+    def _build_date_pattern(self) -> Pattern[str]:
+        """Build pattern for date expressions."""
+        temporal_resources = self.resources.get("temporal", {})
+        months = temporal_resources.get("month_names", [])
+        ordinals = temporal_resources.get("date_ordinals", [])
+        
+        # Build pattern for "month ordinal" format
+        month_pattern = r"(?:" + "|".join(months) + r")"
+        ordinal_pattern = r"(?:" + "|".join(ordinals) + r")"
+        
+        return re.compile(
+            rf"\b({month_pattern})\s+({ordinal_pattern})\b",
+            re.IGNORECASE
+        )
+    
     # Metadata extractors
     
     def _extract_time_metadata(self, match: re.Match) -> Dict[str, Any]:
@@ -188,6 +218,13 @@ class TemporalProcessor(BaseNumericProcessor):
         return {
             "relative_expr": match.group(1).strip(),
             "hour_word": match.group(2).strip()
+        }
+    
+    def _extract_date_metadata(self, match: re.Match) -> Dict[str, Any]:
+        """Extract metadata from date matches."""
+        return {
+            "month": match.group(1).strip(),
+            "ordinal": match.group(2).strip()
         }
     
     # Context filters
@@ -271,7 +308,16 @@ class TemporalProcessor(BaseNumericProcessor):
     
     def convert_time_or_duration(self, entity: Entity) -> str:
         """Convert TIME entities detected by SpaCy."""
-        text = entity.text.lower()
+        text = entity.text.lower().strip()
+        
+        # Check for special time expressions first
+        temporal_resources = self.resources.get("temporal", {})
+        time_expressions = temporal_resources.get("time_expressions", {})
+        
+        # Handle special time expressions like "noon", "midnight", "twelve noon"
+        for phrase, replacement in time_expressions.items():
+            if text == phrase:
+                return replacement
         
         # Check if this is a compound duration pattern
         compound_pattern = re.compile(
@@ -317,6 +363,16 @@ class TemporalProcessor(BaseNumericProcessor):
     
     def convert_time(self, entity: Entity) -> str:
         """Convert time expressions."""
+        # Check for special time expressions first
+        text_lower = entity.text.lower().strip()
+        temporal_resources = self.resources.get("temporal", {})
+        time_expressions = temporal_resources.get("time_expressions", {})
+        
+        # Handle special time expressions like "noon", "midnight", "twelve noon"
+        for phrase, replacement in time_expressions.items():
+            if text_lower == phrase:
+                return replacement
+                
         if entity.metadata and "groups" in entity.metadata:
             groups = entity.metadata["groups"]
             
@@ -403,3 +459,23 @@ class TemporalProcessor(BaseNumericProcessor):
         }
         
         return time_mappings.get(relative_expr, entity.text)
+    
+    def convert_date(self, entity: Entity) -> str:
+        """Convert date expressions (january first -> January 1st)."""
+        if not entity.metadata:
+            return entity.text
+            
+        month = entity.metadata.get("month", "").lower()
+        ordinal = entity.metadata.get("ordinal", "").lower()
+        
+        # Get temporal resources
+        temporal_resources = self.resources.get("temporal", {})
+        date_ordinal_mappings = temporal_resources.get("date_ordinal_mappings", {})
+        
+        # Convert ordinal word to number
+        ordinal_number = date_ordinal_mappings.get(ordinal, ordinal)
+        
+        # Capitalize month name
+        month_capitalized = month.capitalize()
+        
+        return f"{month_capitalized} {ordinal_number}"
