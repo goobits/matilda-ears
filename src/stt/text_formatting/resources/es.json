@@ -371,6 +371,7 @@
     "known_units": ["megabytes", "megabyte", "mb", "gigabytes", "gigabyte", "gb", "kilobytes", "kilobyte", "kb", "terabytes", "terabyte", "tb", "dólares", "dólar", "centavos", "centavo", "pesos", "peso", "porciento", "porcentaje", "hercio", "hz", "khz", "mhz", "ghz", "grados", "celsius", "fahrenheit", "milímetros", "milímetro", "centímetros", "centímetro", "metros", "metro", "kilómetros", "kilómetro", "gramos", "gramo", "kilogramos", "kilogramo", "litros", "litro", "mililitros", "mililitro"],
     "action_prefixes": {
       "email ": "Email ",
+      "mi email es ": "Mi email es ",
       "correo ": "Correo ",
       "contactar ": "Contactar ",
       "escribir a ": "Escribir a ",
