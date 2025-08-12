@@ -411,6 +411,10 @@ class WebEntityDetector:
                 if email_text and email_text[-1] in ".!?":
                     email_text = email_text[:-1]
                     end_pos = token.idx + len(email_text)
+                elif email_text and email_text[-1] == '\\':
+                    # Handle trailing backslash (which represents escaped punctuation)
+                    email_text = email_text[:-1]
+                    end_pos = token.idx + len(email_text)
                 else:
                     end_pos = token.idx + len(token.text)
 

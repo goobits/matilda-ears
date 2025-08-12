@@ -46,8 +46,31 @@ def add_punctuation(
     if not text.strip():
         return ""
 
+    # SPECIAL CASE: Email punctuation cleanup - this should work even when punctuation is disabled
+    # Check if there are EMAIL entities and original text had punctuation to remove
+    if original_had_punctuation and filtered_entities:
+        from stt.text_formatting.common import EntityType as ET
+        if any(entity.type == ET.EMAIL for entity in filtered_entities):
+            # Remove trailing punctuation when email entities are present
+            text_stripped = text.rstrip()
+                
+            # Check for escaped punctuation first (backslash + punctuation)
+            if text_stripped and len(text_stripped) >= 2 and text_stripped[-2:] in ["\\!", "\\?", "\\."]:
+                # Handle escaped punctuation marks - remove both backslash and punctuation
+                trailing_whitespace = text[len(text_stripped):]
+                text = text_stripped[:-2] + trailing_whitespace
+            elif text_stripped and text_stripped[-1] in ".!?":
+                # Remove the trailing punctuation but preserve any trailing whitespace structure
+                trailing_whitespace = text[len(text_stripped):]
+                text = text_stripped[:-1] + trailing_whitespace
+            elif text_stripped and text_stripped[-1] == '\\':
+                # Handle standalone trailing backslash
+                trailing_whitespace = text[len(text_stripped):]
+                text = text_stripped[:-1] + trailing_whitespace
+
     # Check if punctuation is disabled for testing
-    if os.environ.get("STT_DISABLE_PUNCTUATION") == "1":
+    stt_disable = os.environ.get("STT_DISABLE_PUNCTUATION")
+    if stt_disable == "1":
         return text
 
     # Check if text is a standalone technical entity that should bypass punctuation
