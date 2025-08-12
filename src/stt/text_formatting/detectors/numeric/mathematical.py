@@ -328,6 +328,7 @@ class MathematicalExpressionDetector:
         ordinal_pattern = self._get_ordinal_pattern_string()
 
         # Simplified scientific notation pattern - focus on core patterns
+        # Enhanced to support optional units after the exponent
         sci_pattern = re.compile(
             r"\b("
             + number_pattern
@@ -341,7 +342,8 @@ class MathematicalExpressionDetector:
             + ordinal_pattern
             + r"|"
             + number_pattern
-            + r"))",
+            + r"))"
+            r"(?:\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?))?",  # Optional unit(s) after exponent
             re.IGNORECASE,
         )
 
@@ -350,6 +352,11 @@ class MathematicalExpressionDetector:
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 base_number = match.group(1).strip()
                 exponent = match.group(2).strip()
+                unit = match.group(3).strip() if match.group(3) else None  # Optional unit
+
+                metadata = {"base": base_number, "exponent": exponent}
+                if unit:
+                    metadata["unit"] = unit
 
                 entities.append(
                     Entity(
@@ -357,7 +364,7 @@ class MathematicalExpressionDetector:
                         end=match.end(),
                         text=match.group(0),
                         type=EntityType.SCIENTIFIC_NOTATION,
-                        metadata={"base": base_number, "exponent": exponent},
+                        metadata=metadata,
                     )
                 )
 
@@ -435,6 +442,15 @@ class MathematicalExpressionDetector:
             for match in pattern.finditer(text):
                 check_entities = all_entities if all_entities else entities
                 if not is_inside_entity(match.start(), match.end(), check_entities):
+                    # Skip power expressions that are part of scientific notation patterns
+                    # Check if this power expression is preceded by "times" which indicates scientific notation
+                    if pattern == ordinal_power_pattern:
+                        # Look for "times" before this match to see if it's part of scientific notation
+                        preceding_text = text[:match.start()].strip().lower()
+                        if preceding_text.endswith("times"):
+                            # This is likely part of a scientific notation pattern, skip it
+                            continue
+                    
                     base = match.group(1)
                     if pattern == simple_power_pattern:
                         power_word = match.group(2).lower()

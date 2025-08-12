@@ -338,5 +338,81 @@ class MathematicalConverter(BaseNumericConverter):
 
         superscript_exp += self.convert_to_superscript(str(parsed_exp))
 
-        # Format the result
-        return f"{parsed_base} × 10{superscript_exp}"
+        # Format the result with optional unit
+        result = f"{parsed_base} × 10{superscript_exp}"
+        
+        # Add unit if present
+        unit = entity.metadata.get("unit")
+        if unit:
+            # Convert common unit words to proper abbreviations
+            unit_abbrev = self._convert_unit_to_abbreviation(unit)
+            result += f" {unit_abbrev}"
+        
+        return result
+
+    def _convert_unit_to_abbreviation(self, unit: str) -> str:
+        """Convert common unit words to proper abbreviations."""
+        unit_lower = unit.lower().strip()
+        
+        # Common unit mappings for scientific notation
+        unit_mappings = {
+            # Length units
+            "meters": "m",
+            "meter": "m",
+            "kilometres": "km",
+            "kilometers": "km",
+            "kilometre": "km",
+            "kilometer": "km",
+            "centimeters": "cm",
+            "centimeter": "cm",
+            "centimetres": "cm",
+            "centimetre": "cm",
+            "millimeters": "mm",
+            "millimeter": "mm",
+            "millimetres": "mm",
+            "millimetre": "mm",
+            
+            # Mass units
+            "grams": "g",
+            "gram": "g",
+            "kilograms": "kg",
+            "kilogram": "kg",
+            "pounds": "lbs",
+            "pound": "lb",
+            
+            # Volume units
+            "liters": "L",
+            "liter": "L",
+            "litres": "L",
+            "litre": "L",
+            "milliliters": "mL",
+            "milliliter": "mL",
+            "millilitres": "mL",
+            "millilitre": "mL",
+            
+            # Time units
+            "seconds": "s",
+            "second": "s",
+            "minutes": "min",
+            "minute": "min",
+            "hours": "h",
+            "hour": "h",
+            
+            # Energy units
+            "joules": "J",
+            "joule": "J",
+            "calories": "cal",
+            "calorie": "cal",
+            
+            # Electrical units
+            "volts": "V",
+            "volt": "V",
+            "amperes": "A",
+            "ampere": "A",
+            "amps": "A",
+            "amp": "A",
+            "watts": "W",
+            "watt": "W",
+        }
+        
+        return unit_mappings.get(unit_lower, unit)  # Return original if not found
