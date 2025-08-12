@@ -394,6 +394,10 @@ def add_punctuation(
     for placeholder, filename in filename_placeholders.items():
         text = re.sub(rf"\b{re.escape(placeholder)}\b", filename, text)
     
+    # PHASE 4 FIX: Surgical repair of broken abbreviations that may have been corrupted
+    # by the punctuation model or other downstream processing
+    text = _repair_broken_abbreviations(text)
+    
     # POSITION TRACKING: Update entity positions after filename restoration
     if pipeline_state:
         # Always update the pipeline state with the final text
@@ -640,3 +644,41 @@ def clean_standalone_entity_punctuation(text: str, entities: list[Entity]) -> st
 
     # If we get here, it's likely a sentence containing entities, keep punctuation
     return text
+
+
+def _repair_broken_abbreviations(text: str) -> str:
+    """
+    Surgical repair of broken abbreviations that may have been corrupted by the punctuation model.
+    
+    This fixes cases where abbreviations like "i.e." become "i. e." or "e.g." becomes "e. g."
+    due to unwanted space insertion by the punctuation model or other processing steps.
+    
+    Args:
+        text: Text that may contain broken abbreviations
+        
+    Returns:
+        Text with repaired abbreviations
+    """
+    if not text:
+        return text
+    
+    # Define mapping of broken patterns to correct forms
+    abbreviation_repairs = [
+        # Fix "i. e." back to "i.e." (preserve original case)
+        (re.compile(r'\b(i)\.\s+(e)\.', re.IGNORECASE), r'\1.\2.'),
+        
+        # Fix "e. g." back to "e.g." (preserve original case)
+        (re.compile(r'\b(e)\.\s+(g)\.', re.IGNORECASE), r'\1.\2.'),
+        
+        # Fix other common abbreviations that may have broken (only if followed by non-space-consuming patterns)
+        # These patterns are more conservative to avoid removing legitimate spacing
+        (re.compile(r'\b(etc)\.\s+([a-zA-Z])', re.IGNORECASE), r'\1. \2'),
+        (re.compile(r'\b(vs)\.\s+([a-zA-Z])', re.IGNORECASE), r'\1. \2'), 
+        (re.compile(r'\b(cf)\.\s+([a-zA-Z])', re.IGNORECASE), r'\1. \2'),
+    ]
+    
+    result = text
+    for pattern, replacement in abbreviation_repairs:
+        result = pattern.sub(replacement, result)
+    
+    return result
