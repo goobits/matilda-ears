@@ -18,7 +18,7 @@ from stt.core.config import get_config, setup_logging
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 
 # Local imports - utilities and resources
-from . import regex_patterns
+# Note: regex_patterns import removed - now using pattern_modules directly in converters
 from .constants import get_resources
 
 # Local imports - specialized converters and processors
@@ -137,7 +137,9 @@ class PatternConverter:
 
     def get_pattern_regex(self, entity_type: EntityType) -> str:
         """Get the regex pattern for a given entity type."""
-        return getattr(regex_patterns, entity_type.value.upper(), "")
+        # This method is deprecated - patterns are now accessed directly through pattern_modules
+        logger.warning(f"get_pattern_regex is deprecated for entity type: {entity_type}")
+        return ""
 
     def get_entity_types(self) -> list[EntityType]:
         """Get all supported entity types."""

@@ -10,7 +10,13 @@ from typing import Dict, List, Any
 
 from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
 from stt.text_formatting.common import Entity, EntityType
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.numeric_patterns import (
+    CONSECUTIVE_DIGITS_PATTERN,
+    NUMERIC_RANGE_PATTERN,
+    SPOKEN_COMPOUND_FRACTION_PATTERN,
+    SPOKEN_FRACTION_PATTERN,
+    SPOKEN_ORDINAL_PATTERN
+)
 
 class BasicNumericProcessor(BaseNumericProcessor):
     """Processor for basic numeric entities (cardinals, ordinals, fractions, ranges)."""
@@ -20,7 +26,7 @@ class BasicNumericProcessor(BaseNumericProcessor):
         return [
             # Ordinal detection with high priority
             ProcessingRule(
-                pattern=regex_patterns.SPOKEN_ORDINAL_PATTERN,
+                pattern=SPOKEN_ORDINAL_PATTERN,
                 entity_type=EntityType.ORDINAL,
                 metadata_extractor=self._extract_ordinal_metadata,
                 context_filters=[self._filter_idiomatic_ordinals],
@@ -28,28 +34,28 @@ class BasicNumericProcessor(BaseNumericProcessor):
             ),
             # Fraction detection
             ProcessingRule(
-                pattern=regex_patterns.SPOKEN_FRACTION_PATTERN,
+                pattern=SPOKEN_FRACTION_PATTERN,
                 entity_type=EntityType.FRACTION,
                 metadata_extractor=self._extract_fraction_metadata,
                 priority=35
             ),
             # Compound fraction detection
             ProcessingRule(
-                pattern=regex_patterns.SPOKEN_COMPOUND_FRACTION_PATTERN,
+                pattern=SPOKEN_COMPOUND_FRACTION_PATTERN,
                 entity_type=EntityType.FRACTION,
                 metadata_extractor=self._extract_compound_fraction_metadata,
                 priority=30
             ),
             # Numeric range detection
             ProcessingRule(
-                pattern=regex_patterns.NUMERIC_RANGE_PATTERN,
+                pattern=NUMERIC_RANGE_PATTERN,
                 entity_type=EntityType.NUMERIC_RANGE,
                 metadata_extractor=self._extract_range_metadata,
                 priority=25
             ),
             # Consecutive digits detection
             ProcessingRule(
-                pattern=regex_patterns.CONSECUTIVE_DIGITS_PATTERN,
+                pattern=CONSECUTIVE_DIGITS_PATTERN,
                 entity_type=EntityType.CONSECUTIVE_DIGITS,
                 metadata_extractor=self._extract_digits_metadata,
                 priority=20

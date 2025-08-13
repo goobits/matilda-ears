@@ -4,7 +4,10 @@ import re
 from typing import Dict
 
 from stt.text_formatting.common import Entity, EntityType
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.text_patterns import (
+    SPOKEN_EMOJI_IMPLICIT_MAP,
+    SPOKEN_EMOJI_EXPLICIT_MAP
+)
 from .base import BasePatternConverter
 from stt.text_formatting.mapping_registry import get_mapping_registry
 
@@ -72,10 +75,10 @@ class TextPatternConverter(BasePatternConverter):
 
         if is_implicit:
             # Look up in implicit map
-            emoji = regex_patterns.SPOKEN_EMOJI_IMPLICIT_MAP.get(emoji_key)
+            emoji = SPOKEN_EMOJI_IMPLICIT_MAP.get(emoji_key)
         else:
             # Look up in explicit map
-            emoji = regex_patterns.SPOKEN_EMOJI_EXPLICIT_MAP.get(emoji_key)
+            emoji = SPOKEN_EMOJI_EXPLICIT_MAP.get(emoji_key)
 
         if emoji:
             # The detection regex now captures trailing punctuation in the entity text

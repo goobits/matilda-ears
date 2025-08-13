@@ -12,7 +12,8 @@ from stt.core.config import setup_logging
 from stt.text_formatting.common import Entity, EntityType
 
 # Local imports - utilities and resources
-from . import regex_patterns
+from .pattern_modules.text_patterns import ALL_CAPS_PRESERVATION_PATTERN
+from .pattern_modules.code_patterns import MIXED_CASE_TECH_PATTERN
 from .constants import get_resources
 from .nlp_provider import get_nlp
 from .utils import is_inside_entity
@@ -60,10 +61,10 @@ class SmartCapitalizer:
         # Preserve all-caps words (acronyms like CPU, API, JSON) and number+unit combinations (500MB, 2.5GHz)
         # But exclude version numbers (v16.4.2)
         all_caps_words = {}
-        matches = list(regex_patterns.ALL_CAPS_PRESERVATION_PATTERN.finditer(text))
+        matches = list(ALL_CAPS_PRESERVATION_PATTERN.finditer(text))
 
         # Also preserve mixed-case technical terms (JavaScript, GitHub, etc.)
-        mixed_case_matches = list(regex_patterns.MIXED_CASE_TECH_PATTERN.finditer(text))
+        mixed_case_matches = list(MIXED_CASE_TECH_PATTERN.finditer(text))
         matches.extend(mixed_case_matches)
 
         # Sort matches by position and process in reverse order to maintain positions

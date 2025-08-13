@@ -21,7 +21,7 @@ from stt.core.config import get_config, setup_logging
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 
 # Local imports - utilities and resources
-from . import regex_patterns
+# Note: regex_patterns import removed - now using pattern_modules directly in specialized components
 from .constants import get_resources
 from .nlp_provider import get_nlp, get_punctuator
 from .spacy_doc_cache import initialize_global_doc_processor

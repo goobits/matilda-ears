@@ -15,7 +15,7 @@ from stt.text_formatting.common import Entity, EntityType
 
 # Local imports - base processors and resources
 from stt.text_formatting.entity_processor import BaseNumericProcessor, ProcessingRule
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.numeric_patterns import TIME_EXPRESSION_PATTERNS
 from stt.text_formatting.modern_pattern_cache import cached_pattern
 
 
@@ -46,7 +46,7 @@ class TemporalProcessor(BaseNumericProcessor):
         return [
             # Time expressions with context (e.g., "meet at three thirty")
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[0],
+                pattern=TIME_EXPRESSION_PATTERNS[0],
                 entity_type=EntityType.TIME_CONTEXT,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
@@ -54,7 +54,7 @@ class TemporalProcessor(BaseNumericProcessor):
             ),
             # AM/PM time expressions (e.g., "three thirty PM")
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[1],
+                pattern=TIME_EXPRESSION_PATTERNS[1],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
@@ -62,7 +62,7 @@ class TemporalProcessor(BaseNumericProcessor):
             ),
             # Spoken "a m"/"p m" pattern
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[2],
+                pattern=TIME_EXPRESSION_PATTERNS[2],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
@@ -70,7 +70,7 @@ class TemporalProcessor(BaseNumericProcessor):
             ),
             # "at three PM" pattern
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[3],
+                pattern=TIME_EXPRESSION_PATTERNS[3],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
@@ -78,7 +78,7 @@ class TemporalProcessor(BaseNumericProcessor):
             ),
             # Simple "three PM" pattern
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[4],
+                pattern=TIME_EXPRESSION_PATTERNS[4],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 context_filters=[self._filter_non_time_units],
@@ -114,14 +114,14 @@ class TemporalProcessor(BaseNumericProcessor):
             ),
             # Time with seconds: "three thirty and twenty seconds PM"
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[6],
+                pattern=TIME_EXPRESSION_PATTERNS[6],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 priority=91
             ),
             # Special time expressions: "noon", "midnight", "twelve noon"
             ProcessingRule(
-                pattern=regex_patterns.TIME_EXPRESSION_PATTERNS[7],
+                pattern=TIME_EXPRESSION_PATTERNS[7],
                 entity_type=EntityType.TIME_AMPM,
                 metadata_extractor=self._extract_time_metadata,
                 priority=90
@@ -336,9 +336,8 @@ class TemporalProcessor(BaseNumericProcessor):
                 return replacement
         
         # Check patterns from TIME_EXPRESSION_PATTERNS for SpaCy TIME entities
-        # Use the same patterns as the temporal processor rules  
-        from stt.text_formatting import regex_patterns
-        time_patterns = regex_patterns.TIME_EXPRESSION_PATTERNS
+        # Use the same patterns as the temporal processor rules
+        time_patterns = TIME_EXPRESSION_PATTERNS
         
         # Check pattern 7 (special time expressions: noon, midnight, twelve noon)
         if len(time_patterns) > 7:
