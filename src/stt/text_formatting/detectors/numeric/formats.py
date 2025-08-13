@@ -6,7 +6,11 @@ import re
 from typing import Any
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.numeric_patterns import SPOKEN_PHONE_PATTERN
+from stt.text_formatting.pattern_modules.text_patterns import (
+    SPOKEN_EMOJI_IMPLICIT_MAP,
+    SPOKEN_EMOJI_EXPLICIT_MAP,
+)
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.utils import is_inside_entity
 
@@ -32,7 +36,7 @@ class FormatDetector:
     ) -> None:
         """Detect phone numbers spoken as individual digits."""
         # Use centralized phone pattern
-        for match in regex_patterns.SPOKEN_PHONE_PATTERN.finditer(text):
+        for match in SPOKEN_PHONE_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 entities.append(
@@ -183,8 +187,8 @@ class FormatDetector:
         - "rocket emoji" → 🚀
         """
         # Build patterns from the emoji mappings
-        implicit_keys = list(regex_patterns.SPOKEN_EMOJI_IMPLICIT_MAP.keys())
-        explicit_keys = list(regex_patterns.SPOKEN_EMOJI_EXPLICIT_MAP.keys())
+        implicit_keys = list(SPOKEN_EMOJI_IMPLICIT_MAP.keys())
+        explicit_keys = list(SPOKEN_EMOJI_EXPLICIT_MAP.keys())
 
         # Sort keys by length (longest first) to avoid greedy matching issues
         explicit_keys.sort(key=len, reverse=True)

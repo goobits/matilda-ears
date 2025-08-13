@@ -6,7 +6,10 @@ import re
 from typing import Any
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.numeric_patterns import (
+    TIME_EXPRESSION_PATTERNS,
+    SPOKEN_TIME_RELATIVE_PATTERN,
+)
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.utils import is_inside_entity
 
@@ -54,12 +57,12 @@ class TemporalDetector:
         
         # Use centralized time expression patterns
         time_patterns = [
-            (regex_patterns.TIME_EXPRESSION_PATTERNS[0], EntityType.TIME_CONTEXT),
-            (regex_patterns.TIME_EXPRESSION_PATTERNS[1], EntityType.TIME_AMPM),
-            (regex_patterns.TIME_EXPRESSION_PATTERNS[2], EntityType.TIME_AMPM),  # Spoken "a m"/"p m"
-            (regex_patterns.TIME_EXPRESSION_PATTERNS[3], EntityType.TIME_AMPM),  # "at three PM"
-            (regex_patterns.TIME_EXPRESSION_PATTERNS[4], EntityType.TIME_AMPM),  # "three PM"
-            (regex_patterns.TIME_EXPRESSION_PATTERNS[5], EntityType.TIME_AMPM),  # "by five o'clock"
+            (TIME_EXPRESSION_PATTERNS[0], EntityType.TIME_CONTEXT),
+            (TIME_EXPRESSION_PATTERNS[1], EntityType.TIME_AMPM),
+            (TIME_EXPRESSION_PATTERNS[2], EntityType.TIME_AMPM),  # Spoken "a m"/"p m"
+            (TIME_EXPRESSION_PATTERNS[3], EntityType.TIME_AMPM),  # "at three PM"
+            (TIME_EXPRESSION_PATTERNS[4], EntityType.TIME_AMPM),  # "three PM"
+            (TIME_EXPRESSION_PATTERNS[5], EntityType.TIME_AMPM),  # "by five o'clock"
         ]
 
         # Units that indicate this is NOT a time expression
@@ -123,7 +126,7 @@ class TemporalDetector:
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect relative time expressions (quarter past three, half past two, etc.)."""
-        for match in regex_patterns.SPOKEN_TIME_RELATIVE_PATTERN.finditer(text):
+        for match in SPOKEN_TIME_RELATIVE_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
 
             # Check if this overlaps with only low-priority entities (CARDINAL, DATE, QUANTITY)

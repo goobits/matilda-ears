@@ -5,7 +5,12 @@ from __future__ import annotations
 import re
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.code_patterns import (
+    FILENAME_WITH_EXTENSION_PATTERN,
+    JAVA_PACKAGE_PATTERN,
+    SPOKEN_DOT_FILENAME_PATTERN,
+    FULL_SPOKEN_FILENAME_PATTERN,
+)
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.utils import overlaps_with_entity
@@ -39,13 +44,13 @@ class FileDetector:
             all_entities = entities
 
         # --- Part 1: Handle already-formatted files first (e.g., main.py, com.example.app) ---
-        for match in regex_patterns.FILENAME_WITH_EXTENSION_PATTERN.finditer(text):
+        for match in FILENAME_WITH_EXTENSION_PATTERN.finditer(text):
             if not overlaps_with_entity(match.start(), match.end(), all_entities):
                 new_entity = Entity(start=match.start(), end=match.end(), text=match.group(0), type=EntityType.FILENAME)
                 entities.append(new_entity)
                 all_entities.append(new_entity)
 
-        for match in regex_patterns.JAVA_PACKAGE_PATTERN.finditer(text):
+        for match in JAVA_PACKAGE_PATTERN.finditer(text):
             if not overlaps_with_entity(match.start(), match.end(), all_entities):
                 package_text = match.group(1).lower()
                 common_prefixes = ["com dot", "org dot", "net dot", "io dot", "gov dot", "edu dot"]
@@ -81,7 +86,7 @@ class FileDetector:
 
         end_char_to_token = {token.idx + len(token.text): token for token in doc}
 
-        for match in regex_patterns.SPOKEN_DOT_FILENAME_PATTERN.finditer(text):
+        for match in SPOKEN_DOT_FILENAME_PATTERN.finditer(text):
             if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
 
@@ -288,7 +293,7 @@ class FileDetector:
         logger.debug(f"REGEX FALLBACK: Processing text '{text}' for filename detection")
 
         # Use the comprehensive pattern that captures both filename and extension
-        for match in regex_patterns.FULL_SPOKEN_FILENAME_PATTERN.finditer(text):
+        for match in FULL_SPOKEN_FILENAME_PATTERN.finditer(text):
             if overlaps_with_entity(match.start(), match.end(), all_entities):
                 continue
 

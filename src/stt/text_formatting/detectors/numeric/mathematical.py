@@ -10,7 +10,11 @@ import re
 from typing import Any
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.numeric_patterns import (
+    COMPLEX_MATH_EXPRESSION_PATTERN,
+    SIMPLE_MATH_EXPRESSION_PATTERN,
+    NUMBER_CONSTANT_PATTERN,
+)
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.utils import is_inside_entity
 from stt.text_formatting.spacy_doc_cache import get_global_doc_processor
@@ -84,18 +88,18 @@ class MathematicalExpressionDetector:
         potential_math_matches = []
 
         # Use centralized complex math expression pattern
-        for match in regex_patterns.COMPLEX_MATH_EXPRESSION_PATTERN.finditer(text):
+        for match in COMPLEX_MATH_EXPRESSION_PATTERN.finditer(text):
             # Skip if this would conflict with increment/decrement operators already detected
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 potential_math_matches.append((match.group(), match.start(), match.end()))
 
         # Use centralized simple math expression pattern
-        for match in regex_patterns.SIMPLE_MATH_EXPRESSION_PATTERN.finditer(text):
+        for match in SIMPLE_MATH_EXPRESSION_PATTERN.finditer(text):
             potential_math_matches.append((match.group(), match.start(), match.end()))
 
         # Use number + constant pattern (e.g., "two pi") - handle as special case
-        for match in regex_patterns.NUMBER_CONSTANT_PATTERN.finditer(text):
+        for match in NUMBER_CONSTANT_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 # These are valid math expressions that don't need pyparsing validation

@@ -5,7 +5,12 @@ from __future__ import annotations
 import re
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.web_patterns import (
+    EMAIL_PROTECTION_PATTERN,
+    get_spoken_url_pattern,
+    get_port_number_pattern,
+    get_spoken_protocol_pattern,
+)
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.pattern_cache import cached_pattern
@@ -82,9 +87,9 @@ class WebEntityDetector:
             logger.info("Using traditional regex patterns for web entity detection")
 
         # Build patterns dynamically for the specified language (fallback)
-        self.spoken_url_pattern = regex_patterns.get_spoken_url_pattern(language)
-        self.port_number_pattern = regex_patterns.get_port_number_pattern(language)
-        self.spoken_protocol_pattern = regex_patterns.get_spoken_protocol_pattern(language)
+        self.spoken_url_pattern = get_spoken_url_pattern(language)
+        self.port_number_pattern = get_port_number_pattern(language)
+        self.spoken_protocol_pattern = get_spoken_protocol_pattern(language)
         # Note: _detect_spoken_emails builds its own pattern internally
         # Note: port_pattern is the same as port_number_pattern
 
@@ -433,11 +438,8 @@ class WebEntityDetector:
         """
         Fallback regex-based detection for URLs and emails when SpaCy is not available.
         """
-        # Import the email pattern from regex_patterns
-        from stt.text_formatting import regex_patterns
-        
         # Detect emails using the EMAIL_PROTECTION_PATTERN
-        for match in regex_patterns.EMAIL_PROTECTION_PATTERN.finditer(text):
+        for match in EMAIL_PROTECTION_PATTERN.finditer(text):
             start_pos = match.start()
             end_pos = match.end()
             email_text = match.group()

@@ -6,7 +6,12 @@ import re
 from typing import Any
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.numeric_patterns import (
+    SPOKEN_ORDINAL_PATTERN,
+    SPOKEN_COMPOUND_FRACTION_PATTERN,
+    SPOKEN_FRACTION_PATTERN,
+    SPOKEN_NUMERIC_RANGE_PATTERN,
+)
 from stt.text_formatting.common import Entity, EntityType, NumberParser
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.utils import is_inside_entity, overlaps_with_entity
@@ -171,7 +176,7 @@ class BasicNumberDetector:
         self._detect_compound_ordinals(text, entities, all_entities, doc)
         
         # Then detect simple ordinals that aren't already covered
-        for match in regex_patterns.SPOKEN_ORDINAL_PATTERN.finditer(text):
+        for match in SPOKEN_ORDINAL_PATTERN.finditer(text):
             # If we have a SpaCy doc, use it for grammatical context checking.
             if doc:
                 ordinal_token = None
@@ -295,7 +300,7 @@ class BasicNumberDetector:
     def detect_fractions(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect fraction expressions (one half, two thirds, etc.) and compound fractions (one and one half)."""
         # First detect compound fractions (they take priority)
-        for match in regex_patterns.SPOKEN_COMPOUND_FRACTION_PATTERN.finditer(text):
+        for match in SPOKEN_COMPOUND_FRACTION_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not overlaps_with_entity(match.start(), match.end(), check_entities):
                 entities.append(
@@ -314,7 +319,7 @@ class BasicNumberDetector:
                 )
 
         # Then detect simple fractions
-        for match in regex_patterns.SPOKEN_FRACTION_PATTERN.finditer(text):
+        for match in SPOKEN_FRACTION_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
 
             # Check if this overlaps with only low-priority entities (CARDINAL, DATE, QUANTITY)
@@ -349,7 +354,7 @@ class BasicNumberDetector:
 
     def detect_ranges(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect numeric range expressions (ten to twenty, etc.)."""
-        for match in regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.finditer(text):
+        for match in SPOKEN_NUMERIC_RANGE_PATTERN.finditer(text):
             # Don't check for entity overlap here - let the priority system handle it
             # This allows ranges to be detected even if individual numbers are already detected as CARDINAL
 

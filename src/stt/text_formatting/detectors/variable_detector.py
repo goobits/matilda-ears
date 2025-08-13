@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.text_patterns import ABBREVIATION_PATTERN
+from stt.text_formatting.pattern_modules.code_patterns import (
+    get_underscore_delimiter_pattern,
+    get_simple_underscore_pattern,
+)
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.utils import is_inside_entity
@@ -27,8 +31,8 @@ class VariableDetector:
         self.resources = get_resources(language)
 
         # Build patterns dynamically for the specified language
-        self.underscore_delimiter_pattern = regex_patterns.get_underscore_delimiter_pattern(language)
-        self.simple_underscore_pattern = regex_patterns.get_simple_underscore_pattern(language)
+        self.underscore_delimiter_pattern = get_underscore_delimiter_pattern(language)
+        self.simple_underscore_pattern = get_simple_underscore_pattern(language)
 
     def detect_programming_keywords(
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
@@ -59,7 +63,7 @@ class VariableDetector:
         self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect Latin abbreviations that should remain lowercase."""
-        abbrev_pattern = regex_patterns.ABBREVIATION_PATTERN
+        abbrev_pattern = ABBREVIATION_PATTERN
         for match in abbrev_pattern.finditer(text):
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):

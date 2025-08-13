@@ -6,7 +6,10 @@ import re
 from typing import List
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.text_patterns import (
+    build_spoken_letter_pattern,
+    build_letter_sequence_pattern,
+)
 from stt.text_formatting.common import Entity, EntityType
 
 logger = setup_logging(__name__)
@@ -25,8 +28,8 @@ class SpokenLetterDetector:
         self.language = language
 
         # Build patterns dynamically for the specified language
-        self.spoken_letter_pattern = regex_patterns.build_spoken_letter_pattern(language)
-        self.letter_sequence_pattern = regex_patterns.build_letter_sequence_pattern(language)
+        self.spoken_letter_pattern = build_spoken_letter_pattern(language)
+        self.letter_sequence_pattern = build_letter_sequence_pattern(language)
 
     def detect(self, text: str, existing_entities: List[Entity], doc=None) -> List[Entity]:
         """

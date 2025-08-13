@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 
 from stt.core.config import setup_logging
-from stt.text_formatting import regex_patterns
+from stt.text_formatting.pattern_modules.code_patterns import (
+    get_slash_command_pattern,
+    get_long_flag_pattern,
+    get_short_flag_pattern,
+)
 from stt.text_formatting.common import Entity, EntityType
 from stt.text_formatting.constants import get_resources
 from stt.text_formatting.pattern_cache import cached_pattern
@@ -35,9 +39,9 @@ class CommandDetector:
         self.resources = get_resources(language)
 
         # Build patterns dynamically for the specified language
-        self.slash_command_pattern = regex_patterns.get_slash_command_pattern(language)
-        self.long_flag_pattern = regex_patterns.get_long_flag_pattern(language)
-        self.short_flag_pattern = regex_patterns.get_short_flag_pattern(language)
+        self.slash_command_pattern = get_slash_command_pattern(language)
+        self.long_flag_pattern = get_long_flag_pattern(language)
+        self.short_flag_pattern = get_short_flag_pattern(language)
 
     def detect_cli_commands(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detects standalone CLI commands and keywords."""
