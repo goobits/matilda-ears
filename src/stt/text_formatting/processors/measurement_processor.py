@@ -1174,21 +1174,24 @@ class MeasurementProcessor(BaseNumericProcessor):
         # Add sign if present
         if sign:
             parsed_num = f"-{parsed_num}"
+
+        # Apply cultural formatting
+        formatted_num = self._apply_cultural_formatting(parsed_num)
         
         # Format based on unit
         if unit:
             unit_lower = unit.lower()
             if unit_lower in ["celsius", "centigrade", "c"]:
-                return f"{parsed_num}°C"
+                return f"{formatted_num}°C"
             if unit_lower in ["fahrenheit", "f"]:
-                return f"{parsed_num}°F"
+                return f"{formatted_num}°F"
         
         # No unit specified - use regional preference for ambiguous temperatures
         temp_preference = self._get_temperature_preference()
         if temp_preference == "fahrenheit":
-            return f"{parsed_num}°F"
+            return f"{formatted_num}°F"
         else:
-            return f"{parsed_num}°C"
+            return f"{formatted_num}°C"
 
     def _get_temperature_preference(self) -> str:
         """Get temperature preference from regional config chain."""
@@ -1197,6 +1200,16 @@ class MeasurementProcessor(BaseNumericProcessor):
             "temperature", 
             self.regional_config.get("unit_temperature")
         )
+    
+    def _apply_cultural_formatting(self, number_str: str) -> str:
+        """Apply cultural number formatting based on language."""
+        formats = {
+            "en": {"decimal": ".", "thousands": ","},
+            "es": {"decimal": ",", "thousands": "."},
+            "fr": {"decimal": ",", "thousands": " "}
+        }
+        fmt = formats.get(self.language, formats["en"])
+        return number_str.replace(",", "TEMP").replace(".", fmt["decimal"]).replace("TEMP", fmt["thousands"])
     
     def convert_metric_unit(self, entity: Entity) -> str:
         """
