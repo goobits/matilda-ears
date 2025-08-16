@@ -26,24 +26,25 @@ A pure speech-to-text engine with multiple operation modes and advanced text for
 ## 📦 Installation
 
 ```bash
-# Install globally with pipx (recommended)
-pipx install .                     # Install globally, isolated environment
-pipx install .[dev]               # Install with development dependencies
+# Use the setup script (recommended)
+./setup.sh install                # Install from PyPI
+./setup.sh install --dev          # Install in development mode (editable)
 
-# Or with pip for development
-pip install -e .[dev]              # Install editable with dev dependencies
+# Or manually with pipx/pip
+pipx install goobits-stt[audio]   # Install globally, isolated environment
+pip install -e .[audio]           # Install editable with dependencies
 stt --version                      # Verify installation
-stt --listen-once                  # Test basic functionality
+stt listen                         # Test basic functionality
 ```
 
 ## 🎯 Basic Usage
 
 ```bash
-stt --listen-once                  # Single utterance with VAD
-stt --conversation                 # Always listening mode
-stt --tap-to-talk=f8              # Tap F8 to start/stop recording
-stt --hold-to-talk=space          # Hold spacebar to record
-stt --server --port=8769          # Run WebSocket server
+stt listen                        # Single utterance with VAD
+stt live                          # Always listening mode
+stt live --tap-to-talk=f8         # Tap F8 to start/stop recording
+stt listen --hold-to-talk=space   # Hold spacebar to record
+stt serve --port=8769             # Run WebSocket server
 ```
 
 ## ⚙️ Configuration
@@ -67,17 +68,17 @@ stt --format text --no-formatting
 
 ```bash
 # Quick transcription
-stt --listen-once | llm-process
+stt listen | llm-process
 
 # Interactive conversation
-stt --conversation | tts-speak
+stt live | tts-speak
 
 # Hotkey control
-stt --tap-to-talk=f8              # Toggle recording with F8
-stt --hold-to-talk=ctrl+space     # Push-to-talk mode
+stt live --tap-to-talk=f8         # Toggle recording with F8
+stt listen --hold-to-talk=ctrl+space # Push-to-talk mode
 
 # Server mode for remote clients
-stt --server --host 0.0.0.0 --port 8769
+stt serve --host 0.0.0.0 --port 8769
 ```
 
 ## 🚀 Performance Optimization
@@ -99,9 +100,9 @@ stt --model large-v3-turbo  # Best quality
 
 ```bash
 # Advanced entity detection
-stt --listen-once  # "Call me at 555-123-4567" → "Call me at (555) 123-4567"
-stt --listen-once  # "Go to github dot com" → "Go to github.com"
-stt --listen-once  # "Three point one four" → "3.14"
+stt listen  # "Call me at 555-123-4567" → "Call me at (555) 123-4567"
+stt listen  # "Go to github dot com" → "Go to github.com"
+stt listen  # "Three point one four" → "3.14"
 
 # Multilingual support
 stt --language es  # Spanish formatting rules
@@ -115,10 +116,10 @@ stt --no-formatting  # Raw transcription output
 
 ```bash
 # Basic server
-stt --server
+stt serve
 
 # Production with SSL
-stt --server --port 443 --host 0.0.0.0
+stt serve --port 443 --host 0.0.0.0
 
 # Docker deployment
 docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
@@ -127,18 +128,22 @@ docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
 ## 🎯 Testing & Development
 
 ```bash
-# Run test suite
-pytest                             # All tests
+# Run test suite (recommended)
+./test.py                          # Show comprehensive help
+./test.py tests/text_formatting/ --summary  # Main testing workflow
+./test.py tests/text_formatting/ --sequential  # Sequential mode for debugging
+
+# Direct pytest (if preferred)
 pytest tests/text_formatting/     # Specific module
 pytest -v -n auto                 # Parallel with verbose output
 
 # Code quality
 ruff check src/ tests/             # Linting
-black src/ tests/ stt.py          # Formatting
-mypy src/ stt.py                  # Type checking
+black src/ tests/                 # Formatting
+mypy src/                         # Type checking
 
 # Test with real audio
-pytest tests/__fixtures__/audio/
+pytest tests/fixtures/audio/      # Fixed path
 ```
 
 ## 🔧 Model Comparison

@@ -34,8 +34,8 @@ The project is built around Whisper models for transcription and includes advanc
 **IMPORTANT FOR DEVELOPMENT**: Always use `./setup.sh install --dev` for development work. This creates an editable installation where code changes are immediately reflected without needing to reinstall or upgrade.
 
 ## CLI Generation
-The project uses Goobits CLI framework: run `goobits build` to generate CLI and setup scripts from goobits.yaml configuration.
-After generation, use `./setup.sh install --dev` for development installation with immediate code change reflection.
+The project uses Goobits CLI framework: the CLI is auto-generated from goobits.yaml configuration.
+The setup script is also auto-generated. Use `./setup.sh install --dev` for development installation with immediate code change reflection.
 
 ## Development Commands
 
@@ -70,16 +70,16 @@ pytest tests/text_formatting/ --summary
 ### Code Quality
 ```bash
 # Format code with black
-black src/ tests/ stt.py
+black src/ tests/
 
 # Lint with ruff
-ruff check src/ tests/ stt.py
+ruff check src/ tests/
 
 # Fix auto-fixable issues
-ruff check --fix src/ tests/ stt.py
+ruff check --fix src/ tests/
 
 # Type checking with mypy
-mypy src/ stt.py
+mypy src/
 
 # Security scanning
 bandit -r src/
@@ -91,23 +91,23 @@ bandit -r src/
 pip install -e .[dev]
 
 # Run different STT modes
-python stt.py --listen-once
-python stt.py --conversation  
-python stt.py --tap-to-talk=f8
-python stt.py --hold-to-talk=space
-python stt.py --server --port=8769
+stt listen                      # Single utterance
+stt live                        # Conversation mode  
+stt live --tap-to-talk=f8       # Tap F8 to toggle
+stt listen --hold-to-talk=space # Hold spacebar to record
+stt serve --port=8769           # Start server
 
-# Note: For development, use python stt.py directly as shown above
+# Note: For development, use the stt command directly as shown above
 ```
 
 ## Architecture
 
 ### Core Components
-- **`src/core/config.py`**: Centralized configuration management with JSON/JSONC support
-- **`src/transcription/`**: WebSocket server and client implementations for STT services
-- **`src/text_formatting/`**: Advanced text formatting with entity detection and i18n support
-- **`src/audio/`**: Audio capture, streaming, and Opus encoding/decoding
-- **`src/modes/`**: Different operation modes (listen_once, conversation, tap-to-talk, hold-to-talk)
+- **`src/stt/core/config.py`**: Centralized configuration management with JSON/JSONC support
+- **`src/stt/transcription/`**: WebSocket server and client implementations for STT services
+- **`src/stt/text_formatting/`**: Advanced text formatting with entity detection and i18n support
+- **`src/stt/audio/`**: Audio capture, streaming, and Opus encoding/decoding
+- **`src/stt/modes/`**: Different operation modes (listen_once, conversation, tap-to-talk, hold-to-talk)
 
 ### Architectural Patterns
 - **Async/Await Design**: All operation modes use asyncio with non-blocking `run()` methods
@@ -118,13 +118,13 @@ python stt.py --server --port=8769
 ### Configuration System
 The project uses a centralized configuration system:
 - **Main config**: `config.json` in project root
-- **Config loader**: `src/core/config.py` with auto-detection of CUDA, JWT secret generation
+- **Config loader**: `src/stt/core/config.py` with auto-detection of CUDA, JWT secret generation
 - **Platform-specific paths**: Supports Linux, macOS, Windows with automatic detection
 
 ### Text Formatting Engine
-Advanced text formatting system in `src/text_formatting/`:
+Advanced text formatting system in `src/stt/text_formatting/`:
 - **Entity detection**: Numbers, dates, code blocks, web URLs, financial amounts
-- **Internationalization**: Support for multiple languages (English, Spanish)
+- **Internationalization**: Support for multiple languages (English variants, Spanish, French)
 - **Pattern conversion**: Regex-based text transformation
 - **Contextual formatting**: Smart formatting based on content context
 
@@ -145,9 +145,9 @@ Complete Docker deployment in `docker/` directory:
 - **Security**: cryptography, PyJWT for encryption and auth
 
 ### Logging
-Centralized logging system via `src/core/config.py`:
+Centralized logging system via `src/stt/core/logging.py`:
 ```python
-from src.core.config import setup_logging
+from src.stt.core.logging import setup_logging
 logger = setup_logging(__name__, log_level="INFO")
 ```
 - Logs stored in `logs/` directory
@@ -170,8 +170,8 @@ logger = setup_logging(__name__, log_level="INFO")
 
 ## Important File Paths
 
-- **Entry point**: `stt.py` - Main CLI interface
-- **Server**: `src/transcription/server.py` - WebSocket server implementation
+- **Entry point**: `src/stt/cli.py` - Main CLI interface (auto-generated)
+- **Server**: `src/stt/transcription/server.py` - WebSocket server implementation
 - **Config**: `config.json` - Main configuration file
 - **Tests**: `tests/` - Comprehensive test suite
 - **Docker**: `docker/` - Production deployment files

@@ -71,15 +71,6 @@ class TestBasicCapitalization(BaseFormattingTest):
             self.assert_formatting(input_text, expected, format_transcription)
 
 
-class TestBasicPunctuation(BaseFormattingTest):
-    """Test basic punctuation rules."""
-
-
-
-
-
-
-
 class TestEntityProtection(BaseFormattingTest):
     """Test that entities are protected during formatting."""
 

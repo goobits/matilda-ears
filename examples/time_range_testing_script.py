@@ -12,16 +12,30 @@ import os
 import argparse
 from pathlib import Path
 
-# Add the src directory to the path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add the project root to the path
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
 
-from stt.text_formatting.pattern_integration_tester import create_integration_tester
-from stt.text_formatting.pattern_testing_framework import create_test_framework
-from stt.text_formatting.formatter import format_transcription
+# Graceful import handling
+try:
+    from stt.text_formatting.pattern_integration_tester import create_integration_tester
+    from stt.text_formatting.pattern_testing_framework import create_test_framework
+    from stt.text_formatting.formatter import format_transcription
+    IMPORTS_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Could not import required modules: {e}")
+    create_integration_tester = None
+    create_test_framework = None
+    format_transcription = None
+    IMPORTS_AVAILABLE = False
 
 
 def test_direct_formatter(test_cases):
     """Test cases directly through the formatter."""
+    if not IMPORTS_AVAILABLE:
+        print("Skipping test - required imports not available")
+        return
+        
     print("=" * 60)
     print("DIRECT FORMATTER TESTING")
     print("=" * 60)

@@ -3,7 +3,7 @@
 ## Core Infrastructure
 - [ ] **Enhance Opus streaming performance** - Optimize real-time encoding/decoding for low-latency voice interactions
 - [ ] **Improve conversation mode reliability** - Add partial transcription results and interruption handling for natural dialogue flow
-- [ ] **Add wake word detection** - Implement hotword activation for hands-free operation (default: "Okay Matilda", customizable)
+- [x] **Add wake word detection** - Implement hotword activation for hands-free operation (via Porcupine, configurable)
 
 ## Demo Implementation  
 - [ ] **Create STT→TTS pipeline example** - Build conversational voice assistant demo showcasing end-to-end speech processing capabilities

@@ -45,4 +45,7 @@ pip_packages:
 package_linking:
   npm: true
   pip: true
-  cargo: false
+  cargo: true
+# Ports 3110-3119 reserved for stt
+ports:
+  www_dev: 3110

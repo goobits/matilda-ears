@@ -8,10 +8,10 @@ PROJECT SUMMARY
   Name:         GOOBITS STT
   Type:         Speech-to-Text CLI/Server
   Language:     Python 3.8+
-  Framework:    FastAPI/WebSockets, Whisper, asyncio
-  Entry Point:  src/stt/cli.py
+  Framework:    WebSockets, Whisper, asyncio (FastAPI for Docker dashboard)
+  Entry Point:  stt command (from src/stt/cli.py)
   
-  Total Files:  2105 (122 source, 1982 test, 1 config)
+  Total Files:  175+ (143 source, 31 test, 4 config)
   Total LOC:    ~15000 (est. from samples)
 
 ================================================================================
@@ -21,7 +21,7 @@ PROJECT SUMMARY
 
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  CLI Modes  │────▶│   Audio     │────▶│  Whisper    │
-│  [4 types]  │     │  Capture    │     │   Models    │
+│  [5 types]  │     │  Capture    │     │   Models    │
 └─────────────┘     └─────────────┘     └─────────────┘
         │                   │                    │
    [Async/Await]       [Streaming]          [Transcribe]
@@ -46,51 +46,54 @@ Key Patterns:
 ----------------------
 
 [root]/
-├── src/stt/ [122]              [Main application source]
-│   ├── cli.py                 [Entry point - auto-gen from goobits.yaml]
-│   ├── core/ [7]               [Config, logging, model management]
+├── src/stt/ [143]              [Main application source]
+│   ├── cli.py                 [CLI entry point]
+│   ├── core/ [5]               [Config, logging, model management]
 │   │   ├── config.py          [Central config loader w/ JSONC support]
 │   │   ├── logging.py         [Centralized logging system]
 │   │   ├── model_manager.py   [Whisper model loading/caching]
-│   │   └── rate_limiter.py    [Request throttling]
-│   ├── modes/ [7]              [Operation modes - async pattern]
+│   │   ├── rate_limiter.py    [Request throttling]
+│   │   └── token_manager.py   [JWT token management]
+│   ├── modes/ [6]              [Operation modes - async pattern]
 │   │   ├── base_mode.py       [Abstract base for all modes]
 │   │   ├── conversation.py    [Always listening w/ interruption]
 │   │   ├── listen_once.py     [Single utterance capture]
 │   │   ├── tap_to_talk.py     [Press key to start/stop]
 │   │   ├── hold_to_talk.py    [Hold key to record]
 │   │   └── wake_word.py       [Voice activation via Porcupine]
-│   ├── audio/ [7]              [Audio capture & streaming]
+│   ├── audio/ [6]              [Audio capture & streaming]
 │   │   ├── capture.py         [Platform-specific audio input]
 │   │   ├── encoder.py         [Opus encoding for streaming]
 │   │   ├── decoder.py         [Opus decoding from stream]
 │   │   ├── vad.py             [Voice Activity Detection]
-│   │   └── opus_batch.py      [Batch Opus processing]
-│   ├── text_formatting/ [65]  [Advanced text processing engine]
+│   │   ├── opus_batch.py      [Batch Opus processing]
+│   │   └── audio_streamer.py  [Real-time streaming support]
+│   ├── text_formatting/ [114] [Advanced text processing engine]
 │   │   ├── formatter.py       [Main formatting pipeline controller]
 │   │   ├── detectors/ [15]    [Entity detection (numbers, dates, URLs)]
-│   │   ├── converters/ [12]   [Text transformation patterns]
-│   │   ├── processors/ [8]    [Specialized content processors]
-│   │   ├── pattern_modules/ [16] [Regex pattern definitions]
-│   │   ├── formatter_components/ [7] [Pipeline steps]
-│   │   └── resources/ [2]     [i18n language files (en.json, es.json)]
-│   ├── transcription/ [4]      [WebSocket server/client]
+│   │   ├── converters/ [13]   [Text transformation patterns]
+│   │   ├── processors/ [5]    [Specialized content processors]
+│   │   ├── pattern_modules/ [17] [Regex pattern definitions]
+│   │   ├── formatter_components/ [11] [Pipeline steps]
+│   │   └── resources/ [6]     [i18n language files (en.json, es.json, fr.json, etc)]
+│   ├── transcription/ [3]      [WebSocket server/client]
 │   │   ├── server.py          [Main WebSocket STT server]
 │   │   ├── client.py          [WebSocket client implementation]
 │   │   └── streaming.py       [Real-time streaming support]
 │   └── utils/ [1]              [SSL certificate utilities]
-├── tests/ [1982]               [Comprehensive test suite]
+├── tests/ [31]                 [Comprehensive test suite]
 │   ├── unit/text_formatting/  [Extensive entity processing tests]
 │   ├── integration/           [End-to-end testing]
 │   ├── fixtures/              [Test data (audio/text samples)]
 │   └── tools/                 [Custom test utilities & plugins]
-├── docker/ [12]                [Production deployment]
+├── docker/ [16]                [Production deployment]
 │   ├── Dockerfile             [GPU-enabled container]
+│   ├── docker-compose.yml     [Container orchestration]
 │   ├── dashboard/             [Admin web interface]
 │   └── src/                   [Docker-specific server code]
 ├── config.json                [Main configuration file]
 ├── pyproject.toml            [Dependencies & build config]
-└── setup.sh                  [Installation script]
+└── setup.sh                  [Installation script - auto-generated]
 
 ================================================================================
 
@@ -98,9 +101,9 @@ Key Patterns:
 -------------------------
 
 ENTRY POINTS:
-  • [src/stt/cli.py]           - CLI interface (auto-generated)
+  • [src/stt/cli.py]           - CLI interface
   • [config.json]              - All configuration settings
-  • [setup.sh]                 - Installation & dependency mgmt
+  • [setup.sh]                 - Installation & dependency mgmt (auto-generated)
 
 CORE LOGIC:
   • [src/stt/modes/base_mode.py] - Abstract base for operation modes
@@ -193,8 +196,8 @@ To modify text formatting:
 To add new operation mode:
   1. Extend BaseMode in [modes/base_mode.py]
   2. Implement async run() method
-  3. Add CLI command in [goobits.yaml]
-  4. Run: goobits build && ./setup.sh install --dev
+  3. Add CLI command in [cli.py]
+  4. Run: ./setup.sh install --dev
 
 To debug WebSocket server:
   1. Check logs in [logs/] directory
@@ -218,11 +221,10 @@ Ports/URLs:
   • Auth:        JWT tokens (see config.json)
 
 Commands:
-  • Install:     ./setup.sh install --dev
-  • CLI Generate: goobits build
+  • Install:     ./setup.sh install --dev (development mode)
   • Test:        ./test.py tests/text_formatting/ --summary
-  • Run STT:     python -m stt.cli --listen-once
-  • Server:      python -m stt.transcription.server
+  • Run STT:     stt listen
+  • Server:      stt serve
 
 Development:
   • Format:      ruff check --fix src/ tests/
@@ -234,11 +236,11 @@ Development:
 ⚠️ GOTCHAS & NOTES
 ------------------
 
-• Use ./setup.sh install --dev for development (editable install)
+• Use ./setup.sh install --dev for development (editable install recommended)
 • Config supports JSONC format (// comments allowed)
 • Whisper models auto-download on first use (~500MB-3GB)
 • Docker deployment includes admin dashboard at /admin
-• Text formatting supports 30+ entity types in English/Spanish
+• Text formatting supports 30+ entity types in English/Spanish/French
 • All operation modes are async - use await in custom extensions
 • Audio streaming uses Opus codec - requires opuslib dependency
 • JWT secrets auto-generated if missing from config
