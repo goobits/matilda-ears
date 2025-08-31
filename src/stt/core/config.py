@@ -8,7 +8,17 @@ import os
 import platform
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Tuple
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
+    import ctranslate2
+except ImportError:
+    ctranslate2 = None
 
 
 class ConfigurationError(Exception):
@@ -22,21 +32,42 @@ class ConfigLoader:
     def __init__(self, config_path: str | Path | None = None) -> None:
         if config_path is None:
             config_path = self._find_config_file()
+        else:
+            # Check if provided path exists, fall back to auto-detection if not
+            config_path = Path(config_path)
+            if not config_path.exists():
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Specified config file not found: {config_path}")
+                logger.info("Falling back to automatic config detection")
+                config_path = self._find_config_file()
 
         # Store config file path for later use
         self.config_file = str(config_path)
 
         # Read and strip comments for JSONC support
-        with open(config_path) as f:
-            content = f.read()
+        try:
+            with open(config_path) as f:
+                content = f.read()
 
-        # Remove single-line comments (// ...)
-        import re
+            # Remove single-line comments (// ...)
+            import re
 
-        content = re.sub(r"//.*$", "", content, flags=re.MULTILINE)
+            content = re.sub(r"//.*$", "", content, flags=re.MULTILINE)
 
-        # Parse the cleaned JSON
-        self._config = json.loads(content)
+            # Parse the cleaned JSON
+            self._config = json.loads(content)
+        except (OSError, PermissionError) as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Cannot read config file {config_path}: {e}")
+            logger.info("Creating new default configuration")
+            
+            # Fall back to creating a new default config
+            default_path = self._create_default_config()
+            with open(default_path) as f:
+                content = f.read()
+            
+            self._config = json.loads(content)
+            self.config_file = str(default_path)
 
         # Apply migrations for backward compatibility
         self._config = self._migrate_legacy_language(self._config)
@@ -48,6 +79,9 @@ class ConfigLoader:
         # Cache commonly used values
         self.project_dir = str(Path(config_path).parent)
         self._setup_paths()
+        
+        # Initialize architecture detection
+        self._initialize_architecture_detection()
 
     def _find_config_file(self) -> Path:
         """Find config file in multiple locations"""
@@ -90,7 +124,7 @@ class ConfigLoader:
         import tempfile
 
         default_config = {
-            "whisper": {"model": "base", "device": "auto", "compute_type": "auto"},
+            "whisper": {"model": "auto", "device": "auto", "compute_type": "auto"},
             "server": {
                 "websocket": {
                     "port": 8769,
@@ -182,6 +216,206 @@ class ConfigLoader:
             temp_dir_template = os.path.expandvars(temp_dir_template)
         self.temp_dir = temp_dir_template
         os.makedirs(self.temp_dir, mode=0o700, exist_ok=True)
+    
+    def _initialize_architecture_detection(self) -> None:
+        """Initialize architecture detection and optimal defaults."""
+        logger = logging.getLogger(__name__)
+        
+        try:
+            self._arch_info = self._detect_architecture()
+            self._arch_defaults = self._get_architecture_defaults()
+            
+            logger.info(f"Architecture: {self._arch_info['arch_family']} ({self._arch_info['machine']})")
+            logger.info(f"Optimal model: {self._arch_defaults['whisper_model']}")
+            logger.info(f"Device: {self._arch_defaults['whisper_device']}")
+            
+        except Exception as e:
+            logger.warning(f"Architecture detection failed: {e}")
+            logger.info("Using conservative fallback defaults")
+            
+            # Fallback to safe defaults that work everywhere
+            self._arch_info = {
+                'machine': platform.machine().lower(),
+                'system': platform.system().lower(),
+                'arch_family': 'unknown',
+                'supports_gpu': False,
+                'memory_gb': None,
+                'cpu_count': 1,
+                'is_raspberry_pi': False,
+                'is_container': False,
+                'is_apple_silicon': False,
+            }
+            
+            self._arch_defaults = {
+                'whisper_model': 'tiny',
+                'whisper_device': 'cpu',
+                'whisper_compute_type': 'int8',
+                'max_concurrent_requests': 1,
+            }
+    
+    def _detect_architecture(self) -> Dict[str, Any]:
+        """Detect system architecture and capabilities."""
+        machine = platform.machine().lower()
+        system = platform.system().lower()
+        
+        info = {
+            'machine': machine,
+            'system': system,
+            'python_version': sys.version_info[:2],
+            'is_64bit': sys.maxsize > 2**32,
+        }
+        
+        # Enhanced architecture detection
+        if machine in ['x86_64', 'amd64']:
+            info['arch_family'] = 'x86_64'
+            info['supports_gpu'] = True
+        elif machine in ['aarch64', 'arm64']:
+            info['arch_family'] = 'arm64'
+            info['supports_gpu'] = False  # No CUDA on ARM typically
+        elif machine.startswith('armv7'):
+            info['arch_family'] = 'armv7'
+            info['supports_gpu'] = False
+        elif machine.startswith('armv6'):
+            info['arch_family'] = 'armv6'
+            info['supports_gpu'] = False
+        else:
+            info['arch_family'] = 'unknown'
+            info['supports_gpu'] = False
+        
+        # Memory information
+        if psutil:
+            info['memory_gb'] = psutil.virtual_memory().total / (1024**3)
+            info['cpu_count'] = psutil.cpu_count()
+        else:
+            import multiprocessing
+            info['memory_gb'] = None
+            info['cpu_count'] = multiprocessing.cpu_count()
+        
+        # Check for special environments
+        info['is_raspberry_pi'] = self._is_raspberry_pi()
+        info['is_container'] = self._is_container()
+        info['is_apple_silicon'] = system == 'darwin' and machine == 'arm64'
+        
+        return info
+    
+    def _is_raspberry_pi(self) -> bool:
+        """Detect if running on Raspberry Pi."""
+        try:
+            with open('/proc/cpuinfo', 'r') as f:
+                cpuinfo = f.read().lower()
+                return 'raspberry pi' in cpuinfo or 'bcm' in cpuinfo
+        except (FileNotFoundError, PermissionError):
+            return False
+    
+    def _is_container(self) -> bool:
+        """Detect if running in a container."""
+        try:
+            with open('/proc/1/cgroup', 'r') as f:
+                cgroup = f.read()
+                return 'docker' in cgroup or 'lxc' in cgroup
+        except (FileNotFoundError, PermissionError):
+            return False
+    
+    def _get_architecture_defaults(self) -> Dict[str, Any]:
+        """Get optimal defaults based on detected architecture."""
+        arch_family = self._arch_info['arch_family']
+        memory_gb = self._arch_info.get('memory_gb', 4)
+        cpu_count = self._arch_info.get('cpu_count', 2)
+        
+        # Raspberry Pi gets special treatment
+        if self._arch_info.get('is_raspberry_pi', False):
+            return {
+                'whisper_model': 'tiny',
+                'whisper_device': 'cpu',
+                'whisper_compute_type': 'int8',
+                'max_concurrent_requests': 1,
+            }
+        
+        # Container environments
+        if self._arch_info.get('is_container', False):
+            return {
+                'whisper_model': 'base',
+                'whisper_device': 'cpu',
+                'whisper_compute_type': 'int8',
+                'max_concurrent_requests': 2,
+            }
+        
+        # ARM devices
+        if arch_family in ['armv6', 'armv7']:
+            return {
+                'whisper_model': 'tiny',
+                'whisper_device': 'cpu',
+                'whisper_compute_type': 'int8',
+                'max_concurrent_requests': 1,
+            }
+        elif arch_family == 'arm64':
+            model = 'base' if memory_gb and memory_gb >= 8 else 'tiny'
+            return {
+                'whisper_model': model,
+                'whisper_device': 'cpu',
+                'whisper_compute_type': 'int8',
+                'max_concurrent_requests': 2 if memory_gb and memory_gb >= 8 else 1,
+            }
+        
+        # x86_64 devices
+        if arch_family == 'x86_64':
+            gpu_available = self._detect_gpu_availability()
+            
+            if memory_gb and memory_gb >= 16 and cpu_count >= 8 and gpu_available:
+                return {
+                    'whisper_model': 'base',  # Still conservative for stability
+                    'whisper_device': 'cuda',
+                    'whisper_compute_type': 'float16',
+                    'max_concurrent_requests': 4,
+                }
+            elif memory_gb and memory_gb >= 8 and cpu_count >= 4:
+                return {
+                    'whisper_model': 'base',
+                    'whisper_device': 'cuda' if gpu_available else 'cpu',
+                    'whisper_compute_type': 'float16' if gpu_available else 'int8',
+                    'max_concurrent_requests': 2,
+                }
+            elif memory_gb and memory_gb >= 4:
+                return {
+                    'whisper_model': 'tiny',
+                    'whisper_device': 'cpu',
+                    'whisper_compute_type': 'int8',
+                    'max_concurrent_requests': 1,
+                }
+            else:
+                return {
+                    'whisper_model': 'tiny',
+                    'whisper_device': 'cpu',
+                    'whisper_compute_type': 'int8',
+                    'max_concurrent_requests': 1,
+                }
+        
+        # Fallback for unknown architectures
+        return {
+            'whisper_model': 'tiny',
+            'whisper_device': 'cpu',
+            'whisper_compute_type': 'int8',
+            'max_concurrent_requests': 1,
+        }
+    
+    def _detect_gpu_availability(self) -> bool:
+        """Detect if GPU acceleration is available."""
+        if not self._arch_info.get('supports_gpu', False):
+            return False
+            
+        try:
+            if ctranslate2:
+                return ctranslate2.get_cuda_device_count() > 0
+        except (AttributeError, RuntimeError):
+            pass
+            
+        try:
+            import torch
+            return torch.cuda.is_available()
+        except ImportError:
+            pass
+            
+        return False
 
     def get(self, key_path: str, default: Any = None) -> Any:
         """Get a value using dot notation (e.g., 'server.websocket.port')"""
@@ -298,15 +532,65 @@ class ConfigLoader:
 
     @property
     def whisper_model(self) -> str:
-        return str(self.get("whisper.model", "large-v3-turbo"))
+        configured_model = self.get("whisper.model", "auto")
+        
+        if configured_model != "auto":
+            return str(configured_model)
+            
+        # Use architecture-aware default with defensive fallback
+        if hasattr(self, '_arch_defaults'):
+            return self._arch_defaults.get('whisper_model', 'base')
+        return 'base'
+    
+    @property
+    def whisper_model_auto(self) -> str:
+        """Auto-detect the best model size based on system resources."""
+        try:
+            import psutil
+            memory_gb = psutil.virtual_memory().total / (1024**3)
+        except ImportError:
+            # Conservative fallback if psutil not available
+            memory_gb = 4
+        
+        import platform
+        machine = platform.machine().lower()
+        
+        # Architecture and memory-based model selection
+        if 'arm' in machine:
+            if machine.startswith('armv6') or machine.startswith('armv7'):
+                return "tiny"  # ARM32 - very resource constrained
+            elif memory_gb < 4:
+                return "tiny"  # ARM64 low memory
+            else:
+                return "base"  # ARM64 with decent memory
+        else:
+            # x86_64 systems
+            if memory_gb < 4:
+                return "tiny"
+            elif memory_gb < 8:
+                return "base" 
+            elif memory_gb < 16:
+                return "small"
+            else:
+                return "base"  # Still use base for stability
 
     @property
     def whisper_device(self) -> str:
-        return str(self.get("whisper.device", "cuda"))
+        configured_device = self.get("whisper.device", "auto")
+        if configured_device == "auto":
+            if hasattr(self, '_arch_defaults'):
+                return self._arch_defaults.get('whisper_device', 'cpu')
+            return 'cpu'
+        return str(configured_device)
 
     @property
     def whisper_compute_type(self) -> str:
-        return str(self.get("whisper.compute_type", "float16"))
+        configured_compute_type = self.get("whisper.compute_type", "auto")
+        if configured_compute_type == "auto":
+            if hasattr(self, '_arch_defaults'):
+                return self._arch_defaults.get('whisper_compute_type', 'int8')
+            return 'int8'
+        return str(configured_compute_type)
 
     def detect_cuda_support(self) -> tuple[bool, str]:
         """
