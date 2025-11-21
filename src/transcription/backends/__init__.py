@@ -16,6 +16,19 @@ except ImportError:
     PARAKEET_AVAILABLE = False
 
 
+def get_available_backends() -> list:
+    """
+    Return list of available backend names.
+
+    Returns:
+        List of backend names that are currently available.
+    """
+    backends = ["faster_whisper"]
+    if PARAKEET_AVAILABLE:
+        backends.append("parakeet")
+    return backends
+
+
 def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
     """
     Factory function to get the backend class based on name.
@@ -34,7 +47,19 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
 
     if backend_name == "parakeet":
         if not PARAKEET_AVAILABLE:
-            raise ValueError("Parakeet backend requested but 'parakeet-mlx' is not installed or available.")
+            raise ValueError(
+                "Parakeet backend requested but dependencies are not installed.\n"
+                "To use Parakeet on macOS with Apple Silicon:\n"
+                "  1. Install: ./setup.sh install --dev (includes [mac] extras)\n"
+                "  2. Or: pip install goobits-stt[mac]\n"
+                "Note: Parakeet requires macOS with Metal/MLX support (M1/M2/M3 chips)"
+            )
         return ParakeetBackend
 
-    raise ValueError(f"Unknown backend: {backend_name}")
+    raise ValueError(
+        f"Unknown backend: '{backend_name}'\n"
+        f"Available backends:\n"
+        f"  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support\n"
+        f"  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)\n"
+        f"Check your config.json: {{\"transcription\": {{\"backend\": \"faster_whisper\"}}}}"
+    )

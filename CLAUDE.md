@@ -103,6 +103,52 @@ Advanced text formatting system in `src/text_formatting/`:
 - **Pattern conversion**: Regex-based text transformation
 - **Contextual formatting**: Smart formatting based on content context
 
+### Transcription Backends
+
+STT supports pluggable transcription backends for platform-specific optimization:
+
+**Available Backends:**
+- **faster_whisper** (default): CPU/CUDA Whisper implementation using CTranslate2
+  - Cross-platform (Linux, macOS, Windows)
+  - Supports GPU acceleration (CUDA)
+  - Auto-detects optimal compute type
+  - Models: tiny, base, small, medium, large-v3-turbo
+
+- **parakeet**: Apple Silicon MLX-optimized transcription
+  - macOS only (requires Metal/MLX support)
+  - Optimized for M1/M2/M3 chips
+  - Lower memory footprint
+  - Requires `[mac]` extras: `pip install goobits-stt[mac]`
+
+**Configuration:**
+
+Edit `config.json`:
+```json
+{
+  "transcription": {
+    "backend": "faster_whisper"  // or "parakeet"
+  },
+  "whisper": {
+    "model": "base",
+    "device": "auto",
+    "compute_type": "auto"
+  },
+  "parakeet": {
+    "model": "mlx-community/parakeet-tdt-0.6b-v3"
+  }
+}
+```
+
+**Backend Selection Guide:**
+- **Use faster_whisper if**: Cross-platform compatibility needed, CUDA GPU available, need larger models
+- **Use parakeet if**: Running on Apple Silicon (M1/M2/M3), need lower memory usage, macOS-only deployment
+
+**Architecture:**
+- Abstract base class: `src/transcription/backends/base.py`
+- Implementations: `src/transcription/backends/{faster_whisper,parakeet}_backend.py`
+- Factory: `src/transcription/backends/__init__.py:get_backend_class()`
+- Server integration: `src/transcription/server.py` (lines 76-81)
+
 ### Docker Support
 Complete Docker deployment in `docker/` directory:
 - Production-ready server with admin dashboard
@@ -114,6 +160,7 @@ Complete Docker deployment in `docker/` directory:
 
 ### Dependencies
 - **Core STT**: faster-whisper, ctranslate2, torch
+- **Optional Backends**: mlx, parakeet-mlx (install with `[mac]` extras for Apple Silicon)
 - **Audio**: opuslib for streaming, pynput for hotkeys
 - **Networking**: websockets, aiohttp for server functionality
 - **Text Processing**: spacy, deepmultilingualpunctuation for formatting

@@ -1,0 +1,73 @@
+2025-11-20 17:26:33 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 17:26:33 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 17:26:33 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 17:26:33 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 17:26:33 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 17:26:33 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:36:53 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:36:53 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:36:53 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:36:53 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:36:53 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:36:53 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:05 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:50:05 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:50:05 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:05 - src.transcription.server - ERROR - Failed to initialize backend: Unknown backend: 'invalid_backend'
+Available backends:
+  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support
+  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)
+Check your config.json: {"transcription": {"backend": "faster_whisper"}}
+2025-11-20 20:50:05 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://<Mock name='mock.websocket_bind_host' id='281473254224096'>:8769
+2025-11-20 20:50:05 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:05 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:50:05 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:50:05 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:16 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:50:16 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:50:16 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:51 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:50:51 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:50:51 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:51 - src.transcription.server - ERROR - Failed to initialize backend: Unknown backend: 'invalid_backend'
+Available backends:
+  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support
+  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)
+Check your config.json: {"transcription": {"backend": "faster_whisper"}}
+2025-11-20 20:50:51 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://<Mock name='mock.websocket_bind_host' id='281472809740880'>:8769
+2025-11-20 20:50:51 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:51 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:50:51 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:50:51 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:50:57 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:50:57 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:50:57 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:03 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:51:03 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:51:03 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:22 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:51:22 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:51:22 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:22 - src.transcription.server - ERROR - Failed to initialize backend: Unknown backend: 'invalid_backend'
+Available backends:
+  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support
+  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)
+Check your config.json: {"transcription": {"backend": "faster_whisper"}}
+2025-11-20 20:51:22 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://<Mock name='mock.websocket_bind_host' id='281473440852560'>:8769
+2025-11-20 20:51:22 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:22 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:51:22 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:51:22 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:36 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:51:36 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:51:36 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:36 - src.transcription.server - ERROR - Failed to initialize backend: Unknown backend: 'invalid_backend'
+Available backends:
+  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support
+  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)
+Check your config.json: {"transcription": {"backend": "faster_whisper"}}
+2025-11-20 20:51:36 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://<Mock name='mock.websocket_bind_host' id='281473114802224'>:8769
+2025-11-20 20:51:36 - src.transcription.server - INFO - Self-contained session management enabled
+2025-11-20 20:51:36 - src.transcription.server - INFO - Using transcription backend: faster_whisper
+2025-11-20 20:51:36 - src.transcription.server - INFO - Initializing WebSocket Matilda Server on ws://0.0.0.0:8769
+2025-11-20 20:51:36 - src.transcription.server - INFO - Self-contained session management enabled

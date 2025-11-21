@@ -16,6 +16,7 @@ A pure speech-to-text engine with multiple operation modes and advanced text for
 - [Configuration](#️-configuration)
 - [Operation Modes](#-operation-modes)
 - [Performance Optimization](#-performance-optimization)
+- [Transcription Backends](#-transcription-backends)
 - [Text Formatting Features](#-text-formatting-features)
 - [Server Deployment](#-server-deployment)
 - [Testing & Development](#-testing--development)
@@ -29,6 +30,10 @@ A pure speech-to-text engine with multiple operation modes and advanced text for
 # Install globally with pipx (recommended)
 pipx install .                     # Install globally, isolated environment
 pipx install .[dev]               # Install with development dependencies
+
+# Install with Apple Silicon optimization (macOS M1/M2/M3)
+pipx install .[mac]               # Install with Parakeet MLX backend
+pipx install .[mac,dev]           # Install with both mac and dev extras
 
 # Or with pip for development
 pip install -e .[dev]              # Install editable with dev dependencies
@@ -94,6 +99,58 @@ stt --model tiny      # Fastest, lower quality
 stt --model base      # Balanced (default)
 stt --model large-v3-turbo  # Best quality
 ```
+
+## 🔧 Transcription Backends
+
+STT supports pluggable backends optimized for different platforms:
+
+### faster_whisper (Default)
+```bash
+# Cross-platform backend with CUDA support
+# Edit config.json:
+{
+  "transcription": {
+    "backend": "faster_whisper"
+  },
+  "whisper": {
+    "model": "base",
+    "device": "auto",
+    "compute_type": "auto"
+  }
+}
+```
+
+**Features:**
+- ✅ Cross-platform (Linux, macOS, Windows)
+- ✅ GPU acceleration (CUDA)
+- ✅ All model sizes (tiny → large-v3-turbo)
+- ✅ Auto-detection of optimal compute type
+
+### parakeet (Apple Silicon)
+```bash
+# Install MLX backend for macOS M1/M2/M3
+pip install goobits-stt[mac]
+
+# Edit config.json:
+{
+  "transcription": {
+    "backend": "parakeet"
+  },
+  "parakeet": {
+    "model": "mlx-community/parakeet-tdt-0.6b-v3"
+  }
+}
+```
+
+**Features:**
+- ✅ Optimized for Apple Silicon (M1/M2/M3)
+- ✅ Lower memory footprint
+- ✅ Native Metal acceleration
+- ⚠️ macOS only (requires MLX support)
+
+**Backend Selection:**
+- **Use faster_whisper**: Cross-platform needs, CUDA GPU, larger models
+- **Use parakeet**: Apple Silicon (M1/M2/M3), lower memory usage
 
 ## 🎭 Text Formatting Features
 
@@ -165,6 +222,7 @@ Choose based on your speed/accuracy requirements and available system resources.
 
 ### Core Technologies
 - **🧠 AI/ML**: OpenAI Whisper (faster-whisper), CTranslate2, PyTorch
+- **🍎 Apple Silicon**: MLX, Parakeet (optional, macOS only)
 - **🎙️ Audio**: OpusLib, NumPy, custom pipe-based audio capture
 - **⌨️ System**: pynput for global hotkeys, cross-platform support
 
