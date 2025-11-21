@@ -5,7 +5,10 @@ and other AI models used by the text formatting system.
 """
 
 import os
+import sysconfig
 import threading
+from pathlib import Path
+
 from ..core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
@@ -29,23 +32,21 @@ def get_nlp():
             if _nlp is None:
                 try:
                     import spacy
-                    import sysconfig
-                    from pathlib import Path
 
-                    # First try loading by name
+                    # First try loading by name (standard SpaCy registry)
                     try:
                         _nlp = spacy.load("en_core_web_sm", disable=["senter"])
                         logger.info("SpaCy model loaded successfully (optimized: senter disabled)")
-                    except (OSError, ValueError):
+                    except OSError:
                         # Fallback: try loading from site-packages path (for minimal/testing models)
-                        site_packages = Path(sysconfig.get_path('purelib'))
-                        model_path = site_packages / 'en_core_web_sm'
+                        site_packages = Path(sysconfig.get_path("purelib"))
+                        model_path = site_packages / "en_core_web_sm"
                         if model_path.exists():
                             _nlp = spacy.load(str(model_path), disable=["senter"])
                             logger.info(f"SpaCy model loaded from path: {model_path}")
                         else:
                             raise OSError(f"Model not found by name or at path: {model_path}")
-                except (ImportError, OSError, ValueError) as e:
+                except (ImportError, OSError) as e:
                     logger.warning(f"Failed to load SpaCy model: {e}")
                     _nlp = False
     return _nlp if _nlp else None
