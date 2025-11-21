@@ -29,9 +29,22 @@ def get_nlp():
             if _nlp is None:
                 try:
                     import spacy
+                    import sysconfig
+                    from pathlib import Path
 
-                    _nlp = spacy.load("en_core_web_sm", disable=["senter"])
-                    logger.info("SpaCy model loaded successfully (optimized: senter disabled)")
+                    # First try loading by name
+                    try:
+                        _nlp = spacy.load("en_core_web_sm", disable=["senter"])
+                        logger.info("SpaCy model loaded successfully (optimized: senter disabled)")
+                    except (OSError, ValueError):
+                        # Fallback: try loading from site-packages path (for minimal/testing models)
+                        site_packages = Path(sysconfig.get_path('purelib'))
+                        model_path = site_packages / 'en_core_web_sm'
+                        if model_path.exists():
+                            _nlp = spacy.load(str(model_path), disable=["senter"])
+                            logger.info(f"SpaCy model loaded from path: {model_path}")
+                        else:
+                            raise OSError(f"Model not found by name or at path: {model_path}")
                 except (ImportError, OSError, ValueError) as e:
                     logger.warning(f"Failed to load SpaCy model: {e}")
                     _nlp = False
