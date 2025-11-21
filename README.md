@@ -127,6 +127,10 @@ docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
 ## 🎯 Testing & Development
 
 ```bash
+# Install test dependencies
+pip install -e .[dev]              # Install dev dependencies
+python -m spacy download en_core_web_sm  # Required for text formatting tests
+
 # Run test suite
 pytest                             # All tests
 pytest tests/text_formatting/     # Specific module
