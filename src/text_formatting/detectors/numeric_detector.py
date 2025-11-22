@@ -180,33 +180,28 @@ class NumericalEntityDetector:
         """Detects all numerical-related entities."""
         numerical_entities: list[Entity] = []
 
-        # Detect version numbers and percentages first (before SpaCy processes them)
-        all_entities = entities + numerical_entities
-        self._detect_version_numbers(text, numerical_entities, all_entities)
+        # PRIORITY 1: Complex entities that consume numbers
+        # Detect these first to prevent simple numbers from breaking them
 
-        # Pass all existing entities for overlap checking
         all_entities = entities + numerical_entities
-        self._detect_numerical_entities(text, numerical_entities, all_entities)
-
-        # Fallback detection for basic number words when SpaCy is not available
-        all_entities = entities + numerical_entities
-        self._detect_cardinal_numbers_fallback(text, numerical_entities, all_entities)
+        self._detect_scientific_notation(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self._detect_math_expressions(text, numerical_entities, all_entities)
 
-        # Detect temperatures before time expressions to prevent conflicts
         all_entities = entities + numerical_entities
-        self._detect_temperatures(text, numerical_entities, all_entities)
+        self._detect_math_constants(text, numerical_entities, all_entities)
+
+        # PRIORITY 2: Specific numeric formats
 
         all_entities = entities + numerical_entities
-        self._detect_time_expressions(text, numerical_entities, all_entities)
+        self._detect_version_numbers(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self._detect_phone_numbers(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
-        self._detect_ordinals(text, numerical_entities, all_entities)
+        self._detect_time_expressions(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self._detect_time_relative(text, numerical_entities, all_entities)
@@ -215,19 +210,30 @@ class NumericalEntityDetector:
         self._detect_fractions(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
+        self._detect_temperatures(text, numerical_entities, all_entities)
+
+        # PRIORITY 3: Measures and Units
+
+        # Detect ranges before simple numbers
+        all_entities = entities + numerical_entities
+        self._detect_numeric_ranges_simple(text, numerical_entities, all_entities)
+
+        all_entities = entities + numerical_entities
         self._detect_measurements(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self._detect_metric_units(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
+        self._detect_numerical_entities(text, numerical_entities, all_entities)
+
+        # PRIORITY 4: Fallbacks and simple types
+
+        all_entities = entities + numerical_entities
+        self._detect_ordinals(text, numerical_entities, all_entities)
+
+        all_entities = entities + numerical_entities
         self._detect_root_expressions(text, numerical_entities, all_entities)
-
-        all_entities = entities + numerical_entities
-        self._detect_math_constants(text, numerical_entities, all_entities)
-
-        all_entities = entities + numerical_entities
-        self._detect_scientific_notation(text, numerical_entities, all_entities)
 
         all_entities = entities + numerical_entities
         self._detect_music_notation(text, numerical_entities, all_entities)
@@ -235,7 +241,33 @@ class NumericalEntityDetector:
         all_entities = entities + numerical_entities
         self._detect_spoken_emojis(text, numerical_entities, all_entities)
 
+        # Fallback detection for basic number words when SpaCy is not available
+        # Or to catch sequences not caught by other detectors
+        all_entities = entities + numerical_entities
+        self._detect_cardinal_numbers_fallback(text, numerical_entities, all_entities)
+
         return numerical_entities
+
+    def _find_unit_match(self, text: str, type_name: str, units_list: List[str]) -> Optional[tuple]:
+        """Helper to find a matching unit at the start of text.
+
+        Args:
+            text: The text to search in (should be remaining text after a number)
+            type_name: The unit type name (e.g. 'currency', 'time')
+            units_list: List of unit strings to match
+
+        Returns:
+            Tuple of (type_name, matched_unit_text, match_length) or None
+        """
+        # Create a sorted copy to ensure longest matches first without modifying original list
+        sorted_units = sorted(units_list, key=len, reverse=True)
+
+        for unit in sorted_units:
+            if re.match(rf"{re.escape(unit)}s?\b", text, re.IGNORECASE):
+                match_unit = re.search(rf"({re.escape(unit)}s?)\b", text, re.IGNORECASE)
+                if match_unit:
+                    return (type_name, unit, match_unit.end())
+        return None
 
     def _detect_numerical_entities(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
         """Detect numerical entities with units using SpaCy's grammar analysis."""
@@ -264,6 +296,13 @@ class NumericalEntityDetector:
             token = doc[i]
 
             # Find a number-like token (includes cardinals, digits, and number words)
+            # Check if token overlaps with an existing high-priority entity
+            token_start = token.idx
+            token_end = token.idx + len(token.text)
+            if is_inside_entity(token_start, token_end, all_entities or []):
+                i += 1
+                continue
+
             is_a_number = (
                 (token.like_num and token.lower_ not in self.resources.get("technical", {}).get("ordinal_words", []))
                 or (token.ent_type_ == "CARDINAL")
@@ -279,9 +318,22 @@ class NumericalEntityDetector:
                     or doc[j].lower_ in self.number_parser.all_number_words
                     or doc[j].lower_ in {"and", "point", "dot"}
                 ):
+                    # Check if this token overlaps with existing entities
+                    token_start = doc[j].idx
+                    token_end = doc[j].idx + len(doc[j].text)
+                    if is_inside_entity(token_start, token_end, all_entities or []):
+                        # If we hit an entity, stop consuming
+                        break
+
                     if doc[j].lower_ != "and":
                         number_tokens.append(doc[j])
                     j += 1
+
+                # Check if the token BEFORE the number is "approximately" or similar
+                # If so, DO NOT include it in the number entity, but be aware
+                # Some SpaCy models might include it in the CARDINAL entity, which we want to avoid
+                # But here we are building our own entities based on tokens.
+                # So if we just consume number tokens, we are safe from "approximately".
 
                 # Now, check the very next token to see if it's a unit
                 if j < len(doc):
@@ -338,8 +390,9 @@ class NumericalEntityDetector:
     ) -> None:
         """Detect numeric range expressions (ten to twenty, etc.)."""
         for match in regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.finditer(text):
-            # Don't check for entity overlap here - let the priority system handle it
-            # This allows ranges to be detected even if individual numbers are already detected as CARDINAL
+            # Check for overlap with existing entities
+            if is_inside_entity(match.start(), match.end(), all_entities or []):
+                continue
 
             # Check if this is actually a time expression (e.g., "five to ten" meaning 9:55)
             # We'll skip if it looks like a time context
@@ -361,57 +414,45 @@ class NumericalEntityDetector:
                     unit_type = "percent"
                     unit_text = "percent"
                     # Calculate the correct end position: find "percent" start position + length
-                    percent_start = text.find("percent", end_pos)
+                    percent_start = text.lower().find("percent", end_pos)
                     if percent_start != -1:
                         end_pos = percent_start + 7  # 7 = len("percent")
 
-                # Check for currency units
-                currency_units = self.resources.get("currency", {}).get("units", [])
-                for currency_unit in currency_units:
-                    if remaining_text.lower().startswith(currency_unit.lower()):
-                        unit_type = "currency"
-                        unit_text = currency_unit
-                        # Find the actual unit in the text (might be slightly different due to plural)
-                        # Look for the unit in the remaining text
-                        words = remaining_text.split()
-                        if words and words[0].lower().startswith(currency_unit.lower()[:4]):
-                            # Use the actual word from the text (handles plural forms)
-                            actual_unit = words[0]
-                            unit_text = actual_unit
-                            unit_start = text.lower().find(actual_unit.lower(), end_pos)
-                            if unit_start != -1:
-                                end_pos = unit_start + len(actual_unit)
-                        else:
-                            # Fallback to exact match
-                            unit_start = text.lower().find(currency_unit.lower(), end_pos)
-                            if unit_start != -1:
-                                end_pos = unit_start + len(currency_unit)
-                        break
-
-                # Check for other units (time, weight, etc.)
+                # Check for units using refactored helper
                 if not unit_text:
-                    # Time units
-                    time_units = self.resources.get("units", {}).get("time_units", [])
-                    for time_unit in time_units:
-                        if remaining_text.lower().startswith(time_unit.lower()):
-                            unit_type = "time"
-                            unit_text = time_unit
-                            unit_start = text.lower().find(time_unit.lower(), end_pos)
-                            if unit_start != -1:
-                                end_pos = unit_start + len(time_unit)
-                            break
+                    unit_match = self._find_unit_match(remaining_text, "currency", self.resources.get("currency", {}).get("units", []))
+                    if unit_match:
+                        unit_type, unit_text, unit_len = unit_match
+                        spaces_len = len(text[end_pos:]) - len(remaining_text)
+                        end_pos = end_pos + spaces_len + unit_len
 
                 if not unit_text:
-                    # Weight units
-                    weight_units = self.resources.get("units", {}).get("weight_units", [])
-                    for weight_unit in weight_units:
-                        if remaining_text.lower().startswith(weight_unit.lower()):
-                            unit_type = "weight"
-                            unit_text = weight_unit
-                            unit_start = text.lower().find(weight_unit.lower(), end_pos)
-                            if unit_start != -1:
-                                end_pos = unit_start + len(weight_unit)
-                            break
+                    unit_match = self._find_unit_match(remaining_text, "time", self.resources.get("units", {}).get("time_units", []))
+                    if unit_match:
+                        unit_type, unit_text, unit_len = unit_match
+                        spaces_len = len(text[end_pos:]) - len(remaining_text)
+                        end_pos = end_pos + spaces_len + unit_len
+
+                if not unit_text:
+                    unit_match = self._find_unit_match(remaining_text, "weight", self.resources.get("units", {}).get("weight_units", []))
+                    if unit_match:
+                        unit_type, unit_text, unit_len = unit_match
+                        spaces_len = len(text[end_pos:]) - len(remaining_text)
+                        end_pos = end_pos + spaces_len + unit_len
+
+                if not unit_text:
+                    unit_match = self._find_unit_match(remaining_text, "length", self.resources.get("units", {}).get("length_units", []))
+                    if unit_match:
+                        unit_type, unit_text, unit_len = unit_match
+                        spaces_len = len(text[end_pos:]) - len(remaining_text)
+                        end_pos = end_pos + spaces_len + unit_len
+
+                if not unit_text:
+                    unit_match = self._find_unit_match(remaining_text, "volume", self.resources.get("units", {}).get("volume_units", []))
+                    if unit_match:
+                        unit_type, unit_text, unit_len = unit_match
+                        spaces_len = len(text[end_pos:]) - len(remaining_text)
+                        end_pos = end_pos + spaces_len + unit_len
 
             entities.append(
                 Entity(
@@ -898,38 +939,45 @@ class NumericalEntityDetector:
 
     def _detect_fractions(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
         """Detect fraction expressions (one half, two thirds, etc.)."""
-        for match in regex_patterns.SPOKEN_FRACTION_PATTERN.finditer(text):
+        # First, detect mixed fractions ("one and one half")
+        for match in regex_patterns.SPOKEN_MIXED_FRACTION_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities
-
-            # Check if this overlaps with only low-priority entities (CARDINAL, DATE, QUANTITY)
-            overlaps_high_priority = False
-
-            for existing in check_entities:
-                if not (match.end() <= existing.start or match.start() >= existing.end):
-                    # There is overlap
-                    if existing.type in [
-                        EntityType.CARDINAL,
-                        EntityType.DATE,
-                        EntityType.QUANTITY,
-                        EntityType.TIME,
-                        EntityType.ORDINAL,
-                    ]:
-                        pass  # overlaps_low_priority = True
-                    else:
-                        overlaps_high_priority = True
-                        break
-
-            # Add fraction if it doesn't overlap with high-priority entities
-            if not overlaps_high_priority:
+            if not is_inside_entity(match.start(), match.end(), check_entities):
                 entities.append(
                     Entity(
                         start=match.start(),
                         end=match.end(),
                         text=match.group(),
                         type=EntityType.FRACTION,
-                        metadata={"numerator_word": match.group(1), "denominator_word": match.group(2)},
+                        metadata={
+                            "whole_word": match.group(1),
+                            "numerator_word": match.group(2),
+                            "denominator_word": match.group(3),
+                            "is_mixed": True,
+                        },
                     )
                 )
+
+        # Then, detect regular fractions
+        for match in regex_patterns.SPOKEN_FRACTION_PATTERN.finditer(text):
+            check_entities = all_entities if all_entities else entities
+
+            # Check if this overlaps with any existing entities
+            # We want mixed fractions (detected above) to take precedence
+            # Also skip if overlaps with high priority entities
+            if is_inside_entity(match.start(), match.end(), check_entities):
+                continue
+
+            # Add fraction
+            entities.append(
+                Entity(
+                    start=match.start(),
+                    end=match.end(),
+                    text=match.group(),
+                    type=EntityType.FRACTION,
+                    metadata={"numerator_word": match.group(1), "denominator_word": match.group(2)},
+                )
+            )
 
     def _detect_version_numbers(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
         """Detect version numbers in spoken form (e.g., 'version two point five')."""

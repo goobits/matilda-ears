@@ -1839,6 +1839,8 @@ class PatternConverter:
 
         numerator_word = entity.metadata.get("numerator_word", "").lower()
         denominator_word = entity.metadata.get("denominator_word", "").lower()
+        is_mixed = entity.metadata.get("is_mixed", False)
+        whole_word = entity.metadata.get("whole_word", "").lower() if is_mixed else ""
 
         # Map number words to digits
         num_map = {
@@ -1880,6 +1882,7 @@ class PatternConverter:
 
         numerator = num_map.get(numerator_word)
         denominator = denom_map.get(denominator_word)
+        whole = num_map.get(whole_word) if is_mixed else ""
 
         if numerator and denominator:
             # Create the x/y format first
@@ -1907,8 +1910,14 @@ class PatternConverter:
                 "1/10": "⅒",
             }
 
+            unicode_fraction = unicode_fractions.get(fraction_str, fraction_str)
+
+            if is_mixed and whole:
+                # For mixed fractions, concatenate whole number and fraction (e.g., "1½")
+                return f"{whole}{unicode_fraction}"
+
             # Return Unicode character if available, otherwise return x/y format
-            return unicode_fractions.get(fraction_str, fraction_str)
+            return unicode_fraction
 
         return entity.text
 
@@ -2330,6 +2339,7 @@ class PatternConverter:
         - "two point five centimeters" → "2.5 cm"
         - "ten kilograms" → "10 kg"
         - "three liters" → "3 L"
+        - "three to five kilograms" → "3-5 kg"
 
         """
         if not entity.metadata:
@@ -2340,6 +2350,18 @@ class PatternConverter:
 
         # Use the improved number parser that handles decimals automatically
         parsed_num = self.number_parser.parse(number_text)
+
+        # If parsing failed, check if it might be a numeric range
+        if not parsed_num:
+            # Check for range pattern "X to Y"
+            range_pattern = re.match(r"(.*?)\s+to\s+(.*)", number_text, re.IGNORECASE)
+            if range_pattern:
+                start_text = range_pattern.group(1)
+                end_text = range_pattern.group(2)
+                start_num = self.number_parser.parse(start_text)
+                end_num = self.number_parser.parse(end_text)
+                if start_num and end_num:
+                    parsed_num = f"{start_num}-{end_num}"
 
         if not parsed_num:
             return entity.text

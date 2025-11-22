@@ -127,13 +127,26 @@ SPOKEN_FRACTION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Mixed fraction pattern: "one and one half"
+SPOKEN_MIXED_FRACTION_PATTERN = re.compile(
+    r"\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+and\s+"
+    r"(one|two|three|four|five|six|seven|eight|nine|ten)\s+"
+    r"(half|halves|third|thirds|quarter|quarters|fourth|fourths|fifth|fifths|"
+    r"sixth|sixths|seventh|sevenths|eighth|eighths|ninth|ninths|tenth|tenths)\b",
+    re.IGNORECASE,
+)
+
 # Component-based numeric range pattern for better maintainability
 # Get the number words from a single source of truth
 _number_parser_instance = NumberParser("en")  # Use English as default for pattern building
-_number_words_pattern = "(?:" + "|".join(_number_parser_instance.all_number_words) + ")"
+# Sort by length (descending) to match longer words first (e.g., "three hundred" vs "three")
+_sorted_number_words = sorted(_number_parser_instance.all_number_words, key=len, reverse=True)
+_number_words_pattern = "(?:" + "|".join(re.escape(w) for w in _sorted_number_words) + ")"
 
 # Define a reusable pattern for a sequence of one or more number words
-NUMBER_WORD_SEQUENCE = f"{_number_words_pattern}(?:\\s+{_number_words_pattern})*"
+# Allow "and", "point", "dot" within the sequence for things like "one hundred and five" or "three point five"
+# Be careful not to match "and" at the start or end
+NUMBER_WORD_SEQUENCE = f"{_number_words_pattern}(?:\\s+(?:and\\s+|point\\s+|dot\\s+)?{_number_words_pattern})*"
 
 # Build the range pattern from components - much more readable and maintainable
 SPOKEN_NUMERIC_RANGE_PATTERN = re.compile(
@@ -142,7 +155,7 @@ SPOKEN_NUMERIC_RANGE_PATTERN = re.compile(
     (                       # Capture group 1: Start of range
         {NUMBER_WORD_SEQUENCE}
     )
-    \s+to\s+                # The word "to"
+    \s+(?:to|through)\s+    # The word "to" or "through"
     (                       # Capture group 2: End of range
         {NUMBER_WORD_SEQUENCE}
     )

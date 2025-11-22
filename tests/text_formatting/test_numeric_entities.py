@@ -568,6 +568,19 @@ class TestNumericEntityInteractions:
             result = format_transcription(input_text)
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
+    def test_mixed_fractions(self, preloaded_formatter):
+        """Test mixed fraction patterns."""
+        format_transcription = preloaded_formatter
+        test_cases = [
+            ("one and one half", "1½"),
+            ("two and three quarters", "2¾"),
+            ("five and one half", "5½"),
+        ]
+
+        for input_text, expected in test_cases:
+            result = format_transcription(input_text)
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
+
     def test_data_size_vs_cardinal(self, preloaded_formatter):
         """Test that data sizes take precedence over cardinal numbers."""
         format_transcription = preloaded_formatter

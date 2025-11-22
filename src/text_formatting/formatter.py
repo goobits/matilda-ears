@@ -775,6 +775,9 @@ class TextFormatter:
             EntityType.ASSIGNMENT: 8,
             EntityType.FILENAME: 7,
             EntityType.UNDERSCORE_DELIMITER: 6,
+            EntityType.SCIENTIFIC_NOTATION: 5,
+            EntityType.NUMERIC_RANGE: 5,
+            EntityType.FRACTION: 5,
             EntityType.TIME_AMPM: 4,  # Time entities should have priority
             EntityType.TIME: 4,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: 3,
@@ -899,8 +902,9 @@ class TextFormatter:
 
         # Step 4: Apply punctuation and capitalization LAST (Phase 2 refactoring)
         is_standalone_technical = self._is_standalone_technical(text, filtered_entities)
+        # Pass converted_entities to allow protection of converted forms (e.g. "3-5")
         final_text = self._add_punctuation(
-            processed_text, original_had_punctuation, is_standalone_technical, filtered_entities
+            processed_text, original_had_punctuation, is_standalone_technical, converted_entities
         )
         logger.debug(f"Text after punctuation: '{final_text}'")
 
@@ -1124,11 +1128,11 @@ class TextFormatter:
         text: str,
         original_had_punctuation: bool = False,
         is_standalone_technical: bool = False,
-        filtered_entities: Optional[List[Entity]] = None,
+        entities: Optional[List[Entity]] = None,
     ) -> str:
         """Add punctuation - treat all text as sentences unless single standalone technical entity"""
-        if filtered_entities is None:
-            filtered_entities = []
+        if entities is None:
+            entities = []
 
         # Add this at the beginning to handle empty inputs
         if not text.strip():
@@ -1154,13 +1158,52 @@ class TextFormatter:
         if punctuator:
             try:
                 logger.info(f"Text passed to _add_punctuation: '{text}'")
-                # Protect URLs and technical terms from the punctuation model by temporarily replacing them
-                # Using pre-compiled patterns for performance
-                url_placeholders = {}
+
+                # Entities to protect from punctuation model
+                # Use the passed entities (which should be converted entities with correct positions)
+                entity_placeholders = {}
                 protected_text = text
 
-                # Find and replace URLs with placeholders
-                for i, match in enumerate(regex_patterns.URL_PROTECTION_PATTERN.finditer(text)):
+                # Entity types to protect
+                protected_types = {
+                    EntityType.NUMERIC_RANGE,
+                    EntityType.FRACTION,
+                    EntityType.SCIENTIFIC_NOTATION,
+                    EntityType.MATH_EXPRESSION,
+                    EntityType.MATH_CONSTANT,
+                    EntityType.METRIC_LENGTH,
+                    EntityType.METRIC_WEIGHT,
+                    EntityType.METRIC_VOLUME,
+                    EntityType.TEMPERATURE,
+                    EntityType.DATA_SIZE,
+                    EntityType.FREQUENCY,
+                    EntityType.URL,
+                    EntityType.EMAIL,
+                    EntityType.SPOKEN_URL,
+                    EntityType.SPOKEN_EMAIL,
+                    EntityType.FILENAME,
+                    EntityType.IP_ADDRESS if hasattr(EntityType, 'IP_ADDRESS') else None,
+                }
+
+                # Sort entities descending by start position to replace without invalidating indices
+                sorted_entities = sorted([e for e in entities if e.type in protected_types], key=lambda e: e.start, reverse=True)
+
+                for i, entity in enumerate(sorted_entities):
+                    # Verify boundaries match text
+                    if entity.end <= len(protected_text) and protected_text[entity.start:entity.end] == entity.text:
+                        placeholder = f"__ENT_{i}__"
+                        entity_placeholders[placeholder] = entity.text
+                        # Replace the specific span
+                        protected_text = protected_text[:entity.start] + placeholder + protected_text[entity.end:]
+                        logger.debug(f"Protected entity {entity.type}: '{entity.text}' as '{placeholder}'")
+
+                # Protect URLs and technical terms from the punctuation model by temporarily replacing them
+                # Using pre-compiled patterns for performance (Legacy fallback and other patterns)
+                url_placeholders = {}
+
+                # Find and replace URLs with placeholders (if not already protected via entities)
+                # We re-scan the protected text which now has entity placeholders
+                for i, match in enumerate(regex_patterns.URL_PROTECTION_PATTERN.finditer(protected_text)):
                     placeholder = f"__URL_{i}__"
                     url_placeholders[placeholder] = match.group(0)
                     protected_text = protected_text.replace(match.group(0), placeholder, 1)
@@ -1182,6 +1225,7 @@ class TextFormatter:
                     protected_text = protected_text.replace(match.group(0), placeholder, 1)
 
                 # Protect math expressions from the punctuation model (preserve spacing around operators)
+                # Note: Detected MATH_EXPRESSION entities are already protected above
                 math_placeholders = {}
                 for i, match in enumerate(regex_patterns.MATH_EXPRESSION_PATTERN.finditer(protected_text)):
                     placeholder = f"__MATH_{i}__"
@@ -1197,7 +1241,6 @@ class TextFormatter:
 
                 # Apply punctuation to the protected text
                 logger.debug(f"Text before punctuation model: '{protected_text}'")
-                logger.debug(f"URL placeholders: {url_placeholders}")
                 result = punctuator.restore_punctuation(protected_text)
                 logger.debug(f"Text after punctuation model: '{result}'")
 
@@ -1205,6 +1248,10 @@ class TextFormatter:
                 # This prevents destructive regex from affecting restored URLs/IPs
                 result = re.sub(r"\s*([.!?])\s*", r"\1 ", result).strip()
                 result = re.sub(r"([.!?]){2,}", r"\1", result)
+
+                # Restore entities (placeholders might have been moved by punctuation)
+                for placeholder, original_text in entity_placeholders.items():
+                    result = re.sub(rf"\b{re.escape(placeholder)}\b", lambda m: original_text, result)
 
                 # Restore URLs
                 for placeholder, url in url_placeholders.items():
