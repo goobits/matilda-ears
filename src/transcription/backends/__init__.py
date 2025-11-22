@@ -1,22 +1,34 @@
 """
 Transcription backends package.
+
+Supported backends:
+- faster_whisper: Cross-platform Whisper with CUDA support (default)
+- parakeet: Apple Silicon MLX-optimized
+- huggingface: Universal backend supporting 17,000+ HuggingFace ASR models
 """
 import logging
-from typing import Optional, Type
+from typing import Optional, Type, List, Dict
 from .base import TranscriptionBackend
 from .faster_whisper_backend import FasterWhisperBackend
 
 logger = logging.getLogger(__name__)
 
-# Conditionally import Parakeet backend
+# Conditionally import Parakeet backend (Apple Silicon only)
 try:
     from .parakeet_backend import ParakeetBackend
     PARAKEET_AVAILABLE = True
 except ImportError:
     PARAKEET_AVAILABLE = False
 
+# Conditionally import HuggingFace backend (requires transformers)
+try:
+    from .huggingface_backend import HuggingFaceBackend
+    HUGGINGFACE_AVAILABLE = True
+except ImportError:
+    HUGGINGFACE_AVAILABLE = False
 
-def get_available_backends() -> list:
+
+def get_available_backends() -> List[str]:
     """
     Return list of available backend names.
 
@@ -26,7 +38,38 @@ def get_available_backends() -> list:
     backends = ["faster_whisper"]
     if PARAKEET_AVAILABLE:
         backends.append("parakeet")
+    if HUGGINGFACE_AVAILABLE:
+        backends.append("huggingface")
     return backends
+
+
+def get_backend_info() -> Dict[str, Dict]:
+    """
+    Return detailed info about all backends.
+
+    Returns:
+        Dict mapping backend name to info dict with 'available', 'description', 'install'.
+    """
+    return {
+        "faster_whisper": {
+            "available": True,
+            "description": "Cross-platform Whisper with CUDA/CPU support",
+            "models": "Whisper tiny/base/small/medium/large-v3",
+            "install": "Included by default",
+        },
+        "parakeet": {
+            "available": PARAKEET_AVAILABLE,
+            "description": "Apple Silicon MLX-optimized (M1/M2/M3)",
+            "models": "Parakeet TDT, RNNT, CTC variants",
+            "install": "pip install goobits-stt[mac]",
+        },
+        "huggingface": {
+            "available": HUGGINGFACE_AVAILABLE,
+            "description": "Universal backend for 17,000+ HuggingFace ASR models",
+            "models": "Whisper, Wav2Vec2, Wav2Vec2-BERT, HuBERT, MMS, Canary, etc.",
+            "install": "pip install goobits-stt[huggingface]",
+        },
+    }
 
 
 def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
@@ -34,7 +77,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
     Factory function to get the backend class based on name.
 
     Args:
-        backend_name: 'faster_whisper' or 'parakeet'
+        backend_name: 'faster_whisper', 'parakeet', or 'huggingface'
 
     Returns:
         The backend class.
@@ -56,10 +99,24 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
             )
         return ParakeetBackend
 
+    if backend_name == "huggingface":
+        if not HUGGINGFACE_AVAILABLE:
+            raise ValueError(
+                "HuggingFace backend requested but dependencies are not installed.\n"
+                "To use HuggingFace Transformers ASR models:\n"
+                "  1. Install: pip install goobits-stt[huggingface]\n"
+                "  2. Or: pip install transformers torch\n"
+                "This backend supports 17,000+ ASR models from HuggingFace Hub."
+            )
+        return HuggingFaceBackend
+
+    # Unknown backend - provide helpful error
+    available = get_available_backends()
     raise ValueError(
         f"Unknown backend: '{backend_name}'\n"
-        f"Available backends:\n"
+        f"Available backends: {', '.join(available)}\n"
         f"  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support\n"
         f"  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)\n"
-        f"Check your config.json: {{\"transcription\": {{\"backend\": \"faster_whisper\"}}}}"
+        f"  - 'huggingface': Universal HuggingFace ASR (requires [huggingface] extras)\n"
+        f"Check your config.json: {{\"transcription\": {{\"backend\": \"{available[0]}\"}}}}"
     )

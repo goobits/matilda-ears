@@ -47,10 +47,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Mac dependencies for Parakeet
+# Mac dependencies for Parakeet (Apple Silicon)
 mac = [
     "mlx>=0.0.1",
     "parakeet-mlx>=0.0.1",
+]
+# HuggingFace Transformers backend (universal ASR - 17,000+ models)
+huggingface = [
+    "transformers>=4.36.0",
+    "accelerate>=0.25.0",
 ]
 # Development dependencies
 dev = [
