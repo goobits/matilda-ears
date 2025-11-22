@@ -47,6 +47,7 @@ import time  # noqa: E402
 from collections import defaultdict  # noqa: E402
 import uuid  # noqa: E402
 from typing import Tuple  # noqa: E402
+from aiohttp import web  # noqa: E402
 from ..core.config import get_config, setup_logging  # noqa: E402
 from ..core.token_manager import TokenManager  # noqa: E402
 from ..audio.decoder import OpusStreamDecoder  # noqa: E402
@@ -565,6 +566,28 @@ class MatildaWebSocketServer:
         except Exception as e:
             logger.exception(f"Failed to send error message to client: {e}")
 
+    async def health_handler(self, request):
+        """HTTP health check endpoint for service monitoring"""
+        return web.json_response({
+            "status": "healthy",
+            "service": "stt",
+            "backend": self.backend_name,
+            "model_loaded": self.backend.is_ready if self.backend else False,
+            "connected_clients": len(self.connected_clients),
+            "timestamp": time.time()
+        })
+
+    async def start_health_server(self, host, port):
+        """Start HTTP health check server"""
+        app = web.Application()
+        app.router.add_get("/health", self.health_handler)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host, port)
+        await site.start()
+        logger.info(f"HTTP health endpoint available at http://{host}:{port}/health")
+        return runner
+
     async def start_server(self, host=None, port=None):
         """Start the WebSocket server"""
         # Use provided host/port or defaults
@@ -573,6 +596,25 @@ class MatildaWebSocketServer:
 
         # Load model first
         await self.load_model()
+
+        # Start HTTP health server on port+1 (e.g., 8769 -> 8770 for health)
+        # Actually, let's use the same port concept but offset by 100 to avoid conflicts
+        # The Rust manager expects health on the same port, so use websocket_port for health too
+        # We'll run health server on a separate port (websocket_port - 4) to avoid conflict
+        health_port = server_port  # Health on same port - but we need different approach
+        # Actually aiohttp and websockets can't share a port easily.
+        # Let's use the standard health port pattern: websocket+1000 or a fixed offset
+        health_port = server_port + 1  # e.g., 8769 -> 8770 for health
+        try:
+            self._health_runner = await self.start_health_server(server_host, health_port)
+        except Exception as e:
+            logger.warning(f"Failed to start health server on port {health_port}: {e}")
+            # Try alternative port
+            try:
+                health_port = server_port + 100
+                self._health_runner = await self.start_health_server(server_host, health_port)
+            except Exception as e2:
+                logger.warning(f"Health server disabled: {e2}")
 
         protocol = "wss" if self.ssl_enabled else "ws"
         logger.info(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
