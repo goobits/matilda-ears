@@ -149,6 +149,13 @@ class CodeEntityDetector:
             # Walk backwards from the token before "dot"
             for i in range(current_token.i, -1, -1):
                 token = doc[i]
+                is_head = (i == current_token.i)
+
+                # Peek at the next token (text-wise) which was processed in the previous loop iteration
+                next_token = doc[i+1] if i + 1 < len(doc) else None
+                next_text = next_token.text.lower() if next_token else ""
+                next_is_separator = next_text in ["underscore", "dash", "hyphen", "_", "-", "."] or (next_token and next_token.pos_ in ["SYM", "PUNCT"])
+                next_is_number = next_token and (next_token.like_num or next_text in self.resources.get("number_words", {}).get("digit_words", {}))
 
                 # ** THE CRITICAL STOPPING LOGIC **
                 # Get language-specific filename stop words from i18n resources
@@ -162,16 +169,17 @@ class CodeEntityDetector:
                 is_punctuation = token.is_punct
                 is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != 'v'
 
-                # Special handling for "file" - stop if preceded by articles or stop words
-                if token.text.lower() == "file" and i > 0:
-                    prev_token = doc[i-1].text.lower()
-                    if prev_token in ["the", "a", "an", "this", "that"] or prev_token in filename_stop_words:
-                        break
+                # Special handling for stop words like "file":
+                # Allow them if they are followed by a separator or number (e.g. "file_name", "file_100")
+                # This enables "my_file_name.py" (file followed by underscore) and "log_file_100.txt" (file followed by number)
+                if is_stop_word:
+                    if next_is_separator or next_is_number:
+                         is_stop_word = False
+                    elif token.text.lower() == "file" and len(filename_tokens) > 0:
+                        # Also allow "file" if it's part of a compound name not separated by spaces (rare in this backward walk but safe)
+                        pass
 
-                # Don't treat "file" as a stop word only if it's part of a compound filename (like "makefile")
-                is_stop_word_filtered = is_stop_word and not (token.text.lower() == "file" and len(filename_tokens) == 0)
-
-                if is_action_verb or is_linking_verb or is_stop_word_filtered or is_punctuation or is_separator:
+                if is_action_verb or is_linking_verb or is_stop_word or is_punctuation or is_separator:
                     logger.debug(f"SPACY FILENAME: Stopping at token '{token.text}' (action:{is_action_verb}, link:{is_linking_verb}, stop:{is_stop_word}, punc:{is_punctuation}, sep:{is_separator})")
                     break
 
@@ -237,11 +245,13 @@ class CodeEntityDetector:
                         prev_token = doc[i - 1]
                         # Check if the preceding token is a valid variable name
                         # Include single letter pronouns like 'i' which SpaCy tags as PRON
+                        # Also include PUNCT if it's a single letter (some models tag 'x' as PUNCT)
                         if (
                             (
                                 prev_token.pos_ in ["NOUN", "PROPN", "SYM", "VERB"]
                                 or (prev_token.pos_ == "PRON" and len(prev_token.text) == 1)
-                            )  # Single letter like 'i'
+                                or (prev_token.pos_ == "PUNCT" and len(prev_token.text) == 1 and prev_token.text.isalpha())
+                            )
                             and prev_token.text.isalpha()
                             and prev_token.text.lower() not in {"the", "a", "an", "this", "that"}
                         ):
@@ -394,6 +404,12 @@ class CodeEntityDetector:
         # This pattern looks for optional keyword, variable name, 'equals', and then captures everything after
         assignment_pattern = self.assignment_pattern
         for match in assignment_pattern.finditer(text):
+            # Safety check: if value starts with "equals", it's likely a comparison (x equals equals y)
+            # and the regex negative lookahead failed to prevent the match
+            right_val = match.group(3)
+            if right_val.strip().lower().startswith("equals"):
+                continue
+
             check_entities = all_entities if all_entities else entities
             if not is_inside_entity(match.start(), match.end(), check_entities):
                 entities.append(

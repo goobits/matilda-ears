@@ -31,18 +31,29 @@ class PatternConverter:
         # Get URL keywords for web conversions
         self.url_keywords = self.resources["spoken_keywords"]["url"]
 
-        # Operator mappings for numeric conversions
-        self.operators = {
+        # Operator mappings for numeric conversions - loaded from resources
+        self.operators = {}
+        operators_resource = self.resources.get("spoken_keywords", {}).get("operators", {})
+        code_resource = self.resources.get("spoken_keywords", {}).get("code", {})
+
+        # Merge operators from both sources
+        for k, v in operators_resource.items():
+            self.operators[k.lower()] = v
+        for k, v in code_resource.items():
+            self.operators[k.lower()] = v
+
+        # Ensure mathematical operators are present if not in resources
+        default_operators = {
             "plus": "+",
             "minus": "-",
             "times": "×",
             "divided by": "÷",
-            "over": "/",  # Re-enabled with contextual checking
+            "over": "/",
             "equals": "=",
-            "plus plus": "++",
-            "minus minus": "--",
-            "equals equals": "==",
         }
+        for k, v in default_operators.items():
+            if k not in self.operators:
+                self.operators[k] = v
 
         # Comprehensive converter mapping
         self.converters = {
@@ -564,6 +575,7 @@ class PatternConverter:
     def convert_filename(self, entity: Entity, full_text: Optional[str] = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
+        logger.debug(f"Converting filename: '{text}'")
 
         # Strip common leading phrases to isolate the filename
         leading_phrases_to_strip = [
@@ -576,14 +588,23 @@ class PatternConverter:
                 text = text[len(phrase):].lstrip()
                 break
 
+        # First, handle all spoken separators to create a clean string
+        text = re.sub(r"\s*underscore\s*", "_", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*dash\s*", "-", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE)
+
+        # Special handling for CLAUDE.md
+        if text.lower() == "clod.md" or text.lower().startswith("clod."):
+            return "CLAUDE.md"
+
         # Check for Java package metadata
         if entity.metadata and entity.metadata.get("is_package"):
             # For Java packages, simply replace " dot " with "." and remove spaces
-            return re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE).replace(" ", "").lower()
+            return text.replace(" ", "").lower()
 
         # Check for and handle explicit underscore usage first
         # Check both the entity text and the full text context if available
-        has_spoken_underscores = " underscore " in entity.text.lower()
+        has_spoken_underscores = "_" in text # Since we already replaced " underscore " with "_"
         if not has_spoken_underscores and full_text:
             # Check if underscore was spoken near this entity
             entity_pos = full_text.find(entity.text)
@@ -591,11 +612,6 @@ class PatternConverter:
                 context_start = max(0, entity_pos - 20)
                 context = full_text[context_start : entity.end]
                 has_spoken_underscores = " underscore " in context.lower()
-
-        # First, handle all spoken separators to create a clean string
-        text = re.sub(r"\s*underscore\s*", "_", text, flags=re.IGNORECASE)
-        text = re.sub(r"\s*dash\s*", "-", text, flags=re.IGNORECASE)
-        text = re.sub(r"\s*dot\s+", ".", text, flags=re.IGNORECASE)
 
         # Handle package names (e.g., com.example.app) which have multiple dots
         if text.count(".") > 1 and all(re.match(r"^[a-z0-9_.-]+$", part) for part in text.split(".")):
@@ -723,6 +739,7 @@ class PatternConverter:
         if entity.metadata and "left" in entity.metadata and "right" in entity.metadata:
             left = entity.metadata["left"]
             right = entity.metadata["right"]
+            operator = entity.metadata.get("operator", "==")
 
             # Try to parse the right side if it's a number word
             parsed_right = self.number_parser.parse(right)
@@ -731,8 +748,8 @@ class PatternConverter:
 
             # Check for an "if" at the beginning by inspecting the original text
             if entity.text.lower().strip().startswith("if "):
-                return f"if {left} == {right}"
-            return f"{left} == {right}"
+                return f"if {left} {operator} {right}"
+            return f"{left} {operator} {right}"
         return entity.text
 
     def convert_abbreviation(self, entity: Entity) -> str:
@@ -759,12 +776,60 @@ class PatternConverter:
             if parsed_right:
                 right = parsed_right
 
-            # Check if right side contains math expressions - if so, preserve them
-            has_math_operators = bool(re.search(r'\b(?:plus|minus|times|divided\s+by|over|squared?|cubed?)\b', right, re.IGNORECASE))
+            # Check if right side contains math expressions
+            # Build regex from operators list for i18n support
+            math_ops = list(self.operators.keys()) + ["squared", "cubed"]
+            if self.language == "es":
+                math_ops.extend(["al cuadrado", "al cubo", "más", "menos", "por", "entre", "dividido por"])
+
+            ops_pattern = r'\b(?:' + '|'.join(re.escape(op) for op in math_ops) + r')\b'
+            has_math_operators = bool(re.search(ops_pattern, right, re.IGNORECASE))
             
             if has_math_operators:
-                # Preserve math expressions as-is (they should be handled by math entity detection)
-                pass  # Don't modify math expressions
+                # Process math operators in the right side
+                # For simple processing, we replace known multi-word operators first
+                right_processed = right.lower()
+
+                # Sort operators by length (descending) to handle multi-word operators first
+                sorted_ops = sorted(self.operators.keys(), key=len, reverse=True)
+
+                for op in sorted_ops:
+                    if op in right_processed:
+                        # Replace operator words with symbols
+                        # Use word boundaries to avoid partial matches
+                        pattern = r'\b' + re.escape(op) + r'\b'
+                        right_processed = re.sub(pattern, self.operators[op], right_processed)
+
+                # Handle squared/cubed
+                right_processed = re.sub(r'\bsquared\b', '²', right_processed)
+                right_processed = re.sub(r'\bcubed\b', '³', right_processed)
+                if self.language == "es":
+                    right_processed = re.sub(r'\bal cuadrado\b', '²', right_processed)
+                    right_processed = re.sub(r'\bal cubo\b', '³', right_processed)
+
+                # Process number words
+                words = right_processed.split()
+                converted_words = []
+                for word in words:
+                    # Skip operators/symbols
+                    if word in ["+", "-", "×", "÷", "/", "=", "²", "³"]:
+                        converted_words.append(word)
+                    # Check for number words
+                    elif word in self.number_parser.all_number_words:
+                        parsed = self.number_parser.parse(word)
+                        converted_words.append(parsed if parsed else word)
+                    else:
+                        converted_words.append(word)
+
+                right = " ".join(converted_words)
+
+                # Ensure proper spacing around operators
+                for op in ["+", "-", "×", "÷", "/", "="]:
+                     right = right.replace(op, f" {op} ")
+
+                # Clean up double spaces
+                right = re.sub(r'\s+', ' ', right).strip()
+
             elif " " in right:
                 # If the right side seems like a function call (multiple words), snake_case it.
                 right = "_".join(right.lower().split())
@@ -2060,30 +2125,39 @@ class PatternConverter:
                     "meters": "m",
                     "metre": "m",
                     "metres": "m",
+                    "m": "m",
                     "kilometer": "km",
                     "kilometers": "km",
                     "kilometre": "km",
                     "kilometres": "km",
+                    "km": "km",
                     # Weight
                     "milligram": "mg",
                     "milligrams": "mg",
+                    "mg": "mg",
                     "gram": "g",
                     "grams": "g",
+                    "g": "g",
                     "kilogram": "kg",
                     "kilograms": "kg",
+                    "kg": "kg",
                     "metric ton": "t",
                     "metric tons": "t",
                     "tonne": "t",
                     "tonnes": "t",
+                    "pound": "lbs",     # Imperial weight unit
+                    "pounds": "lbs",    # Imperial weight unit
                     # Volume
                     "milliliter": "mL",
                     "milliliters": "mL",
                     "millilitre": "mL",
                     "millilitres": "mL",
+                    "ml": "mL",
                     "liter": "L",
                     "liters": "L",
                     "litre": "L",
                     "litres": "L",
+                    "l": "L",
                 }
 
                 standard_unit = unit_map.get(unit_text, unit_text.upper())

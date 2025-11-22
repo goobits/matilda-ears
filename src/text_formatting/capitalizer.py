@@ -49,7 +49,8 @@ class SmartCapitalizer:
             EntityType.ASSIGNMENT,
             EntityType.COMPARISON,
             # Note: CLI_COMMAND removed - they should be capitalized at sentence start
-            EntityType.ABBREVIATION,  # Protect abbreviations from capitalization changes
+            # Note: ABBREVIATION removed - they should be capitalized at sentence start (e.g. "i.e." -> "I.e.")
+            EntityType.MATH_CONSTANT, # Protect math constants (e.g. "π" should not be "Π")
         }
 
         # Version patterns that indicate technical content
@@ -57,8 +58,8 @@ class SmartCapitalizer:
 
         # Abbreviation patterns and their corrections
         self.abbreviation_fixes = {
-            "I.e.": "i.e.",
-            "E.g.": "e.g.",
+            # "I.e.": "i.e.", # Allow capitalization at start of sentence
+            # "E.g.": "e.g.", # Allow capitalization at start of sentence
             "Etc.": "etc.",
             "Vs.": "vs.",
             "Cf.": "cf.",

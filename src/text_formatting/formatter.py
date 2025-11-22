@@ -767,34 +767,8 @@ class TextFormatter:
             """Check if two entities overlap."""
             return not (e1.end <= e2.start or e2.end <= e1.start)
 
-        for entity in final_entities:
-            # Check if this entity overlaps with any already accepted entity
-            overlaps_with_existing = False
-            for existing in deduplicated_entities:
-                if entities_overlap(entity, existing):
-                    # Prefer longer entity (more specific) or same type
-                    entity_length = entity.end - entity.start
-                    existing_length = existing.end - existing.start
-
-                    if entity_length > existing_length:
-                        # Remove the shorter existing entity and add this longer one
-                        deduplicated_entities.remove(existing)
-                        logger.debug(f"Replacing shorter entity {existing.type}('{existing.text}') with longer {entity.type}('{entity.text}')")
-                        break
-                    else:
-                        # Keep the existing longer/equal entity
-                        overlaps_with_existing = True
-                        logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') overlaps with {existing.type}('{existing.text}')")
-                        break
-
-            if not overlaps_with_existing:
-                deduplicated_entities.append(entity)
-                logger.debug(f"Added entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
-
-        # Remove smaller entities that are completely contained within larger, higher-priority entities
-        priority_filtered_entities = []
-
         # Define entity priority (higher number = higher priority)
+        # Moved up for use in deduplication
         entity_priorities = {
             EntityType.MATH_EXPRESSION: 10,
             EntityType.COMPARISON: 9,
@@ -808,6 +782,45 @@ class TextFormatter:
             EntityType.QUANTITY: 1,
         }
 
+        for entity in final_entities:
+            # Check if this entity overlaps with any already accepted entity
+            overlaps_with_existing = False
+            for existing in deduplicated_entities:
+                if entities_overlap(entity, existing):
+                    # Priority-based resolution
+                    entity_prio = entity_priorities.get(entity.type, 0)
+                    existing_prio = entity_priorities.get(existing.type, 0)
+
+                    should_replace = False
+                    if entity_prio > existing_prio:
+                        should_replace = True
+                    elif entity_prio < existing_prio:
+                        should_replace = False
+                    else:
+                        # Equal priority, prefer longer entity (more specific)
+                        entity_length = entity.end - entity.start
+                        existing_length = existing.end - existing.start
+                        should_replace = entity_length > existing_length
+
+                    if should_replace:
+                        # Remove the existing entity and add this one
+                        deduplicated_entities.remove(existing)
+                        logger.debug(f"Replacing entity {existing.type}('{existing.text}') with {entity.type}('{entity.text}') due to priority/length")
+                        break
+                    else:
+                        # Keep the existing entity
+                        overlaps_with_existing = True
+                        logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') in favor of {existing.type}('{existing.text}')")
+                        break
+
+            if not overlaps_with_existing:
+                deduplicated_entities.append(entity)
+                logger.debug(f"Added entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
+
+        # Remove smaller entities that are completely contained within larger, higher-priority entities
+        # (This second pass handles cases where the order of addition mattered)
+        priority_filtered_entities = []
+
         for entity in deduplicated_entities:
             is_contained = False
             for other_entity in deduplicated_entities:
@@ -816,12 +829,18 @@ class TextFormatter:
 
                 # Check if entity is completely contained within other_entity OR overlaps with higher priority
                 is_contained_within = (other_entity.start <= entity.start and entity.end <= other_entity.end)
-                is_overlapping = not (entity.end <= other_entity.start or other_entity.end <= entity.start)
-                has_higher_priority = entity_priorities.get(other_entity.type, 0) > entity_priorities.get(entity.type, 0)
 
-                if (is_contained_within or is_overlapping) and has_higher_priority:
-                    action = "contained within" if is_contained_within else "overlapping with"
-                    logger.debug(f"Removing lower-priority entity: {entity.type}('{entity.text}') "
+                # Note: Overlap check is redundant if deduplication worked, but containment check is valid.
+                # Only filter if strictly contained.
+                if is_contained_within:
+                    # Only remove if the outer entity is not lower priority (usually larger means better, but check priority)
+                    # Actually, if it's contained, the outer one is usually the intended one unless priority says otherwise.
+                    # But we already handled priority in deduplication.
+                    # However, strict containment might not trigger overlap logic if boundaries align perfectly?
+                    # entities_overlap handles that.
+                    # So just containment check for safety.
+                    action = "contained within"
+                    logger.debug(f"Removing contained entity: {entity.type}('{entity.text}') "
                                f"{action} {other_entity.type}('{other_entity.text}')")
                     is_contained = True
                     break
@@ -1457,8 +1476,8 @@ class TextFormatter:
         # Be more conservative about what we convert
         safe_keywords = {
             'slash': '/',
-            'colon': ':',
-            'underscore': '_',
+            # 'colon': ':', # Too ambiguous in regular sentences
+            # 'underscore': '_', # Too ambiguous unless in specific technical context
         }
 
         # Filter to only keywords we want to convert when orphaned

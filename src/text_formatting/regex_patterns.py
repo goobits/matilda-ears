@@ -430,10 +430,15 @@ def build_spoken_url_pattern(language: str = "en") -> Pattern:
     (                                   # Capture group 1: full URL
         (?:                             # Non-capturing group for subdomains
             (?:                         # Domain part alternatives
-                [a-zA-Z0-9-]+           # Alphanumeric domain part
+                # Option 1: Alphanumeric word followed by number words (e.g. "server one")
+                [a-zA-Z0-9-]+\s+(?:{number_words_pattern})(?:\s+(?:{number_words_pattern}))*
             |                           # OR
+                # Option 2: Just alphanumeric domain part
+                [a-zA-Z0-9-]+
+            |                           # OR
+                # Option 3: Just number words
                 (?:{number_words_pattern})
-                (?:\s+(?:{number_words_pattern}))*  # Multiple number words
+                (?:\s+(?:{number_words_pattern}))*
             )
             (?:                         # Non-capturing group for dot
                 \s+(?:{dot_pattern})\s+ # Spoken "dot" or regular dot
@@ -863,7 +868,7 @@ def get_assignment_pattern(language: str = "en") -> Pattern:
         \b(?:(let|const|var)\s+)?
         ([a-zA-Z_]\w*)\s+(?:{equals_pattern})\s+
         (
-            (?!=\s*(?:{equals_pattern})) # Not followed by another equals
+            (?!\s*(?:{equals_pattern})) # Not followed by another equals
             .+?
         )
         (?=\s*(?:;|\n|$)|--|\+\+) # Ends at semicolon, newline, end, or other operator
@@ -1572,9 +1577,8 @@ def build_assignment_pattern(language: str = "en") -> Pattern:
         (?:(let|const|var)\s+)?             # Optional variable declaration keyword (capture group 1)
         ([a-zA-Z_]\w*)                      # Variable name (capture group 2)
         \s+{equals_pattern}\s+              # Space, equals keyword, space
-        (?!\s*{equals_pattern})             # Negative lookahead: not followed by another equals keyword (with optional space for ==)
+        (?!\s*(?:{equals_pattern}))         # Negative lookahead: not followed by another equals keyword (with optional space for ==)
         (                                   # Value (capture group 3)
-            (?!.*\b(?:times|plus|minus|divided\s+by|over|squared?|cubed?)\b)  # Not a math expression
             (?:(?!\s+(?:and|or|but|if|when|then|while|unless)\s+).)+?        # Stop at conjunctions
         )
         (?=\s*$|\s*[.!?]|\s+(?:and|or|but|if|when|then|while|unless)\s+|--|\+\+)  # Lookahead: end of string, punctuation, conjunctions, or operators

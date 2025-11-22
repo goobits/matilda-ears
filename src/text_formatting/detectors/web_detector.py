@@ -120,7 +120,7 @@ class WebEntityDetector:
                 [a-zA-Z0-9]+
             |                               # OR allow space-separated words (e.g., "john doe", "user one")
                 # But exclude common stop words to avoid capturing sentences like "visit the site"
-                \s+(?!at\b|dot\b|the\b|a\b|an\b|this\b|that\b|to\b|for\b|in\b|on\b|with\b|by\b)[a-zA-Z0-9]+
+                \s+(?!at\b|dot\b|the\b|a\b|an\b|this\b|that\b|to\b|for\b|in\b|on\b|with\b|by\b|our\b|my\b|your\b|visit\b|check\b|website\b|site\b|page\b|link\b)[a-zA-Z0-9]+
             )*
             \s+(?:{at_pattern})\s+          # "at" keyword
             [a-zA-Z0-9-]+                   # Domain must start with alphanumeric or hyphen

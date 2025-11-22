@@ -39,11 +39,11 @@
     "etc": "etc.",
     "vs": "vs.",
     "cf": "cf.",
-    "i e": "i.e.",
-    "e g": "e.g.",
+    "i e": "i.e.,",
+    "e g": "e.g.,",
     "v s": "vs.",
-    "i dot e dot": "i.e.",
-    "e dot g dot": "e.g."
+    "i dot e dot": "i.e.,",
+    "e dot g dot": "e.g.,"
   },
   "context_words": {
     "filename_actions": ["open", "edit", "save", "run", "check", "load", "import", "export", "view", "read", "create", "delete", "execute"],
