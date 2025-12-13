@@ -1,6 +1,6 @@
 {
   "transcription": {
-    "backend": "faster_whisper"
+    "backend": "parakeet"
   },
   "whisper": {
     "model": "base",
@@ -41,7 +41,7 @@
   "tools": {
     "audio": {
       "linux": "arecord",
-      "darwin": "arecord",
+      "darwin": "ffmpeg",
       "windows": "ffmpeg"
     }
   },

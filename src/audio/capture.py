@@ -122,22 +122,49 @@ class PipeBasedAudioStreamer:
 
     def _build_audio_command(self) -> List[str]:
         """Build platform-specific audio capture command."""
+        import platform
+
         # Get audio tool from config (uses existing get_audio_tool method)
         audio_tool = "arecord"  # Default fallback
         if self.config:
             audio_tool = self.config.get_audio_tool()
 
         if audio_tool == "ffmpeg":
-            # Windows/cross-platform ffmpeg command
-            cmd = [
-                "ffmpeg",
-                "-f", "dshow",
-                "-i", f"audio={self.audio_device or 'default'}",
-                "-ar", str(self.sample_rate),
-                "-ac", "1",
-                "-f", "s16le",
-                "-"  # Output to stdout
-            ]
+            # Platform-specific ffmpeg command
+            system = platform.system()
+            if system == "Darwin":
+                # macOS: Use AVFoundation
+                cmd = [
+                    "ffmpeg",
+                    "-f", "avfoundation",
+                    "-i", f":{self.audio_device or '0'}",  # :0 = default audio input
+                    "-ar", str(self.sample_rate),
+                    "-ac", "1",
+                    "-f", "s16le",
+                    "-"  # Output to stdout
+                ]
+            elif system == "Windows":
+                # Windows: Use DirectShow
+                cmd = [
+                    "ffmpeg",
+                    "-f", "dshow",
+                    "-i", f"audio={self.audio_device or 'default'}",
+                    "-ar", str(self.sample_rate),
+                    "-ac", "1",
+                    "-f", "s16le",
+                    "-"  # Output to stdout
+                ]
+            else:
+                # Linux: Use ALSA
+                cmd = [
+                    "ffmpeg",
+                    "-f", "alsa",
+                    "-i", self.audio_device or "default",
+                    "-ar", str(self.sample_rate),
+                    "-ac", "1",
+                    "-f", "s16le",
+                    "-"  # Output to stdout
+                ]
         else:
             # Linux/macOS arecord command (existing logic)
             cmd = [
