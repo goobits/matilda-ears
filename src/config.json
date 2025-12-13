@@ -1,8 +1,14 @@
 {
+  "transcription": {
+    "backend": "parakeet"
+  },
   "whisper": {
     "model": "base",
     "device": "auto",
     "compute_type": "auto"
+  },
+  "parakeet": {
+    "model": "mlx-community/parakeet-tdt-0.6b-v3"
   },
   "server": {
     "websocket": {
@@ -35,7 +41,7 @@
   "tools": {
     "audio": {
       "linux": "arecord",
-      "darwin": "arecord",
+      "darwin": "ffmpeg",
       "windows": "ffmpeg"
     }
   },
