@@ -175,8 +175,13 @@ class MatildaWebSocketServer:
 
             async for message in websocket:
                 try:
-                    data = json.loads(message)
-                    await self.process_message(websocket, data, client_ip, client_id)
+                    # Handle binary messages (raw WAV audio data)
+                    if isinstance(message, bytes):
+                        await self.handle_binary_audio(websocket, message, client_ip, client_id)
+                    else:
+                        # Handle JSON messages (existing protocol)
+                        data = json.loads(message)
+                        await self.process_message(websocket, data, client_ip, client_id)
 
                 except json.JSONDecodeError:
                     await self.send_error(websocket, "Invalid JSON format")
@@ -271,6 +276,63 @@ class MatildaWebSocketServer:
                 os.unlink(temp_path)
             except OSError:
                 logger.warning(f"Failed to delete temp file: {temp_path}")
+
+    async def handle_binary_audio(self, websocket, wav_data: bytes, client_ip: str, client_id: str):
+        """Handle binary WAV audio data sent directly by clients.
+
+        This provides a simple protocol for clients that send raw WAV data
+        without the JSON wrapper. Used by the Rust client for example.
+
+        Args:
+            websocket: The WebSocket connection
+            wav_data: Raw WAV audio bytes
+            client_ip: Client IP address
+            client_id: Client identifier
+        """
+        logger.info(f"Client {client_id}: Received binary audio data ({len(wav_data)} bytes)")
+
+        # Check rate limiting
+        if not self.check_rate_limit(client_ip):
+            await websocket.send(json.dumps({
+                "text": "",
+                "is_final": True,
+                "error": "Rate limit exceeded. Max 10 requests per minute."
+            }))
+            return
+
+        # Check if model is loaded
+        if not self.backend.is_ready:
+            await websocket.send(json.dumps({
+                "text": "",
+                "is_final": True,
+                "error": "Server not ready. Model not loaded."
+            }))
+            return
+
+        try:
+            # Use common transcription logic
+            success, text, info = await self.transcribe_audio_from_wav(wav_data, client_id)
+
+            if success:
+                # Send simple response format for binary protocol
+                await websocket.send(json.dumps({
+                    "text": text,
+                    "is_final": True
+                }))
+            else:
+                await websocket.send(json.dumps({
+                    "text": "",
+                    "is_final": True,
+                    "error": info.get("error", "Transcription failed")
+                }))
+
+        except Exception as e:
+            logger.exception(f"Client {client_id}: Binary audio transcription error: {e}")
+            await websocket.send(json.dumps({
+                "text": "",
+                "is_final": True,
+                "error": str(e)
+            }))
 
     async def handle_ping(self, websocket, data, client_ip, client_id):
         """Handle ping messages"""

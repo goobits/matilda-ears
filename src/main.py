@@ -38,6 +38,7 @@ def create_rich_cli():
     @click.option("--conversation", is_flag=True, help="💬 Always listening with interruption support")
     @click.option("--tap-to-talk", metavar="KEY", help="⚡ Tap KEY to start/stop recording")
     @click.option("--hold-to-talk", metavar="KEY", help="🔘 Hold KEY to record, release to stop")
+    @click.option("--file", metavar="PATH", help="📁 Transcribe audio file (WAV, MP3, etc.)")
     @click.option("--server", is_flag=True, help="🌐 Run as WebSocket server for remote clients")
     @click.option("--port", type=int, default=8769, help="🔌 Server port (default: 8769)")
     @click.option("--host", default="0.0.0.0", help="🏠 Server host (default: 0.0.0.0)")
@@ -52,7 +53,7 @@ def create_rich_cli():
     @click.option("--status", is_flag=True, help="📊 Show system status and capabilities")
     @click.option("--models", is_flag=True, help="📋 List available Whisper models")
     @click.pass_context
-    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models):
+    def main(ctx, listen_once, conversation, tap_to_talk, hold_to_talk, file, server, port, host, json, debug, no_formatting, model, language, device, sample_rate, config, status, models):
         """🎙️ Transform speech into text with AI-powered transcription
         
         GOOBITS STT provides multiple operation modes for different use cases.
@@ -64,6 +65,7 @@ def create_rich_cli():
           stt --conversation                   # Always listening mode
           stt --tap-to-talk=f8                # Toggle recording with F8
           stt --hold-to-talk=space             # Hold spacebar to record
+          stt --file recording.wav             # Transcribe audio file
         
         \b
         🌐 Server & Integration:
@@ -98,6 +100,7 @@ def create_rich_cli():
             conversation=conversation,
             tap_to_talk=tap_to_talk,
             hold_to_talk=hold_to_talk,
+            file=file,
             server=server,
             port=port,
             host=host,
@@ -146,6 +149,7 @@ Examples:
     modes.add_argument("--conversation", action="store_true", help="Always listening mode")
     modes.add_argument("--tap-to-talk", metavar="KEY", help="Tap to start/stop recording")
     modes.add_argument("--hold-to-talk", metavar="KEY", help="Hold to record")
+    modes.add_argument("--file", metavar="PATH", help="Transcribe audio file")
 
     # Server mode
     server = parser.add_argument_group("Server Mode")
@@ -242,6 +246,26 @@ async def run_hold_to_talk(args):
         error_msg = f"Hold-to-talk mode not available: {e}"
         if args.format == "json":
             print(json.dumps({"error": error_msg, "mode": "hold_to_talk", "key": args.hold_to_talk}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+
+
+async def run_file_transcription(args):
+    """Run file transcription mode"""
+    try:
+        from src.modes.file_transcribe import FileTranscribeMode
+        mode = FileTranscribeMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"File transcription mode not available: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "file", "file": args.file}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+    except Exception as e:
+        error_msg = f"File transcription failed: {e}"
+        if args.format == "json":
+            print(json.dumps({"error": error_msg, "mode": "file", "file": args.file}))
         else:
             print(f"Error: {error_msg}", file=sys.stderr)
 
@@ -365,6 +389,7 @@ def run_stt_command(ctx, args):
         bool(args.conversation),
         bool(args.tap_to_talk),
         bool(args.hold_to_talk),
+        bool(args.file),
         bool(args.server),
     ])
     
@@ -405,6 +430,8 @@ async def async_main_worker(args):
             await run_tap_to_talk(args)
         elif args.hold_to_talk:
             await run_hold_to_talk(args)
+        elif args.file:
+            await run_file_transcription(args)
         elif args.server:
             await run_server(args)
     except KeyboardInterrupt:
@@ -445,6 +472,7 @@ async def async_main():
         bool(args.conversation),
         bool(args.tap_to_talk),
         bool(args.hold_to_talk),
+        bool(args.file),
         bool(args.server),
     ])
 
