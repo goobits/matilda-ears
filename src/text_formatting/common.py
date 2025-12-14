@@ -175,8 +175,17 @@ class NumberParser:
         current_val = 0
         total_val = 0
 
+        # Check if "and" appears without scale words → this is a list, not a compound number
+        # Examples:
+        #   - "three and four" → NOT a number (should stay as text)
+        #   - "one hundred and five" → 105 (compound number with scale word "hundred")
+        has_scale_words = any(word in self.scales for word in words)
+        if "and" in words and not has_scale_words:
+            # This is a list like "three and four", not a compound number
+            return None
+
         # Check if no scale words are present - handle as sequence
-        if not any(word in self.scales for word in words):
+        if not has_scale_words:
             parsed_sequence = self.parse_as_sequence(words)
             if parsed_sequence is not None:
                 return parsed_sequence
