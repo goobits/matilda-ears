@@ -130,7 +130,7 @@
     }
   },
   "filtering": {
-    "transcription_artifacts": ["umm", "uh", "ah", "hm", "hmm", "er", "eh", "like", "you know", "basically", "actually", "literally", "sort of", "kind of", "thanks for watching", "thank you for watching", "please subscribe", "like and subscribe", "don't forget to subscribe", "see you next time", "in the next video", "we'll be right back"],
+    "transcription_artifacts": ["umm", "uh", "ah", "hm", "hmm", "er", "eh", "like", "basically", "actually", "literally", "sort of", "kind of"],
     "profanity_words": ["fuck", "shit", "damn", "bitch", "ass", "bastard", "cunt", "dick", "piss", "cock", "hell"]
   },
   "temporal": {
