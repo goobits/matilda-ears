@@ -24,10 +24,19 @@ class ParakeetBackend(TranscriptionBackend):
         self.model = None
         self.processor = None
 
+        # Configure smaller chunk sizes to reduce MPS pressure and prevent AGXG15X crashes
+        # These settings trade slight performance for stability on macOS Metal/MPS
+        self.chunk_length = config.get("parakeet.chunk_length", 15)  # Smaller chunks (default: 30s)
+        self.batch_size = config.get("parakeet.batch_size", 1)  # Force batch_size=1 for MPS
+        logger.info(f"Parakeet MPS-optimized config: chunk_length={self.chunk_length}s, batch_size={self.batch_size}")
+
     async def load(self):
         """Load Parakeet model."""
         try:
             from parakeet_mlx import from_pretrained
+
+            # Set MPS fallback environment variable before loading model
+            os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
             logger.info(f"Loading Parakeet model: {self.model_name}")
             # parakeet loading might be blocking, so we should consider running it in executor if it takes time
@@ -40,14 +49,20 @@ class ParakeetBackend(TranscriptionBackend):
             raise
 
     def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
-        """Transcribe audio using Parakeet."""
+        """Transcribe audio using Parakeet with MPS-safe parameters."""
         if self.model is None:
             raise RuntimeError("Parakeet Model not loaded")
 
         start_time = time.time()
 
         try:
-            result = self.model.transcribe(audio_path)
+            # Use smaller chunk_length and batch_size to reduce MPS pressure
+            # This prevents Metal command buffer overflows (AGXG15X crashes)
+            result = self.model.transcribe(
+                audio_path,
+                chunk_length=self.chunk_length,
+                batch_size=self.batch_size
+            )
             text = result.text.strip()
 
             # Calculate duration (approximate if not available)

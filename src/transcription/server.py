@@ -81,6 +81,18 @@ class MatildaWebSocketServer:
             logger.error(f"Failed to initialize backend: {e}")
             sys.exit(1)
 
+        # GPU serialization: Limit concurrent transcriptions to 1 for Parakeet to prevent MPS crashes
+        # This prevents overlapping Metal/MPS command buffer operations on macOS
+        self.transcription_semaphore = None
+        if self.backend_name == "parakeet":
+            self.transcription_semaphore = asyncio.Semaphore(1)
+            logger.info("GPU serialization enabled: Only 1 concurrent transcription for Parakeet (prevents MPS crashes)")
+
+        # Set MPS fallback for Parakeet to allow CPU fallback for unsupported ops
+        if self.backend_name == "parakeet":
+            os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+            logger.info("PYTORCH_ENABLE_MPS_FALLBACK=1 set for Parakeet backend")
+
         # WebSocket-level session tracking (self-contained)
         self.streaming_sessions = {}  # session_id -> session_info
 
@@ -220,6 +232,12 @@ class MatildaWebSocketServer:
             (success, transcribed_text, info_dict)
 
         """
+        # Validate audio size before processing
+        MIN_AUDIO_SIZE = 1000  # Minimum bytes for valid audio (excludes header-only files)
+        if len(wav_data) < MIN_AUDIO_SIZE:
+            logger.warning(f"Client {client_id}: Audio too small ({len(wav_data)} bytes < {MIN_AUDIO_SIZE}), skipping")
+            return False, "", {"error": "Audio data too small"}
+
         # Save to temporary file
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
             temp_file.write(wav_data)
@@ -236,12 +254,23 @@ class MatildaWebSocketServer:
                 # Delegate to backend
                 return self.backend.transcribe(temp_path, language="en")
 
-            # Run in executor (even if backend is fast, good to isolate)
-            # However, parakeet might be running on GPU/Metal.
-            # backend.transcribe is synchronous in our interface.
-            text, info = await loop.run_in_executor(None, transcribe_audio)
+            # Serialize GPU work for Parakeet to prevent MPS crashes
+            # Acquire semaphore before transcription (queues requests when limit reached)
+            if self.transcription_semaphore:
+                async with self.transcription_semaphore:
+                    logger.debug(f"Client {client_id}: Acquired transcription lock (serialized GPU work)")
+                    text, info = await loop.run_in_executor(None, transcribe_audio)
+                    logger.debug(f"Client {client_id}: Released transcription lock")
+            else:
+                # No serialization needed (faster_whisper/huggingface can run concurrently)
+                text, info = await loop.run_in_executor(None, transcribe_audio)
 
             logger.info(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
+
+            # Early detection: Skip formatting if transcription contains <unk> tokens (corrupted output)
+            if '<unk>' in text:
+                logger.warning(f"Client {client_id}: Transcription contains <unk> tokens (corrupted), skipping formatting")
+                text = ""  # Return empty to avoid slow formatting pipeline
 
             # Apply server-side text formatting
             if text.strip():
