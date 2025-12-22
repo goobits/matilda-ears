@@ -236,7 +236,7 @@ check_pipx() {
     log_info "Checking for pipx installation"
     
     if ! command -v pipx &> /dev/null; then
-        log_error "pipx is not installed"
+        log_warning "pipx is not installed"
         echo
         echo "pipx is required for clean, isolated installations."
         echo
@@ -269,6 +269,41 @@ check_pipx() {
     
     log_success "pipx is installed"
     return 0
+}
+
+check_pip() {
+    log_info "Checking for pip availability"
+
+    if python3 -m pip --version &> /dev/null; then
+        log_success "pip is available"
+        return 0
+    fi
+
+    log_warning "pip not found; attempting ensurepip"
+    if python3 -m ensurepip --upgrade &> /dev/null; then
+        log_success "pip bootstrapped via ensurepip"
+        return 0
+    fi
+
+    log_error "pip is not available"
+    return 1
+}
+
+ensure_user_bin_on_path() {
+    local user_base
+    user_base=$(python3 -c "import site; print(site.USER_BASE)" 2>/dev/null || true)
+    if [[ -z "$user_base" ]]; then
+        return 0
+    fi
+
+    local user_bin="$user_base/bin"
+    case ":$PATH:" in
+        *":$user_bin:"*) ;;
+        *)
+            export PATH="$user_bin:$PATH"
+            log_info "Added $user_bin to PATH for this session"
+            ;;
+    esac
 }
 
 check_git() {
@@ -464,6 +499,47 @@ install_with_pipx() {
         setup_shell_integration
     fi
     
+    return 0
+}
+
+install_with_pip() {
+    local dev_mode="${1:-false}"
+
+    log_warning "pipx not available; falling back to pip (user install)"
+
+    if ! check_pip; then
+        return 1
+    fi
+
+    ensure_user_bin_on_path
+
+    local pypi_name="${CONFIG_installation_pypi_name:-${CONFIG_package_name}}"
+
+    if [[ "$dev_mode" == "true" ]]; then
+        log_info "Installing in development mode (editable) with pip"
+        local install_dir="$PROJECT_DIR"
+        if [[ ! -f "$PROJECT_DIR/pyproject.toml" && ! -f "$PROJECT_DIR/setup.py" ]]; then
+            local parent_dir="$(dirname "$PROJECT_DIR")"
+            if [[ -f "$parent_dir/pyproject.toml" || -f "$parent_dir/setup.py" ]]; then
+                install_dir="$parent_dir"
+                log_info "Using parent directory for installation: $install_dir"
+            fi
+        fi
+
+        if [[ -n "$VIRTUAL_ENV" ]]; then
+            python3 -m pip install --editable "$install_dir"
+        else
+            python3 -m pip install --editable "$install_dir" --user
+        fi
+    else
+        log_info "Installing ${pypi_name} with pip"
+        if [[ -n "$VIRTUAL_ENV" ]]; then
+            python3 -m pip install "$pypi_name"
+        else
+            python3 -m pip install "$pypi_name" --user
+        fi
+    fi
+
     return 0
 }
 
@@ -680,7 +756,7 @@ cmd_install() {
     check_disk_space || exit 1
     
     # Perform installation
-    if install_with_pipx "$dev_mode"; then
+    if install_with_pipx "$dev_mode" || install_with_pip "$dev_mode"; then
         # Verify installation worked
         verify_installation
     else

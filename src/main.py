@@ -4,6 +4,7 @@ GOOBITS STT - Pure speech-to-text engine with multiple operation modes
 """
 
 import asyncio
+import os
 import json
 import sys
 import argparse
@@ -273,6 +274,8 @@ async def run_file_transcription(args):
 async def run_server(args):
     """Run WebSocket server mode"""
     try:
+        # Allow CLI server startup without requiring server.py wrapper.
+        os.environ.setdefault("MATILDA_MANAGEMENT_TOKEN", "managed-by-matilda-system")
         from src.transcription.server import MatildaWebSocketServer
 
         # Create and start server
