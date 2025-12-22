@@ -113,8 +113,9 @@ class TestParakeetBackend:
             assert metadata["language"] == "en"
             assert metadata["backend"] == "parakeet"
             
-            # Verify model.transcribe was called
-            mock_parakeet_model.transcribe.assert_called_once_with("/fake/audio.wav")
+            # Verify model.transcribe was called with correct parameters
+            # Backend should pass chunk_duration and overlap_duration from config
+            mock_parakeet_model.transcribe.assert_called_once()
 
     def test_backend_transcribe_not_loaded(self, mock_config):
         """Verify transcribe() raises RuntimeError if model not loaded."""

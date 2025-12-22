@@ -24,11 +24,11 @@ class ParakeetBackend(TranscriptionBackend):
         self.model = None
         self.processor = None
 
-        # Configure smaller chunk sizes to reduce MPS pressure and prevent AGXG15X crashes
+        # Configure chunk duration and overlap to reduce MPS pressure and prevent AGXG15X crashes
         # These settings trade slight performance for stability on macOS Metal/MPS
-        self.chunk_length = config.get("parakeet.chunk_length", 15)  # Smaller chunks (default: 30s)
-        self.batch_size = config.get("parakeet.batch_size", 1)  # Force batch_size=1 for MPS
-        logger.info(f"Parakeet MPS-optimized config: chunk_length={self.chunk_length}s, batch_size={self.batch_size}")
+        self.chunk_duration = config.get("parakeet.chunk_duration", 120.0)  # Duration in seconds for each chunk
+        self.overlap_duration = config.get("parakeet.overlap_duration", 15.0)  # Overlap between chunks for continuity
+        logger.info(f"Parakeet config: chunk_duration={self.chunk_duration}s, overlap_duration={self.overlap_duration}s")
 
     async def load(self):
         """Load Parakeet model."""
@@ -56,12 +56,12 @@ class ParakeetBackend(TranscriptionBackend):
         start_time = time.time()
 
         try:
-            # Use smaller chunk_length and batch_size to reduce MPS pressure
+            # Use chunk_duration and overlap_duration parameters per parakeet-mlx API
             # This prevents Metal command buffer overflows (AGXG15X crashes)
             result = self.model.transcribe(
                 audio_path,
-                chunk_length=self.chunk_length,
-                batch_size=self.batch_size
+                chunk_duration=self.chunk_duration,
+                overlap_duration=self.overlap_duration
             )
             text = result.text.strip()
 
