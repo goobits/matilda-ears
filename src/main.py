@@ -10,7 +10,7 @@ import argparse
 from pathlib import Path
 
 try:
-    import click
+    import rich_click as click
     from rich.console import Console
     from rich.panel import Panel
     from rich.text import Text
