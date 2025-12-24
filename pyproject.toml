@@ -94,6 +94,7 @@ src = ["*.json"]
 
 # Code Quality Tools Configuration
 [tool.ruff]
+cache-dir = ".artifacts/cache/ruff"
 # Enable comprehensive rule set
 select = ["E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
 
@@ -182,6 +183,7 @@ extend-exclude = '''
 
 [tool.mypy]
 python_version = "3.8"
+cache_dir = ".artifacts/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Start lenient, can tighten later
@@ -237,8 +239,14 @@ disable = [
 exclude_dirs = ["tests", "venv"]
 skips = ["B602", "B603", "B607"]  # subprocess calls are intentional
 
+[tool.pytest.ini_options]
+cache_dir = ".artifacts/cache/pytest"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
 [tool.coverage.run]
 source = ["src"]
+data_file = ".artifacts/cache/.coverage"
 omit = [
     "*/tests/*",
     "*/venv/*",
@@ -249,3 +257,6 @@ omit = [
 precision = 2
 show_missing = true
 skip_covered = false
+
+[tool.coverage.html]
+directory = ".artifacts/cache/htmlcov"
