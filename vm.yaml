@@ -1,49 +1,40 @@
+version: "2.0"
 provider: docker
+os: auto
 
 project:
-  workspace_path: /workspace
-  backup_pattern: "*backup*.sql.gz"
   name: stt
   hostname: dev.stt.local
+  workspace_path: /workspace
 
 vm:
-  box: ubuntu/jammy64
-  memory: 2048
+  box: '@vibe-box'
   cpus: 2
-  user: vagrant
+  memory: 2048
+  gui: false
   port_binding: 127.0.0.1
-  timezone: America/Los_Angeles
+  timezone: auto
 
-versions:
-  node: "22"
-  nvm: v0.40.3
-  pnpm: 10.12.3
+ports:
+  _range: [3110, 3119]
 
 terminal:
-  emoji: "🚀"
+  emoji: "🎤"
   username: stt-dev
   theme: dracula
   show_git_branch: true
+  show_timestamp: false
 
-apt_packages:
-  - htop
-  - tree
-  - ncdu
-  - ripgrep
-  - nano
-  - sox
-  - pipx
+host_sync:
+  git_config: true
+  ai_tools: true
 
-npm_packages:
-  - "@anthropic-ai/claude-code"
-  - "@google/gemini-cli"
-  - npm-check-updates
-  - prettier
-  - eslint
+networking:
+  networks:
+    - spacebase
 
-aliases:
-  claudeyolo: claude --dangerously-skip-permissions
-  geminiyolo: GEMINI_API_KEY=${GEMINI_API_KEY:-} gemini
-
-claude_sync: true
-gemini_sync: true
+services:
+  audio:
+    enabled: true
+    driver: pulse
+    share_microphone: true
