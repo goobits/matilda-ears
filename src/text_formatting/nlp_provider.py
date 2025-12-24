@@ -47,7 +47,7 @@ def get_nlp():
                         else:
                             raise OSError(f"Model not found by name or at path: {model_path}")
                 except (ImportError, OSError) as e:
-                    logger.warning(f"Failed to load SpaCy model: {e}")
+                    logger.info(f"Failed to load SpaCy model (using basic formatting): {e}")
                     _nlp = False
     return _nlp if _nlp else None
 

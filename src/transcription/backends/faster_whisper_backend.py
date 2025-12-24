@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from typing import Tuple
-from faster_whisper import WhisperModel
 from .base import TranscriptionBackend
 from ...core.config import get_config
 
@@ -20,6 +19,8 @@ class FasterWhisperBackend(TranscriptionBackend):
     async def load(self):
         """Load Faster Whisper model asynchronously."""
         try:
+            from faster_whisper import WhisperModel
+            
             logger.info(f"Loading Faster Whisper {self.model_size} model on {self.device} with {self.compute_type}...")
             loop = asyncio.get_event_loop()
             self.model = await loop.run_in_executor(
@@ -27,6 +28,8 @@ class FasterWhisperBackend(TranscriptionBackend):
                 lambda: WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
             )
             logger.info(f"Faster Whisper {self.model_size} model loaded successfully")
+        except ImportError:
+            raise ImportError("faster-whisper is not installed. Please install it or use a different backend.")
         except Exception as e:
             logger.exception(f"Failed to load Faster Whisper model: {e}")
             raise

@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
 from src.core.config import get_config, setup_logging
+from src.transcription.backends import get_backend_class
 
 
 class FileTranscribeMode:
@@ -32,7 +33,7 @@ class FileTranscribeMode:
             include_console=args.debug,
             include_file=True
         )
-        self.model = None
+        self.backend = None
         self.logger.info("FileTranscribeMode initialized")
 
     async def run(self):
@@ -54,7 +55,11 @@ class FileTranscribeMode:
         await self._send_status("initializing", "Loading model...")
 
         # Load model
-        await self._load_model()
+        try:
+            await self._load_model()
+        except Exception as e:
+             await self._send_error(f"Model load failed: {e}")
+             return
 
         # Send transcribing status
         await self._send_status("transcribing", f"Transcribing {file_path.name}...")
@@ -66,37 +71,38 @@ class FileTranscribeMode:
         await self._send_result(result)
 
     async def _load_model(self):
-        """Load Whisper model."""
+        """Load transcription backend."""
         try:
-            from faster_whisper import WhisperModel
+             # Determine backend from config
+            backend_name = self.config.get("transcription", {}).get("backend", "faster_whisper")
+            self.logger.info(f"Initializing backend: {backend_name}")
+            
+            # Get backend class
+            BackendClass = get_backend_class(backend_name)
+            self.backend = BackendClass()
 
-            self.logger.info(f"Loading Whisper model: {self.args.model}")
+            self.logger.info(f"Loading backend: {backend_name}")
 
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None, lambda: WhisperModel(self.args.model, device="cpu", compute_type="int8")
-            )
+            await self.backend.load()
 
-            self.logger.info(f"Model {self.args.model} loaded")
+            self.logger.info(f"Backend {backend_name} loaded")
 
-        except ImportError as e:
-            raise ImportError(f"faster-whisper required: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to load backend: {e}")
 
     async def _transcribe_file(self, file_path: str) -> Dict[str, Any]:
-        """Transcribe audio file using Whisper."""
+        """Transcribe audio file using backend."""
         try:
-            if self.model is None:
-                raise RuntimeError("Model not loaded")
+            if self.backend is None or not self.backend.is_ready:
+                raise RuntimeError("Backend not loaded")
 
             loop = asyncio.get_event_loop()
 
             def do_transcribe():
-                segments, info = self.model.transcribe(
+                return self.backend.transcribe(
                     file_path,
                     language=self.args.language
                 )
-                text = "".join([segment.text for segment in segments]).strip()
-                return text, info
 
             text, info = await loop.run_in_executor(None, do_transcribe)
 
@@ -110,7 +116,7 @@ class FileTranscribeMode:
                 "success": True,
                 "text": text,
                 "is_final": True,
-                "language": info.language if hasattr(info, 'language') else 'en',
+                "language": info.get("language", "en"),
                 "file": file_path
             }
 
@@ -129,7 +135,7 @@ class FileTranscribeMode:
         try:
             from src.text_formatting.formatter import TextFormatter
             formatter = TextFormatter()
-            return formatter.format(text)
+            return formatter.format_transcription(text)
         except ImportError:
             self.logger.warning("Text formatting not available")
             return text

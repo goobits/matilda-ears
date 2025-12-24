@@ -246,8 +246,8 @@ class ConfigLoader:
         # 3. Auto-generate in memory only (no file modification)
         import logging
         logger = logging.getLogger(__name__)
-        logger.warning("No valid JWT secret found in environment or config. Generating temporary secret for this session.")
-        logger.info("For production, set STT_JWT_SECRET environment variable with a secure 32+ character secret.")
+        logger.info("No valid JWT secret found in environment or config. Generating temporary secret for this session.")
+        # logger.info("For production, set STT_JWT_SECRET environment variable with a secure 32+ character secret.")
         return self._generate_secret_key()
 
     def _generate_secret_key(self) -> str:

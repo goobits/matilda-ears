@@ -313,6 +313,8 @@ def handle_status_command(output_format="json"):
         # Check core dependencies
         deps_to_check = [
             ("faster_whisper", "FastWhisper"),
+            ("mlx.core", "Apple MLX"),
+            ("parakeet_mlx", "Parakeet (MLX)"),
             ("torch", "PyTorch"), 
             ("websockets", "WebSockets"),
             ("opuslib", "Opus Audio"),

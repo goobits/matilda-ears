@@ -15,6 +15,7 @@ import json
 import time
 import tempfile
 import wave
+import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -25,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
 from src.core.config import get_config, setup_logging
 from src.audio.capture import PipeBasedAudioStreamer
+from src.transcription.backends import get_backend_class
 
 try:
     import numpy as np
@@ -57,8 +59,8 @@ class BaseMode(ABC):
         self.audio_queue = None
         self.audio_streamer = None
         
-        # Model
-        self.model = None
+        # Transcription Backend
+        self.backend = None
         
         # Recording state
         self.is_recording = False
@@ -84,22 +86,23 @@ class BaseMode(ABC):
         pass
     
     async def _load_model(self):
-        """Load Whisper model asynchronously."""
+        """Load transcription backend asynchronously."""
         try:
-            from faster_whisper import WhisperModel
+            # Determine backend from config
+            backend_name = self.config.get("transcription", {}).get("backend", "faster_whisper")
+            self.logger.info(f"Initializing backend: {backend_name}")
             
-            self.logger.info(f"Loading Whisper model: {self.args.model}")
+            # Get backend class
+            BackendClass = get_backend_class(backend_name)
+            self.backend = BackendClass()
             
-            # Load in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(
-                None, lambda: WhisperModel(self.args.model, device="cpu", compute_type="int8")
-            )
+            # Load backend
+            await self.backend.load()
             
-            self.logger.info(f"Whisper model {self.args.model} loaded successfully")
+            self.logger.info(f"Backend {backend_name} loaded successfully")
             
         except Exception as e:
-            self.logger.error(f"Failed to load Whisper model: {e}")
+            self.logger.error(f"Failed to load transcription backend: {e}")
             raise
     
     async def _setup_audio_streamer(self, maxsize: int = 1000, chunk_duration_ms: int = 32):
@@ -124,31 +127,33 @@ class BaseMode(ABC):
             raise
     
     def _transcribe_audio(self, audio_data: np.ndarray) -> Dict[str, Any]:
-        """Transcribe audio data using Whisper."""
+        """Transcribe audio data using the loaded backend."""
+        tmp_file_path = None
         try:
+            if self.backend is None or not self.backend.is_ready:
+                raise RuntimeError("Backend not loaded or not ready")
+
             # Save audio to temporary WAV file
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                tmp_file_path = tmp_file.name
                 with wave.open(tmp_file.name, 'wb') as wav_file:
                     wav_file.setnchannels(1)  # Mono
                     wav_file.setsampwidth(2)  # 16-bit
                     wav_file.setframerate(self.args.sample_rate)
                     wav_file.writeframes(audio_data.astype(np.int16).tobytes())
                 
-                # Transcribe
-                if self.model is None:
-                    raise RuntimeError("Model not loaded")
-                segments, info = self.model.transcribe(tmp_file.name, language=self.args.language)
-                text = "".join([segment.text for segment in segments]).strip()
-                
-                self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
-                
-                return {
-                    "success": True,
-                    "text": text,
-                    "language": info.language if hasattr(info, 'language') else 'en',
-                    "duration": len(audio_data) / self.args.sample_rate,
-                    "confidence": 0.95  # Placeholder - Whisper doesn't provide confidence
-                }
+            # Transcribe using backend
+            text, info = self.backend.transcribe(tmp_file_path, language=self.args.language)
+            
+            self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
+            
+            return {
+                "success": True,
+                "text": text,
+                "language": info.get("language", "en"),
+                "duration": info.get("duration", 0.0),
+                "confidence": info.get("confidence", 1.0) 
+            }
                 
         except Exception as e:
             self.logger.error(f"Transcription error: {e}")
@@ -158,6 +163,13 @@ class BaseMode(ABC):
                 "text": "",
                 "duration": 0
             }
+        finally:
+            # Cleanup temp file
+            if tmp_file_path and os.path.exists(tmp_file_path):
+                try:
+                    os.unlink(tmp_file_path)
+                except Exception as e:
+                    self.logger.warning(f"Failed to delete temp file {tmp_file_path}: {e}")
     
     async def _send_status(self, status: str, message: str, extra: Optional[Dict] = None):
         """Send status message."""
