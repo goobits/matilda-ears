@@ -1,6 +1,6 @@
 {
   "transcription": {
-    "backend": "huggingface"
+    "backend": "faster_whisper"
   },
   "whisper": {
     "model": "base",

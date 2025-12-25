@@ -64,7 +64,7 @@ huggingface = [
 ]
 # Real-time streaming transcription (for faster-whisper backend)
 streaming = [
-    "whisper-streaming>=1.0.0",
+    "whisper-streaming>=0.1.0",
 ]
 # Development dependencies
 dev = [

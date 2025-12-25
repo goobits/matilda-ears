@@ -122,6 +122,9 @@ class MatildaWebSocketServer:
         # PCM streaming sessions (for web clients sending raw PCM, not Opus)
         self.pcm_sessions = {}  # session_id -> {"samples": [], "sample_rate": int, "channels": int}
 
+        # Sessions that are currently ending (to prevent race conditions)
+        self.ending_sessions = set()  # session_ids being finalized
+
         # Set up message handlers dictionary
         self.message_handlers = {
             "ping": self.handle_ping,
@@ -541,6 +544,11 @@ class MatildaWebSocketServer:
             await self.send_error(websocket, "No session_id provided")
             return
 
+        # Skip if session is ending (prevents race condition)
+        if session_id in self.ending_sessions:
+            logger.debug(f"Client {client_id}: Ignoring Opus chunk for ending session {session_id}")
+            return
+
         # Get decoder for this session
         decoder = self.opus_decoder.get_session(session_id)
         if not decoder:
@@ -629,6 +637,11 @@ class MatildaWebSocketServer:
             await self.send_error(websocket, "No session_id provided")
             return
 
+        # Skip if session is ending (prevents race condition)
+        if session_id in self.ending_sessions:
+            logger.debug(f"Client {client_id}: Ignoring chunk for ending session {session_id}")
+            return
+
         # Get or create PCM session
         if session_id not in self.pcm_sessions:
             # Initialize PCM session with default parameters
@@ -711,8 +724,12 @@ class MatildaWebSocketServer:
             await self.send_error(websocket, "No session_id provided")
             return
 
+        # Mark session as ending FIRST (prevents race condition with incoming chunks)
+        self.ending_sessions.add(session_id)
+
         # Check rate limiting
         if not self.check_rate_limit(client_ip):
+            self.ending_sessions.discard(session_id)
             await self.send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.")
             return
 
@@ -828,6 +845,8 @@ class MatildaWebSocketServer:
         finally:
             # Ensure backend streaming session is cleaned up
             self.backend_streaming_sessions.discard(session_id)
+            # Remove from ending sessions (cleanup complete)
+            self.ending_sessions.discard(session_id)
 
     def _pcm_to_wav(self, samples: np.ndarray, sample_rate: int, channels: int = 1) -> bytes:
         """Convert PCM samples to WAV format.

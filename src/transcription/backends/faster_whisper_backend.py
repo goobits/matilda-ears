@@ -198,13 +198,19 @@ class FasterWhisperBackend(TranscriptionBackend):
             # Insert audio chunk
             processor.insert_audio_chunk(audio_chunk)
 
-            # Process and get output (may return empty if waiting for more audio)
+            # Process and get output
+            # Returns: (beg_timestamp, end_timestamp, "text") or (None, None, "")
             output = processor.process_iter()
 
-            if output:
-                # Accumulate confirmed text
-                if output[0]:  # Has text
-                    self._streaming_results[session_id] += output[2]  # output[2] is the text
+            # Check if there's newly confirmed text (timestamp is not None)
+            if output[0] is not None:
+                # Accumulate the INCREMENTAL confirmed text
+                delta_text = output[2]
+                if delta_text:
+                    if self._streaming_results[session_id]:
+                        self._streaming_results[session_id] += " " + delta_text
+                    else:
+                        self._streaming_results[session_id] = delta_text
 
             return {
                 "text": self._streaming_results[session_id],
@@ -288,9 +294,14 @@ class FasterWhisperBackend(TranscriptionBackend):
                 # Finalize whisper-streaming processor
                 processor = self._streaming_processors[session_id]
                 try:
+                    # finish() returns (beg_timestamp, end_timestamp, "text") or (None, None, "")
                     final_output = processor.finish()
-                    if final_output and final_output[2]:
-                        self._streaming_results[session_id] += final_output[2]
+                    if final_output[0] is not None and final_output[2]:
+                        # Append final unconfirmed text
+                        if self._streaming_results[session_id]:
+                            self._streaming_results[session_id] += " " + final_output[2]
+                        else:
+                            self._streaming_results[session_id] = final_output[2]
                 except Exception as e:
                     logger.warning(f"Error finalizing processor: {e}")
 
