@@ -96,6 +96,9 @@ class MatildaWebSocketServer:
         # WebSocket-level session tracking (self-contained)
         self.streaming_sessions = {}  # session_id -> session_info
 
+        # Track which sessions are using backend streaming (real-time transcription)
+        self.backend_streaming_sessions = set()  # session_ids using backend.process_chunk()
+
         # SSL configuration
         self.ssl_enabled = config.ssl_enabled
         self.ssl_context = None
@@ -487,13 +490,44 @@ class MatildaWebSocketServer:
         sample_rate = data.get("sample_rate", 16000)
         channels = data.get("channels", 1)
 
-        # Create new decoder session
+        # Create new decoder session (for Opus → PCM)
         self.opus_decoder.create_session(session_id, sample_rate, channels)
 
-        logger.info(f"Client {client_id}: Started streaming session {session_id}")
+        # Check if backend supports real-time streaming transcription
+        streaming_enabled = False
+        backend_info = {}
 
-        # Send acknowledgment
-        await websocket.send(json.dumps({"type": "stream_started", "session_id": session_id, "success": True}))
+        if hasattr(self.backend, "supports_streaming") and self.backend.supports_streaming:
+            try:
+                # Start backend streaming session
+                backend_info = await self.backend.start_streaming(session_id)
+                streaming_enabled = True
+                self.backend_streaming_sessions.add(session_id)
+                logger.info(
+                    f"Client {client_id}: Started streaming session {session_id} "
+                    f"with real-time transcription (backend={self.backend_name})"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Client {client_id}: Failed to start backend streaming for {session_id}: {e}. "
+                    "Falling back to batch mode."
+                )
+                streaming_enabled = False
+
+        if not streaming_enabled:
+            logger.info(f"Client {client_id}: Started streaming session {session_id} (batch mode)")
+
+        # Send acknowledgment with streaming capability info
+        await websocket.send(
+            json.dumps({
+                "type": "stream_started",
+                "session_id": session_id,
+                "success": True,
+                "streaming_enabled": streaming_enabled,  # Real-time partial results available
+                "backend": self.backend_name,
+                **backend_info,
+            })
+        )
 
     async def handle_audio_chunk(self, websocket, data, client_ip, client_id):
         """Handle incoming Opus audio chunk."""
@@ -530,7 +564,7 @@ class MatildaWebSocketServer:
 
             # Log what we received for debugging
             chunk_num = self.session_chunk_counts[session_id]["received"]
-            logger.info(f"Client {client_id}: Received chunk #{chunk_num}, size: {len(opus_data)} bytes")
+            logger.debug(f"Client {client_id}: Received chunk #{chunk_num}, size: {len(opus_data)} bytes")
 
             # Store chunk info for analysis
             self.session_chunk_counts[session_id]["opus_log"].append(
@@ -538,7 +572,29 @@ class MatildaWebSocketServer:
             )
 
             # Decode Opus chunk and append to PCM buffer
-            samples_decoded = decoder.decode_chunk(opus_data)
+            # This returns the decoded PCM samples as numpy array
+            pcm_samples = decoder.decode_chunk(opus_data)
+
+            # If backend streaming is enabled for this session, process chunk in real-time
+            if session_id in self.backend_streaming_sessions:
+                try:
+                    # Process chunk with backend and get partial result
+                    result = await self.backend.process_chunk(session_id, pcm_samples)
+
+                    # Send partial result to client (immediate, no throttling)
+                    if result.get("text"):
+                        await websocket.send(
+                            json.dumps({
+                                "type": "partial_result",
+                                "session_id": session_id,
+                                "text": result["text"],
+                                "is_final": False,
+                                "tokens": result.get("tokens", {}),
+                            })
+                        )
+                except Exception as e:
+                    logger.warning(f"Client {client_id}: Error in streaming transcription: {e}")
+                    # Continue accumulating audio even if streaming fails
 
             # Send acknowledgment (optional, for debugging)
             if data.get("ack_requested"):
@@ -547,7 +603,7 @@ class MatildaWebSocketServer:
                         {
                             "type": "chunk_received",
                             "session_id": session_id,
-                            "samples_decoded": samples_decoded,
+                            "samples_decoded": len(pcm_samples) if pcm_samples is not None else 0,
                             "total_duration": decoder.get_duration(),
                         }
                     )
@@ -587,24 +643,6 @@ class MatildaWebSocketServer:
             else:
                 logger.info(f"Client {client_id}: All {received_chunks} chunks received")
 
-        # Save server-received Opus data for debugging BEFORE cleanup
-        if session_id in self.session_chunk_counts:
-            opus_log = self.session_chunk_counts[session_id]["opus_log"]
-            if opus_log:
-                # Save all received chunks to a file for comparison
-                import time
-
-                timestamp = int(time.time())
-                server_opus_path = f"/tmp/server-received-opus-{timestamp}.bin"
-
-                with open(server_opus_path, "wb") as f:
-                    for chunk_info in opus_log:
-                        f.write(chunk_info["data"])
-
-                logger.info(
-                    f"Client {client_id}: Saved {len(opus_log)} server-received chunks to {server_opus_path} ({sum(len(chunk['data']) for chunk in opus_log)} bytes total)"
-                )
-
         # Clean up chunk tracking
         if session_id in self.session_chunk_counts:
             del self.session_chunk_counts[session_id]
@@ -615,23 +653,53 @@ class MatildaWebSocketServer:
             await self.send_error(websocket, f"Unknown session: {session_id}")
             return
 
+        # Check if this session was using backend streaming
+        using_backend_streaming = session_id in self.backend_streaming_sessions
+
         try:
-            # Get accumulated audio as WAV data
+            if using_backend_streaming:
+                # Use backend's streaming end method for final transcription
+                try:
+                    result = await self.backend.end_streaming(session_id)
+                    text = result.get("text", "")
+                    duration = result.get("duration", decoder.get_duration())
+                    language = result.get("language", "en")
+
+                    logger.info(
+                        f"Client {client_id}: Stream ended (backend streaming). "
+                        f"Duration: {duration:.2f}s, Text: {len(text)} chars"
+                    )
+
+                    await websocket.send(
+                        json.dumps({
+                            "type": "stream_transcription_complete",
+                            "session_id": session_id,
+                            "text": text,
+                            "success": True,
+                            "audio_duration": duration,
+                            "language": language,
+                            "backend": self.backend_name,
+                            "streaming_mode": True,
+                        })
+                    )
+                    return
+
+                except Exception as e:
+                    logger.warning(
+                        f"Client {client_id}: Backend end_streaming failed: {e}. "
+                        "Falling back to batch transcription."
+                    )
+                    # Fall through to batch transcription
+
+                finally:
+                    # Always clean up backend streaming session
+                    self.backend_streaming_sessions.discard(session_id)
+
+            # Batch mode: Use accumulated audio for transcription
             wav_data = decoder.get_wav_data()
             duration = decoder.get_duration()
 
-            logger.info(f"Client {client_id}: Stream ended. Duration: {duration:.2f}s, Size: {len(wav_data)} bytes")
-
-            # DEBUG: Save the final WAV that will be transcribed
-            import time as time_module
-
-            timestamp = int(time_module.time())
-            debug_wav_path = f"/tmp/debug-server-final-wav-{timestamp}.wav"
-            with open(debug_wav_path, "wb") as f:
-                f.write(wav_data)
-            logger.info(
-                f"DEBUG: Saved final WAV for transcription to {debug_wav_path} ({duration:.2f}s, {len(wav_data)} bytes)"
-            )
+            logger.info(f"Client {client_id}: Stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes")
 
             # Use common transcription logic
             success, text, info = await self.transcribe_audio_from_wav(wav_data, client_id)
@@ -639,16 +707,16 @@ class MatildaWebSocketServer:
             if success:
                 # Send successful response with streaming-specific fields
                 await websocket.send(
-                    json.dumps(
-                        {
-                            "type": "stream_transcription_complete",
-                            "session_id": session_id,
-                            "text": text,
-                            "success": True,
-                            "audio_duration": duration,  # Use duration from decoder
-                            "language": info.get("language", "en"),
-                        }
-                    )
+                    json.dumps({
+                        "type": "stream_transcription_complete",
+                        "session_id": session_id,
+                        "text": text,
+                        "success": True,
+                        "audio_duration": duration,
+                        "language": info.get("language", "en"),
+                        "backend": self.backend_name,
+                        "streaming_mode": False,
+                    })
                 )
             else:
                 await self.send_error(websocket, f"Stream transcription failed: {info.get('error', 'Unknown error')}")
@@ -656,6 +724,10 @@ class MatildaWebSocketServer:
         except Exception as e:
             logger.exception(f"Client {client_id}: Stream transcription error: {e}")
             await self.send_error(websocket, f"Stream transcription failed: {e!s}")
+
+        finally:
+            # Ensure backend streaming session is cleaned up
+            self.backend_streaming_sessions.discard(session_id)
 
     async def send_error(self, websocket, message):
         """Send error message to client"""

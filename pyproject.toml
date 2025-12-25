@@ -62,6 +62,10 @@ huggingface = [
     "transformers>=4.36.0",
     "accelerate>=0.25.0",
 ]
+# Real-time streaming transcription (for faster-whisper backend)
+streaming = [
+    "whisper-streaming>=1.0.0",
+]
 # Development dependencies
 dev = [
     "pytest>=6.0",
@@ -219,6 +223,10 @@ module = [
     "ctranslate2.*",
     "numpy.*",
     "pynput.*",
+    "whisper_online.*",
+    "soundfile.*",
+    "parakeet_mlx.*",
+    "mlx.*",
 ]
 ignore_missing_imports = true
 
