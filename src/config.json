@@ -1,6 +1,6 @@
 {
   "transcription": {
-    "backend": "parakeet"
+    "backend": "faster_whisper"
   },
   "whisper": {
     "model": "base",
@@ -12,7 +12,7 @@
   },
   "server": {
     "websocket": {
-      "port": 8769,
+      "port": 3211,
       "host": "localhost",
       "bind_host": "0.0.0.0",
       "connect_host": "localhost",
