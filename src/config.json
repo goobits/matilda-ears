@@ -1,11 +1,18 @@
 {
   "transcription": {
-    "backend": "faster_whisper"
+    "backend": "huggingface"
   },
   "whisper": {
     "model": "base",
     "device": "auto",
     "compute_type": "auto"
+  },
+  "huggingface": {
+    "model": "openai/whisper-tiny",
+    "device": "cpu",
+    "torch_dtype": "float32",
+    "chunk_length_s": 30,
+    "batch_size": 1
   },
   "parakeet": {
     "model": "mlx-community/parakeet-tdt-0.6b-v3"

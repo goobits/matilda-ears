@@ -320,6 +320,15 @@ class MatildaWebSocketServer:
         """
         logger.info(f"Client {client_id}: Received binary audio data ({len(wav_data)} bytes)")
 
+        # DEBUG: Save received WAV for analysis
+        debug_dir = "/tmp/stt-debug"
+        os.makedirs(debug_dir, exist_ok=True)
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        debug_path = f"{debug_dir}/web-{timestamp}-{len(wav_data)}b.wav"
+        with open(debug_path, "wb") as f:
+            f.write(wav_data)
+        logger.info(f"DEBUG: Saved received audio to {debug_path}")
+
         # Check rate limiting
         if not self.check_rate_limit(client_ip):
             await websocket.send(json.dumps({
