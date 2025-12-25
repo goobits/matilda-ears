@@ -47,6 +47,7 @@ import time  # noqa: E402
 from collections import defaultdict  # noqa: E402
 import uuid  # noqa: E402
 from typing import Tuple  # noqa: E402
+import numpy as np  # noqa: E402
 from aiohttp import web  # noqa: E402
 from ..core.config import get_config, setup_logging  # noqa: E402
 from ..core.token_manager import TokenManager  # noqa: E402
@@ -118,6 +119,9 @@ class MatildaWebSocketServer:
         # Track chunk counts for proper stream ending
         self.session_chunk_counts = {}  # session_id -> {"received": count, "expected": count}
 
+        # PCM streaming sessions (for web clients sending raw PCM, not Opus)
+        self.pcm_sessions = {}  # session_id -> {"samples": [], "sample_rate": int, "channels": int}
+
         # Set up message handlers dictionary
         self.message_handlers = {
             "ping": self.handle_ping,
@@ -125,6 +129,7 @@ class MatildaWebSocketServer:
             "transcribe": self.handle_transcription,
             "start_stream": self.handle_start_stream,
             "audio_chunk": self.handle_audio_chunk,
+            "pcm_chunk": self.handle_pcm_chunk,  # Raw PCM for web streaming
             "end_stream": self.handle_end_stream,
         }
 
@@ -613,6 +618,88 @@ class MatildaWebSocketServer:
             logger.exception(f"Error decoding audio chunk: {e}")
             await self.send_error(websocket, f"Audio chunk processing failed: {e!s}")
 
+    async def handle_pcm_chunk(self, websocket, data, client_ip, client_id):
+        """Handle incoming raw PCM audio chunk (for web clients).
+
+        Unlike audio_chunk (Opus), this accepts raw PCM Int16 data directly.
+        This bypasses rate limiting for streaming sessions.
+        """
+        session_id = data.get("session_id")
+        if not session_id:
+            await self.send_error(websocket, "No session_id provided")
+            return
+
+        # Get or create PCM session
+        if session_id not in self.pcm_sessions:
+            # Initialize PCM session with default parameters
+            sample_rate = data.get("sample_rate", 16000)
+            channels = data.get("channels", 1)
+            self.pcm_sessions[session_id] = {
+                "samples": [],
+                "sample_rate": sample_rate,
+                "channels": channels,
+                "chunk_count": 0,
+            }
+            logger.info(f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch)")
+
+        pcm_session = self.pcm_sessions[session_id]
+
+        # Get PCM data (base64 encoded)
+        pcm_data_b64 = data.get("audio_data")
+        if not pcm_data_b64:
+            await self.send_error(websocket, "No audio_data provided")
+            return
+
+        try:
+            # Decode base64 to bytes
+            pcm_bytes = base64.b64decode(pcm_data_b64)
+            pcm_session["chunk_count"] += 1
+
+            # Guard against empty packets
+            if not pcm_bytes:
+                logger.warning(f"Client {client_id} sent empty PCM chunk. Ignoring.")
+                return
+
+            # Convert bytes to numpy int16 array
+            pcm_samples = np.frombuffer(pcm_bytes, dtype=np.int16)
+
+            # Accumulate samples for batch transcription (if needed)
+            pcm_session["samples"].append(pcm_samples)
+
+            # Log periodically
+            if pcm_session["chunk_count"] % 10 == 1:
+                total_samples = sum(len(s) for s in pcm_session["samples"])
+                duration = total_samples / pcm_session["sample_rate"]
+                logger.debug(
+                    f"Client {client_id}: PCM chunk #{pcm_session['chunk_count']}, "
+                    f"size: {len(pcm_bytes)} bytes, total: {duration:.2f}s"
+                )
+
+            # If backend streaming is enabled for this session, process chunk in real-time
+            if session_id in self.backend_streaming_sessions:
+                try:
+                    # Process chunk with backend and get partial result
+                    result = await self.backend.process_chunk(session_id, pcm_samples)
+
+                    # Send partial result to client (immediate, no throttling)
+                    if result.get("text"):
+                        await websocket.send(
+                            json.dumps({
+                                "type": "partial_result",
+                                "session_id": session_id,
+                                "text": result["text"],
+                                "is_final": False,
+                                "tokens": result.get("tokens", {}),
+                            })
+                        )
+                except Exception as e:
+                    logger.warning(f"Client {client_id}: Error in PCM streaming transcription: {e}")
+                    # Continue accumulating audio even if streaming fails
+
+        except Exception as e:
+            logger.exception(f"Error processing PCM chunk: {e}")
+            await self.send_error(websocket, f"PCM chunk processing failed: {e!s}")
+
     async def handle_end_stream(self, websocket, data, client_ip, client_id):
         """Handle end of streaming session and perform transcription.
 
@@ -647,9 +734,11 @@ class MatildaWebSocketServer:
         if session_id in self.session_chunk_counts:
             del self.session_chunk_counts[session_id]
 
-        # Get and remove decoder session
+        # Check what type of session this is
+        pcm_session = self.pcm_sessions.pop(session_id, None)
         decoder = self.opus_decoder.remove_session(session_id)
-        if not decoder:
+
+        if not decoder and not pcm_session:
             await self.send_error(websocket, f"Unknown session: {session_id}")
             return
 
@@ -696,10 +785,21 @@ class MatildaWebSocketServer:
                     self.backend_streaming_sessions.discard(session_id)
 
             # Batch mode: Use accumulated audio for transcription
-            wav_data = decoder.get_wav_data()
-            duration = decoder.get_duration()
-
-            logger.info(f"Client {client_id}: Stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes")
+            if pcm_session:
+                # PCM session: concatenate accumulated samples and create WAV
+                all_samples = np.concatenate(pcm_session["samples"]) if pcm_session["samples"] else np.array([], dtype=np.int16)
+                sample_rate = pcm_session["sample_rate"]
+                duration = len(all_samples) / sample_rate
+                wav_data = self._pcm_to_wav(all_samples, sample_rate, pcm_session["channels"])
+                logger.info(
+                    f"Client {client_id}: PCM stream ended (batch mode). "
+                    f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
+                )
+            else:
+                # Opus session: get WAV from decoder
+                wav_data = decoder.get_wav_data()
+                duration = decoder.get_duration()
+                logger.info(f"Client {client_id}: Opus stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes")
 
             # Use common transcription logic
             success, text, info = await self.transcribe_audio_from_wav(wav_data, client_id)
@@ -728,6 +828,34 @@ class MatildaWebSocketServer:
         finally:
             # Ensure backend streaming session is cleaned up
             self.backend_streaming_sessions.discard(session_id)
+
+    def _pcm_to_wav(self, samples: np.ndarray, sample_rate: int, channels: int = 1) -> bytes:
+        """Convert PCM samples to WAV format.
+
+        Args:
+            samples: Int16 PCM samples as numpy array
+            sample_rate: Sample rate in Hz
+            channels: Number of channels (1 for mono)
+
+        Returns:
+            WAV file data as bytes
+        """
+        import io
+        import wave
+
+        # Ensure samples are int16
+        if samples.dtype != np.int16:
+            samples = samples.astype(np.int16)
+
+        # Create WAV in memory
+        buffer = io.BytesIO()
+        with wave.open(buffer, 'wb') as wav_file:
+            wav_file.setnchannels(channels)
+            wav_file.setsampwidth(2)  # 16-bit = 2 bytes
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(samples.tobytes())
+
+        return buffer.getvalue()
 
     async def send_error(self, websocket, message):
         """Send error message to client"""

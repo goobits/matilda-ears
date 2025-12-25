@@ -132,7 +132,9 @@ class HuggingFaceBackend(TranscriptionBackend):
         self._streaming_results: Dict[str, str] = {}
         self._streaming_start_times: Dict[str, float] = {}
         self._streaming_sample_counts: Dict[str, int] = {}
+        self._streaming_last_transcribed: Dict[str, int] = {}  # Track last transcribed position
         self._streaming_transcribe_interval = 2.0  # Transcribe every 2 seconds of audio
+        self._max_buffer_seconds = 10.0  # Max buffer for partial transcription to prevent hallucinations
 
         logger.info(f"HuggingFace backend initialized with model: {self.model_id}")
 
@@ -208,6 +210,9 @@ class HuggingFaceBackend(TranscriptionBackend):
                 generate_kwargs["language"] = language
                 # Whisper also supports task parameter
                 generate_kwargs["task"] = "transcribe"
+                # Prevent repetition hallucinations (common Whisper issue)
+                generate_kwargs["no_repeat_ngram_size"] = 3
+                generate_kwargs["repetition_penalty"] = 1.2
 
             # Run transcription with chunking for long audio
             result = self.pipe(
@@ -226,6 +231,9 @@ class HuggingFaceBackend(TranscriptionBackend):
                 text = " ".join(r.get("text", "") for r in result).strip()
             else:
                 text = str(result).strip()
+
+            # Post-process: Remove obvious repetitions (Whisper hallucination artifact)
+            text = self._remove_repetitions(text)
 
             # Calculate processing time
             processing_time = time.time() - start_time
@@ -247,12 +255,86 @@ class HuggingFaceBackend(TranscriptionBackend):
         """Check if the model is loaded and ready."""
         return self.pipe is not None
 
+    def _remove_repetitions(self, text: str, min_phrase_len: int = 3, max_repeats: int = 2) -> str:
+        """
+        Remove obvious repetition patterns from transcription.
+
+        Whisper can hallucinate repeated phrases when audio has silence or is unclear.
+        This detects patterns like "Hello? Hello? Hello? Hello?" and reduces them.
+
+        Args:
+            text: Input text to clean
+            min_phrase_len: Minimum words in a phrase to consider for deduplication
+            max_repeats: Maximum times a phrase should appear
+
+        Returns:
+            Cleaned text with repetitions removed
+        """
+        if not text:
+            return text
+
+        words = text.split()
+        if len(words) < min_phrase_len * 2:
+            return text
+
+        # Try different phrase lengths (3-8 words)
+        for phrase_len in range(min_phrase_len, min(9, len(words) // 2)):
+            cleaned_words = []
+            i = 0
+            while i < len(words):
+                phrase = words[i:i + phrase_len]
+                if len(phrase) < phrase_len:
+                    cleaned_words.extend(phrase)
+                    break
+
+                # Count consecutive repetitions of this phrase
+                repeat_count = 1
+                j = i + phrase_len
+                while j + phrase_len <= len(words):
+                    next_phrase = words[j:j + phrase_len]
+                    if next_phrase == phrase:
+                        repeat_count += 1
+                        j += phrase_len
+                    else:
+                        break
+
+                # If too many repetitions, keep only max_repeats
+                if repeat_count > max_repeats:
+                    logger.warning(
+                        f"Detected repetition: '{' '.join(phrase)}' x{repeat_count}, "
+                        f"reducing to x{max_repeats}"
+                    )
+                    for _ in range(max_repeats):
+                        cleaned_words.extend(phrase)
+                    i = j  # Skip all repetitions
+                else:
+                    cleaned_words.append(words[i])
+                    i += 1
+
+            # If we removed something, update words and continue checking
+            if len(cleaned_words) < len(words):
+                words = cleaned_words
+
+        return " ".join(words)
+
     # ==================== STREAMING IMPLEMENTATION ====================
 
     @property
     def supports_streaming(self) -> bool:
-        """HuggingFace supports streaming via buffer-based chunked transcription."""
-        return True
+        """
+        HuggingFace streaming is disabled - buffer-based re-transcription is too slow.
+
+        The pipeline doesn't support true incremental streaming, so we were simulating
+        it by re-transcribing the full buffer every 2 seconds. On CPU this causes
+        severe lag as transcriptions queue up.
+
+        For real-time streaming, use:
+        - Parakeet backend (macOS/Apple Silicon) - native streaming
+        - FasterWhisper + whisper-streaming (cross-platform) - incremental processing
+
+        Batch mode at end_stream is faster and more accurate.
+        """
+        return False
 
     async def start_streaming(self, session_id: str, **config) -> Dict[str, Any]:
         """
@@ -272,6 +354,7 @@ class HuggingFaceBackend(TranscriptionBackend):
         self._streaming_results[session_id] = ""
         self._streaming_start_times[session_id] = time.time()
         self._streaming_sample_counts[session_id] = 0
+        self._streaming_last_transcribed[session_id] = 0
 
         logger.info(
             f"Started HuggingFace streaming session {session_id} "
@@ -327,23 +410,37 @@ class HuggingFaceBackend(TranscriptionBackend):
         }
 
     async def _transcribe_buffer(self, session_id: str):
-        """Transcribe the accumulated buffer for a session."""
+        """Transcribe the accumulated buffer for a session using sliding window."""
         buffer = self._streaming_buffers.get(session_id)
         if buffer is None or len(buffer) == 0:
             return
 
         try:
-            # Save buffer to temp file
             import soundfile as sf
             import os
 
+            # Use sliding window to prevent hallucinations on long audio
+            # Only transcribe the last N seconds for partial results
+            max_samples = int(self._max_buffer_seconds * 16000)
+
+            if len(buffer) > max_samples:
+                # Use only the last N seconds for partial transcription
+                transcribe_buffer = buffer[-max_samples:]
+                logger.debug(
+                    f"Session {session_id}: Using sliding window "
+                    f"({len(transcribe_buffer)/16000:.1f}s of {len(buffer)/16000:.1f}s total)"
+                )
+            else:
+                transcribe_buffer = buffer
+
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                 temp_path = f.name
-                sf.write(temp_path, buffer, 16000)
+                sf.write(temp_path, transcribe_buffer, 16000)
 
             # Transcribe using batch method
             text, _ = self.transcribe(temp_path, language="en")
             self._streaming_results[session_id] = text
+            self._streaming_last_transcribed[session_id] = len(buffer)
 
             # Clean up temp file
             os.unlink(temp_path)
@@ -405,6 +502,7 @@ class HuggingFaceBackend(TranscriptionBackend):
             self._streaming_results.pop(session_id, None)
             self._streaming_start_times.pop(session_id, None)
             self._streaming_sample_counts.pop(session_id, None)
+            self._streaming_last_transcribed.pop(session_id, None)
 
     @classmethod
     def list_popular_models(cls) -> Dict[str, str]:
