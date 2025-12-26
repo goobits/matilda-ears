@@ -821,10 +821,8 @@ class TextFormatter:
         last_end = 0
         current_pos_in_result = 0
 
-        # Sort entities by start position to process in sequence
-        sorted_entities = sorted(filtered_entities, key=lambda e: e.start)
-
-        for entity in sorted_entities:
+        # filtered_entities already sorted by start position (line 813)
+        for entity in filtered_entities:
             if entity.start < last_end:
                 continue  # Skip overlapping entities
 
