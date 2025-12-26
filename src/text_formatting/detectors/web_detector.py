@@ -43,37 +43,22 @@ class WebEntityDetector:
     def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
         """Detects all web-related entities."""
         web_entities: list[Entity] = []
-        # Create a combined list for overlap checking - we extend it in-place as we find entities
-        all_entities = list(entities)  # Single copy at start
+        all_entities = list(entities)  # Copy to avoid mutating input
 
-        # Detect emails first as they're more specific than URLs
-        self._detect_spoken_emails(text, web_entities, all_entities)
-        all_entities.extend(web_entities[-len(web_entities):] if web_entities else [])
+        # Helper to run detector and track new entities for overlap checking
+        def run_detector(detector_fn):
+            before = len(web_entities)
+            detector_fn(text, web_entities, all_entities)
+            all_entities.extend(web_entities[before:])
 
-        prev_count = len(web_entities)
-        self._detect_spoken_protocol_urls(text, web_entities, all_entities)
-        if len(web_entities) > prev_count:
-            all_entities.extend(web_entities[prev_count:])
+        # Detect in priority order (more specific patterns first)
+        run_detector(self._detect_spoken_emails)
+        run_detector(self._detect_spoken_protocol_urls)
+        run_detector(self._detect_spoken_urls)
+        run_detector(self._detect_spoken_ips)
+        run_detector(self._detect_port_numbers)
+        run_detector(self._detect_links)  # SpaCy fallback for well-formatted links
 
-        prev_count = len(web_entities)
-        self._detect_spoken_urls(text, web_entities, all_entities)
-        if len(web_entities) > prev_count:
-            all_entities.extend(web_entities[prev_count:])
-
-        prev_count = len(web_entities)
-        self._detect_spoken_ips(text, web_entities, all_entities)
-        if len(web_entities) > prev_count:
-            all_entities.extend(web_entities[prev_count:])
-
-        prev_count = len(web_entities)
-        self._detect_port_numbers(text, web_entities, all_entities)
-        if len(web_entities) > prev_count:
-            all_entities.extend(web_entities[prev_count:])
-
-        # Finally, use SpaCy for any remaining well-formatted links.
-        # This will catch things like "example.com" that the spoken detectors miss.
-        # Pass the combined list of all entities found so far to prevent overlap.
-        self._detect_links(text, web_entities, all_entities)
         return web_entities
 
     def _detect_spoken_protocol_urls(
