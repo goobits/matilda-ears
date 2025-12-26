@@ -11,6 +11,7 @@ Clean architecture with 4 specialized classes:
 import os
 import re
 from typing import List, Optional
+from intervaltree import IntervalTree
 from ..core.config import get_config, setup_logging
 
 # Import common data structures
@@ -757,18 +758,13 @@ class TextFormatter:
 
         # Phase 4 Fix: Deduplicate entities with identical boundaries and overlapping entities
         # This fixes cases where SpaCy and custom detectors find overlapping entities
-        deduplicated_entities: list[Entity] = []
+        # Using O(n log n) interval tree approach instead of O(n²) nested loops
 
         logger.debug(f"Starting deduplication with {len(final_entities)} entities:")
         for i, entity in enumerate(final_entities):
             logger.debug(f"  {i}: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
 
-        def entities_overlap(e1, e2):
-            """Check if two entities overlap."""
-            return not (e1.end <= e2.start or e2.end <= e1.start)
-
         # Define entity priority (higher number = higher priority)
-        # Moved up for use in deduplication
         entity_priorities = {
             EntityType.MATH_EXPRESSION: 10,
             EntityType.COMPARISON: 9,
@@ -785,74 +781,36 @@ class TextFormatter:
             EntityType.QUANTITY: 1,
         }
 
-        for entity in final_entities:
-            # Check if this entity overlaps with any already accepted entity
-            overlaps_with_existing = False
-            for existing in deduplicated_entities:
-                if entities_overlap(entity, existing):
-                    # Priority-based resolution
-                    entity_prio = entity_priorities.get(entity.type, 0)
-                    existing_prio = entity_priorities.get(existing.type, 0)
+        # Sort entities by priority (desc), then by length (desc) for tie-breaking
+        # This ensures higher priority and longer entities are processed first
+        def entity_sort_key(e):
+            priority = entity_priorities.get(e.type, 0)
+            length = e.end - e.start
+            return (-priority, -length, e.start)
 
-                    should_replace = False
-                    if entity_prio > existing_prio:
-                        should_replace = True
-                    elif entity_prio < existing_prio:
-                        should_replace = False
-                    else:
-                        # Equal priority, prefer longer entity (more specific)
-                        entity_length = entity.end - entity.start
-                        existing_length = existing.end - existing.start
-                        should_replace = entity_length > existing_length
+        sorted_entities = sorted(final_entities, key=entity_sort_key)
 
-                    if should_replace:
-                        # Remove the existing entity and add this one
-                        deduplicated_entities.remove(existing)
-                        logger.debug(f"Replacing entity {existing.type}('{existing.text}') with {entity.type}('{entity.text}') due to priority/length")
-                        break
-                    else:
-                        # Keep the existing entity
-                        overlaps_with_existing = True
-                        logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') in favor of {existing.type}('{existing.text}')")
-                        break
+        # Use interval tree for O(log n) overlap detection
+        tree = IntervalTree()
+        filtered_entities = []
 
-            if not overlaps_with_existing:
-                deduplicated_entities.append(entity)
+        for entity in sorted_entities:
+            # Check for overlaps in O(log n) time
+            # Note: IntervalTree uses half-open intervals [start, end)
+            overlaps = tree[entity.start:entity.end]
+
+            if not overlaps:
+                # No overlap, add this entity
+                tree[entity.start:entity.end] = entity
+                filtered_entities.append(entity)
                 logger.debug(f"Added entity: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
+            else:
+                # Entity overlaps with existing higher-priority entities, skip it
+                existing = list(overlaps)[0].data
+                logger.debug(f"Skipping overlapping entity: {entity.type}('{entity.text}') in favor of {existing.type}('{existing.text}')")
 
-        # Remove smaller entities that are completely contained within larger, higher-priority entities
-        # (This second pass handles cases where the order of addition mattered)
-        priority_filtered_entities = []
-
-        for entity in deduplicated_entities:
-            is_contained = False
-            for other_entity in deduplicated_entities:
-                if entity == other_entity:
-                    continue
-
-                # Check if entity is completely contained within other_entity OR overlaps with higher priority
-                is_contained_within = (other_entity.start <= entity.start and entity.end <= other_entity.end)
-
-                # Note: Overlap check is redundant if deduplication worked, but containment check is valid.
-                # Only filter if strictly contained.
-                if is_contained_within:
-                    # Only remove if the outer entity is not lower priority (usually larger means better, but check priority)
-                    # Actually, if it's contained, the outer one is usually the intended one unless priority says otherwise.
-                    # But we already handled priority in deduplication.
-                    # However, strict containment might not trigger overlap logic if boundaries align perfectly?
-                    # entities_overlap handles that.
-                    # So just containment check for safety.
-                    action = "contained within"
-                    logger.debug(f"Removing contained entity: {entity.type}('{entity.text}') "
-                               f"{action} {other_entity.type}('{other_entity.text}')")
-                    is_contained = True
-                    break
-
-            if not is_contained:
-                priority_filtered_entities.append(entity)
-
-        # The priority filtered list is now our authoritative, non-overlapping list
-        filtered_entities = sorted(priority_filtered_entities, key=lambda e: e.start)
+        # Sort by position for final output
+        filtered_entities = sorted(filtered_entities, key=lambda e: e.start)
         logger.debug(f"Found {len(filtered_entities)} final non-overlapping entities:")
         for i, entity in enumerate(filtered_entities):
             logger.debug(f"  Final {i}: {entity.type}('{entity.text}') at [{entity.start}:{entity.end}]")
