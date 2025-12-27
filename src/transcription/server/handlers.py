@@ -24,6 +24,13 @@ import numpy as np
 from ...audio.opus_batch import OpusBatchDecoder
 from ...core.config import setup_logging
 from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
+from .audio_utils import (
+    validate_sample_rate,
+    needs_resampling,
+    resample_to_16k,
+    TARGET_SAMPLE_RATE,
+    SUPPORTED_SAMPLE_RATES,
+)
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -237,6 +244,23 @@ async def handle_start_stream(
     sample_rate = data.get("sample_rate", 16000)
     channels = data.get("channels", 1)
 
+    # Validate sample rate
+    is_valid, error_msg = validate_sample_rate(sample_rate)
+    if not is_valid:
+        await send_error(websocket, error_msg)
+        # Clean up session tracking
+        if client_id in server.client_sessions:
+            server.client_sessions[client_id].discard(session_id)
+        return
+
+    # Track if resampling is needed (8kHz -> 16kHz)
+    resampling_needed = needs_resampling(sample_rate)
+    if resampling_needed:
+        logger.info(
+            f"Client {client_id}: Session {session_id} uses {sample_rate}Hz, "
+            f"will resample to {TARGET_SAMPLE_RATE}Hz"
+        )
+
     # Create new decoder session (for Opus -> PCM)
     server.opus_decoder.create_session(session_id, sample_rate, channels)
 
@@ -404,13 +428,30 @@ async def handle_pcm_chunk(
         # Initialize PCM session with default parameters
         sample_rate = data.get("sample_rate", 16000)
         channels = data.get("channels", 1)
+
+        # Validate sample rate for new sessions
+        is_valid, error_msg = validate_sample_rate(sample_rate)
+        if not is_valid:
+            await send_error(websocket, error_msg)
+            return
+
+        # Track if resampling is needed
+        resampling_needed = needs_resampling(sample_rate)
+
         server.pcm_sessions[session_id] = {
             "samples": [],
             "sample_rate": sample_rate,
             "channels": channels,
             "chunk_count": 0,
+            "needs_resampling": resampling_needed,
         }
-        logger.info(f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch)")
+        if resampling_needed:
+            logger.info(
+                f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch) "
+                f"- will resample to {TARGET_SAMPLE_RATE}Hz"
+            )
+        else:
+            logger.info(f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch)")
 
     pcm_session = server.pcm_sessions[session_id]
 
@@ -433,7 +474,12 @@ async def handle_pcm_chunk(
         # Convert bytes to numpy int16 array
         pcm_samples = np.frombuffer(pcm_bytes, dtype=np.int16)
 
+        # Resample to 16kHz if needed (e.g., 8kHz input)
+        if pcm_session.get("needs_resampling", False):
+            pcm_samples = resample_to_16k(pcm_samples, pcm_session["sample_rate"])
+
         # Accumulate samples for batch transcription (if needed)
+        # Note: After resampling, samples are at 16kHz
         pcm_session["samples"].append(pcm_samples)
 
         # Log periodically
@@ -575,9 +621,10 @@ async def handle_end_stream(
             all_samples = (
                 np.concatenate(pcm_session["samples"]) if pcm_session["samples"] else np.array([], dtype=np.int16)
             )
-            sample_rate = pcm_session["sample_rate"]
-            duration = len(all_samples) / sample_rate
-            wav_data = pcm_to_wav(all_samples, sample_rate, pcm_session["channels"])
+            # Use 16kHz if samples were resampled, otherwise original rate
+            output_sample_rate = TARGET_SAMPLE_RATE if pcm_session.get("needs_resampling", False) else pcm_session["sample_rate"]
+            duration = len(all_samples) / output_sample_rate
+            wav_data = pcm_to_wav(all_samples, output_sample_rate, pcm_session["channels"])
             logger.info(
                 f"Client {client_id}: PCM stream ended (batch mode). "
                 f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
