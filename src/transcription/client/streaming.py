@@ -5,12 +5,15 @@ This module provides the StreamingAudioClient class for real-time audio streamin
 to the transcription server.
 """
 
+import asyncio
 import os
 import json
 import base64
 import ssl
 import wave
 import tempfile
+from dataclasses import dataclass
+from typing import Callable, Optional
 import numpy as np
 import websockets
 
@@ -21,16 +24,61 @@ from ...core.config import setup_logging
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
+@dataclass
+class PartialResult:
+    """Represents a partial transcription result from streaming.
+
+    Attributes:
+        confirmed_text: Stable text that won't change (LocalAgreement confirmed)
+        tentative_text: Draft text that may change with more audio
+        is_final: Whether this is the final result
+        session_id: The streaming session ID
+        full_text: Legacy compatibility - concatenation of confirmed + tentative
+    """
+
+    confirmed_text: str = ""
+    tentative_text: str = ""
+    is_final: bool = False
+    session_id: str = ""
+    full_text: str = ""
+
+    @classmethod
+    def from_message(cls, data: dict) -> "PartialResult":
+        """Create PartialResult from server message."""
+        return cls(
+            confirmed_text=data.get("confirmed_text", ""),
+            tentative_text=data.get("tentative_text", ""),
+            is_final=data.get("is_final", False),
+            session_id=data.get("session_id", ""),
+            full_text=data.get("text", data.get("confirmed_text", "") + data.get("tentative_text", "")),
+        )
+
+
+# Type alias for partial result callback
+PartialResultCallback = Callable[[PartialResult], None]
+
+
 class StreamingAudioClient:
     """WebSocket client for streaming Opus audio to server.
 
     This class provides a direct interface for streaming audio to the transcription
     server. It is used by StreamHandler and other components that need real-time
     audio streaming capabilities.
+
+    The client supports real-time partial results via an optional callback. When
+    provided, the callback receives PartialResult objects with:
+    - confirmed_text: Stable, agreed-upon text (won't change)
+    - tentative_text: Draft text that may change with more audio
+    - is_final: Whether streaming has completed
     """
 
     def __init__(
-        self, websocket_url: str, auth_token: str, debug_save_audio: bool = False, max_debug_chunks: int = 1000
+        self,
+        websocket_url: str,
+        auth_token: str,
+        debug_save_audio: bool = False,
+        max_debug_chunks: int = 1000,
+        on_partial_result: Optional[PartialResultCallback] = None,
     ):
         """Initialize streaming client.
 
@@ -39,6 +87,7 @@ class StreamingAudioClient:
             auth_token: Authentication token
             debug_save_audio: If True, save audio chunks for debugging
             max_debug_chunks: Maximum number of debug chunks to keep (default: 1000)
+            on_partial_result: Optional callback for real-time partial results
 
         """
         self.websocket_url = websocket_url
@@ -46,6 +95,15 @@ class StreamingAudioClient:
         self.websocket = None
         self.session_id = None
         self.encoder = OpusEncoder()
+
+        # Partial result callback for real-time updates
+        self.on_partial_result = on_partial_result
+        self._listener_task: Optional[asyncio.Task] = None
+        self._stop_listener = asyncio.Event()
+        self._pending_messages: asyncio.Queue = asyncio.Queue()
+
+        # Track latest partial result for callers that don't use callback
+        self._latest_partial: Optional[PartialResult] = None
 
         # Debug features with bounded collections
         self.debug_save_audio = debug_save_audio
@@ -83,6 +141,87 @@ class StreamingAudioClient:
             return self.websocket.state == self.websocket.state.CLOSED
 
         return False
+
+    async def _listen_for_partial_results(self):
+        """Background task to listen for partial results during streaming.
+
+        This runs concurrently with audio sending and invokes the callback
+        when partial_result messages are received.
+        """
+        logger.debug("Starting partial result listener")
+        try:
+            while not self._stop_listener.is_set():
+                if self._is_websocket_closed():
+                    logger.debug("WebSocket closed, stopping listener")
+                    break
+
+                try:
+                    # Use wait_for to allow periodic checking of stop flag
+                    message = await asyncio.wait_for(
+                        self.websocket.recv(),
+                        timeout=0.5,
+                    )
+                    data = json.loads(message)
+                    msg_type = data.get("type", "")
+
+                    if msg_type == "partial_result":
+                        partial = PartialResult.from_message(data)
+                        self._latest_partial = partial
+
+                        # Invoke callback if provided
+                        if self.on_partial_result:
+                            try:
+                                self.on_partial_result(partial)
+                            except Exception as e:
+                                logger.error(f"Error in partial result callback: {e}")
+
+                        logger.debug(
+                            f"Partial result: confirmed='{partial.confirmed_text[:50]}...' "
+                            f"tentative='{partial.tentative_text[:30]}...'"
+                        )
+                    else:
+                        # Queue non-partial messages for end_stream to process
+                        await self._pending_messages.put(data)
+                        logger.debug(f"Queued message type: {msg_type}")
+
+                except asyncio.TimeoutError:
+                    # Normal timeout, continue loop
+                    continue
+                except websockets.exceptions.ConnectionClosed:
+                    logger.debug("Connection closed during listen")
+                    break
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Invalid JSON received: {e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Listener error: {e}")
+        finally:
+            logger.debug("Partial result listener stopped")
+
+    def _start_listener(self):
+        """Start the background listener task."""
+        self._stop_listener.clear()
+        self._listener_task = asyncio.create_task(self._listen_for_partial_results())
+
+    async def _stop_listener_task(self):
+        """Stop the background listener task."""
+        self._stop_listener.set()
+        if self._listener_task:
+            try:
+                await asyncio.wait_for(self._listener_task, timeout=2.0)
+            except asyncio.TimeoutError:
+                self._listener_task.cancel()
+                try:
+                    await self._listener_task
+                except asyncio.CancelledError:
+                    pass
+            self._listener_task = None
+
+    @property
+    def latest_partial_result(self) -> Optional[PartialResult]:
+        """Get the most recent partial result received during streaming."""
+        return self._latest_partial
 
     async def connect(self):
         """Connect to WebSocket server."""
@@ -128,6 +267,7 @@ class StreamingAudioClient:
             session_id = f"stream_{uuid.uuid4().hex[:8]}"
 
         self.session_id = session_id
+        self._latest_partial = None  # Reset for new session
 
         # Send start stream message
         message = {
@@ -146,6 +286,10 @@ class StreamingAudioClient:
 
         if response_data.get("type") == "stream_started":
             logger.info(f"Stream started: {session_id}")
+
+            # Start background listener for partial results
+            self._start_listener()
+
             return session_id
         raise RuntimeError(f"Failed to start stream: {response_data}")
 
@@ -219,11 +363,19 @@ class StreamingAudioClient:
         """End streaming session and get transcription.
 
         Returns:
-            Transcription result from server
+            Transcription result from server with fields:
+            - success: bool
+            - text: str (full transcription, legacy compatibility)
+            - confirmed_text: str (stable text from LocalAgreement)
+            - tentative_text: str (draft text, empty in final result)
+            - is_final: bool (always True for end_stream result)
 
         """
         if not self.session_id:
             raise RuntimeError("No active stream session")
+
+        # Stop the background listener first
+        await self._stop_listener_task()
 
         # Check if we had streaming errors
         if self._last_streaming_error:
@@ -232,7 +384,14 @@ class StreamingAudioClient:
         # Check if WebSocket connection is still valid
         if not self.websocket or self._is_websocket_closed():
             logger.error("WebSocket connection is None or closed - cannot end stream properly")
-            return {"success": False, "text": "", "message": "WebSocket connection lost"}
+            return {
+                "success": False,
+                "text": "",
+                "confirmed_text": "",
+                "tentative_text": "",
+                "is_final": True,
+                "message": "WebSocket connection lost",
+            }
 
         # CRITICAL: Flush any remaining audio from encoder buffer
         logger.info("FLUSHING encoder buffer")
@@ -265,7 +424,7 @@ class StreamingAudioClient:
                     # Clear debug collections to free memory
                     self.debug_raw_chunks.clear()
                     self.debug_opus_chunks.clear()
-                return {"success": False, "text": "", "message": f"Connection closed during finalization: {e}"}
+                return self._error_response(f"Connection closed during finalization: {e}")
             except Exception as e:
                 logger.error(f"Failed to send final chunk: {e}")
                 # Save debug audio on failure
@@ -274,7 +433,7 @@ class StreamingAudioClient:
                     # Clear debug collections to free memory
                     self.debug_raw_chunks.clear()
                     self.debug_opus_chunks.clear()
-                return {"success": False, "text": "", "message": f"Failed to send final chunk: {e}"}
+                return self._error_response(f"Failed to send final chunk: {e}")
             logger.info(
                 f"SENT final flushed opus packet #{self.sent_opus_packets} ({len(final_chunk)} bytes). "
                 f"Final totals: {self.total_raw_bytes} raw, {self.total_opus_bytes} opus"
@@ -300,7 +459,7 @@ class StreamingAudioClient:
                 # Clear debug collections to free memory
                 self.debug_raw_chunks.clear()
                 self.debug_opus_chunks.clear()
-            return {"success": False, "text": "", "message": f"Connection closed during stream end: {e}"}
+            return self._error_response(f"Connection closed during stream end: {e}")
         except Exception as e:
             logger.error(f"Failed to send end stream message: {e}")
             # Save debug audio on failure
@@ -309,30 +468,44 @@ class StreamingAudioClient:
                 # Clear debug collections to free memory
                 self.debug_raw_chunks.clear()
                 self.debug_opus_chunks.clear()
-            return {"success": False, "text": "", "message": f"Failed to send end stream message: {e}"}
+            return self._error_response(f"Failed to send end stream message: {e}")
 
-        # Wait for transcription result
-        try:
-            response = await self.websocket.recv()
-            response_data = json.loads(response)
-        except websockets.exceptions.ConnectionClosed as e:
-            logger.error(f"Connection closed while receiving transcription result: {e}")
-            # Save debug audio on connection failure
-            if self.debug_save_audio:
-                self.save_debug_audio()
-                # Clear debug collections to free memory
-                self.debug_raw_chunks.clear()
-                self.debug_opus_chunks.clear()
-            return {"success": False, "text": "", "message": f"Connection closed during result reception: {e}"}
-        except Exception as e:
-            logger.error(f"Failed to receive transcription result: {e}")
-            # Save debug audio on failure
-            if self.debug_save_audio:
-                self.save_debug_audio()
-                # Clear debug collections to free memory
-                self.debug_raw_chunks.clear()
-                self.debug_opus_chunks.clear()
-            return {"success": False, "text": "", "message": f"Failed to receive transcription result: {e}"}
+        # Wait for transcription result - check pending messages first
+        response_data = None
+
+        # Check if we already received the result during listening
+        while not self._pending_messages.empty():
+            try:
+                queued = self._pending_messages.get_nowait()
+                if queued.get("type") in ("transcription_result", "stream_ended"):
+                    response_data = queued
+                    break
+            except asyncio.QueueEmpty:
+                break
+
+        # If not in queue, wait for it from websocket
+        if response_data is None:
+            try:
+                response = await self.websocket.recv()
+                response_data = json.loads(response)
+            except websockets.exceptions.ConnectionClosed as e:
+                logger.error(f"Connection closed while receiving transcription result: {e}")
+                # Save debug audio on connection failure
+                if self.debug_save_audio:
+                    self.save_debug_audio()
+                    # Clear debug collections to free memory
+                    self.debug_raw_chunks.clear()
+                    self.debug_opus_chunks.clear()
+                return self._error_response(f"Connection closed during result reception: {e}")
+            except Exception as e:
+                logger.error(f"Failed to receive transcription result: {e}")
+                # Save debug audio on failure
+                if self.debug_save_audio:
+                    self.save_debug_audio()
+                    # Clear debug collections to free memory
+                    self.debug_raw_chunks.clear()
+                    self.debug_opus_chunks.clear()
+                return self._error_response(f"Failed to receive transcription result: {e}")
 
         logger.info(f"Stream ended: {self.session_id}")
         self.session_id = None
@@ -354,7 +527,61 @@ class StreamingAudioClient:
         self.debug_raw_chunks.clear()
         self.debug_opus_chunks.clear()
 
-        return response_data
+        # Normalize response to include new schema fields
+        return self._normalize_response(response_data)
+
+    def _error_response(self, message: str) -> dict:
+        """Create a standardized error response with new schema fields.
+
+        Args:
+            message: Error message to include
+
+        Returns:
+            Error response dict with all expected fields
+        """
+        return {
+            "success": False,
+            "text": "",
+            "confirmed_text": "",
+            "tentative_text": "",
+            "is_final": True,
+            "message": message,
+        }
+
+    def _normalize_response(self, response_data: dict) -> dict:
+        """Normalize server response to include all expected schema fields.
+
+        Handles both old and new schema formats for backward compatibility.
+
+        Args:
+            response_data: Raw response from server
+
+        Returns:
+            Normalized response with all expected fields
+        """
+        # Extract text from various possible field names
+        text = response_data.get("text", "")
+        confirmed = response_data.get("confirmed_text", "")
+        tentative = response_data.get("tentative_text", "")
+
+        # For legacy responses that only have "text", use it as confirmed_text
+        if text and not confirmed:
+            confirmed = text
+
+        # Ensure text field exists for legacy compatibility
+        if not text and (confirmed or tentative):
+            text = (confirmed + " " + tentative).strip()
+
+        return {
+            # Preserve all original fields
+            **response_data,
+            # Ensure new schema fields exist
+            "text": text,
+            "confirmed_text": confirmed,
+            "tentative_text": tentative,
+            "is_final": response_data.get("is_final", True),
+            "success": response_data.get("success", True),
+        }
 
     def save_debug_audio(self):
         """Save debug audio data for analysis."""
@@ -418,6 +645,9 @@ class StreamingAudioClient:
 
     async def disconnect(self):
         """Disconnect from server."""
+        # Stop the listener task if running
+        await self._stop_listener_task()
+
         if self.websocket:
             # Save debug audio if we have data and we're disconnecting without proper completion
             if self.debug_save_audio and (self.debug_raw_chunks or self.debug_opus_chunks):

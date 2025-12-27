@@ -15,7 +15,7 @@ from .circuit_breaker import (
     CircuitBreakerConfig,
     CircuitBreaker,
 )
-from .streaming import StreamingAudioClient
+from .streaming import StreamingAudioClient, PartialResult, PartialResultCallback
 from .batch import BatchTranscriber
 from .unified import TranscriptionClient
 
@@ -32,4 +32,7 @@ __all__ = [
     "StreamingAudioClient",
     "BatchTranscriber",
     "TranscriptionClient",
+    # Streaming types
+    "PartialResult",
+    "PartialResultCallback",
 ]

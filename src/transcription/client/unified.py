@@ -10,7 +10,7 @@ from typing import Optional, Any, Callable, Dict, Tuple
 
 from .exceptions import TranscriptionConnectionError
 from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
-from .streaming import StreamingAudioClient
+from .streaming import StreamingAudioClient, PartialResultCallback
 from .batch import BatchTranscriber
 from ...core.config import get_config, setup_logging
 
@@ -156,13 +156,21 @@ class TranscriptionClient:
         return False, None, f"Unknown transcription mode: {transcription_mode}"
 
     async def create_streaming_session(
-        self, session_id: Optional[str] = None, debug_save_audio: Optional[bool] = None
+        self,
+        session_id: Optional[str] = None,
+        debug_save_audio: Optional[bool] = None,
+        on_partial_result: Optional[PartialResultCallback] = None,
     ) -> StreamingAudioClient:
         """Create and start a new streaming session.
 
         Args:
             session_id: Optional session ID (auto-generated if not provided)
             debug_save_audio: If True, save audio chunks for debugging (defaults to config value)
+            on_partial_result: Optional callback for real-time partial results.
+                The callback receives PartialResult objects with:
+                - confirmed_text: Stable, agreed-upon text (won't change)
+                - tentative_text: Draft text that may change with more audio
+                - is_final: Whether streaming has completed
 
         Returns:
             Connected and started streaming client
@@ -183,6 +191,7 @@ class TranscriptionClient:
             self.auth_token,
             debug_save_audio=debug_save_audio,
             max_debug_chunks=max_debug_chunks,
+            on_partial_result=on_partial_result,
         )
 
         # Connect and start session
