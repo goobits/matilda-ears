@@ -1,198 +1,57 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [ "setuptools>=61.0",]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "goobits-matilda-ears"
 version = "1.0.0"
 description = "GOOBITS STT - Pure speech-to-text engine with multiple operation modes"
-authors = [{name = "GOOBITS Team"}]
-license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["speech-to-text", "whisper", "transcription", "stt", "voice"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
+keywords = [ "speech-to-text", "whisper", "transcription", "stt", "voice",]
+classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12",]
+dependencies = [ "websockets>=10.0", "numpy>=1.21.0", "cryptography>=3.0.0", "PyJWT>=2.0.0", "aiohttp>=3.8.0", "click>=8.0.0", "rich-click>=1.7.0", "rich>=13.0.0", "torch>=2.0.0", "torchaudio>=2.0.0", "deepmultilingualpunctuation>=1.0.0", "spacy>=3.8.0", "pyparsing>=3.0.0", "intervaltree>=3.1.0", "opuslib>=3.0.0", "pynput>=1.7.0",]
+[[project.authors]]
+name = "GOOBITS Team"
 
-# Core dependencies for STT functionality
-dependencies = [
-    "websockets>=10.0",
-    "numpy>=1.21.0",
-    "cryptography>=3.0.0",
-    "PyJWT>=2.0.0",
-    "aiohttp>=3.8.0",
-    # CLI and UI
-    "click>=8.0.0",
-    "rich-click>=1.7.0",
-    "rich>=13.0.0",
-    # Audio and VAD
-    "torch>=2.6.0",
-    "torchaudio>=2.6.0",
-    "silero-vad>=4.0.0",
-    # Text formatting
-    "deepmultilingualpunctuation>=1.0.0",
-    "spacy>=3.8.0",
-    "pyparsing>=3.0.0",
-    "intervaltree>=3.1.0",
-    # Audio processing
-    "opuslib>=3.0.0",
-    "pynput>=1.7.0",
-]
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
-# Faster Whisper backend (CPU/CUDA) - May not work on all architectures
-whisper = [
-    "faster-whisper>=1.0.0",
-    "ctranslate2>=4.0.0",
-]
-# Mac dependencies for Parakeet (Apple Silicon)
-mac = [
-    "mlx>=0.0.1",
-    "parakeet-mlx>=0.0.1",
-]
-# HuggingFace Transformers backend (universal ASR - 17,000+ models)
-huggingface = [
-    "transformers>=4.36.0",
-    "accelerate>=0.25.0",
-]
-# Real-time streaming transcription (for faster-whisper backend)
-streaming = [
-    "whisper-streaming>=0.1.0",
-]
-# Development dependencies
-dev = [
-    "pytest>=6.0",
-    "pytest-asyncio>=0.20.0",
-    "pytest-xdist>=3.0.0",  # For parallel test execution
-    "pytest-sugar>=0.9.0",  # Beautiful test output with progress bar
-    "pytest-clarity>=1.0.0",  # Better assertion diffs
-    "pytest-html>=3.0.0",  # HTML test reports
-    "pytest-json-report>=1.5.0",  # JSON test reports for custom formatting
-    "rich>=13.0.0",  # Rich terminal formatting
-    "ruff>=0.1.0",
-    "black>=22.0.0",
-    "mypy>=1.0.0",
-    "bandit>=1.7.0",
-    "pyyaml>=6.0.0",  # For test summary YAML output
-]
+vad = [ "silero-vad>=4.0.0",]
+whisper = [ "faster-whisper>=1.0.0", "ctranslate2>=4.0.0",]
+mac = [ "mlx>=0.0.1", "parakeet-mlx>=0.0.1",]
+huggingface = [ "transformers>=4.36.0", "accelerate>=0.25.0",]
+streaming = [ "whisper-streaming>=0.1.0",]
+dev = [ "pytest>=6.0", "pytest-asyncio>=0.20.0", "pytest-xdist>=3.0.0", "pytest-sugar>=0.9.0", "pytest-clarity>=1.0.0", "pytest-html>=3.0.0", "pytest-json-report>=1.5.0", "rich>=13.0.0", "ruff>=0.1.0", "black>=22.0.0", "mypy>=1.0.0", "bandit>=1.7.0", "pyyaml>=6.0.0",]
 
 [project.scripts]
-ears = "matilda_ears.main:main"
+ears = "goobits_matilda_ears.cli:cli_entry"
 ears-server = "matilda_ears.transcription.server:main"
 
-# Package discovery
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["matilda_ears*"]
-exclude = ["tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist"]
-
-# Include additional data files
-[tool.setuptools.package-data]
-matilda_ears = ["*.json"]
-
-# Code Quality Tools Configuration
 [tool.ruff]
 cache-dir = ".artifacts/cache/ruff"
-# Enable comprehensive rule set
-select = ["E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
-
-# Ignore specific rules that are too strict for this project
-ignore = [
-    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",  # Missing docstrings
-    "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206",  # Type annotations
-    "S602", "S603", "S607",  # subprocess calls (we use these intentionally)
-    "PLR0913",  # Too many arguments
-    "PLR2004",  # Magic values
-    "FBT002",   # Boolean default positional argument
-    "COM812",   # Trailing comma (conflicts with formatter)
-    "ISC001",   # Implicit string concatenation (conflicts with formatter)
-]
-
-# Allow fix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
+select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
+ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001",]
+fixable = [ "ALL",]
 unfixable = []
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    # Project-specific exclusions
-    ".test_artifacts",
-    "logs",
-    "*.egg-info",
-    "docker",
-    ".pytest_cache",
-    "/tmp",
-]
-
+exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", ".test_artifacts", "logs", "*.egg-info", "docker", ".pytest_cache", "/tmp",]
 line-length = 120
 indent-width = 4
 target-version = "py38"
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
-
 [tool.black]
 line-length = 120
-target-version = ['py38']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-  | venv
-  | \.test_artifacts
-  | logs
-  | .*\.egg-info
-  | docker
-  | \.pytest_cache
-  | tmp
-)/
-'''
+target-version = [ "py38",]
+include = "\\.pyi?$"
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.tox\n  | \\.venv\n  | build\n  | dist\n  | venv\n  | \\.test_artifacts\n  | logs\n  | .*\\.egg-info\n  | docker\n  | \\.pytest_cache\n  | tmp\n)/\n"
 
 [tool.mypy]
 python_version = "3.8"
 cache_dir = ".artifacts/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false  # Start lenient, can tighten later
+disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = true
 disallow_untyped_decorators = false
@@ -202,66 +61,38 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-exclude = [
-    "venv/",
-    ".test_artifacts/",
-    "logs/",
-    "docker/",
-    ".pytest_cache/",
-    "build/",
-    "dist/",
-    "*.egg-info/",
-]
-
+exclude = [ "venv/", ".test_artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", "*.egg-info/",]
 [[tool.mypy.overrides]]
-module = [
-    "websockets.*",
-    "faster_whisper.*",
-    "deepmultilingualpunctuation.*",
-    "spacy.*",
-    "opuslib.*",
-    "silero_vad.*",
-    "torchaudio.*",
-    "ctranslate2.*",
-    "numpy.*",
-    "pynput.*",
-    "whisper_online.*",
-    "soundfile.*",
-    "parakeet_mlx.*",
-    "mlx.*",
-]
+module = [ "websockets.*", "faster_whisper.*", "deepmultilingualpunctuation.*", "spacy.*", "opuslib.*", "silero_vad.*", "torchaudio.*", "ctranslate2.*", "numpy.*", "pynput.*", "whisper_online.*", "soundfile.*", "parakeet_mlx.*", "mlx.*",]
 ignore_missing_imports = true
 
 [tool.pylint]
 max-line-length = 120
-disable = [
-    "missing-docstring",
-    "too-few-public-methods",
-    "too-many-arguments",
-    "too-many-locals",
-    "too-many-branches",
-    "too-many-statements",
-    "import-outside-toplevel",  # We do this intentionally for performance
-    "broad-except",  # Sometimes needed for robustness
-]
+disable = [ "missing-docstring", "too-few-public-methods", "too-many-arguments", "too-many-locals", "too-many-branches", "too-many-statements", "import-outside-toplevel", "broad-except",]
 
 [tool.bandit]
-exclude_dirs = ["tests", "venv"]
-skips = ["B602", "B603", "B607"]  # subprocess calls are intentional
+exclude_dirs = [ "tests", "venv",]
+skips = [ "B602", "B603", "B607",]
+
+[tool.setuptools.package-data]
+matilda_ears = [ "*.json",]
+goobits_matilda_ears = [ "setup.sh",]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 cache_dir = ".artifacts/cache/pytest"
-testpaths = ["tests"]
+testpaths = [ "tests",]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src/matilda_ears"]
+source = [ "src/matilda_ears",]
 data_file = ".artifacts/cache/.coverage"
-omit = [
-    "*/tests/*",
-    "*/venv/*",
-    "*/__pycache__/*",
-]
+omit = [ "*/tests/*", "*/venv/*", "*/__pycache__/*",]
 
 [tool.coverage.report]
 precision = 2
@@ -270,3 +101,8 @@ skip_covered = false
 
 [tool.coverage.html]
 directory = ".artifacts/cache/htmlcov"
+
+[tool.setuptools.packages.find]
+where = [ "src", ".",]
+include = [ "matilda_ears*", "goobits_matilda_ears*",]
+exclude = [ "tests*", "docker*", "scripts*", "**/__pycache__", "*.egg-info", "build", "dist",]

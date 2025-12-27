@@ -1,0 +1,178 @@
+# Goobits configuration for Matilda Ears CLI
+# This file defines the speech-to-text CLI application
+
+# Setup fields for setup.sh
+package_name: "goobits-matilda-ears"
+command_name: "ears"
+display_name: "Matilda Ears - Speech-to-Text Engine"
+description: "Pure speech-to-text engine with multiple operation modes"
+
+# CLI generation configuration
+cli_output_path: "src/matilda_ears/cli.py"
+hooks_path: "src/matilda_ears/app_hooks.py"
+
+python:
+  minimum_version: "3.8"
+  maximum_version: "3.13"
+
+dependencies:
+  required:
+    - git
+    - pipx
+  optional:
+    - curl
+    - wget
+
+installation:
+  pypi_name: "goobits-matilda-ears"
+  development_path: "."
+  extras:
+    python: ["dev", "whisper", "vad"]
+
+shell_integration:
+  enabled: false
+  alias: "ears"
+
+validation:
+  check_api_keys: false
+  check_disk_space: true
+  minimum_disk_space_mb: 500
+
+messages:
+  install_success: |
+    Matilda Ears has been installed successfully!
+    You can now use 'ears' from your terminal.
+
+    Quick start:
+      ears --listen-once          # Single utterance
+      ears --conversation         # Always listening
+      ears --tap-to-talk=f8       # Tap F8 to start/stop
+      ears --hold-to-talk=space   # Hold spacebar to record
+      ears --server --port=8769   # WebSocket server
+
+  install_dev_success: |
+    Matilda Ears has been installed in development mode!
+    Your local changes will be reflected immediately.
+
+    Development workflow:
+      - Edit code in src/matilda_ears/ directory
+      - Test immediately with: ears --listen-once
+      - Run tests with: ./test.py tests/text_formatting/ --summary
+
+  upgrade_success: |
+    Matilda Ears has been upgraded successfully!
+    Check out the latest features with: ears --version
+
+  uninstall_success: |
+    Matilda Ears has been uninstalled.
+    Thank you for using Matilda Ears!
+
+# CLI fields for cli.py generation
+cli:
+  name: "GOOBITS MATILDA EARS CLI"
+  version: "1.0.0"
+  display_version: true
+  tagline: "Pure speech-to-text engine with multiple operation modes"
+  description: "Transform speech into text with AI-powered transcription using Whisper models."
+  icon: "🎙️"
+  enable_recursive_help: true
+  enable_help_json: true
+
+  header_sections:
+    - title: "🚀 Quick Start"
+      items:
+        - { item: "ears --listen-once", desc: "Single utterance capture with VAD", style: "example" }
+        - { item: "ears --conversation", desc: "Always listening mode", style: "example" }
+        - { item: "ears --tap-to-talk=f8", desc: "Tap F8 to start/stop", style: "example" }
+
+    - title: "🔧 Operation Modes"
+      items:
+        - { item: "--listen-once", desc: "Single utterance capture", style: "command" }
+        - { item: "--conversation", desc: "Continuous listening", style: "command" }
+        - { item: "--server", desc: "WebSocket server mode", style: "command" }
+
+  command_groups:
+    - name: "System Commands"
+      commands: ["status", "models"]
+
+  # Root command options (main CLI)
+  root_options:
+    - name: "listen_once"
+      type: "flag"
+      desc: "Single utterance capture with VAD"
+    - name: "conversation"
+      type: "flag"
+      desc: "Always listening with interruption support"
+    - name: "tap_to_talk"
+      type: "str"
+      metavar: "KEY"
+      desc: "Tap KEY to start/stop recording"
+    - name: "hold_to_talk"
+      type: "str"
+      metavar: "KEY"
+      desc: "Hold KEY to record, release to stop"
+    - name: "file"
+      type: "str"
+      metavar: "PATH"
+      desc: "Transcribe audio file (WAV, MP3, etc.)"
+    - name: "server"
+      type: "flag"
+      desc: "Run as WebSocket server for remote clients"
+    - name: "port"
+      type: "int"
+      default: 8769
+      desc: "Server port"
+    - name: "host"
+      type: "str"
+      default: "0.0.0.0"
+      desc: "Server host"
+    - name: "json"
+      type: "flag"
+      desc: "Output JSON format"
+    - name: "debug"
+      type: "flag"
+      desc: "Enable detailed debug logging"
+    - name: "no_formatting"
+      type: "flag"
+      desc: "Disable advanced text formatting"
+    - name: "model"
+      type: "str"
+      default: "base"
+      desc: "Whisper model size (tiny, base, small, medium, large)"
+    - name: "language"
+      type: "str"
+      desc: "Language code (e.g., 'en', 'es', 'fr')"
+    - name: "device"
+      type: "str"
+      desc: "Audio input device name or index"
+    - name: "sample_rate"
+      type: "int"
+      default: 16000
+      desc: "Audio sample rate in Hz"
+    - name: "config"
+      type: "str"
+      desc: "Configuration file path"
+
+  commands:
+    status:
+      desc: "Show system status and capabilities"
+      icon: "📊"
+      options:
+        - name: "json"
+          type: "flag"
+          desc: "Output JSON format"
+
+    models:
+      desc: "List available Whisper models"
+      icon: "📋"
+      options:
+        - name: "json"
+          type: "flag"
+          desc: "Output JSON format"
+
+  config:
+    rich_help_panel: true
+    show_metavars_column: false
+    append_metavars_help: true
+    style_errors_suggestion: true
+    max_width: 120

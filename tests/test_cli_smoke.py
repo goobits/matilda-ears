@@ -22,18 +22,16 @@ from pathlib import Path
 
 class TestCLIImports:
     """Test that core CLI components can be imported without crashing."""
-    
-    def test_cli_creation_functions_import(self):
-        """Can we import and create CLI parsers without explosions?"""
-        from matilda_ears.main import create_rich_cli, create_fallback_parser
-        
-        # Test that CLI creation doesn't crash
-        cli = create_rich_cli()
-        assert cli is not None
-        
-        parser = create_fallback_parser()
-        assert parser is not None
-    
+
+    def test_app_hooks_import(self):
+        """Can we import app hooks without explosions?"""
+        from matilda_ears.app_hooks import on_transcribe, on_status, on_models
+
+        # Test that hooks are callable
+        assert callable(on_transcribe)
+        assert callable(on_status)
+        assert callable(on_models)
+
     def test_mode_classes_import(self):
         """Can we import all the mode classes without dependency errors?"""
         from matilda_ears.modes.listen_once import ListenOnceMode
@@ -79,60 +77,58 @@ class TestConfigSystem:
 
 class TestCLICommands:
     """Test that basic CLI commands work without crashing."""
-    
+
     def test_status_command_runs(self):
-        """Does --status command work without crashing?"""
-        from matilda_ears.main import handle_status_command
-        
+        """Does status command work without crashing?"""
+        from matilda_ears.app_hooks import on_status
+
         # Capture output
         old_stdout = sys.stdout
         sys.stdout = captured_output = io.StringIO()
-        
+
         try:
-            handle_status_command("json")
+            on_status(json_output=True)
             output = captured_output.getvalue()
-            
+
             # Basic smoke test - did it produce valid JSON?
             result = json.loads(output)
             assert "system" in result
             assert "python_version" in result
-            
+
         finally:
             sys.stdout = old_stdout
-    
+
     def test_models_command_runs(self):
-        """Does --models command work without crashing?"""
-        from matilda_ears.main import handle_models_command
-        
+        """Does models command work without crashing?"""
+        from matilda_ears.app_hooks import on_models
+
         # Capture output
         old_stdout = sys.stdout
         sys.stdout = captured_output = io.StringIO()
-        
+
         try:
-            handle_models_command("json")
+            on_models(json_output=True)
             output = captured_output.getvalue()
-            
+
             # Basic smoke test - did it produce valid JSON?
             result = json.loads(output)
             assert "available_models" in result
             assert len(result["available_models"]) > 0
-            
+
         finally:
             sys.stdout = old_stdout
-    
+
     def test_help_command_works(self):
         """Does --help work without crashing?"""
-        # Test that help can be displayed via subprocess
-        # Use Path to get absolute path to main.py
-        main_py = Path(__file__).parent.parent / "src" / "main.py"
-        
-        result = subprocess.run([
-            sys.executable, str(main_py), "--help"
-        ], capture_output=True, text=True, timeout=10)
-        
+        # Test via the ears command entry point
+        result = subprocess.run(
+            [sys.executable, "-m", "matilda_ears.cli", "--help"],
+            capture_output=True, text=True, timeout=10
+        )
+
         # Should exit with 0 and show help text
         assert result.returncode == 0
-        assert "speech-to-text" in result.stdout.lower() or "stt" in result.stdout.lower()
+        assert "speech" in result.stdout.lower() or "transcri" in result.stdout.lower()
 
 
 class TestBaseModeLogic:

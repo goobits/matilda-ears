@@ -192,7 +192,9 @@ logger = setup_logging(__name__, log_level="INFO")
 
 ## Important File Paths
 
-- **Entry point**: `src/matilda_ears/main.py` - Main CLI interface
+- **CLI**: `src/matilda_ears/cli.py` - Generated CLI entry point (DO NOT EDIT)
+- **Hooks**: `src/matilda_ears/app_hooks.py` - CLI hook implementations (EDIT THIS)
+- **Config**: `goobits.yaml` - CLI configuration for goobits build
 - **Server**: `src/matilda_ears/transcription/server.py` - WebSocket server implementation
 - **Config**: `config.json` - Main configuration file
 - **Tests**: `tests/` - Comprehensive test suite
