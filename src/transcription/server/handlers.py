@@ -31,6 +31,7 @@ from .audio_utils import (
     TARGET_SAMPLE_RATE,
     SUPPORTED_SAMPLE_RATES,
 )
+from ..streaming import create_streaming_session, StreamingConfig
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -264,26 +265,41 @@ async def handle_start_stream(
     # Create new decoder session (for Opus -> PCM)
     server.opus_decoder.create_session(session_id, sample_rate, channels)
 
-    # Check if backend supports real-time streaming transcription
+    # Try to create streaming session with new framework
     streaming_enabled = False
-    backend_info = {}
+    strategy_name = None
 
-    if hasattr(server.backend, "supports_streaming") and server.backend.supports_streaming:
-        try:
-            # Start backend streaming session
-            backend_info = await server.backend.start_streaming(session_id)
-            streaming_enabled = True
-            server.backend_streaming_sessions.add(session_id)
-            logger.info(
-                f"Client {client_id}: Started streaming session {session_id} "
-                f"with real-time transcription (backend={server.backend_name})"
-            )
-        except Exception as e:
-            logger.warning(
-                f"Client {client_id}: Failed to start backend streaming for {session_id}: {e}. "
-                "Falling back to batch mode."
-            )
-            streaming_enabled = False
+    try:
+        # Load streaming config
+        streaming_config = StreamingConfig.from_config()
+
+        # Create streaming session
+        streaming_session = create_streaming_session(
+            session_id=session_id,
+            backend=server.backend,
+            config=streaming_config,
+            transcription_semaphore=server.transcription_semaphore,
+        )
+
+        # Start the session
+        await streaming_session.start()
+
+        # Store session
+        server.streaming_sessions[session_id] = streaming_session
+        streaming_enabled = True
+        strategy_name = streaming_config.strategy
+
+        logger.info(
+            f"Client {client_id}: Started streaming session {session_id} "
+            f"with {strategy_name} strategy (backend={server.backend_name})"
+        )
+
+    except Exception as e:
+        logger.warning(
+            f"Client {client_id}: Failed to start streaming session for {session_id}: {e}. "
+            "Falling back to batch mode."
+        )
+        streaming_enabled = False
 
     if not streaming_enabled:
         logger.info(f"Client {client_id}: Started streaming session {session_id} (batch mode)")
@@ -297,7 +313,7 @@ async def handle_start_stream(
                 "success": True,
                 "streaming_enabled": streaming_enabled,  # Real-time partial results available
                 "backend": server.backend_name,
-                **backend_info,
+                "strategy": strategy_name,
             }
         )
     )
@@ -360,22 +376,24 @@ async def handle_audio_chunk(
         # This returns the decoded PCM samples as numpy array
         pcm_samples = decoder.decode_chunk(opus_data)
 
-        # If backend streaming is enabled for this session, process chunk in real-time
-        if session_id in server.backend_streaming_sessions:
+        # If streaming session exists, process chunk with new framework
+        if session_id in server.streaming_sessions:
             try:
-                # Process chunk with backend and get partial result
-                result = await server.backend.process_chunk(session_id, pcm_samples)
+                streaming_session = server.streaming_sessions[session_id]
+                result = await streaming_session.process_chunk(pcm_samples)
 
-                # Send partial result to client (immediate, no throttling)
-                if result.get("text"):
+                # Send partial result with new schema (confirmed + tentative)
+                if result.confirmed_text or result.tentative_text:
                     await websocket.send(
                         json.dumps(
                             {
                                 "type": "partial_result",
                                 "session_id": session_id,
-                                "text": result["text"],
+                                "confirmed_text": result.confirmed_text,
+                                "tentative_text": result.tentative_text,
                                 "is_final": False,
-                                "tokens": result.get("tokens", {}),
+                                # Legacy field for backward compatibility
+                                "text": result.full_text,
                             }
                         )
                     )
@@ -491,22 +509,24 @@ async def handle_pcm_chunk(
                 f"size: {len(pcm_bytes)} bytes, total: {duration:.2f}s"
             )
 
-        # If backend streaming is enabled for this session, process chunk in real-time
-        if session_id in server.backend_streaming_sessions:
+        # If streaming session exists, process chunk with new framework
+        if session_id in server.streaming_sessions:
             try:
-                # Process chunk with backend and get partial result
-                result = await server.backend.process_chunk(session_id, pcm_samples)
+                streaming_session = server.streaming_sessions[session_id]
+                result = await streaming_session.process_chunk(pcm_samples)
 
-                # Send partial result to client (immediate, no throttling)
-                if result.get("text"):
+                # Send partial result with new schema (confirmed + tentative)
+                if result.confirmed_text or result.tentative_text:
                     await websocket.send(
                         json.dumps(
                             {
                                 "type": "partial_result",
                                 "session_id": session_id,
-                                "text": result["text"],
+                                "confirmed_text": result.confirmed_text,
+                                "tentative_text": result.tentative_text,
                                 "is_final": False,
-                                "tokens": result.get("tokens", {}),
+                                # Legacy field for backward compatibility
+                                "text": result.full_text,
                             }
                         )
                     )
@@ -567,24 +587,23 @@ async def handle_end_stream(
     pcm_session = server.pcm_sessions.pop(session_id, None)
     decoder = server.opus_decoder.remove_session(session_id)
 
-    if not decoder and not pcm_session:
+    # Get streaming session if it exists
+    streaming_session = server.streaming_sessions.pop(session_id, None)
+
+    if not decoder and not pcm_session and not streaming_session:
         await send_error(websocket, f"Unknown session: {session_id}")
         return
 
-    # Check if this session was using backend streaming
-    using_backend_streaming = session_id in server.backend_streaming_sessions
-
     try:
-        if using_backend_streaming:
-            # Use backend's streaming end method for final transcription
+        # If using new streaming framework, finalize the session
+        if streaming_session:
             try:
-                result = await server.backend.end_streaming(session_id)
-                text = result.get("text", "")
-                duration = result.get("duration", decoder.get_duration())
-                language = result.get("language", "en")
+                result = await streaming_session.finalize()
+                text = result.confirmed_text
+                duration = result.audio_duration_seconds
 
                 logger.info(
-                    f"Client {client_id}: Stream ended (backend streaming). "
+                    f"Client {client_id}: Stream ended (streaming framework). "
                     f"Duration: {duration:.2f}s, Text: {len(text)} chars"
                 )
 
@@ -594,9 +613,10 @@ async def handle_end_stream(
                             "type": "stream_transcription_complete",
                             "session_id": session_id,
                             "text": text,
+                            "confirmed_text": result.confirmed_text,
                             "success": True,
                             "audio_duration": duration,
-                            "language": language,
+                            "language": "en",
                             "backend": server.backend_name,
                             "streaming_mode": True,
                         }
@@ -606,14 +626,10 @@ async def handle_end_stream(
 
             except Exception as e:
                 logger.warning(
-                    f"Client {client_id}: Backend end_streaming failed: {e}. "
+                    f"Client {client_id}: Streaming session finalize failed: {e}. "
                     "Falling back to batch transcription."
                 )
                 # Fall through to batch transcription
-
-            finally:
-                # Always clean up backend streaming session
-                server.backend_streaming_sessions.discard(session_id)
 
         # Batch mode: Use accumulated audio for transcription
         if pcm_session:
@@ -629,13 +645,17 @@ async def handle_end_stream(
                 f"Client {client_id}: PCM stream ended (batch mode). "
                 f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
             )
-        else:
+        elif decoder:
             # Opus session: get WAV from decoder
             wav_data = decoder.get_wav_data()
             duration = decoder.get_duration()
             logger.info(
                 f"Client {client_id}: Opus stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes"
             )
+        else:
+            # No audio data available
+            await send_error(websocket, "No audio data in session")
+            return
 
         # Use common transcription logic
         success, text, info = await transcribe_audio_from_wav(server, wav_data, client_id)
@@ -664,8 +684,6 @@ async def handle_end_stream(
         await send_error(websocket, f"Stream transcription failed: {e!s}")
 
     finally:
-        # Ensure backend streaming session is cleaned up
-        server.backend_streaming_sessions.discard(session_id)
         # Remove from ending sessions (cleanup complete)
         server.ending_sessions.discard(session_id)
         # Remove from client sessions tracking

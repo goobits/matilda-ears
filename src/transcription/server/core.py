@@ -79,9 +79,10 @@ class MatildaWebSocketServer:
             logger.info("PYTORCH_ENABLE_MPS_FALLBACK=1 set for Parakeet backend")
 
         # WebSocket-level session tracking (self-contained)
-        self.streaming_sessions = {}  # session_id -> session_info
+        self.streaming_sessions = {}  # session_id -> StreamingSession (new framework)
 
         # Track which sessions are using backend streaming (real-time transcription)
+        # Note: This is being replaced by streaming_sessions, kept for backward compat
         self.backend_streaming_sessions = set()  # session_ids using backend.process_chunk()
 
         # SSL configuration
@@ -246,8 +247,15 @@ class MatildaWebSocketServer:
                     self.session_chunk_counts.pop(session_id, None)
                     self.backend_streaming_sessions.discard(session_id)
                     self.ending_sessions.discard(session_id)
-                    # Try to end backend streaming session if active
-                    if hasattr(self.backend, "end_streaming"):
+                    # Abort new streaming framework session if active
+                    if session_id in self.streaming_sessions:
+                        try:
+                            session = self.streaming_sessions.pop(session_id)
+                            asyncio.create_task(session.abort())
+                        except Exception:
+                            pass  # Ignore errors during cleanup
+                    # Try to end backend streaming session if active (legacy)
+                    elif hasattr(self.backend, "end_streaming"):
                         try:
                             # Use create_task to avoid blocking disconnect
                             asyncio.create_task(self.backend.end_streaming(session_id))
