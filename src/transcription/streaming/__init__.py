@@ -12,7 +12,7 @@ Public API:
 """
 
 from .config import StreamingConfig
-from .types import StreamingResult, StreamingMetrics, StreamingError, TimestampedWord
+from .types import StreamingResult, StreamingMetrics, StreamingError, StreamingState, TimestampedWord
 from .buffer import AudioBuffer
 from .hypothesis import HypothesisBuffer
 from .session import StreamingSession
@@ -28,6 +28,7 @@ __all__ = [
     "StreamingResult",
     "StreamingMetrics",
     "StreamingError",
+    "StreamingState",
     "TimestampedWord",
     # Internal (for testing/extension)
     "AudioBuffer",
