@@ -186,7 +186,7 @@ Examples:
 async def run_listen_once(args):
     """Run single utterance capture mode"""
     try:
-        from src.modes.listen_once import ListenOnceMode
+        from matilda_ears.modes.listen_once import ListenOnceMode
         mode = ListenOnceMode(args)
         await mode.run()
     except ImportError as e:
@@ -212,7 +212,7 @@ async def run_listen_once(args):
 async def run_conversation(args):
     """Run continuous conversation mode"""
     try:
-        from src.modes.conversation import ConversationMode
+        from matilda_ears.modes.conversation import ConversationMode
         mode = ConversationMode(args)
         await mode.run()
     except ImportError as e:
@@ -226,7 +226,7 @@ async def run_conversation(args):
 async def run_tap_to_talk(args):
     """Run tap-to-talk mode"""
     try:
-        from src.modes.tap_to_talk import TapToTalkMode
+        from matilda_ears.modes.tap_to_talk import TapToTalkMode
         mode = TapToTalkMode(args)
         await mode.run()
     except ImportError as e:
@@ -240,7 +240,7 @@ async def run_tap_to_talk(args):
 async def run_hold_to_talk(args):
     """Run hold-to-talk mode"""
     try:
-        from src.modes.hold_to_talk import HoldToTalkMode
+        from matilda_ears.modes.hold_to_talk import HoldToTalkMode
         mode = HoldToTalkMode(args)
         await mode.run()
     except ImportError as e:
@@ -254,7 +254,7 @@ async def run_hold_to_talk(args):
 async def run_file_transcription(args):
     """Run file transcription mode"""
     try:
-        from src.modes.file_transcribe import FileTranscribeMode
+        from matilda_ears.modes.file_transcribe import FileTranscribeMode
         mode = FileTranscribeMode(args)
         await mode.run()
     except ImportError as e:
@@ -276,7 +276,7 @@ async def run_server(args):
     try:
         # Allow CLI server startup without requiring server.py wrapper.
         os.environ.setdefault("MATILDA_MANAGEMENT_TOKEN", "managed-by-matilda-system")
-        from src.transcription.server import MatildaWebSocketServer
+        from matilda_ears.transcription.server import MatildaWebSocketServer
 
         # Create and start server
         server = MatildaWebSocketServer()

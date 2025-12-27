@@ -1,8 +1,8 @@
 """Unit tests for HypothesisBuffer and LocalAgreement algorithm."""
 
 import pytest
-from src.transcription.streaming.hypothesis import HypothesisBuffer
-from src.transcription.streaming.types import TimestampedWord
+from matilda_ears.transcription.streaming.hypothesis import HypothesisBuffer
+from matilda_ears.transcription.streaming.types import TimestampedWord
 
 
 def make_words(texts: list, start_time: float = 0.0, word_duration: float = 0.5) -> list:

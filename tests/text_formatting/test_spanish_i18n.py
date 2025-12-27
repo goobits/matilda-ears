@@ -2,8 +2,8 @@
 """Tests for Spanish language support in text formatting."""
 
 import pytest
-from src.text_formatting.formatter import TextFormatter
-from src.text_formatting.constants import get_resources
+from matilda_ears.text_formatting.formatter import TextFormatter
+from matilda_ears.text_formatting.constants import get_resources
 
 
 class TestSpanishI18n:

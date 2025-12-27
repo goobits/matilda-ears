@@ -18,8 +18,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.core.config import get_config
-from src.core.token_manager import TokenManager
+from matilda_ears.core.config import get_config
+from matilda_ears.core.token_manager import TokenManager
 
 
 def main():

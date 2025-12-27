@@ -20,8 +20,8 @@ class TestBackendFactory:
 
     def test_factory_creates_faster_whisper_backend(self):
         """Verify factory returns FasterWhisperBackend class for 'faster_whisper'."""
-        from src.transcription.backends import get_backend_class
-        from src.transcription.backends.faster_whisper_backend import FasterWhisperBackend
+        from matilda_ears.transcription.backends import get_backend_class
+        from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
         
         backend_class = get_backend_class("faster_whisper")
         assert backend_class == FasterWhisperBackend
@@ -30,15 +30,15 @@ class TestBackendFactory:
         """Verify factory returns ParakeetBackend when dependencies are available."""
         # Mock parakeet availability
         with patch('src.transcription.backends.PARAKEET_AVAILABLE', True):
-            from src.transcription.backends import get_backend_class
-            from src.transcription.backends.parakeet_backend import ParakeetBackend
+            from matilda_ears.transcription.backends import get_backend_class
+            from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
             
             backend_class = get_backend_class("parakeet")
             assert backend_class == ParakeetBackend
 
     def test_factory_unknown_backend_raises_valueerror(self):
         """Verify factory raises ValueError with helpful message for unknown backend."""
-        from src.transcription.backends import get_backend_class
+        from matilda_ears.transcription.backends import get_backend_class
         
         with pytest.raises(ValueError) as exc_info:
             get_backend_class("unknown_backend")
@@ -52,7 +52,7 @@ class TestBackendFactory:
         """Verify factory raises ValueError when Parakeet is requested but unavailable."""
         # Mock parakeet as unavailable
         with patch('src.transcription.backends.PARAKEET_AVAILABLE', False):
-            from src.transcription.backends import get_backend_class
+            from matilda_ears.transcription.backends import get_backend_class
             
             with pytest.raises(ValueError) as exc_info:
                 get_backend_class("parakeet")
@@ -63,7 +63,7 @@ class TestBackendFactory:
 
     def test_get_available_backends_includes_faster_whisper(self):
         """Verify get_available_backends always includes faster_whisper."""
-        from src.transcription.backends import get_available_backends
+        from matilda_ears.transcription.backends import get_available_backends
         
         backends = get_available_backends()
         assert "faster_whisper" in backends
@@ -74,7 +74,7 @@ class TestBackendFactory:
         with patch('src.transcription.backends.PARAKEET_AVAILABLE', True):
             # Need to reimport to pick up the mocked value
             import importlib
-            import src.transcription.backends as backends_module
+            import matilda_ears.transcription.backends as backends_module
             importlib.reload(backends_module)
             
             backends = backends_module.get_available_backends()
@@ -88,7 +88,7 @@ class TestBackendFactory:
         # The "unavailable" state is tested in unit tests instead.
         with patch('src.transcription.backends.PARAKEET_AVAILABLE', False):
             import importlib
-            import src.transcription.backends as backends_module
+            import matilda_ears.transcription.backends as backends_module
             importlib.reload(backends_module)
 
             backends = backends_module.get_available_backends()
@@ -100,7 +100,7 @@ class TestConfigIntegration:
 
     def test_config_has_transcription_backend_property(self):
         """Verify config object has transcription_backend property."""
-        from src.core.config import get_config
+        from matilda_ears.core.config import get_config
         
         config = get_config()
         assert hasattr(config, 'transcription_backend')
@@ -111,7 +111,7 @@ class TestConfigIntegration:
 
     def test_config_defaults_to_faster_whisper(self):
         """Verify default config uses faster_whisper backend."""
-        from src.core.config import get_config
+        from matilda_ears.core.config import get_config
         
         config = get_config()
         assert config.transcription_backend == "faster_whisper"
@@ -149,7 +149,7 @@ class TestConfigIntegration:
 
         try:
             # Load custom config
-            from src.core.config import ConfigLoader
+            from matilda_ears.core.config import ConfigLoader
             config = ConfigLoader(config_path=temp_config_path)
 
             assert config.transcription_backend == "parakeet"
@@ -180,7 +180,7 @@ class TestServerIntegration:
         """Verify server creates backend instance based on config."""
         with patch('src.transcription.server.get_config', return_value=mock_config):
             with patch('src.transcription.server.TokenManager'):
-                from src.transcription.server import MatildaWebSocketServer
+                from matilda_ears.transcription.server import MatildaWebSocketServer
                 
                 server = MatildaWebSocketServer()
                 
@@ -195,7 +195,7 @@ class TestServerIntegration:
         with patch('src.transcription.server.config', mock_config):
             with patch('src.transcription.server.TokenManager'):
                 with patch('src.transcription.server.sys.exit') as mock_exit:
-                    from src.transcription.server import MatildaWebSocketServer
+                    from matilda_ears.transcription.server import MatildaWebSocketServer
 
                     server = MatildaWebSocketServer()
 
@@ -206,7 +206,7 @@ class TestServerIntegration:
         """Verify server's load_model() delegates to backend.load()."""
         with patch('src.transcription.server.get_config', return_value=mock_config):
             with patch('src.transcription.server.TokenManager'):
-                from src.transcription.server import MatildaWebSocketServer
+                from matilda_ears.transcription.server import MatildaWebSocketServer
 
                 server = MatildaWebSocketServer()
 
@@ -247,7 +247,7 @@ class TestBackendOutputCompatibility:
         mock_config.whisper_compute_type_auto = "int8"
         
         with patch('src.transcription.backends.faster_whisper_backend.get_config', return_value=mock_config):
-            from src.transcription.backends.faster_whisper_backend import FasterWhisperBackend
+            from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
             
             backend = FasterWhisperBackend()
             
@@ -284,7 +284,7 @@ class TestBackendOutputCompatibility:
             mock_config.get = Mock(return_value="mlx-community/parakeet-tdt-0.6b-v3")
             
             with patch('src.transcription.backends.parakeet_backend.get_config', return_value=mock_config):
-                from src.transcription.backends.parakeet_backend import ParakeetBackend
+                from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
                 
                 backend = ParakeetBackend()
                 

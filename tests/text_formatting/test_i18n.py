@@ -2,7 +2,7 @@
 """Tests for internationalization (i18n) support in text formatting."""
 
 import pytest
-from src.text_formatting.constants import get_resources
+from matilda_ears.text_formatting.constants import get_resources
 
 
 class TestI18nResourceLoader:

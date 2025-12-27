@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from src.transcription.streaming.buffer import AudioBuffer
+from matilda_ears.transcription.streaming.buffer import AudioBuffer
 
 
 class TestAudioBufferInit:

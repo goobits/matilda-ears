@@ -2,7 +2,7 @@
 """Unit tests for the data-driven _should_skip_* methods in TextFormatter."""
 
 import pytest
-from src.text_formatting.formatter import TextFormatter
+from matilda_ears.text_formatting.formatter import TextFormatter
 
 
 class MockSpacyEntity:

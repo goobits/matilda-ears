@@ -60,7 +60,7 @@ class TestHuggingFaceBackend:
             mock_torch.cuda.is_available.return_value = False
             mock_torch.backends.mps.is_available.return_value = False
 
-            from src.transcription.backends.huggingface_backend import _detect_device
+            from matilda_ears.transcription.backends.huggingface_backend import _detect_device
 
             device = _detect_device()
             assert device == "cpu"
@@ -70,7 +70,7 @@ class TestHuggingFaceBackend:
         with patch.dict(sys.modules, {'torch': mock_torch}):
             mock_torch.cuda.is_available.return_value = True
 
-            from src.transcription.backends.huggingface_backend import _detect_device
+            from matilda_ears.transcription.backends.huggingface_backend import _detect_device
 
             device = _detect_device()
             assert device == "cuda:0"
@@ -81,7 +81,7 @@ class TestHuggingFaceBackend:
             mock_torch.cuda.is_available.return_value = False
             mock_torch.backends.mps.is_available.return_value = True
 
-            from src.transcription.backends.huggingface_backend import _detect_device
+            from matilda_ears.transcription.backends.huggingface_backend import _detect_device
 
             device = _detect_device()
             assert device == "mps"
@@ -89,9 +89,9 @@ class TestHuggingFaceBackend:
     def test_backend_initialization(self, mock_config):
         """Verify backend initializes with correct config values."""
         # Patch the config object on the already-imported module
-        import src.transcription.backends.huggingface_backend as hf_module
+        import matilda_ears.transcription.backends.huggingface_backend as hf_module
         with patch.object(hf_module, 'config', mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
 
@@ -105,7 +105,7 @@ class TestHuggingFaceBackend:
     def test_backend_is_ready_before_load(self, mock_config):
         """Verify is_ready returns False before model is loaded."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
             assert backend.is_ready is False
@@ -114,7 +114,7 @@ class TestHuggingFaceBackend:
         """Verify async model loading works correctly."""
         with patch('src.core.config.get_config', return_value=mock_config):
             with patch('src.transcription.backends.huggingface_backend.pipeline', return_value=mock_pipeline):
-                from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+                from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
                 backend = HuggingFaceBackend()
 
@@ -130,7 +130,7 @@ class TestHuggingFaceBackend:
         """Verify load() raises exception on model loading failure."""
         with patch('src.core.config.get_config', return_value=mock_config):
             with patch('src.transcription.backends.huggingface_backend.pipeline', side_effect=RuntimeError("Model load failed")):
-                from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+                from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
                 backend = HuggingFaceBackend()
 
@@ -142,7 +142,7 @@ class TestHuggingFaceBackend:
     def test_backend_transcribe_success(self, mock_config, mock_pipeline):
         """Verify transcription works and returns correct format."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
             backend.pipe = mock_pipeline
@@ -166,7 +166,7 @@ class TestHuggingFaceBackend:
     def test_backend_transcribe_not_loaded(self, mock_config):
         """Verify transcribe() raises RuntimeError if model not loaded."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
 
@@ -176,7 +176,7 @@ class TestHuggingFaceBackend:
     def test_backend_transcribe_whisper_language_param(self, mock_config, mock_pipeline):
         """Verify Whisper models get language parameter in generate_kwargs."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
             backend.pipe = mock_pipeline
@@ -196,7 +196,7 @@ class TestHuggingFaceBackend:
     def test_backend_transcribe_non_whisper_no_language(self, mock_config, mock_pipeline):
         """Verify non-Whisper models don't get language parameter."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
             backend.pipe = mock_pipeline
@@ -214,7 +214,7 @@ class TestHuggingFaceBackend:
     def test_backend_list_popular_models(self, mock_config):
         """Verify list_popular_models returns dict of models."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            from src.transcription.backends.huggingface_backend import HuggingFaceBackend
+            from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             models = HuggingFaceBackend.list_popular_models()
 
@@ -231,7 +231,7 @@ class TestBackendFactoryIntegration:
         """Verify huggingface appears in available backends when transformers is installed."""
         with patch.dict(sys.modules, {'transformers': MagicMock()}):
             # Force reimport to pick up mocked modules
-            from src.transcription.backends import get_available_backends
+            from matilda_ears.transcription.backends import get_available_backends
 
             backends = get_available_backends()
             assert "faster_whisper" in backends
@@ -240,7 +240,7 @@ class TestBackendFactoryIntegration:
     def test_get_backend_class_huggingface(self):
         """Verify factory returns HuggingFaceBackend class."""
         with patch.dict(sys.modules, {'transformers': MagicMock()}):
-            from src.transcription.backends import get_backend_class, HUGGINGFACE_AVAILABLE
+            from matilda_ears.transcription.backends import get_backend_class, HUGGINGFACE_AVAILABLE
 
             if HUGGINGFACE_AVAILABLE:
                 backend_class = get_backend_class("huggingface")
@@ -248,7 +248,7 @@ class TestBackendFactoryIntegration:
 
     def test_get_backend_info_includes_huggingface(self):
         """Verify get_backend_info includes huggingface entry."""
-        from src.transcription.backends import get_backend_info
+        from matilda_ears.transcription.backends import get_backend_info
 
         info = get_backend_info()
         assert "huggingface" in info

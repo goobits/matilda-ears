@@ -25,7 +25,7 @@ class TestCLIImports:
     
     def test_cli_creation_functions_import(self):
         """Can we import and create CLI parsers without explosions?"""
-        from src.main import create_rich_cli, create_fallback_parser
+        from matilda_ears.main import create_rich_cli, create_fallback_parser
         
         # Test that CLI creation doesn't crash
         cli = create_rich_cli()
@@ -36,10 +36,10 @@ class TestCLIImports:
     
     def test_mode_classes_import(self):
         """Can we import all the mode classes without dependency errors?"""
-        from src.modes.listen_once import ListenOnceMode
-        from src.modes.conversation import ConversationMode
-        from src.modes.tap_to_talk import TapToTalkMode
-        from src.modes.hold_to_talk import HoldToTalkMode
+        from matilda_ears.modes.listen_once import ListenOnceMode
+        from matilda_ears.modes.conversation import ConversationMode
+        from matilda_ears.modes.tap_to_talk import TapToTalkMode
+        from matilda_ears.modes.hold_to_talk import HoldToTalkMode
         
         # Just importing without crashing is the test
         assert ListenOnceMode is not None
@@ -66,7 +66,7 @@ class TestConfigSystem:
     
     def test_config_loader_direct(self):
         """Test creating ConfigLoader directly doesn't crash."""
-        from src.core.config import ConfigLoader
+        from matilda_ears.core.config import ConfigLoader
         
         # Should be able to create without crashing
         config = ConfigLoader()
@@ -82,7 +82,7 @@ class TestCLICommands:
     
     def test_status_command_runs(self):
         """Does --status command work without crashing?"""
-        from src.main import handle_status_command
+        from matilda_ears.main import handle_status_command
         
         # Capture output
         old_stdout = sys.stdout
@@ -102,7 +102,7 @@ class TestCLICommands:
     
     def test_models_command_runs(self):
         """Does --models command work without crashing?"""
-        from src.main import handle_models_command
+        from matilda_ears.main import handle_models_command
         
         # Capture output
         old_stdout = sys.stdout
@@ -140,7 +140,7 @@ class TestBaseModeLogic:
     
     def test_base_mode_can_be_created(self):
         """Can we create a BaseMode subclass without crashing?"""
-        from src.modes.base_mode import BaseMode
+        from matilda_ears.modes.base_mode import BaseMode
         from types import SimpleNamespace
         
         # Create mock args
@@ -167,7 +167,7 @@ class TestBaseModeLogic:
     
     def test_mode_name_generation(self):
         """Test that mode name generation works correctly."""
-        from src.modes.base_mode import BaseMode
+        from matilda_ears.modes.base_mode import BaseMode
         from types import SimpleNamespace
         
         args = SimpleNamespace(debug=False, format="json", sample_rate=16000, 

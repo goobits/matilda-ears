@@ -6,7 +6,7 @@ after transcription, which is critical for user experience.
 """
 
 import pytest
-from src.text_formatting.formatter import TextFormatter
+from matilda_ears.text_formatting.formatter import TextFormatter
 
 
 class TestSuffixHandling:

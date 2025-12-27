@@ -96,7 +96,7 @@ class ConversationMode(BaseMode):
     async def _initialize_vad(self):
         """Initialize Silero VAD in executor to avoid blocking."""
         try:
-            from src.audio.vad import SileroVAD
+            from matilda_ears.audio.vad import SileroVAD
             self.logger.info("Initializing Silero VAD...")
 
             loop = asyncio.get_event_loop()

@@ -2,7 +2,7 @@
 """Unit tests for EntityDetector, focusing on the data-driven _should_skip_cardinal logic."""
 
 import pytest
-from src.text_formatting.formatter import EntityDetector
+from matilda_ears.text_formatting.formatter import EntityDetector
 
 
 class MockSpacyEntity:

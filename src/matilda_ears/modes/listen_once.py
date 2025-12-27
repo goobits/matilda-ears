@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
 from .base_mode import BaseMode
-from src.audio.vad import SileroVAD
+from matilda_ears.audio.vad import SileroVAD
 
 try:
     import numpy as np

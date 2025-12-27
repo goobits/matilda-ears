@@ -50,7 +50,7 @@ from .server import (  # noqa: E402
 )
 
 # Re-export get_config for backward compatibility (tests patch this)
-from src.core.config import get_config  # noqa: E402
+from matilda_ears.core.config import get_config  # noqa: E402
 
 __all__ = [
     "MatildaWebSocketServer",

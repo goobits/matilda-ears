@@ -16,8 +16,8 @@ import sys
 # Add project root to path for local imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
-from src.core.config import get_config, setup_logging
-from src.transcription.backends import get_backend_class
+from matilda_ears.core.config import get_config, setup_logging
+from matilda_ears.transcription.backends import get_backend_class
 
 
 class FileTranscribeMode:
@@ -133,7 +133,7 @@ class FileTranscribeMode:
     async def _format_text(self, text: str) -> str:
         """Apply text formatting pipeline."""
         try:
-            from src.text_formatting.formatter import TextFormatter
+            from matilda_ears.text_formatting.formatter import TextFormatter
             formatter = TextFormatter()
             return formatter.format_transcription(text)
         except ImportError:

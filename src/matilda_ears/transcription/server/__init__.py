@@ -18,8 +18,8 @@ from .core import (
 from .main import main
 
 # Re-export for backward compatibility (tests patch these at module level)
-from src.core.config import get_config
-from src.core.token_manager import TokenManager
+from matilda_ears.core.config import get_config
+from matilda_ears.core.token_manager import TokenManager
 
 # Module-level config instance (tests patch this)
 config = get_config()

@@ -24,9 +24,9 @@ import sys
 # Add project root to path for local imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
-from src.core.config import get_config, setup_logging
-from src.audio.capture import PipeBasedAudioStreamer
-from src.transcription.backends import get_backend_class
+from matilda_ears.core.config import get_config, setup_logging
+from matilda_ears.audio.capture import PipeBasedAudioStreamer
+from matilda_ears.transcription.backends import get_backend_class
 
 try:
     import numpy as np
