@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GOOBITS STT is a pure speech-to-text engine with multiple operation modes including:
+**Package**: `goobits-matilda-ears` | **Command**: `ears` | **Python**: 3.8+
+
+Matilda Ears is a pure speech-to-text engine with multiple operation modes including:
 - **Listen-once mode**: Single utterance capture with VAD
 - **Conversation mode**: Always listening with interruption support  
 - **Tap-to-talk mode**: Press key to start/stop recording
@@ -45,16 +47,16 @@ pytest tests/text_formatting/ --summary
 ### Code Quality
 ```bash
 # Format code with black
-black src/ tests/ stt.py
+black src/ tests/
 
 # Lint with ruff
-ruff check src/ tests/ stt.py
+ruff check src/ tests/
 
 # Fix auto-fixable issues
-ruff check --fix src/ tests/ stt.py
+ruff check --fix src/ tests/
 
 # Type checking with mypy
-mypy src/ stt.py
+mypy src/matilda_ears/
 
 # Security scanning
 bandit -r src/
@@ -63,26 +65,24 @@ bandit -r src/
 ### Running the Application
 ```bash
 # Install in development mode
-pip install -e .[dev]
+./setup.sh install --dev
 
-# Run different STT modes
-python stt.py --listen-once
-python stt.py --conversation  
-python stt.py --tap-to-talk=f8
-python stt.py --hold-to-talk=space
-python stt.py --server --port=8769
-
-# Note: For development, use python stt.py directly as shown above
+# Run different modes
+ears --listen-once
+ears --conversation
+ears --tap-to-talk=f8
+ears --hold-to-talk=space
+ears --server --port=8769
 ```
 
 ## Architecture
 
 ### Core Components
-- **`src/core/config.py`**: Centralized configuration management with JSON/JSONC support
-- **`src/transcription/`**: WebSocket server and client implementations for STT services
-- **`src/text_formatting/`**: Advanced text formatting with entity detection and i18n support
-- **`src/audio/`**: Audio capture, streaming, and Opus encoding/decoding
-- **`src/modes/`**: Different operation modes (listen_once, conversation, tap-to-talk, hold-to-talk)
+- **`src/matilda_ears/core/config.py`**: Centralized configuration management with JSON/JSONC support
+- **`src/matilda_ears/transcription/`**: WebSocket server and client implementations
+- **`src/matilda_ears/text_formatting/`**: Advanced text formatting with entity detection and i18n support
+- **`src/matilda_ears/audio/`**: Audio capture, streaming, and Opus encoding/decoding
+- **`src/matilda_ears/modes/`**: Different operation modes (listen_once, conversation, tap-to-talk, hold-to-talk)
 
 ### Architectural Patterns
 - **Async/Await Design**: All operation modes use asyncio with non-blocking `run()` methods
@@ -93,11 +93,11 @@ python stt.py --server --port=8769
 ### Configuration System
 The project uses a centralized configuration system:
 - **Main config**: `config.json` in project root
-- **Config loader**: `src/core/config.py` with auto-detection of CUDA, JWT secret generation
+- **Config loader**: `src/matilda_ears/core/config.py` with auto-detection of CUDA, JWT secret generation
 - **Platform-specific paths**: Supports Linux, macOS, Windows with automatic detection
 
 ### Text Formatting Engine
-Advanced text formatting system in `src/text_formatting/`:
+Advanced text formatting system in `src/matilda_ears/text_formatting/`:
 - **Entity detection**: Numbers, dates, code blocks, web URLs, financial amounts
 - **Internationalization**: Support for multiple languages (English, Spanish)
 - **Pattern conversion**: Regex-based text transformation
@@ -118,7 +118,7 @@ STT supports pluggable transcription backends for platform-specific optimization
   - macOS only (requires Metal/MLX support)
   - Optimized for M1/M2/M3 chips
   - Lower memory footprint
-  - Requires `[mac]` extras: `pip install goobits-stt[mac]`
+  - Requires `[mac]` extras: `pip install goobits-matilda-ears[mac]`
 
 **Configuration:**
 
@@ -144,10 +144,10 @@ Edit `config.json`:
 - **Use parakeet if**: Running on Apple Silicon (M1/M2/M3), need lower memory usage, macOS-only deployment
 
 **Architecture:**
-- Abstract base class: `src/transcription/backends/base.py`
-- Implementations: `src/transcription/backends/{faster_whisper,parakeet}_backend.py`
-- Factory: `src/transcription/backends/__init__.py:get_backend_class()`
-- Server integration: `src/transcription/server.py` (lines 76-81)
+- Abstract base class: `src/matilda_ears/transcription/backends/base.py`
+- Implementations: `src/matilda_ears/transcription/backends/{faster_whisper,parakeet}_backend.py`
+- Factory: `src/matilda_ears/transcription/backends/__init__.py:get_backend_class()`
+- Server integration: `src/matilda_ears/transcription/server.py`
 
 ### Docker Support
 Complete Docker deployment in `docker/` directory:
@@ -167,9 +167,9 @@ Complete Docker deployment in `docker/` directory:
 - **Security**: cryptography, PyJWT for encryption and auth
 
 ### Logging
-Centralized logging system via `src/core/config.py`:
+Centralized logging system via `src/matilda_ears/core/config.py`:
 ```python
-from src.core.config import setup_logging
+from matilda_ears.core.config import setup_logging
 logger = setup_logging(__name__, log_level="INFO")
 ```
 - Logs stored in `logs/` directory
@@ -184,7 +184,7 @@ logger = setup_logging(__name__, log_level="INFO")
 
 ## Development Workflow
 
-1. **Setup**: Install with `pip install -e .[dev]` for development dependencies
+1. **Setup**: Install with `./setup.sh install --dev` for development dependencies
 2. **Configuration**: Modify `config.json` for local settings
 3. **Testing**: Run `pytest` before committing changes
 4. **Code Quality**: Use `ruff` and `black` for formatting, `mypy` for type checking
@@ -192,8 +192,8 @@ logger = setup_logging(__name__, log_level="INFO")
 
 ## Important File Paths
 
-- **Entry point**: `stt.py` - Main CLI interface
-- **Server**: `src/transcription/server.py` - WebSocket server implementation
+- **Entry point**: `src/matilda_ears/main.py` - Main CLI interface
+- **Server**: `src/matilda_ears/transcription/server.py` - WebSocket server implementation
 - **Config**: `config.json` - Main configuration file
 - **Tests**: `tests/` - Comprehensive test suite
 - **Docker**: `docker/` - Production deployment files

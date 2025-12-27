@@ -1,13 +1,13 @@
-# 🎙️ Goobits STT
+# 🎙️ Matilda Ears
 
 A pure speech-to-text engine with multiple operation modes and advanced text formatting. Features real-time transcription, WebSocket server capabilities, and comprehensive text processing with internationalization support. Built on Whisper models for accurate transcription across various languages and use cases.
 
 ## 🔗 Related Projects
 
 - **[Matilda](https://github.com/goobits/matilda)** - AI assistant
-- **[Goobits STT](https://github.com/goobits/stt)** - Speech-to-Text engine (this project)
-- **[Goobits TTS](https://github.com/goobits/tts)** - Text-to-Speech engine
-- **[Goobits TTT](https://github.com/goobits/ttt)** - Text-to-Text processing
+- **[Matilda Ears](https://github.com/goobits/matilda-ears)** - Speech-to-Text engine (this project)
+- **[Matilda Voice](https://github.com/goobits/matilda-voice)** - Text-to-Speech engine
+- **[Matilda Brain](https://github.com/goobits/matilda-brain)** - Text-to-Text processing
 
 ## 📋 Table of Contents
 
@@ -37,18 +37,18 @@ pipx install .[mac,dev]           # Install with both mac and dev extras
 
 # Or with pip for development
 pip install -e .[dev]              # Install editable with dev dependencies
-stt --version                      # Verify installation
-stt --listen-once                  # Test basic functionality
+ears --version                      # Verify installation
+ears --listen-once                  # Test basic functionality
 ```
 
 ## 🎯 Basic Usage
 
 ```bash
-stt --listen-once                  # Single utterance with VAD
-stt --conversation                 # Always listening mode
-stt --tap-to-talk=f8              # Tap F8 to start/stop recording
-stt --hold-to-talk=space          # Hold spacebar to record
-stt --server --port=8769          # Run WebSocket server
+ears --listen-once                  # Single utterance with VAD
+ears --conversation                 # Always listening mode
+ears --tap-to-talk=f8              # Tap F8 to start/stop recording
+ears --hold-to-talk=space          # Hold spacebar to record
+ears --server --port=8769          # Run WebSocket server
 ```
 
 ## ⚙️ Configuration
@@ -58,46 +58,46 @@ stt --server --port=8769          # Run WebSocket server
 nano config.json
 
 # Configure Whisper model
-stt --model large-v3-turbo --language en
+ears --model large-v3-turbo --language en
 
 # Audio settings
-stt --device "USB Audio" --sample-rate 16000
+ears --device "USB Audio" --sample-rate 16000
 
 # Output formats
-stt --format json | jq -r '.text'
-stt --format text --no-formatting
+ears --format json | jq -r '.text'
+ears --format text --no-formatting
 ```
 
 ## 🎤 Operation Modes
 
 ```bash
 # Quick transcription
-stt --listen-once | llm-process
+ears --listen-once | llm-process
 
 # Interactive conversation
-stt --conversation | tts-speak
+ears --conversation | tts-speak
 
 # Hotkey control
-stt --tap-to-talk=f8              # Toggle recording with F8
-stt --hold-to-talk=ctrl+space     # Push-to-talk mode
+ears --tap-to-talk=f8              # Toggle recording with F8
+ears --hold-to-talk=ctrl+space     # Push-to-talk mode
 
 # Server mode for remote clients
-stt --server --host 0.0.0.0 --port 8769
+ears --server --host 0.0.0.0 --port 8769
 ```
 
 ## 🚀 Performance Optimization
 
 ```bash
 # GPU acceleration (if available)
-stt --model base --device cuda
+ears --model base --device cuda
 
 # CPU optimization
-stt --model tiny --device cpu
+ears --model tiny --device cpu
 
 # Model selection by speed/quality
-stt --model tiny      # Fastest, lower quality
-stt --model base      # Balanced (default)
-stt --model large-v3-turbo  # Best quality
+ears --model tiny      # Fastest, lower quality
+ears --model base      # Balanced (default)
+ears --model large-v3-turbo  # Best quality
 ```
 
 ## 🔧 Transcription Backends
@@ -129,7 +129,7 @@ STT supports pluggable backends optimized for different platforms:
 ### parakeet (Apple Silicon)
 ```bash
 # Install MLX backend for macOS M1/M2/M3
-pip install goobits-stt[mac]
+pip install goobits-matilda-ears[mac]
 
 # Edit config.json:
 {
@@ -156,26 +156,26 @@ pip install goobits-stt[mac]
 
 ```bash
 # Advanced entity detection
-stt --listen-once  # "Call me at 555-123-4567" → "Call me at (555) 123-4567"
-stt --listen-once  # "Go to github dot com" → "Go to github.com"
-stt --listen-once  # "Three point one four" → "3.14"
+ears --listen-once  # "Call me at 555-123-4567" → "Call me at (555) 123-4567"
+ears --listen-once  # "Go to github dot com" → "Go to github.com"
+ears --listen-once  # "Three point one four" → "3.14"
 
 # Multilingual support
-stt --language es  # Spanish formatting rules
-stt --language en  # English formatting (default)
+ears --language es  # Spanish formatting rules
+ears --language en  # English formatting (default)
 
 # Disable formatting
-stt --no-formatting  # Raw transcription output
+ears --no-formatting  # Raw transcription output
 ```
 
 ## 🔧 Server Deployment
 
 ```bash
 # Basic server
-stt --server
+ears --server
 
 # Production with SSL
-stt --server --port 443 --host 0.0.0.0
+ears --server --port 443 --host 0.0.0.0
 
 # Docker deployment
 docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
