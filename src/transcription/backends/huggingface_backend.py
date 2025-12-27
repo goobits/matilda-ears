@@ -7,6 +7,9 @@ This backend supports any ASR model from HuggingFace Hub, including:
 - Wav2Vec2-BERT (facebook/w2v-bert-2.0)
 - HuBERT, WavLM, and many more
 
+Real-time streaming is handled by the streaming framework in
+src/transcription/streaming/, which wraps batch transcription.
+
 Usage in config.json:
     {
         "transcription": {
@@ -24,11 +27,8 @@ Usage in config.json:
 
 import asyncio
 import logging
-import tempfile
 import time
-from typing import Tuple, Optional, Dict, Any
-
-import numpy as np
+from typing import Tuple, Optional, Any, Dict
 
 from .base import TranscriptionBackend
 from ...core.config import get_config
@@ -126,15 +126,6 @@ class HuggingFaceBackend(TranscriptionBackend):
         self.device = None
         self.torch_dtype = None
         self.pipe = None
-
-        # Streaming state - uses buffer-based approach with periodic transcription
-        self._streaming_buffers: Dict[str, np.ndarray] = {}
-        self._streaming_results: Dict[str, str] = {}
-        self._streaming_start_times: Dict[str, float] = {}
-        self._streaming_sample_counts: Dict[str, int] = {}
-        self._streaming_last_transcribed: Dict[str, int] = {}  # Track last transcribed position
-        self._streaming_transcribe_interval = 2.0  # Transcribe every 2 seconds of audio
-        self._max_buffer_seconds = 10.0  # Max buffer for partial transcription to prevent hallucinations
 
         logger.info(f"HuggingFace backend initialized with model: {self.model_id}")
 
@@ -316,193 +307,6 @@ class HuggingFaceBackend(TranscriptionBackend):
                 words = cleaned_words
 
         return " ".join(words)
-
-    # ==================== STREAMING IMPLEMENTATION ====================
-
-    @property
-    def supports_streaming(self) -> bool:
-        """
-        HuggingFace streaming is disabled - buffer-based re-transcription is too slow.
-
-        The pipeline doesn't support true incremental streaming, so we were simulating
-        it by re-transcribing the full buffer every 2 seconds. On CPU this causes
-        severe lag as transcriptions queue up.
-
-        For real-time streaming, use:
-        - Parakeet backend (macOS/Apple Silicon) - native streaming
-        - FasterWhisper + whisper-streaming (cross-platform) - incremental processing
-
-        Batch mode at end_stream is faster and more accurate.
-        """
-        return False
-
-    async def start_streaming(self, session_id: str, **config) -> Dict[str, Any]:
-        """
-        Start a streaming transcription session.
-
-        Uses buffer-based streaming with periodic transcription since HuggingFace
-        pipeline doesn't have native real-time streaming support.
-        """
-        if session_id in self._streaming_buffers:
-            raise RuntimeError(f"Streaming session {session_id} already exists")
-
-        if self.pipe is None:
-            raise RuntimeError("Model not loaded. Call load() first.")
-
-        # Initialize session state
-        self._streaming_buffers[session_id] = np.array([], dtype=np.float32)
-        self._streaming_results[session_id] = ""
-        self._streaming_start_times[session_id] = time.time()
-        self._streaming_sample_counts[session_id] = 0
-        self._streaming_last_transcribed[session_id] = 0
-
-        logger.info(
-            f"Started HuggingFace streaming session {session_id} "
-            f"(model={self.model_id}, interval={self._streaming_transcribe_interval}s)"
-        )
-
-        return {
-            "session_id": session_id,
-            "ready": True,
-            "mode": "buffer-chunked",
-            "backend": "huggingface",
-            "model": self.model_id,
-        }
-
-    async def process_chunk(self, session_id: str, audio_chunk: np.ndarray) -> Dict[str, Any]:
-        """
-        Process an audio chunk and return partial transcription.
-
-        Accumulates audio and transcribes periodically for efficiency.
-        """
-        if session_id not in self._streaming_buffers:
-            raise RuntimeError(f"No streaming session with ID: {session_id}")
-
-        # Track sample count
-        self._streaming_sample_counts[session_id] += len(audio_chunk)
-
-        # Convert int16 to float32 if needed
-        if audio_chunk.dtype == np.int16:
-            audio_float = audio_chunk.astype(np.float32) / 32768.0
-        else:
-            audio_float = audio_chunk
-
-        # Accumulate audio
-        self._streaming_buffers[session_id] = np.concatenate([
-            self._streaming_buffers[session_id],
-            audio_float
-        ])
-
-        # Transcribe periodically (every N seconds of audio)
-        buffer_duration = len(self._streaming_buffers[session_id]) / 16000.0
-        should_transcribe = buffer_duration >= self._streaming_transcribe_interval
-
-        if should_transcribe:
-            await self._transcribe_buffer(session_id)
-
-        return {
-            "text": self._streaming_results.get(session_id, ""),
-            "is_final": False,
-            "tokens": {
-                "finalized": 0,
-                "draft": len(self._streaming_results.get(session_id, "").split()),
-            },
-        }
-
-    async def _transcribe_buffer(self, session_id: str):
-        """Transcribe the accumulated buffer for a session using sliding window."""
-        buffer = self._streaming_buffers.get(session_id)
-        if buffer is None or len(buffer) == 0:
-            return
-
-        try:
-            import soundfile as sf
-            import os
-
-            # Use sliding window to prevent hallucinations on long audio
-            # Only transcribe the last N seconds for partial results
-            max_samples = int(self._max_buffer_seconds * 16000)
-
-            if len(buffer) > max_samples:
-                # Use only the last N seconds for partial transcription
-                transcribe_buffer = buffer[-max_samples:]
-                logger.debug(
-                    f"Session {session_id}: Using sliding window "
-                    f"({len(transcribe_buffer)/16000:.1f}s of {len(buffer)/16000:.1f}s total)"
-                )
-            else:
-                transcribe_buffer = buffer
-
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                temp_path = f.name
-                sf.write(temp_path, transcribe_buffer, 16000)
-
-            # Transcribe using batch method
-            text, _ = self.transcribe(temp_path, language="en")
-            self._streaming_results[session_id] = text
-            self._streaming_last_transcribed[session_id] = len(buffer)
-
-            # Clean up temp file
-            os.unlink(temp_path)
-
-        except Exception as e:
-            logger.error(f"Error transcribing buffer for session {session_id}: {e}")
-
-    async def end_streaming(self, session_id: str) -> Dict[str, Any]:
-        """
-        End a streaming session and return final transcription.
-        """
-        if session_id not in self._streaming_buffers:
-            raise RuntimeError(f"No streaming session with ID: {session_id}")
-
-        try:
-            # Final transcription of any remaining audio
-            buffer = self._streaming_buffers[session_id]
-            text = ""
-
-            if len(buffer) > 0:
-                try:
-                    import soundfile as sf
-                    import os
-
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                        temp_path = f.name
-                        sf.write(temp_path, buffer, 16000)
-
-                    text, _ = self.transcribe(temp_path, language="en")
-
-                    os.unlink(temp_path)
-                except Exception as e:
-                    logger.error(f"Error in final transcription: {e}")
-                    text = self._streaming_results.get(session_id, "")
-            else:
-                text = self._streaming_results.get(session_id, "")
-
-            # Calculate duration
-            sample_count = self._streaming_sample_counts.get(session_id, 0)
-            audio_duration = sample_count / 16000.0
-
-            logger.info(
-                f"Ended HuggingFace streaming session {session_id}: "
-                f"{len(text)} chars, {audio_duration:.2f}s audio"
-            )
-
-            return {
-                "text": text.strip(),
-                "is_final": True,
-                "duration": audio_duration,
-                "language": "en",
-                "backend": "huggingface",
-                "model": self.model_id,
-            }
-
-        finally:
-            # Clean up session state
-            self._streaming_buffers.pop(session_id, None)
-            self._streaming_results.pop(session_id, None)
-            self._streaming_start_times.pop(session_id, None)
-            self._streaming_sample_counts.pop(session_id, None)
-            self._streaming_last_transcribed.pop(session_id, None)
 
     @classmethod
     def list_popular_models(cls) -> Dict[str, str]:
