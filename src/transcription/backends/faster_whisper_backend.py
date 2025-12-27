@@ -84,8 +84,13 @@ class FasterWhisperBackend(TranscriptionBackend):
         """
         Streaming is supported if whisper-streaming library is installed.
         Falls back to buffer-based streaming if not available.
+
+        NOTE: Disabled for now due to:
+        1. Double model loading (whisper-streaming loads its own model)
+        2. Unbounded buffer growth in fallback mode
+        Set to True to re-enable when these issues are resolved.
         """
-        return True  # We support streaming with or without whisper-streaming
+        return False  # Disabled - use batch mode for now
 
     def _ensure_streaming_asr(self):
         """Lazily initialize the shared FasterWhisperASR instance."""
