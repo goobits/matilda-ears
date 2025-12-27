@@ -68,27 +68,29 @@ class TestFasterWhisperBackend:
     def test_backend_load_model_success(self, mock_config, mock_whisper_model):
         """Verify async model loading works correctly."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            with patch('src.transcription.backends.faster_whisper_backend.WhisperModel', return_value=mock_whisper_model):
+            # Patch at the source module where WhisperModel is imported from
+            with patch('faster_whisper.WhisperModel', return_value=mock_whisper_model):
                 from src.transcription.backends.faster_whisper_backend import FasterWhisperBackend
-                
+
                 backend = FasterWhisperBackend()
-                
+
                 # Run async load
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(backend.load())
                 loop.close()
-                
+
                 assert backend.model is not None
                 assert backend.is_ready is True
 
     def test_backend_load_model_failure(self, mock_config):
         """Verify load() raises exception on model loading failure."""
         with patch('src.core.config.get_config', return_value=mock_config):
-            with patch('src.transcription.backends.faster_whisper_backend.WhisperModel', side_effect=RuntimeError("Model load failed")):
+            # Patch at the source module where WhisperModel is imported from
+            with patch('faster_whisper.WhisperModel', side_effect=RuntimeError("Model load failed")):
                 from src.transcription.backends.faster_whisper_backend import FasterWhisperBackend
-                
+
                 backend = FasterWhisperBackend()
-                
+
                 loop = asyncio.new_event_loop()
                 with pytest.raises(RuntimeError, match="Model load failed"):
                     loop.run_until_complete(backend.load())

@@ -88,7 +88,9 @@ class TestHuggingFaceBackend:
 
     def test_backend_initialization(self, mock_config):
         """Verify backend initializes with correct config values."""
-        with patch('src.core.config.get_config', return_value=mock_config):
+        # Patch the config object on the already-imported module
+        import src.transcription.backends.huggingface_backend as hf_module
+        with patch.object(hf_module, 'config', mock_config):
             from src.transcription.backends.huggingface_backend import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
