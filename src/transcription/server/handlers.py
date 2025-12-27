@@ -134,10 +134,10 @@ async def handle_transcription(
     client_id: str,
 ) -> None:
     """Handle transcription requests."""
-    # Check authentication - JWT or legacy token
+    # Check authentication - JWT only
     token = data.get("token")
     jwt_payload = server.token_manager.validate_token(token)
-    if not jwt_payload and token != server.auth_token:
+    if not jwt_payload:
         await send_error(websocket, "Authentication required")
         return
 
@@ -216,10 +216,10 @@ async def handle_start_stream(
     client_id: str,
 ) -> None:
     """Handle start of audio streaming session."""
-    # Check authentication - JWT or legacy token
+    # Check authentication - JWT only
     token = data.get("token")
     jwt_payload = server.token_manager.validate_token(token)
-    if not jwt_payload and token != server.auth_token:
+    if not jwt_payload:
         await send_error(websocket, "Authentication required")
         return
 
@@ -392,8 +392,6 @@ async def handle_audio_chunk(
                                 "confirmed_text": result.confirmed_text,
                                 "tentative_text": result.tentative_text,
                                 "is_final": False,
-                                # Legacy field for backward compatibility
-                                "text": result.full_text,
                             }
                         )
                     )
@@ -525,8 +523,6 @@ async def handle_pcm_chunk(
                                 "confirmed_text": result.confirmed_text,
                                 "tentative_text": result.tentative_text,
                                 "is_final": False,
-                                # Legacy field for backward compatibility
-                                "text": result.full_text,
                             }
                         )
                     )

@@ -33,7 +33,7 @@ class PartialResult:
         tentative_text: Draft text that may change with more audio
         is_final: Whether this is the final result
         session_id: The streaming session ID
-        full_text: Legacy compatibility - concatenation of confirmed + tentative
+        full_text: Concatenation of confirmed + tentative
     """
 
     confirmed_text: str = ""
@@ -45,12 +45,15 @@ class PartialResult:
     @classmethod
     def from_message(cls, data: dict) -> "PartialResult":
         """Create PartialResult from server message."""
+        confirmed = data.get("confirmed_text", "")
+        tentative = data.get("tentative_text", "")
+        full_text = (confirmed + " " + tentative).strip()
         return cls(
-            confirmed_text=data.get("confirmed_text", ""),
-            tentative_text=data.get("tentative_text", ""),
+            confirmed_text=confirmed,
+            tentative_text=tentative,
             is_final=data.get("is_final", False),
             session_id=data.get("session_id", ""),
-            full_text=data.get("text", data.get("confirmed_text", "") + data.get("tentative_text", "")),
+            full_text=full_text,
         )
 
 
@@ -365,7 +368,7 @@ class StreamingAudioClient:
         Returns:
             Transcription result from server with fields:
             - success: bool
-            - text: str (full transcription, legacy compatibility)
+            - text: str (full transcription)
             - confirmed_text: str (stable text from LocalAgreement)
             - tentative_text: str (draft text, empty in final result)
             - is_final: bool (always True for end_stream result)
@@ -551,26 +554,16 @@ class StreamingAudioClient:
     def _normalize_response(self, response_data: dict) -> dict:
         """Normalize server response to include all expected schema fields.
 
-        Handles both old and new schema formats for backward compatibility.
-
         Args:
             response_data: Raw response from server
 
         Returns:
             Normalized response with all expected fields
         """
-        # Extract text from various possible field names
-        text = response_data.get("text", "")
+        # Extract text from expected schema
         confirmed = response_data.get("confirmed_text", "")
         tentative = response_data.get("tentative_text", "")
-
-        # For legacy responses that only have "text", use it as confirmed_text
-        if text and not confirmed:
-            confirmed = text
-
-        # Ensure text field exists for legacy compatibility
-        if not text and (confirmed or tentative):
-            text = (confirmed + " " + tentative).strip()
+        text = response_data.get("text", confirmed)
 
         return {
             # Preserve all original fields

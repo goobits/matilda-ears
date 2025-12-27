@@ -36,8 +36,8 @@ class MatildaWebSocketServer:
     This server handles:
     - Binary WAV audio for direct transcription
     - JSON protocol for streaming audio (Opus/PCM)
-    - Real-time streaming transcription when backend supports it
-    - JWT and legacy token authentication
+    - Real-time streaming transcription via streaming framework
+    - JWT authentication
     - Rate limiting per client IP
     """
 
@@ -48,7 +48,7 @@ class MatildaWebSocketServer:
         self.model_size = _config.whisper_model
         self.host = _config.websocket_bind_host
         self.port = _config.websocket_port
-        self.auth_token = _config.auth_token  # Keep for backward compatibility
+        self.auth_token = _config.auth_token
         # Initialize JWT token manager
         from . import TokenManager as _TokenManager
         self.token_manager = _TokenManager(_config.jwt_secret_key)
@@ -81,9 +81,7 @@ class MatildaWebSocketServer:
         # WebSocket-level session tracking (self-contained)
         self.streaming_sessions = {}  # session_id -> StreamingSession (new framework)
 
-        # Track which sessions are using backend streaming (real-time transcription)
-        # Note: This is being replaced by streaming_sessions, kept for backward compat
-        self.backend_streaming_sessions = set()  # session_ids using backend.process_chunk()
+        # Streaming sessions managed by streaming framework
 
         # SSL configuration
         self.ssl_enabled = config.ssl_enabled
@@ -245,20 +243,12 @@ class MatildaWebSocketServer:
                     self.pcm_sessions.pop(session_id, None)
                     self.opus_decoder.remove_session(session_id)
                     self.session_chunk_counts.pop(session_id, None)
-                    self.backend_streaming_sessions.discard(session_id)
                     self.ending_sessions.discard(session_id)
                     # Abort new streaming framework session if active
                     if session_id in self.streaming_sessions:
                         try:
                             session = self.streaming_sessions.pop(session_id)
                             asyncio.create_task(session.abort())
-                        except Exception:
-                            pass  # Ignore errors during cleanup
-                    # Try to end backend streaming session if active (legacy)
-                    elif hasattr(self.backend, "end_streaming"):
-                        try:
-                            # Use create_task to avoid blocking disconnect
-                            asyncio.create_task(self.backend.end_streaming(session_id))
                         except Exception:
                             pass  # Ignore errors during cleanup
                 if orphaned_sessions:
