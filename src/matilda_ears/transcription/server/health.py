@@ -31,7 +31,7 @@ async def health_handler(server: "MatildaWebSocketServer", request: web.Request)
     return web.json_response(
         {
             "status": "healthy",
-            "service": "stt",
+            "service": "ears",
             "backend": server.backend_name,
             "model_loaded": server.backend.is_ready if server.backend else False,
             "connected_clients": len(server.connected_clients),

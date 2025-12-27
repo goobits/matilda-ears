@@ -26,7 +26,7 @@ def get_default_data_dir() -> Path:
     else:  # Linux and others
         base = Path.home() / ".local" / "share"
 
-    return base / "stt"
+    return base / "ears"
 
 
 class TokenManager:
