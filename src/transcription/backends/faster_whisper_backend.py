@@ -20,6 +20,7 @@ class FasterWhisperBackend(TranscriptionBackend):
         self.model_size = config.whisper_model
         self.device = config.whisper_device_auto
         self.compute_type = config.whisper_compute_type_auto
+        self.word_timestamps = config.get("whisper.word_timestamps", True)
         self.model = None
 
     async def load(self):
@@ -44,7 +45,12 @@ class FasterWhisperBackend(TranscriptionBackend):
         if self.model is None:
             raise RuntimeError("Model not loaded")
 
-        segments, info = self.model.transcribe(audio_path, beam_size=5, language=language)
+        segments, info = self.model.transcribe(
+            audio_path,
+            beam_size=5,
+            language=language,
+            word_timestamps=self.word_timestamps,
+        )
         text = "".join([segment.text for segment in segments]).strip()
 
         return text, {

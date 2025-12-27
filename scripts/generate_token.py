@@ -26,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate JWT tokens for STT transcription service clients")
     parser.add_argument("client_name", help="Name/identifier for the client (e.g., 'Johns iPhone', 'Mobile App')")
     parser.add_argument("--days", type=int, default=30, help="Token expiration in days (default: 30)")
+    parser.add_argument("--one-time", action="store_true", help="Generate a one-time-use token")
     parser.add_argument(
         "--show-full-token", action="store_true", help="Display the full token (security risk - use with caution)"
     )
@@ -37,7 +38,12 @@ def main():
     token_manager = TokenManager(config.jwt_secret_key)
 
     # Generate token
-    token = token_manager.generate_token(client_id=args.client_name, expires_days=args.days)
+    token_data = token_manager.generate_token(
+        client_name=args.client_name,
+        expiration_days=args.days,
+        one_time_use=args.one_time,
+    )
+    token = token_data["token"]
 
     print(f"✅ Generated JWT token for '{args.client_name}' (expires in {args.days} days)")
 
@@ -46,6 +52,8 @@ def main():
         print(f"{token}")
         print("\n📋 Example usage in WebSocket messages:")
         print('{ "type": "auth", "token": "YOUR_TOKEN_HERE" }')
+        print("\n🔧 Export for local use:")
+        print(f"export JWT_TOKEN=\"{token}\"")
         print("\n⚠️  SECURITY WARNING: Token displayed in plaintext!")
     else:
         # Show truncated token for security
@@ -53,6 +61,8 @@ def main():
         print(f"\n🔑 Token (truncated): {truncated}")
         print("\n📋 Example usage in WebSocket messages:")
         print('{ "type": "auth", "token": "YOUR_TOKEN_HERE" }')
+        print("\n🔧 Export for local use:")
+        print("export JWT_TOKEN=\"<paste token here>\"")
         print("\n💡 Use --show-full-token to display the complete token (security risk)")
 
         # Save to secure location instead

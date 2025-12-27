@@ -165,7 +165,7 @@ class TestServerIntegration:
         """Mock configuration for server."""
         config = Mock()
         config.transcription_backend = "faster_whisper"
-        config.auth_token = "test_token"
+        config.jwt_token = "test_token"
         config.jwt_secret_key = "test_secret_key"
         config.websocket_port = 8769
         config.websocket_host = "localhost"

@@ -1,11 +1,12 @@
 {
   "transcription": {
-    "backend": "huggingface"
+    "backend": "faster_whisper"
   },
   "whisper": {
     "model": "base",
     "device": "auto",
-    "compute_type": "auto"
+    "compute_type": "auto",
+    "word_timestamps": true
   },
   "huggingface": {
     "model": "openai/whisper-tiny",
@@ -23,8 +24,8 @@
       "host": "localhost",
       "bind_host": "0.0.0.0",
       "connect_host": "localhost",
-      "auth_token": "stt-2024",
       "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
+      "jwt_token": "",
       "ssl": {
         "enabled": false,
         "cert_file": "ssl/server.crt",

@@ -48,7 +48,6 @@ class MatildaWebSocketServer:
         self.model_size = _config.whisper_model
         self.host = _config.websocket_bind_host
         self.port = _config.websocket_port
-        self.auth_token = _config.auth_token
         # Initialize JWT token manager
         from . import TokenManager as _TokenManager
         self.token_manager = _TokenManager(_config.jwt_secret_key)

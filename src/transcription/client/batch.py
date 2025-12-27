@@ -33,7 +33,7 @@ class BatchTranscriber:
     def __init__(
         self,
         websocket_url: str,
-        auth_token: str,
+        token: str,
         ssl_enabled: bool,
         circuit_breaker: CircuitBreaker,
         mode_configs: dict,
@@ -43,7 +43,7 @@ class BatchTranscriber:
 
         Args:
             websocket_url: WebSocket server URL
-            auth_token: Authentication token
+            token: JWT token
             ssl_enabled: Whether SSL is enabled
             circuit_breaker: Circuit breaker instance for connection resilience
             mode_configs: Mode configuration dictionary
@@ -51,7 +51,7 @@ class BatchTranscriber:
 
         """
         self.websocket_url = websocket_url
-        self.auth_token = auth_token
+        self.token = token
         self.ssl_enabled = ssl_enabled
         self.circuit_breaker = circuit_breaker
         self.mode_configs = mode_configs
@@ -145,7 +145,7 @@ class BatchTranscriber:
                 # Send transcription request
                 request = {
                     "type": "transcribe",
-                    "token": self.auth_token,
+                    "token": self.token,
                     "audio_data": audio_base64,
                     "filename": os.path.basename(audio_file_path),
                     "audio_format": "opus" if metadata else "wav",

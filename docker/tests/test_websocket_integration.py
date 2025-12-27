@@ -45,7 +45,7 @@ async def test_websocket_server_direct():
     host = os.getenv("WEBSOCKET_HOST", "localhost")
     port = int(os.getenv("WEBSOCKET_PORT", "8765"))
     ssl_enabled = os.getenv("SSL_ENABLED", "true").lower() == "true"
-    auth_token = os.getenv("AUTH_TOKEN", "")
+    jwt_token = os.getenv("JWT_TOKEN", "")
 
     protocol = "wss" if ssl_enabled else "ws"
     url = f"{protocol}://{host}:{port}"
@@ -79,7 +79,7 @@ async def test_websocket_server_direct():
 
             request = {
                 "type": "transcribe",
-                "token": auth_token,
+                "token": jwt_token,
                 "audio_data": base64.b64encode(audio_bytes).decode("utf-8"),
                 "filename": "test.wav",
                 "audio_format": "wav",
@@ -119,7 +119,7 @@ async def test_docker_api_websocket():
     api = DashboardAPI()
 
     print(f"API configured for: {api.websocket_host}:{api.websocket_port}")
-    print(f"SSL: {api.ssl_enabled}, Auth token: {'Yes' if api.auth_token else 'No'}")
+    print(f"SSL: {api.ssl_enabled}, JWT token: {'Yes' if api.jwt_token else 'No'}")
 
     # Create test audio
     audio_file, _ = create_test_audio()
@@ -150,7 +150,7 @@ async def main():
     print("=" * 70)
     print("Prerequisites:")
     print("- WebSocket server must be running (./server.py start)")
-    print("- Valid AUTH_TOKEN must be set")
+    print("- Valid JWT_TOKEN must be set")
     print(
         f"- Server should be accessible at {os.getenv('WEBSOCKET_HOST', 'localhost')}:{os.getenv('WEBSOCKET_PORT', '8765')}"
     )

@@ -44,7 +44,7 @@ class TranscriptionClient:
 
         # WebSocket connection details
         self.websocket_port = config.websocket_port
-        self.auth_token = config.auth_token
+        self.token = config.jwt_token
         self.ssl_enabled = config.ssl_enabled
 
         # Determine protocol and URL
@@ -62,7 +62,7 @@ class TranscriptionClient:
         # Initialize batch transcriber
         self._batch_transcriber = BatchTranscriber(
             websocket_url=self.websocket_url,
-            auth_token=self.auth_token,
+            token=self.token,
             ssl_enabled=self.ssl_enabled,
             circuit_breaker=self.circuit_breaker,
             mode_configs=self.mode_configs,
@@ -188,7 +188,7 @@ class TranscriptionClient:
         # Create streaming client with bounded debug collections
         streaming_client = StreamingAudioClient(
             self.websocket_url,
-            self.auth_token,
+            self.token,
             debug_save_audio=debug_save_audio,
             max_debug_chunks=max_debug_chunks,
             on_partial_result=on_partial_result,

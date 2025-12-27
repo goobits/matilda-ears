@@ -181,6 +181,47 @@ stt --server --port 443 --host 0.0.0.0
 docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
 ```
 
+### Authentication (JWT)
+
+All WebSocket requests require a valid JWT.
+
+```bash
+# Generate a dev token
+python scripts/generate_token.py "Dev Client" --days 30 --show-full-token
+
+# Export token for clients/tests
+export JWT_TOKEN="your.jwt.token"
+```
+
+Authenticate with:
+```json
+{ "type": "auth", "token": "YOUR_TOKEN_HERE" }
+```
+
+### Streaming Schema
+
+Partial results:
+```json
+{
+  "type": "partial_result",
+  "session_id": "...",
+  "confirmed_text": "stable text",
+  "tentative_text": "draft text",
+  "is_final": false
+}
+```
+
+Final stream result:
+```json
+{
+  "type": "stream_transcription_complete",
+  "session_id": "...",
+  "confirmed_text": "final text",
+  "tentative_text": "",
+  "success": true
+}
+```
+
 ## 🎯 Testing & Development
 
 ```bash

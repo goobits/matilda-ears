@@ -78,7 +78,7 @@ class StreamingAudioClient:
     def __init__(
         self,
         websocket_url: str,
-        auth_token: str,
+        token: str,
         debug_save_audio: bool = False,
         max_debug_chunks: int = 1000,
         on_partial_result: Optional[PartialResultCallback] = None,
@@ -87,14 +87,14 @@ class StreamingAudioClient:
 
         Args:
             websocket_url: WebSocket server URL
-            auth_token: Authentication token
+            token: JWT token
             debug_save_audio: If True, save audio chunks for debugging
             max_debug_chunks: Maximum number of debug chunks to keep (default: 1000)
             on_partial_result: Optional callback for real-time partial results
 
         """
         self.websocket_url = websocket_url
-        self.auth_token = auth_token
+        self.token = token
         self.websocket = None
         self.session_id = None
         self.encoder = OpusEncoder()
@@ -275,7 +275,7 @@ class StreamingAudioClient:
         # Send start stream message
         message = {
             "type": "start_stream",
-            "token": self.auth_token,
+            "token": self.token,
             "session_id": session_id,
             "sample_rate": self.encoder.sample_rate,
             "channels": self.encoder.channels,
@@ -368,7 +368,6 @@ class StreamingAudioClient:
         Returns:
             Transcription result from server with fields:
             - success: bool
-            - text: str (full transcription)
             - confirmed_text: str (stable text from LocalAgreement)
             - tentative_text: str (draft text, empty in final result)
             - is_final: bool (always True for end_stream result)
@@ -544,7 +543,6 @@ class StreamingAudioClient:
         """
         return {
             "success": False,
-            "text": "",
             "confirmed_text": "",
             "tentative_text": "",
             "is_final": True,
@@ -563,13 +561,13 @@ class StreamingAudioClient:
         # Extract text from expected schema
         confirmed = response_data.get("confirmed_text", "")
         tentative = response_data.get("tentative_text", "")
-        text = response_data.get("text", confirmed)
+        normalized = {**response_data}
+        normalized.pop("text", None)
 
         return {
-            # Preserve all original fields
-            **response_data,
+            # Preserve all original fields except text
+            **normalized,
             # Ensure new schema fields exist
-            "text": text,
             "confirmed_text": confirmed,
             "tentative_text": tentative,
             "is_final": response_data.get("is_final", True),

@@ -83,7 +83,8 @@ class ConfigLoader:
             "whisper": {
                 "model": "base",
                 "device": "auto",
-                "compute_type": "auto"
+                "compute_type": "auto",
+                "word_timestamps": True
             },
             "server": {
                 "websocket": {
@@ -91,8 +92,8 @@ class ConfigLoader:
                     "host": "localhost",
                     "bind_host": "0.0.0.0",
                     "connect_host": "localhost",
-                    "auth_token": "stt-2024",
                     "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
+                    "jwt_token": "",
                     "ssl": {
                         "enabled": False,
                         "cert_file": "ssl/server.crt",
@@ -221,8 +222,8 @@ class ConfigLoader:
         return str(self.get("server.websocket.connect_host", "localhost"))
 
     @property
-    def auth_token(self) -> str:
-        return str(self.get("server.websocket.auth_token", "matilda-2024"))
+    def jwt_token(self) -> str:
+        return str(self.get("server.websocket.jwt_token", ""))
 
     @property
     def jwt_secret_key(self) -> str:

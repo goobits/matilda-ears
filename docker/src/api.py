@@ -81,7 +81,7 @@ class DashboardAPI:
         self.websocket_host = os.getenv("WEBSOCKET_HOST", "localhost")
         self.websocket_port = int(os.getenv("WEBSOCKET_PORT", "8765"))
         self.ssl_enabled = os.getenv("SSL_ENABLED", "true").lower() == "true"
-        self.auth_token = os.getenv("AUTH_TOKEN", "")
+        self.jwt_token = os.getenv("JWT_TOKEN", "")
 
         self.setup_routes()
         self.setup_middleware()
@@ -275,7 +275,7 @@ class DashboardAPI:
                 # Send transcription request
                 request = {
                     "type": "transcribe",
-                    "token": self.auth_token,
+                    "token": self.jwt_token,
                     "audio_data": audio_base64,
                     "filename": filename,
                     "audio_format": "wav",

@@ -118,8 +118,12 @@ async def handle_auth(
 ) -> None:
     """Handle authentication messages."""
     token = data.get("token")
-    if token == server.auth_token:
-        await websocket.send(json.dumps({"type": "auth_success", "message": "Authentication successful"}))
+    jwt_payload = server.token_manager.validate_token(token)
+    if jwt_payload:
+        client_name = jwt_payload.get("client_id", "unknown")
+        await websocket.send(
+            json.dumps({"type": "auth_success", "message": "Authentication successful", "client_id": client_name})
+        )
         logger.info(f"Client {client_id} authenticated successfully")
     else:
         await send_error(websocket, "Authentication failed")
@@ -608,8 +612,8 @@ async def handle_end_stream(
                         {
                             "type": "stream_transcription_complete",
                             "session_id": session_id,
-                            "text": text,
                             "confirmed_text": result.confirmed_text,
+                            "tentative_text": "",
                             "success": True,
                             "audio_duration": duration,
                             "language": "en",
@@ -663,7 +667,8 @@ async def handle_end_stream(
                     {
                         "type": "stream_transcription_complete",
                         "session_id": session_id,
-                        "text": text,
+                        "confirmed_text": text,
+                        "tentative_text": "",
                         "success": True,
                         "audio_duration": duration,
                         "language": info.get("language", "en"),

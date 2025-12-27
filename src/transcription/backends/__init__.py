@@ -13,19 +13,36 @@ from .faster_whisper_backend import FasterWhisperBackend
 
 logger = logging.getLogger(__name__)
 
-# Conditionally import Parakeet backend (Apple Silicon only)
-try:
-    from .parakeet_backend import ParakeetBackend
-    PARAKEET_AVAILABLE = True
-except ImportError:
-    PARAKEET_AVAILABLE = False
+PARAKEET_AVAILABLE: Optional[bool] = None
+HUGGINGFACE_AVAILABLE: Optional[bool] = None
 
-# Conditionally import HuggingFace backend (requires transformers)
-try:
-    from .huggingface_backend import HuggingFaceBackend
-    HUGGINGFACE_AVAILABLE = True
-except ImportError:
-    HUGGINGFACE_AVAILABLE = False
+
+def _check_parakeet_available() -> bool:
+    """Return whether the Parakeet backend can be imported."""
+    global PARAKEET_AVAILABLE
+    if PARAKEET_AVAILABLE is not None:
+        return PARAKEET_AVAILABLE
+    try:
+        from . import parakeet_backend as _parakeet_backend
+        PARAKEET_AVAILABLE = True
+    except Exception as exc:
+        logger.debug(f"Parakeet backend unavailable: {exc}")
+        PARAKEET_AVAILABLE = False
+    return PARAKEET_AVAILABLE
+
+
+def _check_huggingface_available() -> bool:
+    """Return whether the HuggingFace backend can be imported."""
+    global HUGGINGFACE_AVAILABLE
+    if HUGGINGFACE_AVAILABLE is not None:
+        return HUGGINGFACE_AVAILABLE
+    try:
+        from . import huggingface_backend as _huggingface_backend
+        HUGGINGFACE_AVAILABLE = True
+    except Exception as exc:
+        logger.debug(f"HuggingFace backend unavailable: {exc}")
+        HUGGINGFACE_AVAILABLE = False
+    return HUGGINGFACE_AVAILABLE
 
 
 def get_available_backends() -> List[str]:
@@ -36,9 +53,9 @@ def get_available_backends() -> List[str]:
         List of backend names that are currently available.
     """
     backends = ["faster_whisper"]
-    if PARAKEET_AVAILABLE:
+    if _check_parakeet_available():
         backends.append("parakeet")
-    if HUGGINGFACE_AVAILABLE:
+    if _check_huggingface_available():
         backends.append("huggingface")
     return backends
 
@@ -58,13 +75,13 @@ def get_backend_info() -> Dict[str, Dict]:
             "install": "Included by default",
         },
         "parakeet": {
-            "available": PARAKEET_AVAILABLE,
+            "available": _check_parakeet_available(),
             "description": "Apple Silicon MLX-optimized (M1/M2/M3)",
             "models": "Parakeet TDT, RNNT, CTC variants",
             "install": "pip install goobits-stt[mac]",
         },
         "huggingface": {
-            "available": HUGGINGFACE_AVAILABLE,
+            "available": _check_huggingface_available(),
             "description": "Universal backend for 17,000+ HuggingFace ASR models",
             "models": "Whisper, Wav2Vec2, Wav2Vec2-BERT, HuBERT, MMS, Canary, etc.",
             "install": "pip install goobits-stt[huggingface]",
@@ -89,7 +106,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
         return FasterWhisperBackend
 
     if backend_name == "parakeet":
-        if not PARAKEET_AVAILABLE:
+        if not _check_parakeet_available():
             raise ValueError(
                 "Parakeet backend requested but dependencies are not installed.\n"
                 "To use Parakeet on macOS with Apple Silicon:\n"
@@ -97,10 +114,11 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
                 "  2. Or: pip install goobits-stt[mac]\n"
                 "Note: Parakeet requires macOS with Metal/MLX support (M1/M2/M3 chips)"
             )
+        from .parakeet_backend import ParakeetBackend
         return ParakeetBackend
 
     if backend_name == "huggingface":
-        if not HUGGINGFACE_AVAILABLE:
+        if not _check_huggingface_available():
             raise ValueError(
                 "HuggingFace backend requested but dependencies are not installed.\n"
                 "To use HuggingFace Transformers ASR models:\n"
@@ -108,6 +126,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
                 "  2. Or: pip install transformers torch\n"
                 "This backend supports 17,000+ ASR models from HuggingFace Hub."
             )
+        from .huggingface_backend import HuggingFaceBackend
         return HuggingFaceBackend
 
     # Unknown backend - provide helpful error
