@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Pipeline module for text formatting.
+"""Pipeline module for text formatting.
 
 This module provides the core text formatting pipeline:
 - EntityDetector: SpaCy-powered entity detection

@@ -8,7 +8,6 @@ wires them together.
 import asyncio
 import json
 import os
-import sys
 import time
 import traceback
 import uuid
@@ -18,7 +17,6 @@ import websockets
 
 from ...audio.decoder import OpusStreamDecoder
 from ...core.config import get_config, setup_logging
-from ...core.token_manager import TokenManager
 from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
@@ -138,6 +136,7 @@ class MatildaWebSocketServer:
 
         Returns:
             Wrapped handler that passes self as first argument
+
         """
 
         async def wrapped(websocket, data, client_ip, client_id):
@@ -170,6 +169,7 @@ class MatildaWebSocketServer:
 
         Returns:
             True if within limits, False if rate limited
+
         """
         now = time.time()
         minute_ago = now - 60
@@ -191,6 +191,7 @@ class MatildaWebSocketServer:
         Args:
             websocket: The WebSocket connection
             path: Optional path (for compatibility)
+
         """
         client_id = str(uuid.uuid4())[:8]
         client_ip = websocket.remote_address[0]
@@ -249,7 +250,8 @@ class MatildaWebSocketServer:
                             session = self.streaming_sessions.pop(session_id)
                             asyncio.create_task(session.abort())
                         except Exception:
-                            pass  # Ignore errors during cleanup
+                            # Ignore errors during cleanup
+                            pass
                 if orphaned_sessions:
                     logger.info(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
             logger.info(f"Client {client_id} removed from active connections")
@@ -262,6 +264,7 @@ class MatildaWebSocketServer:
             data: Parsed JSON message data
             client_ip: Client IP address
             client_id: Client identifier
+
         """
         message_type = data.get("type")
 
@@ -282,6 +285,7 @@ class MatildaWebSocketServer:
 
         Returns:
             (success, text, info) tuple
+
         """
         return await transcribe_audio_from_wav(self, wav_data, client_id)
 
@@ -295,6 +299,7 @@ class MatildaWebSocketServer:
 
         Returns:
             WAV data as bytes
+
         """
         return pcm_to_wav(samples, sample_rate, channels)
 
@@ -304,6 +309,7 @@ class MatildaWebSocketServer:
         Args:
             websocket: The WebSocket connection
             message: Error message
+
         """
         await send_error(websocket, message)
 
@@ -313,6 +319,7 @@ class MatildaWebSocketServer:
         Args:
             host: Host to bind to (optional)
             port: Port to bind to (optional)
+
         """
         await _start_server(self, host, port)
 

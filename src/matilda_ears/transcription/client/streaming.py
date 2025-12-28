@@ -34,6 +34,7 @@ class PartialResult:
         is_final: Whether this is the final result
         session_id: The streaming session ID
         full_text: Concatenation of confirmed + tentative
+
     """
 
     confirmed_text: str = ""
@@ -540,6 +541,7 @@ class StreamingAudioClient:
 
         Returns:
             Error response dict with all expected fields
+
         """
         return {
             "success": False,
@@ -557,6 +559,7 @@ class StreamingAudioClient:
 
         Returns:
             Normalized response with all expected fields
+
         """
         # Extract text from expected schema
         confirmed = response_data.get("confirmed_text", "")

@@ -15,4 +15,4 @@ For the actual implementations, see:
 - patterns/builders.py - Dynamic i18n-aware pattern builders
 """
 
-from .patterns import *  # noqa: F401, F403
+from .patterns import *  # noqa: F403

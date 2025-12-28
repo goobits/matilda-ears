@@ -86,7 +86,7 @@ class ParakeetBackend(TranscriptionBackend):
 
             # Attempt to get accurate duration from result if available
             audio_duration = 0.0
-            if hasattr(result, 'sentences') and result.sentences:
+            if hasattr(result, "sentences") and result.sentences:
                 audio_duration = result.sentences[-1].end
 
             # Use processing time if we couldn't get duration from audio
@@ -118,6 +118,7 @@ class ParakeetBackend(TranscriptionBackend):
 
         Returns:
             Context manager for streaming transcription
+
         """
         if self.model is None:
             raise RuntimeError("Parakeet model not loaded. Call load() first.")

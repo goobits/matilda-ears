@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Entity detection using SpaCy and custom patterns."""
 
-import re
 from typing import List
 
 from ..common import Entity, EntityType, NumberParser
@@ -100,7 +99,7 @@ class EntityDetector:
                                     if token.i + 1 < len(doc):
                                         next_token = doc[token.i + 1]
                                     break
-                            
+
                             # Check for specific idiomatic contexts using POS tags
                             if ordinal_token and next_token:
                                 # RULE 1: Skip if it's an adjective followed by a specific idiomatic noun from our resources.
@@ -110,7 +109,7 @@ class EntityDetector:
                                     if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
                                         logger.debug(f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'.")
                                         continue
-                                
+
                                 # RULE 2: Skip if it's at sentence start and followed by comma ("First, we...")
                                 if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
                                     logger.debug(f"Skipping ORDINAL '{ent.text}' - sentence starter with comma")
@@ -287,7 +286,7 @@ class EntityDetector:
         if self.nlp and (" plus " in entity_text_lower or " times " in entity_text_lower):
             try:
                 doc = self.nlp(text) # Ensure we have the doc object
-                
+
                 # Find the first token that starts at or after the end of our entity.
                 next_token = None
                 for token in doc:
@@ -297,10 +296,10 @@ class EntityDetector:
 
                 if next_token:
                     # RULE: If a CARDINAL like "five plus" is followed by a NOUN ("years"), it's idiomatic.
-                    if next_token.pos_ == 'NOUN':
+                    if next_token.pos_ == "NOUN":
                         logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}').")
                         return True
-                    
+
                     # RULE: If a CARDINAL like "two times" is followed by a comparative ("better"), it's idiomatic.
                     if next_token.tag_ in ["JJR", "RBR"]: # JJR = Adj, Comparative; RBR = Adv, Comparative
                          logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}').")
@@ -412,7 +411,6 @@ class EntityDetector:
             return False
 
         # Check if this PERCENT entity contains a range pattern (e.g., "five to ten percent")
-        from .. import regex_patterns
 
         # Check if the entity text matches a numeric range pattern
         range_match = regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
@@ -435,8 +433,7 @@ class EntityDetector:
             try:
                 doc = self.nlp(text)
             except Exception:
-                pass
-
+                pass  # Ignore spaCy errors
         # Get context before and after the entity
         prefix_text = text[: ent.start_char].strip().lower()
         suffix_text = text[ent.end_char :].strip().lower()
@@ -507,7 +504,7 @@ class EntityDetector:
                 return True
 
         # Use SpaCy analysis if available
-        if doc and hasattr(ent, 'start') and hasattr(ent, 'end'):
+        if doc and hasattr(ent, "start") and hasattr(ent, "end"):
             try:
                 # Find the token(s) that correspond to this entity
                 for token in doc:

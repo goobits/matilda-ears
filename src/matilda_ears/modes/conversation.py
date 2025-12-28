@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Conversation Mode - Continuous VAD-based listening for hands-free operation
+"""Conversation Mode - Continuous VAD-based listening for hands-free operation
 
 This mode enables continuous, hands-free listening with:
 - Voice Activity Detection (VAD) to detect speech
@@ -38,10 +37,10 @@ class ConversationMode(BaseMode):
 
     def __init__(self, args):
         super().__init__(args)
-        
+
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
-        
+
         # VAD and transcription
         self.is_listening = False
         self.is_processing = False
@@ -61,7 +60,7 @@ class ConversationMode(BaseMode):
         # Threading
         self.processing_thread = None
         self.stop_event = threading.Event()
-        
+
         self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
                         f"min_speech={self.min_speech_duration}s, "
                         f"max_silence={self.max_silence_duration}s")
@@ -197,10 +196,9 @@ class ConversationMode(BaseMode):
                                     self.vad_state = "silence"
                                     speech_start = None
                                     self.current_utterance = []
-                else:
-                    # In the hysteresis zone, maintain current state
-                    if self.vad_state == "speech" and speech_start is not None:
-                        self.current_utterance.append(audio_chunk)
+                # In the hysteresis zone, maintain current state
+                elif self.vad_state == "speech" and speech_start is not None:
+                    self.current_utterance.append(audio_chunk)
 
             except asyncio.TimeoutError:
                 # No audio data - continue loop
@@ -239,12 +237,12 @@ class ConversationMode(BaseMode):
     def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
         """Transcribe audio data using Whisper and include VAD stats."""
         result = super()._transcribe_audio(audio_data)
-        
+
         # Log VAD stats if available
         if result["success"] and self.vad:
             vad_stats = self.vad.get_stats()
             self.logger.debug(f"VAD stats: {vad_stats}")
-        
+
         return result
 
 

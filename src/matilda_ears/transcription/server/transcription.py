@@ -39,6 +39,7 @@ async def transcribe_audio_from_wav(
 
     Returns:
         (success, transcribed_text, info_dict)
+
     """
     # Validate audio size before processing
     MIN_AUDIO_SIZE = 1000  # Minimum bytes for valid audio (excludes header-only files)
@@ -125,6 +126,7 @@ def pcm_to_wav(samples: np.ndarray, sample_rate: int, channels: int = 1) -> byte
 
     Returns:
         WAV file data as bytes
+
     """
     # Ensure samples are int16
     if samples.dtype != np.int16:
@@ -147,6 +149,7 @@ async def send_error(websocket, message: str) -> None:
     Args:
         websocket: The WebSocket connection
         message: Error message to send
+
     """
     import json
 

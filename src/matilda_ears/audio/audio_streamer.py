@@ -2,7 +2,7 @@
 
 import asyncio
 import numpy as np
-from typing import Set, Optional
+from typing import Optional
 import weakref
 from aiohttp import web
 
@@ -15,8 +15,6 @@ try:
 except ImportError:
     # Fallback for standalone usage
     import logging
-
-    logging.basicConfig()
     logger = logging.getLogger(__name__)
 
 

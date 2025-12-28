@@ -9,10 +9,9 @@ for stable partial results:
 - Returns confirmed + tentative text for display
 """
 
-import asyncio
 import time
 import logging
-from typing import Callable, Awaitable, List, Optional
+from typing import Callable, Awaitable, List
 
 import numpy as np
 
@@ -51,6 +50,7 @@ class LocalAgreementStrategy:
         Args:
             batch_transcribe: Async function (wav_bytes, prompt) -> (text, info)
             config: Streaming configuration
+
         """
         self.transcribe = batch_transcribe
         self.config = config
@@ -79,6 +79,7 @@ class LocalAgreementStrategy:
 
         Returns:
             StreamingResult with confirmed/tentative text
+
         """
         # Append to buffer (auto-trims if needed)
         self.buffer.append(audio_chunk)
@@ -152,6 +153,7 @@ class LocalAgreementStrategy:
 
         Returns:
             Final StreamingResult
+
         """
         # Final transcription of remaining buffer
         if self.buffer.samples_in_buffer > 0:
@@ -207,6 +209,7 @@ class LocalAgreementStrategy:
 
         Returns:
             List of TimestampedWord
+
         """
         # Check for word timestamps in info
         if "words" in info:
@@ -251,6 +254,7 @@ class LocalAgreementStrategy:
 
         Args:
             confirmed_end_time: End time of last confirmed word
+
         """
         # Keep some overlap (1 second) for safety
         trim_to_time = max(0, confirmed_end_time - 1.0)

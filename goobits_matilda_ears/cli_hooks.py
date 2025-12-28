@@ -10,7 +10,8 @@ from matilda_ears.app_hooks import (
     on_status,
     on_models,
     on_transcribe,
+    run_server,
 )
 
 # Re-export for the generated CLI
-__all__ = ["on_status", "on_models", "on_transcribe"]
+__all__ = ["on_status", "on_models", "on_transcribe", "run_server"]

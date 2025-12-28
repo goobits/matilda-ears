@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Listen-Once Mode - Single utterance capture with VAD
+"""Listen-Once Mode - Single utterance capture with VAD
 
 This mode provides automatic speech detection and transcription of a single utterance:
 - Uses Voice Activity Detection (VAD) to detect speech
@@ -38,10 +37,10 @@ class ListenOnceMode(BaseMode):
 
     def __init__(self, args):
         super().__init__(args)
-        
+
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
-        
+
         # VAD and utterance detection
         self.vad = None
         self.vad_threshold = mode_config.get("vad_threshold", 0.5)
@@ -59,7 +58,7 @@ class ListenOnceMode(BaseMode):
         self.utterance_chunks = []
         self.speech_started = False
         self.recording_start_time = None
-        
+
         self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
                         f"min_speech={self.min_speech_duration}s, "
                         f"max_silence={self.max_silence_duration}s, "
@@ -90,15 +89,14 @@ class ListenOnceMode(BaseMode):
             if utterance_captured:
                 # Process and transcribe
                 await self._process_utterance()
+            # In piped mode, don't send error to avoid breaking the pipeline
+            # Just exit quietly if no speech detected
+            elif not sys.stdout.isatty():
+                # Piped mode - exit silently
+                pass
             else:
-                # In piped mode, don't send error to avoid breaking the pipeline
-                # Just exit quietly if no speech detected
-                if not sys.stdout.isatty():
-                    # Piped mode - exit silently
-                    pass
-                else:
-                    # Interactive mode - show error
-                    await self._send_error("No speech detected within timeout period")
+                # Interactive mode - show error
+                await self._send_error("No speech detected within timeout period")
 
         except KeyboardInterrupt:
             await self._send_status("interrupted", "Listen-once mode stopped by user")
@@ -233,13 +231,13 @@ class ListenOnceMode(BaseMode):
     def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
         """Transcribe audio data using Whisper and include VAD stats."""
         result = super()._transcribe_audio(audio_data)
-        
+
         # Log VAD stats if available
         if result["success"] and self.vad:
             vad_stats = self.vad.get_stats()
             self.logger.debug(f"VAD stats: {vad_stats}")
             result["model"] = self.args.model
-        
+
         return result
 
 

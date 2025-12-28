@@ -6,10 +6,10 @@ Provides create_streaming_session() that:
 - Returns ready-to-use StreamingSession
 """
 
+import asyncio
 import logging
 from typing import Callable, Awaitable, Optional, TYPE_CHECKING
 
-import numpy as np
 
 from .config import StreamingConfig
 from .session import StreamingSession
@@ -48,9 +48,8 @@ def create_streaming_session(
 
     Raises:
         StreamingError: If strategy creation fails
-    """
-    import asyncio
 
+    """
     if config is None:
         config = StreamingConfig.from_config()
 
@@ -61,7 +60,7 @@ def create_streaming_session(
     # Override strategy based on backend if native streaming available
     if "parakeet" in backend_name and _backend_has_native_streaming(backend):
         strategy_name = "native"
-        logger.info(f"Using native strategy for Parakeet backend")
+        logger.info("Using native strategy for Parakeet backend")
     elif strategy_name == "native" and "parakeet" not in backend_name:
         # Native only works with Parakeet
         logger.warning(
@@ -116,6 +115,7 @@ def _create_strategy(
 
     Returns:
         Strategy instance
+
     """
     import asyncio
 
@@ -159,7 +159,7 @@ def _create_strategy(
             config=config,
         )
 
-    elif strategy_name == "chunked":
+    if strategy_name == "chunked":
         from .strategies.chunked import ChunkedStrategy
 
         # Create batch transcribe function (same as above)
@@ -195,7 +195,7 @@ def _create_strategy(
             config=config,
         )
 
-    elif strategy_name == "native":
+    if strategy_name == "native":
         from .strategies.native import NativeStrategy
 
         return NativeStrategy(
@@ -203,5 +203,4 @@ def _create_strategy(
             config=config,
         )
 
-    else:
-        raise StreamingError(f"Unknown strategy: {strategy_name}")
+    raise StreamingError(f"Unknown strategy: {strategy_name}")

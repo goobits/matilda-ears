@@ -32,8 +32,6 @@ try:
 except ImportError:
     # Fallback for standalone usage
     import logging
-
-    logging.basicConfig()
     logger = logging.getLogger(__name__)
 
 
@@ -295,11 +293,11 @@ class PipeBasedAudioStreamer:
     def _read_pipe_loop(self):
         """Main loop for reading from arecord pipe."""
         logger.info("[PIPE-STREAM] Reader thread started")
-        
+
         if self.arecord_process is None or self.arecord_process.stdout is None:
             logger.error("[PIPE-STREAM] No arecord process or stdout available")
             return
-            
+
         total_bytes_read = 0
 
         # Make pipe non-blocking to allow better control (Unix only)
@@ -307,7 +305,7 @@ class PipeBasedAudioStreamer:
             import fcntl
             import os
             import select
-            
+
             fd = self.arecord_process.stdout.fileno()
             flags = fcntl.fcntl(fd, fcntl.F_GETFL)
             fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
@@ -331,7 +329,7 @@ class PipeBasedAudioStreamer:
                 if use_select:
                     # Unix: Use select with short timeout to avoid blocking forever
                     ready_to_read, _, _ = select.select([self.arecord_process.stdout], [], [], 0.05)
-                    
+
                     if ready_to_read:
                         try:
                             # Read available data (up to 64KB at once)

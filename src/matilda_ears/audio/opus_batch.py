@@ -13,8 +13,6 @@ try:
     logger = get_logger(__name__)
 except ImportError:
     import logging
-
-    logging.basicConfig()
     logger = logging.getLogger(__name__)
 
 

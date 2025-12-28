@@ -7,7 +7,7 @@ Provides AudioBuffer that maintains a fixed-size audio window with:
 """
 
 import numpy as np
-from typing import Optional, Tuple
+from typing import Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ class AudioBuffer:
 
         # Trim to keep only last N seconds
         buffer.trim_to_seconds(20.0)
+
     """
 
     def __init__(self, max_seconds: float, sample_rate: int = 16000):
@@ -37,6 +38,7 @@ class AudioBuffer:
         Args:
             max_seconds: Maximum buffer duration in seconds
             sample_rate: Audio sample rate in Hz
+
         """
         self.max_seconds = max_seconds
         self.sample_rate = sample_rate
@@ -77,6 +79,7 @@ class AudioBuffer:
 
         Returns:
             Number of samples trimmed (0 if no trimming occurred)
+
         """
         # Convert int16 to float32 if needed
         if audio_chunk.dtype == np.int16:
@@ -103,6 +106,7 @@ class AudioBuffer:
 
         Returns:
             (audio_array, offset_seconds) tuple
+
         """
         return self._buffer.copy(), self.offset_seconds
 
@@ -114,6 +118,7 @@ class AudioBuffer:
 
         Returns:
             Number of samples trimmed
+
         """
         keep_samples = int(keep_seconds * self.sample_rate)
         if len(self._buffer) <= keep_samples:
@@ -136,6 +141,7 @@ class AudioBuffer:
 
         Returns:
             Number of samples trimmed
+
         """
         # Convert absolute time to buffer-relative position
         buffer_start_time = self.offset_seconds
@@ -177,6 +183,7 @@ class AudioBuffer:
 
         Returns:
             WAV file bytes
+
         """
         import io
         import wave

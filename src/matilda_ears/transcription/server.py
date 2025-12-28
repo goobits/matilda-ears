@@ -53,11 +53,11 @@ from .server import (  # noqa: E402
 from matilda_ears.core.config import get_config  # noqa: E402
 
 __all__ = [
-    "MatildaWebSocketServer",
     "EnhancedWebSocketServer",
+    "MatildaWebSocketServer",
     "WebSocketTranscriptionServer",
-    "main",
     "get_config",
+    "main",
 ]
 
 if __name__ == "__main__":

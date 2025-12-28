@@ -3,7 +3,7 @@
 Provides StreamingConfig with sensible defaults and stabilization presets.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal, Optional
 
 from ...core.config import get_config

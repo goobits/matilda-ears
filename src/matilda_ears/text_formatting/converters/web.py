@@ -18,7 +18,6 @@ class WebConverterMixin:
     - self.url_keywords: dict of URL keywords
     """
 
-
     def _process_url_params(self, param_text: str) -> str:
         """Process URL parameters: 'a equals b and c equals 3' -> 'a=b&c=3'"""
         # Split on "and" or "ampersand"

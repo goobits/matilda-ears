@@ -1,0 +1,8 @@
+{
+  "transcription": {
+    "backend": "parakeet"
+  },
+  "parakeet": {
+    "model": "mlx-community/parakeet-tdt-0.6b-v3"
+  }
+}

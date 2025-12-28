@@ -25,12 +25,12 @@ from matilda_ears.core.token_manager import TokenManager
 config = get_config()
 
 __all__ = [
-    "MatildaWebSocketServer",
     "EnhancedWebSocketServer",
-    "WebSocketTranscriptionServer",
-    "main",
-    "get_config",
+    "MatildaWebSocketServer",
     "TokenManager",
+    "WebSocketTranscriptionServer",
     "config",
+    "get_config",
+    "main",
     "sys",
 ]

@@ -19,6 +19,7 @@ class TimeDetector:
         Args:
             nlp: SpaCy NLP model instance.
             resources: Language-specific resources dictionary.
+
         """
         self.nlp = nlp
         self.resources = resources or {}

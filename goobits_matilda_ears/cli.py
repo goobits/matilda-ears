@@ -201,7 +201,17 @@ hooks = load_hooks()
 # CLI COMMANDS
 # ============================================================================
 
+def get_version() -> str:
+    """Get the package version."""
+    try:
+        from importlib.metadata import version
+        return version("goobits-matilda-ears")
+    except Exception:
+        return "1.0.0"
+
+
 @click.group()
+@click.version_option(version=get_version(), prog_name="Matilda Ears")
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 @click.option('--debug', is_flag=True, help='Enable debug output')
 @click.option('--config', type=click.Path(), help='Path to config file')
@@ -240,6 +250,87 @@ def models(ctx, json):
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
+
+
+@cli.command('serve')
+@click.option('--port', '-p', type=int, default=8769, help='Server port (default: 8769)')
+@click.option('--host', type=str, default='0.0.0.0', help='Server host (default: 0.0.0.0)')
+@click.option('--model', '-m', type=str, default='base', help='Whisper model size')
+@click.option('--device', '-d', type=str, help='Compute device (cpu, cuda, mlx)')
+@click.option('--json', is_flag=True, help='Output JSON format')
+@click.pass_obj
+def serve(ctx, port, host, model, device, json):
+    """Run as WebSocket server for remote clients"""
+    try:
+        if hooks and hasattr(hooks, 'on_transcribe'):
+            hooks.on_transcribe(
+                server=True,
+                port=port,
+                host=host,
+                model=model,
+                device=device,
+                json_output=json,
+                debug=ctx.debug,
+            )
+        else:
+            logger.error("Hook 'on_transcribe' not implemented in cli_hooks.py")
+            sys.exit(1)
+    except Exception as e:
+        handle_error(e, ctx.verbose)
+
+
+@cli.command('listen')
+@click.option('--once', is_flag=True, help='Single utterance capture with VAD')
+@click.option('--conversation', is_flag=True, help='Always listening mode')
+@click.option('--tap-to-talk', type=str, metavar='KEY', help='Tap KEY to start/stop')
+@click.option('--hold-to-talk', type=str, metavar='KEY', help='Hold KEY to record')
+@click.option('--model', '-m', type=str, default='base', help='Whisper model size')
+@click.option('--json', is_flag=True, help='Output JSON format')
+@click.pass_obj
+def listen(ctx, once, conversation, tap_to_talk, hold_to_talk, model, json):
+    """Start listening for speech input"""
+    try:
+        if hooks and hasattr(hooks, 'on_transcribe'):
+            # Default to --once if no mode specified
+            if not any([once, conversation, tap_to_talk, hold_to_talk]):
+                once = True
+            hooks.on_transcribe(
+                listen_once=once,
+                conversation=conversation,
+                tap_to_talk=tap_to_talk,
+                hold_to_talk=hold_to_talk,
+                model=model,
+                json_output=json,
+                debug=ctx.debug,
+            )
+        else:
+            logger.error("Hook 'on_transcribe' not implemented in cli_hooks.py")
+            sys.exit(1)
+    except Exception as e:
+        handle_error(e, ctx.verbose)
+
+
+@cli.command('transcribe')
+@click.argument('file', type=click.Path(exists=True))
+@click.option('--model', '-m', type=str, default='base', help='Whisper model size')
+@click.option('--json', is_flag=True, help='Output JSON format')
+@click.pass_obj
+def transcribe(ctx, file, model, json):
+    """Transcribe an audio file"""
+    try:
+        if hooks and hasattr(hooks, 'on_transcribe'):
+            hooks.on_transcribe(
+                file=file,
+                model=model,
+                json_output=json,
+                debug=ctx.debug,
+            )
+        else:
+            logger.error("Hook 'on_transcribe' not implemented in cli_hooks.py")
+            sys.exit(1)
+    except Exception as e:
+        handle_error(e, ctx.verbose)
+
 
 # ============================================================================
 # INTERACTIVE MODE (if enabled)

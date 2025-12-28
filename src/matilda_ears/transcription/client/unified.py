@@ -8,7 +8,6 @@ interface for all client-side transcription operations.
 import threading
 from typing import Optional, Any, Callable, Dict, Tuple
 
-from .exceptions import TranscriptionConnectionError
 from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from .streaming import StreamingAudioClient, PartialResultCallback
 from .batch import BatchTranscriber

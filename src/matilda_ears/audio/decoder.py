@@ -14,8 +14,6 @@ try:
 except ImportError:
     # Fallback for standalone usage
     import logging
-
-    logging.basicConfig()
     logger = logging.getLogger(__name__)
 
 

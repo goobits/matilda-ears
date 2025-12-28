@@ -34,6 +34,7 @@ class StreamingStrategy(Protocol):
 
         Returns:
             StreamingResult with confirmed/tentative text
+
         """
         ...
 
@@ -45,6 +46,7 @@ class StreamingStrategy(Protocol):
 
         Returns:
             Final StreamingResult with is_final=True
+
         """
         ...
 

@@ -186,11 +186,10 @@ class SmartCapitalizer:
                                 logger.debug("CLI command is entire text, not capitalizing")
                                 should_capitalize = False
                                 break
-                            else:
-                                logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
+                            logger.debug(f"CLI command '{entity.text}' is not entire text '{text}', allowing capitalization")
                             # Otherwise, allow normal capitalization for CLI commands at sentence start
                         # Special rule for versions starting with 'v' (e.g., v1.2)
-                        elif entity.type == EntityType.VERSION and entity.text.startswith('v'):
+                        elif entity.type == EntityType.VERSION and entity.text.startswith("v"):
                             logger.debug(f"Version entity '{entity.text}' starts with 'v', not capitalizing")
                             should_capitalize = False
                             break

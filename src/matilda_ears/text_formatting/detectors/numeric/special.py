@@ -22,6 +22,7 @@ class SpecialDetector:
             number_parser: NumberParser instance for number word handling.
             resources: Language-specific resources dictionary.
             language: Language code (default: 'en').
+
         """
         self.nlp = nlp
         self.number_parser = number_parser

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Tap-to-Talk Mode - Hotkey toggle recording
+"""Tap-to-Talk Mode - Hotkey toggle recording
 
 This mode provides a simple toggle-based recording mechanism:
 - First key press starts recording
@@ -43,11 +42,11 @@ class TapToTalkMode(BaseMode):
     def __init__(self, args):
         super().__init__(args)
         self.hotkey = args.tap_to_talk
-        
+
         # Hotkey listener
         self.hotkey_listener = None
         self.stop_event = threading.Event()
-        
+
         self.logger.info(f"Tap-to-talk mode initialized with hotkey: {self.hotkey}")
 
     async def run(self):
@@ -106,20 +105,20 @@ class TapToTalkMode(BaseMode):
         """Parse hotkey string to pynput format."""
         # Convert common key names to pynput format
         key_mapping = {
-            'space': '<space>',
-            'enter': '<enter>',
-            'shift': '<shift>',
-            'ctrl': '<ctrl>',
-            'alt': '<alt>',
-            'cmd': '<cmd>',
-            'tab': '<tab>',
-            'esc': '<esc>',
-            'escape': '<esc>',
+            "space": "<space>",
+            "enter": "<enter>",
+            "shift": "<shift>",
+            "ctrl": "<ctrl>",
+            "alt": "<alt>",
+            "cmd": "<cmd>",
+            "tab": "<tab>",
+            "esc": "<esc>",
+            "escape": "<esc>",
         }
 
         # Handle function keys
-        if hotkey_str.lower().startswith('f') and hotkey_str[1:].isdigit():
-            return f'<{hotkey_str.lower()}>'
+        if hotkey_str.lower().startswith("f") and hotkey_str[1:].isdigit():
+            return f"<{hotkey_str.lower()}>"
 
         # Check if it's a special key
         if hotkey_str.lower() in key_mapping:
@@ -139,10 +138,9 @@ class TapToTalkMode(BaseMode):
                 # Start recording
                 if self.loop is not None:
                     asyncio.run_coroutine_threadsafe(self._start_recording(), self.loop)
-            else:
-                # Stop recording and transcribe
-                if self.loop is not None:
-                    asyncio.run_coroutine_threadsafe(self._stop_recording(), self.loop)
+            # Stop recording and transcribe
+            elif self.loop is not None:
+                asyncio.run_coroutine_threadsafe(self._stop_recording(), self.loop)
 
         except Exception as e:
             self.logger.error(f"Error handling hotkey press: {e}")

@@ -6,7 +6,7 @@ Implements the core streaming stability algorithm:
 - Provides prompt suffix for continuity
 """
 
-from typing import List, Optional, Tuple
+from typing import List
 import logging
 
 from .types import TimestampedWord
@@ -37,6 +37,7 @@ class HypothesisBuffer:
         # Get text for display
         confirmed_text = buffer.get_confirmed_text()
         tentative_text = buffer.get_tentative_text()
+
     """
 
     def __init__(self, agreement_n: int = 2, max_confirmed_words: int = 500):
@@ -45,6 +46,7 @@ class HypothesisBuffer:
         Args:
             agreement_n: Number of consecutive agreements required to confirm
             max_confirmed_words: Maximum confirmed words to retain (bounded history)
+
         """
         self.agreement_n = agreement_n
         self.max_confirmed_words = max_confirmed_words
@@ -69,6 +71,7 @@ class HypothesisBuffer:
         Args:
             words: Timestamped words from transcription
             offset_seconds: Buffer offset to add to timestamps
+
         """
         # Shift timestamps to absolute time
         shifted = [w.shift(offset_seconds) for w in words]
@@ -89,6 +92,7 @@ class HypothesisBuffer:
 
         Returns:
             List of newly confirmed words
+
         """
         if not self.current_hypothesis:
             return []
@@ -136,6 +140,7 @@ class HypothesisBuffer:
 
         Returns:
             List of newly confirmed words
+
         """
         if len(self.previous_hypotheses) < self.agreement_n:
             return []
@@ -186,6 +191,7 @@ class HypothesisBuffer:
 
         Returns:
             Words with overlap removed
+
         """
         if not self.confirmed_in_buffer or not words:
             return words
@@ -216,6 +222,7 @@ class HypothesisBuffer:
 
         Args:
             absolute_time: Absolute time in seconds
+
         """
         self.confirmed_in_buffer = [
             w for w in self.confirmed_in_buffer if w.end >= absolute_time
@@ -240,6 +247,7 @@ class HypothesisBuffer:
 
         Returns:
             Suffix string for prompt
+
         """
         if not self.confirmed_in_buffer:
             return ""

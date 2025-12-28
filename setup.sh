@@ -57,6 +57,13 @@ TOTAL_STEPS=5
 CURRENT_STEP=0
 START_TIME=$(date +%s)
 
+# Detect if running in a virtualenv (don't use --user in virtualenvs)
+if [[ -n "$VIRTUAL_ENV" ]] || python3 -c "import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)" 2>/dev/null; then
+    PIP_USER_FLAG=""
+else
+    PIP_USER_FLAG="--user"
+fi
+
 # Check if terminal supports colors
 if [[ -t 1 ]] && [[ "$(tput colors 2>/dev/null)" -ge 8 ]]; then
     USE_COLOR=true
@@ -712,7 +719,7 @@ install_with_pip() {
 
     if [[ "$install_dev" == "true" ]]; then
         tree_sub_node "progress" "Installing in development mode with pip..."
-        (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[dev,whisper,vad]" --user) &
+        (cd "$PROJECT_DIR" && python3 -m pip install --editable "$DEVELOPMENT_PATH[dev,whisper,vad]" $PIP_USER_FLAG) &
         show_spinner $!
         wait $!
         local exit_code=$?
@@ -726,7 +733,7 @@ install_with_pip() {
         fi
     else
         tree_sub_node "progress" "Installing from PyPI with pip..."
-        python3 -m pip install "$PYPI_NAME[dev,whisper,vad]" --user &
+        python3 -m pip install "$PYPI_NAME[dev,whisper,vad]" $PIP_USER_FLAG &
         show_spinner $!
         wait $!
         local exit_code=$?
@@ -768,7 +775,7 @@ upgrade_package() {
         tree_sub_node "progress" "Upgrading with pip..."
 
         # Capture pip output to prevent it from breaking tree structure
-        python3 -m pip install --upgrade "$PYPI_NAME[dev,whisper,vad]" --user >/dev/null 2>&1 &
+        python3 -m pip install --upgrade "$PYPI_NAME[dev,whisper,vad]" $PIP_USER_FLAG >/dev/null 2>&1 &
         show_spinner $!
         wait $!
         local exit_code=$?
@@ -1067,7 +1074,9 @@ main() {
     
     # Header
     if [[ "$TREE_MODE" == "true" ]]; then
-        tree_start "${command^} Process"
+        # POSIX-compatible capitalization (works on macOS Bash 3.2)
+        capitalized_cmd="$(echo "$command" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
+        tree_start "$capitalized_cmd Process"
     else
         echo
         log_info "Starting $DISPLAY_NAME setup..."

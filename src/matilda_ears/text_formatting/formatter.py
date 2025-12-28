@@ -22,11 +22,11 @@ from .pipeline import (
 from .common import Entity, EntityType, NumberParser
 
 __all__ = [
+    "Entity",
     "EntityDetector",
+    "EntityType",
+    "NumberParser",
     "PatternConverter",
     "TextFormatter",
     "format_transcription",
-    "Entity",
-    "EntityType",
-    "NumberParser",
 ]

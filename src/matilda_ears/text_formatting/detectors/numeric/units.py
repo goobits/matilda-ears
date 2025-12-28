@@ -21,6 +21,7 @@ class UnitsDetector:
             nlp: SpaCy NLP model instance.
             number_parser: NumberParser instance for number word handling.
             resources: Language-specific resources dictionary.
+
         """
         self.nlp = nlp
         self.number_parser = number_parser
@@ -36,6 +37,7 @@ class UnitsDetector:
 
         Returns:
             Tuple of (type_name, matched_unit_text, match_length) or None
+
         """
         # Create a sorted copy to ensure longest matches first without modifying original list
         sorted_units = sorted(units_list, key=len, reverse=True)

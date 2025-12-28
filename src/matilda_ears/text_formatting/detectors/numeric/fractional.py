@@ -21,6 +21,7 @@ class FractionalDetector:
             nlp: SpaCy NLP model instance.
             number_parser: NumberParser instance for number word handling.
             resources: Language-specific resources dictionary.
+
         """
         self.nlp = nlp
         self.number_parser = number_parser

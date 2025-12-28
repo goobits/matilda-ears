@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-App hooks for Matilda Ears CLI - provides implementation for all STT commands.
+"""App hooks for Matilda Ears CLI - provides implementation for all STT commands.
 
 This module contains the hook functions called by the generated CLI.
 Each hook corresponds to a command defined in goobits.yaml.
@@ -280,19 +279,18 @@ def on_status(json=False, ctx=None, **kwargs):
 
         if output_format == "json":
             print(json_module.dumps(status, indent=2))
+        elif console:
+            console.print("Ears System Status", style="bold blue")
+            console.print("-" * 40, style="blue")
+            console.print(f"Python {status['python_version']}")
+            for name, stat in status["dependencies"].items():
+                icon = "[green]OK[/green]" if stat == "Available" else "[red]Missing[/red]"
+                console.print(f"  {name}: {icon}")
         else:
-            if console:
-                console.print("Ears System Status", style="bold blue")
-                console.print("-" * 40, style="blue")
-                console.print(f"Python {status['python_version']}")
-                for name, stat in status["dependencies"].items():
-                    icon = "[green]OK[/green]" if stat == "Available" else "[red]Missing[/red]"
-                    console.print(f"  {name}: {icon}")
-            else:
-                print("Ears System Status")
-                print(f"Python: {status['python_version']}")
-                for name, stat in status["dependencies"].items():
-                    print(f"  {name}: {stat}")
+            print("Ears System Status")
+            print(f"Python: {status['python_version']}")
+            for name, stat in status["dependencies"].items():
+                print(f"  {name}: {stat}")
 
     except Exception as e:
         if output_format == "json":
@@ -316,18 +314,17 @@ def on_models(json=False, ctx=None, **kwargs):
 
     if output_format == "json":
         print(json_module.dumps({"available_models": models}, indent=2))
+    elif console:
+        console.print("Available Whisper Models", style="bold blue")
+        console.print("-" * 50, style="blue")
+        console.print(f"{'Name':<10} {'Size':<10} {'Speed':<12} {'Accuracy'}")
+        console.print("-" * 50)
+        for m in models:
+            console.print(f"{m['name']:<10} {m['size']:<10} {m['speed']:<12} {m['accuracy']}")
     else:
-        if console:
-            console.print("Available Whisper Models", style="bold blue")
-            console.print("-" * 50, style="blue")
-            console.print(f"{'Name':<10} {'Size':<10} {'Speed':<12} {'Accuracy'}")
-            console.print("-" * 50)
-            for m in models:
-                console.print(f"{m['name']:<10} {m['size']:<10} {m['speed']:<12} {m['accuracy']}")
-        else:
-            print("Available Whisper Models:")
-            for m in models:
-                print(f"  {m['name']}: {m['size']} - {m['speed']} - {m['accuracy']}")
+        print("Available Whisper Models:")
+        for m in models:
+            print(f"  {m['name']}: {m['size']} - {m['speed']} - {m['accuracy']}")
 
 
 # =============================================================================

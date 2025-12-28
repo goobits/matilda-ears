@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Base PatternConverter class that combines all converter mixins.
+"""Base PatternConverter class that combines all converter mixins.
 
 This module provides the unified PatternConverter class by combining:
 - WebConverterMixin: URL, email, and web-related conversions
@@ -8,13 +7,10 @@ This module provides the unified PatternConverter class by combining:
 - NumericConverterMixin: Math, currency, measurements, etc.
 """
 
-import re
-from typing import Optional
 
-from ..common import Entity, EntityType, NumberParser
+from ..common import EntityType, NumberParser
 from ..constants import get_resources
 from ...core.config import get_config, setup_logging
-from .. import regex_patterns
 from .web import WebConverterMixin
 from .code import CodeConverterMixin
 from .numeric import NumericConverterMixin

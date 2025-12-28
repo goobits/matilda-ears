@@ -1,5 +1,4 @@
-"""
-HuggingFace Transformers backend for universal ASR model support.
+"""HuggingFace Transformers backend for universal ASR model support.
 
 This backend supports any ASR model from HuggingFace Hub, including:
 - Whisper variants (openai/whisper-*)
@@ -76,19 +75,18 @@ def _resolve_torch_dtype(device: str, dtype_config: str) -> Optional[Any]:
         if device in ("cpu",):
             return torch.float32
         return torch.float16
-    elif dtype_config == "float16":
+    if dtype_config == "float16":
         return torch.float16
-    elif dtype_config == "bfloat16":
+    if dtype_config == "bfloat16":
         return torch.bfloat16
-    elif dtype_config == "float32":
+    if dtype_config == "float32":
         return torch.float32
 
     return None  # Let transformers decide
 
 
 class HuggingFaceBackend(TranscriptionBackend):
-    """
-    Universal ASR backend using HuggingFace Transformers.
+    """Universal ASR backend using HuggingFace Transformers.
 
     Supports any model with the 'automatic-speech-recognition' pipeline,
     including Whisper, Wav2Vec2, Wav2Vec2-BERT, HuBERT, and more.
@@ -112,8 +110,8 @@ class HuggingFaceBackend(TranscriptionBackend):
             )
 
         # Load config with defaults
-        hf_config = config.get("huggingface", {}) if hasattr(config, 'get') else {}
-        if isinstance(hf_config, type(None)):
+        hf_config = config.get("huggingface", {}) if hasattr(config, "get") else {}
+        if hf_config is None:
             hf_config = {}
 
         self.model_id = hf_config.get("model", self.DEFAULT_MODEL)
@@ -174,8 +172,7 @@ class HuggingFaceBackend(TranscriptionBackend):
         return pipe
 
     def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
-        """
-        Transcribe audio using the HuggingFace ASR model.
+        """Transcribe audio using the HuggingFace ASR model.
 
         Args:
             audio_path: Path to the audio file.
@@ -183,6 +180,7 @@ class HuggingFaceBackend(TranscriptionBackend):
 
         Returns:
             Tuple of (transcribed_text, metadata_dict).
+
         """
         if self.pipe is None:
             raise RuntimeError("Model not loaded. Call load() first.")
@@ -247,8 +245,7 @@ class HuggingFaceBackend(TranscriptionBackend):
         return self.pipe is not None
 
     def _remove_repetitions(self, text: str, min_phrase_len: int = 3, max_repeats: int = 2) -> str:
-        """
-        Remove obvious repetition patterns from transcription.
+        """Remove obvious repetition patterns from transcription.
 
         Whisper can hallucinate repeated phrases when audio has silence or is unclear.
         This detects patterns like "Hello? Hello? Hello? Hello?" and reduces them.
@@ -260,6 +257,7 @@ class HuggingFaceBackend(TranscriptionBackend):
 
         Returns:
             Cleaned text with repetitions removed
+
         """
         if not text:
             return text
@@ -310,8 +308,7 @@ class HuggingFaceBackend(TranscriptionBackend):
 
     @classmethod
     def list_popular_models(cls) -> Dict[str, str]:
-        """
-        Return a dict of popular ASR models for user reference.
+        """Return a dict of popular ASR models for user reference.
 
         These are suggestions - any HuggingFace ASR model ID will work.
         """

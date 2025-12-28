@@ -27,6 +27,7 @@ async def health_handler(server: "MatildaWebSocketServer", request: web.Request)
 
     Returns:
         JSON response with health status
+
     """
     return web.json_response(
         {
@@ -54,6 +55,7 @@ async def start_health_server(
 
     Returns:
         The aiohttp AppRunner instance
+
     """
     app = web.Application()
     # Create a closure to pass server to handler

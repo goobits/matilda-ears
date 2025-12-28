@@ -11,7 +11,6 @@ This module contains all message handlers for the WebSocket protocol:
 - handle_end_stream: Stream end handler
 """
 
-import asyncio
 import base64
 import json
 import os
@@ -29,7 +28,6 @@ from .audio_utils import (
     needs_resampling,
     resample_to_16k,
     TARGET_SAMPLE_RATE,
-    SUPPORTED_SAMPLE_RATES,
 )
 from ..streaming import create_streaming_session, StreamingConfig
 
@@ -57,6 +55,7 @@ async def handle_binary_audio(
         wav_data: Raw WAV audio bytes
         client_ip: Client IP address
         client_id: Client identifier
+
     """
     logger.info(f"Client {client_id}: Received binary audio data ({len(wav_data)} bytes)")
 

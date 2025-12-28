@@ -4,7 +4,7 @@
 import re
 from typing import Optional
 
-from ..common import Entity, EntityType
+from ..common import Entity
 from ..constants import get_resources
 from ...core.config import setup_logging
 
@@ -21,7 +21,6 @@ class CodeConverterMixin:
     - self.resources: dict
     - self.operators: dict
     """
-
 
     def convert_cli_command(self, entity: Entity) -> str:
         """Preserve the original text of a CLI command."""
@@ -112,8 +111,8 @@ class CodeConverterMixin:
         # Handle both "v1" and "v 1" patterns by collapsing them before splitting
 
         # Collapse "v <number>" patterns into "v<number>" to treat as single units
-        version_collapse_pattern = r'\bv\s+(\d+(?:\.\d+)*)\b'
-        filename_part = re.sub(version_collapse_pattern, r'v\1', filename_part, flags=re.IGNORECASE)
+        version_collapse_pattern = r"\bv\s+(\d+(?:\.\d+)*)\b"
+        filename_part = re.sub(version_collapse_pattern, r"v\1", filename_part, flags=re.IGNORECASE)
 
         # Now split on spaces, underscores, and hyphens
         casing_words = re.split(r"[ _-]", filename_part)
@@ -241,9 +240,9 @@ class CodeConverterMixin:
             if self.language == "es":
                 math_ops.extend(["al cuadrado", "al cubo", "más", "menos", "por", "entre", "dividido por"])
 
-            ops_pattern = r'\b(?:' + '|'.join(re.escape(op) for op in math_ops) + r')\b'
+            ops_pattern = r"\b(?:" + "|".join(re.escape(op) for op in math_ops) + r")\b"
             has_math_operators = bool(re.search(ops_pattern, right, re.IGNORECASE))
-            
+
             if has_math_operators:
                 # Process math operators in the right side
                 # For simple processing, we replace known multi-word operators first
@@ -256,15 +255,15 @@ class CodeConverterMixin:
                     if op in right_processed:
                         # Replace operator words with symbols
                         # Use word boundaries to avoid partial matches
-                        pattern = r'\b' + re.escape(op) + r'\b'
+                        pattern = r"\b" + re.escape(op) + r"\b"
                         right_processed = re.sub(pattern, self.operators[op], right_processed)
 
                 # Handle squared/cubed
-                right_processed = re.sub(r'\bsquared\b', '²', right_processed)
-                right_processed = re.sub(r'\bcubed\b', '³', right_processed)
+                right_processed = re.sub(r"\bsquared\b", "²", right_processed)
+                right_processed = re.sub(r"\bcubed\b", "³", right_processed)
                 if self.language == "es":
-                    right_processed = re.sub(r'\bal cuadrado\b', '²', right_processed)
-                    right_processed = re.sub(r'\bal cubo\b', '³', right_processed)
+                    right_processed = re.sub(r"\bal cuadrado\b", "²", right_processed)
+                    right_processed = re.sub(r"\bal cubo\b", "³", right_processed)
 
                 # Process number words
                 words = right_processed.split()
@@ -287,7 +286,7 @@ class CodeConverterMixin:
                      right = right.replace(op, f" {op} ")
 
                 # Clean up double spaces
-                right = re.sub(r'\s+', ' ', right).strip()
+                right = re.sub(r"\s+", " ", right).strip()
 
             elif " " in right:
                 # If the right side seems like a function call (multiple words), snake_case it.

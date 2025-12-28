@@ -9,7 +9,6 @@ Use this as a fallback when LocalAgreement can't be used due to
 lack of word timestamp support.
 """
 
-import asyncio
 import time
 import logging
 from typing import Callable, Awaitable
@@ -53,6 +52,7 @@ class ChunkedStrategy:
         Args:
             batch_transcribe: Async function (wav_bytes, prompt) -> (text, info)
             config: Streaming configuration
+
         """
         self.transcribe = batch_transcribe
         self.config = config
@@ -79,6 +79,7 @@ class ChunkedStrategy:
 
         Returns:
             StreamingResult with confirmed text only
+
         """
         # Append to buffer
         self.buffer.append(audio_chunk)
@@ -131,6 +132,7 @@ class ChunkedStrategy:
 
         Returns:
             Final StreamingResult
+
         """
         # Final transcription of complete buffer
         if self.buffer.samples_in_buffer > 0:

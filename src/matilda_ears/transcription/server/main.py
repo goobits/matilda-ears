@@ -33,6 +33,7 @@ async def start_server(
         server: The MatildaWebSocketServer instance
         host: Host to bind to (optional, uses server default)
         port: Port to bind to (optional, uses server default)
+
     """
     # Use provided host/port or defaults
     server_host = host or server.host

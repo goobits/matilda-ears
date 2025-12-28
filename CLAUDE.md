@@ -105,7 +105,7 @@ Advanced text formatting system in `src/matilda_ears/text_formatting/`:
 
 ### Transcription Backends
 
-STT supports pluggable transcription backends for platform-specific optimization:
+Ears supports pluggable transcription backends for platform-specific optimization:
 
 **Available Backends:**
 - **faster_whisper** (default): CPU/CUDA Whisper implementation using CTranslate2
@@ -159,7 +159,7 @@ Complete Docker deployment in `docker/` directory:
 ## Key Technical Details
 
 ### Dependencies
-- **Core STT**: faster-whisper, ctranslate2, torch
+- **Core engine**: faster-whisper, ctranslate2, torch
 - **Optional Backends**: mlx, parakeet-mlx (install with `[mac]` extras for Apple Silicon)
 - **Audio**: opuslib for streaming, pynput for hotkeys
 - **Networking**: websockets, aiohttp for server functionality

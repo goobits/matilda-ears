@@ -47,6 +47,7 @@ class NativeStrategy:
         Args:
             backend: Backend with transcribe_stream() method
             config: Streaming configuration
+
         """
         self.backend = backend
         self.config = config
@@ -72,6 +73,7 @@ class NativeStrategy:
 
         Returns:
             StreamingResult with confirmed/tentative text
+
         """
         # Convert to float32 if needed
         if audio_chunk.dtype == np.int16:
@@ -116,6 +118,7 @@ class NativeStrategy:
 
         Returns:
             Final StreamingResult
+
         """
         if self._context_entered and self._context:
             loop = asyncio.get_event_loop()
@@ -193,6 +196,7 @@ class NativeStrategy:
 
         Returns:
             Result dict from context, or None
+
         """
         if not self._context:
             return None
@@ -204,7 +208,7 @@ class NativeStrategy:
             # Get current result
             if hasattr(self._context, "result"):
                 return self._context.result
-            elif hasattr(self._context, "get_result"):
+            if hasattr(self._context, "get_result"):
                 return self._context.get_result()
 
         return None
@@ -214,6 +218,7 @@ class NativeStrategy:
 
         Returns:
             Final result dict
+
         """
         if not self._context:
             return None
@@ -239,6 +244,7 @@ class NativeStrategy:
 
         Args:
             result: Result from native streaming context
+
         """
         # Handle different result formats
         if isinstance(result, dict):

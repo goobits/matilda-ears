@@ -13,12 +13,10 @@ class TranscriptionBackend(ABC):
     @abstractmethod
     async def load(self):
         """Load the model asynchronously."""
-        pass
 
     @abstractmethod
     def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
-        """
-        Transcribe an audio file.
+        """Transcribe an audio file.
 
         Args:
             audio_path: Path to the audio file.
@@ -28,11 +26,10 @@ class TranscriptionBackend(ABC):
             A tuple containing:
             - The transcribed text.
             - A dictionary with metadata (e.g., duration, language).
+
         """
-        pass
 
     @property
     @abstractmethod
     def is_ready(self) -> bool:
         """Check if the backend is ready/loaded."""
-        pass

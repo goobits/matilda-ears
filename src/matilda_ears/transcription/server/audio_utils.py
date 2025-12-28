@@ -27,6 +27,7 @@ def validate_sample_rate(sample_rate: int) -> Tuple[bool, Optional[str]]:
         Tuple of (is_valid, error_message)
         - If valid: (True, None)
         - If invalid: (False, error_message)
+
     """
     if sample_rate not in SUPPORTED_SAMPLE_RATES:
         supported_str = ", ".join(f"{r}Hz" for r in sorted(SUPPORTED_SAMPLE_RATES))
@@ -53,6 +54,7 @@ def resample_audio(pcm_samples: np.ndarray, source_rate: int, target_rate: int =
 
     Returns:
         Resampled PCM samples as numpy array (same dtype as input)
+
     """
     if source_rate == target_rate:
         return pcm_samples
@@ -108,5 +110,6 @@ def resample_to_16k(pcm_samples: np.ndarray, source_rate: int) -> np.ndarray:
 
     Returns:
         Resampled PCM samples at 16kHz
+
     """
     return resample_audio(pcm_samples, source_rate, TARGET_SAMPLE_RATE)

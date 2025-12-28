@@ -167,7 +167,7 @@ class CodeEntityDetector:
                 is_linking_verb = token.lemma_ in filename_linking
                 is_stop_word = token.text.lower() in filename_stop_words
                 is_punctuation = token.is_punct
-                is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != 'v'
+                is_separator = token.pos_ in ("ADP", "CCONJ", "SCONJ") and token.text.lower() != "v"
 
                 # Special handling for stop words like "file":
                 # Allow them if they are followed by a separator or number (e.g. "file_name", "file_100")
@@ -481,7 +481,7 @@ class CodeEntityDetector:
             all_entities = entities
 
         # Pattern to match already-formatted flags with uppercase letters
-        preformatted_flag_pattern = re.compile(r'--[A-Z][A-Z0-9_-]*', re.IGNORECASE)
+        preformatted_flag_pattern = re.compile(r"--[A-Z][A-Z0-9_-]*", re.IGNORECASE)
 
         for match in preformatted_flag_pattern.finditer(text):
             # Only detect if it has uppercase letters and isn't already detected

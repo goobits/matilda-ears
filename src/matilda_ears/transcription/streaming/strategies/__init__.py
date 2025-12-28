@@ -12,8 +12,8 @@ from .chunked import ChunkedStrategy
 from .native import NativeStrategy
 
 __all__ = [
-    "StreamingStrategy",
-    "LocalAgreementStrategy",
     "ChunkedStrategy",
+    "LocalAgreementStrategy",
     "NativeStrategy",
+    "StreamingStrategy",
 ]

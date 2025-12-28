@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Unified Pattern Converter for Matilda transcriptions.
+"""Unified Pattern Converter for Matilda transcriptions.
 
 This module provides backward compatibility by re-exporting the PatternConverter
 class from the converters submodule.
@@ -19,8 +18,8 @@ from .converters import PatternConverter
 from .converters import WebConverterMixin, CodeConverterMixin, NumericConverterMixin
 
 __all__ = [
-    "PatternConverter",
-    "WebConverterMixin",
     "CodeConverterMixin",
     "NumericConverterMixin",
+    "PatternConverter",
+    "WebConverterMixin",
 ]

@@ -2,7 +2,6 @@
 """Numeric pattern converters for math, currency, measurements, and related entities."""
 
 import re
-from typing import Optional
 
 from ..common import Entity, EntityType
 from ...core.config import setup_logging
@@ -20,7 +19,6 @@ class NumericConverterMixin:
     - self.resources: dict
     - self.operators: dict
     """
-
 
     def convert_math_expression(self, entity: Entity) -> str:
         """Convert parsed math expressions to properly formatted text"""
@@ -1016,7 +1014,6 @@ class NumericConverterMixin:
 
     def convert_version(self, entity: Entity) -> str:
         """Convert version numbers from spoken form to numeric form."""
-
         text = entity.text
 
         # Extract the prefix (version, python, etc.)

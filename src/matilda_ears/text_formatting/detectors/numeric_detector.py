@@ -12,7 +12,6 @@ from ...core.config import setup_logging
 
 # Import sub-detectors
 from .numeric import (
-    MathExpressionParser,
     MathDetector,
     TimeDetector,
     PhoneDetector,
@@ -102,6 +101,7 @@ class NumericalEntityDetector:
 
         Returns:
             List of newly detected numerical entities.
+
         """
         numerical_entities: list[Entity] = []
 

@@ -18,11 +18,11 @@ from .fractional import FractionalDetector
 from .special import SpecialDetector
 
 __all__ = [
-    "MathExpressionParser",
-    "MathDetector",
-    "TimeDetector",
-    "PhoneDetector",
-    "UnitsDetector",
     "FractionalDetector",
+    "MathDetector",
+    "MathExpressionParser",
+    "PhoneDetector",
     "SpecialDetector",
+    "TimeDetector",
+    "UnitsDetector",
 ]

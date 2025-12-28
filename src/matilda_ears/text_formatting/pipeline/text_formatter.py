@@ -7,14 +7,13 @@ from typing import List, Optional
 
 from intervaltree import IntervalTree
 
-from ..common import Entity, EntityType, NumberParser
+from ..common import Entity, EntityType
 from ..constants import get_resources
 from ..detectors.code_detector import CodeEntityDetector
 from ..detectors.numeric_detector import NumericalEntityDetector
 from ..detectors.web_detector import WebEntityDetector
 from ..nlp_provider import get_nlp, get_punctuator
 from ..capitalizer import SmartCapitalizer
-from ..utils import is_inside_entity
 from .. import regex_patterns
 from ...core.config import get_config, setup_logging
 from .entity_detector import EntityDetector
@@ -246,7 +245,7 @@ class TextFormatter:
         # Check if cleaned text is a short lowercase version pattern (e.g., 'v1.0' not 'version 2.1')
         import re
         has_lowercase_version = (any(entity.type == EntityType.VERSION for entity in converted_entities)
-                               and re.match(r'^v\d', cleaned_text))  # 'v' followed by digit
+                               and re.match(r"^v\d", cleaned_text))  # 'v' followed by digit
         skip_capitalization_for_cli = punctuation_was_removed and (has_cli_command or has_lowercase_version)
 
         final_text = cleaned_text
@@ -411,10 +410,10 @@ class TextFormatter:
 
         # Clean up orphaned commas at the beginning of text
         # This handles cases like "Actually, that's great" → ", that's great" → "that's great"
-        text = re.sub(r'^\s*,\s*', '', text)
+        text = re.sub(r"^\s*,\s*", "", text)
 
         # Also clean up double commas that might result from removal
-        text = re.sub(r',\s*,', ',', text)
+        text = re.sub(r",\s*,", ",", text)
 
         # Normalize repeated punctuation using centralized patterns
         for pattern, replacement in regex_patterns.REPEATED_PUNCTUATION_PATTERNS:
@@ -509,7 +508,7 @@ class TextFormatter:
                     EntityType.SPOKEN_URL,
                     EntityType.SPOKEN_EMAIL,
                     EntityType.FILENAME,
-                    EntityType.IP_ADDRESS if hasattr(EntityType, 'IP_ADDRESS') else None,
+                    EntityType.IP_ADDRESS if hasattr(EntityType, "IP_ADDRESS") else None,
                 }
 
                 # Sort entities descending by start position to replace without invalidating indices
@@ -849,7 +848,7 @@ class TextFormatter:
         # Only convert safe keywords that are less likely to appear in natural language
         # Be more conservative about what we convert
         safe_keywords = {
-            'slash': '/',
+            "slash": "/",
             # 'colon': ':', # Too ambiguous in regular sentences
             # 'underscore': '_', # Too ambiguous unless in specific technical context
         }
@@ -864,18 +863,18 @@ class TextFormatter:
         sorted_keywords = sorted(keywords_to_convert.items(), key=lambda x: len(x[0]), reverse=True)
 
         # Define keywords that should consume surrounding spaces when converted
-        space_consuming_symbols = {'/', ':', '_'}
+        space_consuming_symbols = {"/", ":", "_"}
 
         # Convert keywords that appear as standalone words
         for keyword, symbol in sorted_keywords:
             if symbol in space_consuming_symbols:
                 # For these symbols, consume surrounding spaces
-                pattern = rf'\s*\b{re.escape(keyword)}\b\s*'
+                pattern = rf"\s*\b{re.escape(keyword)}\b\s*"
                 # Simple replacement that consumes spaces
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
             else:
                 # For other keywords, preserve word boundaries
-                pattern = rf'\b{re.escape(keyword)}\b'
+                pattern = rf"\b{re.escape(keyword)}\b"
                 text = re.sub(pattern, symbol, text, flags=re.IGNORECASE)
 
         return text
@@ -1003,11 +1002,11 @@ class TextFormatter:
         text_stripped = text.strip()
 
         # Check if text ends with punctuation
-        if not text_stripped or text_stripped[-1] not in '.!?':
+        if not text_stripped or text_stripped[-1] not in ".!?":
             return text
 
         # Remove trailing punctuation for analysis (handle multiple punctuation marks)
-        text_no_punct = re.sub(r'[.!?]+$', '', text_stripped).strip()
+        text_no_punct = re.sub(r"[.!?]+$", "", text_stripped).strip()
 
         # Define entity types that should be standalone (no punctuation when alone)
         standalone_entity_types = {
@@ -1031,7 +1030,7 @@ class TextFormatter:
                 if entity.type in standalone_entity_types:
                     # Check if this entity covers at least 70% of the text
                     try:
-                        entity_length = len(entity.text) if hasattr(entity, 'text') else (entity.end - entity.start)
+                        entity_length = len(entity.text) if hasattr(entity, "text") else (entity.end - entity.start)
                         text_length = len(text_no_punct)
                         coverage = entity_length / text_length if text_length > 0 else 0
 

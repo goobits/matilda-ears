@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-FileTranscribeMode - Transcribe audio from a file
+"""FileTranscribeMode - Transcribe audio from a file
 
 Simple mode that loads a WAV/audio file and transcribes it using Whisper.
 No audio capture, no VAD - just direct file-to-text transcription.
@@ -46,7 +45,7 @@ class FileTranscribeMode:
             return
 
         # Check file extension
-        supported = {'.wav', '.mp3', '.m4a', '.flac', '.ogg', '.webm'}
+        supported = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
         if file_path.suffix.lower() not in supported:
             await self._send_error(f"Unsupported format: {file_path.suffix}. Supported: {supported}")
             return
@@ -76,7 +75,7 @@ class FileTranscribeMode:
              # Determine backend from config
             backend_name = self.config.get("transcription", {}).get("backend", "faster_whisper")
             self.logger.info(f"Initializing backend: {backend_name}")
-            
+
             # Get backend class
             BackendClass = get_backend_class(backend_name)
             self.backend = BackendClass()
@@ -165,12 +164,11 @@ class FileTranscribeMode:
                 "timestamp": time.time()
             }
             print(json.dumps(output), flush=True)
-        else:
-            # Plain text mode - just print the text
-            if result.get("success") and result.get("text"):
-                print(result["text"], flush=True)
-            elif result.get("error"):
-                print(f"Error: {result['error']}", file=sys.stderr)
+        # Plain text mode - just print the text
+        elif result.get("success") and result.get("text"):
+            print(result["text"], flush=True)
+        elif result.get("error"):
+            print(f"Error: {result['error']}", file=sys.stderr)
 
     async def _send_error(self, message: str):
         """Send error message."""

@@ -7,8 +7,8 @@ Provides:
 - StreamingError: Base exception for streaming errors
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, List
+from dataclasses import dataclass
+from typing import Optional
 from enum import Enum
 
 
@@ -147,7 +147,6 @@ class StreamingMetrics:
 class StreamingError(Exception):
     """Base exception for streaming errors."""
 
-    pass
 
 
 class SessionNotFoundError(StreamingError):

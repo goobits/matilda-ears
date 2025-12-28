@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-GOOBITS STT Operation Modes
+"""GOOBITS STT Operation Modes
 
 This module contains different operation modes for the STT engine:
 - conversation: Continuous VAD-based listening
@@ -34,4 +33,4 @@ try:
 except ImportError:
     pass
 
-__all__ = ["ConversationMode", "TapToTalkMode", "HoldToTalkMode"]
+__all__ = ["ConversationMode", "HoldToTalkMode", "TapToTalkMode"]

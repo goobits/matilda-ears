@@ -7,7 +7,6 @@ StreamingSession coordinates the streaming pipeline:
 - Returns StreamingResult to caller
 """
 
-import asyncio
 import time
 import logging
 from typing import Optional, TYPE_CHECKING
@@ -50,6 +49,7 @@ class StreamingSession:
 
         # Finalize session
         final_result = await session.finalize()
+
     """
 
     def __init__(
@@ -64,6 +64,7 @@ class StreamingSession:
             session_id: Unique session identifier
             strategy: Streaming strategy to use
             config: Streaming configuration
+
         """
         self.session_id = session_id
         self.strategy = strategy
@@ -122,6 +123,7 @@ class StreamingSession:
         Raises:
             StreamingError: If session not active
             SessionTimeoutError: If session has timed out
+
         """
         # Check state
         if self._state == StreamingState.IDLE:
@@ -175,6 +177,7 @@ class StreamingSession:
 
         Returns:
             Final StreamingResult with is_final=True
+
         """
         if self._state == StreamingState.COMPLETED:
             raise StreamingError(f"Session {self.session_id} already finalized")
@@ -230,6 +233,7 @@ class StreamingSession:
 
         Returns:
             True if session should be timed out
+
         """
         if not self._last_activity:
             return False
