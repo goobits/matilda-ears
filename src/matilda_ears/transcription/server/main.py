@@ -5,6 +5,7 @@ This module provides:
 - main: Main entry point function
 """
 
+import argparse
 import asyncio
 import sys
 import traceback
@@ -97,10 +98,27 @@ async def start_server(
 
 
 def main() -> None:
-    """Main function to start the server."""
+    """Main function to start the server.
+
+    Supports command-line arguments for port and host configuration,
+    allowing the Matilda manager to dynamically configure the server.
+    """
+    parser = argparse.ArgumentParser(description="Matilda Ears WebSocket Server")
+    parser.add_argument("--port", type=int, default=None, help="Port to bind to (default: from config)")
+    parser.add_argument("--host", type=str, default=None, help="Host to bind to (default: 0.0.0.0)")
+    parser.add_argument("--model", type=str, default=None, help="Whisper model to use")
+    parser.add_argument("--device", type=str, default=None, help="Device for inference (cuda, cpu, mlx)")
+    args = parser.parse_args()
+
     from .core import MatildaWebSocketServer
 
     server = MatildaWebSocketServer()
+
+    # Override port/host if provided via CLI
+    if args.port is not None:
+        server.port = args.port
+    if args.host is not None:
+        server.host = args.host
 
     try:
         asyncio.run(server.start_server())
