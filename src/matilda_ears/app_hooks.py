@@ -11,6 +11,9 @@ import os
 import sys
 from types import SimpleNamespace
 
+# i18n support
+from matilda_ears.i18n import t, t_common
+
 # Check for Rich availability
 try:
     from rich.console import Console
@@ -268,10 +271,10 @@ def on_transcribe(
     ])
 
     if modes_selected == 0:
-        print("No operation mode selected. Use --help for options.", file=sys.stderr)
+        print(t("errors.no_mode_selected"), file=sys.stderr)
         sys.exit(0)
     elif modes_selected > 1 and not (tap_to_talk and hold_to_talk):
-        print("Error: Multiple operation modes selected. Choose one mode.", file=sys.stderr)
+        print(t("errors.multiple_modes"), file=sys.stderr)
         sys.exit(1)
 
     # Run the async worker
@@ -314,14 +317,14 @@ def on_status(json=False, ctx=None, **kwargs):
         if output_format == "json":
             print(json_module.dumps(status, indent=2))
         elif console:
-            console.print("Ears System Status", style="bold blue")
+            console.print(t("status.title"), style="bold blue")
             console.print("-" * 40, style="blue")
             console.print(f"Python {status['python_version']}")
             for name, stat in status["dependencies"].items():
-                icon = "[green]OK[/green]" if stat == "Available" else "[red]Missing[/red]"
+                icon = f"[green]{t_common('status.available')}[/green]" if stat == "Available" else f"[red]{t_common('status.not_available')}[/red]"
                 console.print(f"  {name}: {icon}")
         else:
-            print("Ears System Status")
+            print(t("status.title"))
             print(f"Python: {status['python_version']}")
             for name, stat in status["dependencies"].items():
                 print(f"  {name}: {stat}")
@@ -330,7 +333,7 @@ def on_status(json=False, ctx=None, **kwargs):
         if output_format == "json":
             print(json_module.dumps({"error": str(e), "status": "failed"}))
         else:
-            print(f"Status check failed: {e}", file=sys.stderr)
+            print(t_common("errors.generic", message=str(e)), file=sys.stderr)
 
 
 def on_models(json=False, ctx=None, **kwargs):
@@ -338,25 +341,26 @@ def on_models(json=False, ctx=None, **kwargs):
     output_format = "json" if json else "text"
     console = get_console()
 
+    # Use translated model info
     models = [
-        {"name": "tiny", "size": "37 MB", "speed": "Very Fast", "accuracy": "Basic"},
-        {"name": "base", "size": "142 MB", "speed": "Fast", "accuracy": "Good"},
-        {"name": "small", "size": "463 MB", "speed": "Medium", "accuracy": "Better"},
-        {"name": "medium", "size": "1.4 GB", "speed": "Slow", "accuracy": "High"},
-        {"name": "large", "size": "2.9 GB", "speed": "Very Slow", "accuracy": "Highest"}
+        {"name": t("models.tiny.name"), "size": t("models.tiny.size"), "speed": t("models.tiny.speed"), "accuracy": t("models.tiny.quality")},
+        {"name": t("models.base.name"), "size": t("models.base.size"), "speed": t("models.base.speed"), "accuracy": t("models.base.quality")},
+        {"name": t("models.small.name"), "size": t("models.small.size"), "speed": t("models.small.speed"), "accuracy": t("models.small.quality")},
+        {"name": t("models.medium.name"), "size": t("models.medium.size"), "speed": t("models.medium.speed"), "accuracy": t("models.medium.quality")},
+        {"name": t("models.large.name"), "size": t("models.large.size"), "speed": t("models.large.speed"), "accuracy": t("models.large.quality")},
     ]
 
     if output_format == "json":
         print(json_module.dumps({"available_models": models}, indent=2))
     elif console:
-        console.print("Available Whisper Models", style="bold blue")
+        console.print(t("models.title"), style="bold blue")
         console.print("-" * 50, style="blue")
-        console.print(f"{'Name':<10} {'Size':<10} {'Speed':<12} {'Accuracy'}")
+        console.print(f"{t('models.columns.name'):<10} {t('models.columns.size'):<10} {t('models.columns.speed'):<12} {t('models.columns.quality')}")
         console.print("-" * 50)
         for m in models:
             console.print(f"{m['name']:<10} {m['size']:<10} {m['speed']:<12} {m['accuracy']}")
     else:
-        print("Available Whisper Models:")
+        print(f"{t('models.title')}:")
         for m in models:
             print(f"  {m['name']}: {m['size']} - {m['speed']} - {m['accuracy']}")
 
