@@ -1,17 +1,42 @@
 """
-Bridge module for Matilda Ears CLI hooks.
+Hook implementations for Matilda Ears - Speech-to-Text Engine.
 
-This module bridges the generated CLI to the real hook implementations
-in matilda_ears.app_hooks.
+This file contains the business logic for your CLI commands.
+Implement the hook functions below to handle your CLI commands.
+
+IMPORTANT: Hook names must use snake_case with 'on_' prefix
+Example:
+- Command 'hello' -> Hook function 'on_hello'
+- Command 'hello-world' -> Hook function 'on_hello_world'
 """
 
-# Import all hooks from the real implementation
-from matilda_ears.app_hooks import (
-    on_status,
-    on_models,
-    on_transcribe,
-    run_server,
-)
-
-# Re-export for the generated CLI
-__all__ = ["on_status", "on_models", "on_transcribe", "run_server"]
+# Import any modules you need here
+import sys
+import json
+from typing import Any, Dict, Optional
+def on_status(    json: bool = False,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle status command.        json: Output JSON format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print(f"Executing status command")
+    return {
+        "status": "success",
+        "message": "status completed successfully"
+    }
+def on_models(    json: bool = False,    **kwargs
+) -> Dict[str, Any]:
+    """
+    Handle models command.        json: Output JSON format
+    Returns:
+        Dictionary with status and optional results
+    """
+    # Add your business logic here
+    print(f"Executing models command")
+    return {
+        "status": "success",
+        "message": "models completed successfully"
+    }

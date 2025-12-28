@@ -25,7 +25,7 @@ import click
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with color support."""
-    
+
     COLORS = {
         'DEBUG': '\033[36m',    # Cyan
         'INFO': '\033[32m',     # Green
@@ -34,7 +34,7 @@ class ColoredFormatter(logging.Formatter):
         'CRITICAL': '\033[35m', # Magenta
     }
     RESET = '\033[0m'
-    
+
     def format(self, record):
         log_color = self.COLORS.get(record.levelname, self.RESET)
         record.levelname = f"{log_color}{record.levelname}{self.RESET}"
@@ -43,7 +43,7 @@ class ColoredFormatter(logging.Formatter):
 def setup_logging(level=logging.INFO, log_file=None):
     """Configure logging for the CLI."""
     handlers = []
-    
+
     # Console handler with colors
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(ColoredFormatter(
@@ -51,7 +51,7 @@ def setup_logging(level=logging.INFO, log_file=None):
         datefmt='%Y-%m-%d %H:%M:%S'
     ))
     handlers.append(console_handler)
-    
+
     # File handler if specified
     if log_file:
         file_handler = logging.FileHandler(log_file)
@@ -59,7 +59,7 @@ def setup_logging(level=logging.INFO, log_file=None):
             '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
         ))
         handlers.append(file_handler)
-    
+
     logging.basicConfig(
         level=level,
         handlers=handlers
@@ -73,17 +73,17 @@ logger = logging.getLogger(__name__)
 
 class ConfigManager:
     """Manage CLI configuration."""
-    
+
     def __init__(self, config_file: Optional[Path] = None):
         """Initialize configuration manager."""
         if config_file is None:
             config_dir = Path.home() / '.config' / 'ears'
             config_dir.mkdir(parents=True, exist_ok=True)
             config_file = config_dir / 'config.yaml'
-        
+
         self.config_file = Path(config_file)
         self.config = self._load_config()
-    
+
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from file."""
         if self.config_file.exists():
@@ -94,7 +94,7 @@ class ConfigManager:
                 logger.warning(f"Failed to load config: {e}")
                 return {}
         return {}
-    
+
     def save_config(self) -> bool:
         """Save configuration to file."""
         try:
@@ -104,7 +104,7 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
             return False
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
         keys = key.split('.')
@@ -117,7 +117,7 @@ class ConfigManager:
             else:
                 return default
         return value
-    
+
     def set(self, key: str, value: Any):
         """Set configuration value."""
         keys = key.split('.')
@@ -165,12 +165,12 @@ def handle_error(error: Exception, verbose: bool = False):
 
 class CLIContext:
     """Shared context for CLI commands."""
-    
+
     def __init__(self, config: ConfigManager, verbose: bool = False, debug: bool = False):
         self.config = config
         self.verbose = verbose
         self.debug = debug
-        
+
         # Setup logging based on verbosity
         if debug:
             setup_logging(logging.DEBUG)
@@ -186,7 +186,7 @@ class CLIContext:
 def load_hooks():
     """Load user-defined hooks."""
     try:
-        from . import cli_hooks
+        import cli_hooks
         return cli_hooks
     except ImportError:
         logger.warning("No cli_hooks.py found. Please create one with your command implementations.")
@@ -201,17 +201,7 @@ hooks = load_hooks()
 # CLI COMMANDS
 # ============================================================================
 
-def get_version() -> str:
-    """Get the package version."""
-    try:
-        from importlib.metadata import version
-        return version("goobits-matilda-ears")
-    except Exception:
-        return "1.0.0"
-
-
 @click.group()
-@click.version_option(version=get_version(), prog_name="Matilda Ears")
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 @click.option('--debug', is_flag=True, help='Enable debug output')
 @click.option('--config', type=click.Path(), help='Path to config file')
@@ -223,7 +213,7 @@ def cli(ctx, verbose, debug, config):
     ctx.obj = CLIContext(config_manager, verbose, debug)
 
 @cli.command('status')
-@click.option('--json', '-None', default=None,              help='Output JSON format')
+@click.option('--json', '-', default=None,              help='Output JSON format')
 @click.pass_obj
 def status(ctx, json):
     """Show system status and capabilities"""
@@ -237,7 +227,7 @@ def status(ctx, json):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
-@click.option('--json', '-None', default=None,              help='Output JSON format')
+@click.option('--json', '-', default=None,              help='Output JSON format')
 @click.pass_obj
 def models(ctx, json):
     """List available Whisper models"""
@@ -250,87 +240,6 @@ def models(ctx, json):
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
-
-
-@cli.command('serve')
-@click.option('--port', '-p', type=int, default=8769, help='Server port (default: 8769)')
-@click.option('--host', type=str, default='0.0.0.0', help='Server host (default: 0.0.0.0)')
-@click.option('--model', '-m', type=str, default='base', help='Whisper model size')
-@click.option('--device', '-d', type=str, help='Compute device (cpu, cuda, mlx)')
-@click.option('--json', is_flag=True, help='Output JSON format')
-@click.pass_obj
-def serve(ctx, port, host, model, device, json):
-    """Run as WebSocket server for remote clients"""
-    try:
-        if hooks and hasattr(hooks, 'on_transcribe'):
-            hooks.on_transcribe(
-                server=True,
-                port=port,
-                host=host,
-                model=model,
-                device=device,
-                json_output=json,
-                debug=ctx.debug,
-            )
-        else:
-            logger.error("Hook 'on_transcribe' not implemented in cli_hooks.py")
-            sys.exit(1)
-    except Exception as e:
-        handle_error(e, ctx.verbose)
-
-
-@cli.command('listen')
-@click.option('--once', is_flag=True, help='Single utterance capture with VAD')
-@click.option('--conversation', is_flag=True, help='Always listening mode')
-@click.option('--tap-to-talk', type=str, metavar='KEY', help='Tap KEY to start/stop')
-@click.option('--hold-to-talk', type=str, metavar='KEY', help='Hold KEY to record')
-@click.option('--model', '-m', type=str, default='base', help='Whisper model size')
-@click.option('--json', is_flag=True, help='Output JSON format')
-@click.pass_obj
-def listen(ctx, once, conversation, tap_to_talk, hold_to_talk, model, json):
-    """Start listening for speech input"""
-    try:
-        if hooks and hasattr(hooks, 'on_transcribe'):
-            # Default to --once if no mode specified
-            if not any([once, conversation, tap_to_talk, hold_to_talk]):
-                once = True
-            hooks.on_transcribe(
-                listen_once=once,
-                conversation=conversation,
-                tap_to_talk=tap_to_talk,
-                hold_to_talk=hold_to_talk,
-                model=model,
-                json_output=json,
-                debug=ctx.debug,
-            )
-        else:
-            logger.error("Hook 'on_transcribe' not implemented in cli_hooks.py")
-            sys.exit(1)
-    except Exception as e:
-        handle_error(e, ctx.verbose)
-
-
-@cli.command('transcribe')
-@click.argument('file', type=click.Path(exists=True))
-@click.option('--model', '-m', type=str, default='base', help='Whisper model size')
-@click.option('--json', is_flag=True, help='Output JSON format')
-@click.pass_obj
-def transcribe(ctx, file, model, json):
-    """Transcribe an audio file"""
-    try:
-        if hooks and hasattr(hooks, 'on_transcribe'):
-            hooks.on_transcribe(
-                file=file,
-                model=model,
-                json_output=json,
-                debug=ctx.debug,
-            )
-        else:
-            logger.error("Hook 'on_transcribe' not implemented in cli_hooks.py")
-            sys.exit(1)
-    except Exception as e:
-        handle_error(e, ctx.verbose)
-
 
 # ============================================================================
 # INTERACTIVE MODE (if enabled)
