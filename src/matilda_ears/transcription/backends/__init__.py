@@ -1,5 +1,4 @@
-"""
-Transcription backends package.
+"""Transcription backends package.
 
 Supported backends:
 - faster_whisper: Cross-platform Whisper with CUDA support (default)
@@ -7,6 +6,8 @@ Supported backends:
 - huggingface: Universal backend supporting 17,000+ HuggingFace ASR models
 """
 import logging
+import platform
+import subprocess
 from typing import Optional, Type, List, Dict
 from .base import TranscriptionBackend
 from .faster_whisper_backend import FasterWhisperBackend
@@ -15,6 +16,56 @@ logger = logging.getLogger(__name__)
 
 PARAKEET_AVAILABLE: Optional[bool] = None
 HUGGINGFACE_AVAILABLE: Optional[bool] = None
+IS_APPLE_SILICON: Optional[bool] = None
+
+
+def _is_apple_silicon() -> bool:
+    """Detect if running on Apple Silicon (M1/M2/M3/M4 chips)."""
+    global IS_APPLE_SILICON
+    if IS_APPLE_SILICON is not None:
+        return IS_APPLE_SILICON
+
+    # Must be macOS
+    if platform.system() != "Darwin":
+        IS_APPLE_SILICON = False
+        return False
+
+    # Check for ARM architecture (Apple Silicon)
+    machine = platform.machine().lower()
+    if machine in ("arm64", "aarch64"):
+        IS_APPLE_SILICON = True
+        logger.debug("Detected Apple Silicon (ARM64)")
+        return True
+
+    # Fallback: check via sysctl (handles Rosetta translation)
+    try:
+        result = subprocess.run(
+            ["sysctl", "-n", "machdep.cpu.brand_string"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and "Apple" in result.stdout:
+            IS_APPLE_SILICON = True
+            logger.debug(f"Detected Apple Silicon via sysctl: {result.stdout.strip()}")
+            return True
+    except Exception:
+        pass
+
+    IS_APPLE_SILICON = False
+    return False
+
+
+def get_recommended_backend() -> str:
+    """Get the recommended backend for the current platform.
+
+    Returns:
+        'parakeet' on Apple Silicon if available, otherwise 'faster_whisper'.
+    """
+    if _is_apple_silicon() and _check_parakeet_available():
+        logger.info("Recommending parakeet backend for Apple Silicon")
+        return "parakeet"
+    return "faster_whisper"
 
 
 def _check_parakeet_available() -> bool:
@@ -23,7 +74,7 @@ def _check_parakeet_available() -> bool:
     if PARAKEET_AVAILABLE is not None:
         return PARAKEET_AVAILABLE
     try:
-        from . import parakeet_backend as _parakeet_backend
+        from . import parakeet_backend as _parakeet_backend  # noqa: F401
         PARAKEET_AVAILABLE = True
     except Exception as exc:
         logger.debug(f"Parakeet backend unavailable: {exc}")
@@ -37,7 +88,7 @@ def _check_huggingface_available() -> bool:
     if HUGGINGFACE_AVAILABLE is not None:
         return HUGGINGFACE_AVAILABLE
     try:
-        from . import huggingface_backend as _huggingface_backend
+        from . import huggingface_backend as _huggingface_backend  # noqa: F401
         HUGGINGFACE_AVAILABLE = True
     except Exception as exc:
         logger.debug(f"HuggingFace backend unavailable: {exc}")
@@ -46,11 +97,11 @@ def _check_huggingface_available() -> bool:
 
 
 def get_available_backends() -> List[str]:
-    """
-    Return list of available backend names.
+    """Return list of available backend names.
 
     Returns:
         List of backend names that are currently available.
+
     """
     backends = ["faster_whisper"]
     if _check_parakeet_available():
@@ -61,11 +112,11 @@ def get_available_backends() -> List[str]:
 
 
 def get_backend_info() -> Dict[str, Dict]:
-    """
-    Return detailed info about all backends.
+    """Return detailed info about all backends.
 
     Returns:
         Dict mapping backend name to info dict with 'available', 'description', 'install'.
+
     """
     return {
         "faster_whisper": {
@@ -90,8 +141,7 @@ def get_backend_info() -> Dict[str, Dict]:
 
 
 def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
-    """
-    Factory function to get the backend class based on name.
+    """Factory function to get the backend class based on name.
 
     Args:
         backend_name: 'faster_whisper', 'parakeet', or 'huggingface'
@@ -101,6 +151,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
 
     Raises:
         ValueError: If backend is unknown or unavailable.
+
     """
     if backend_name == "faster_whisper":
         return FasterWhisperBackend
@@ -137,5 +188,5 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
         f"  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support\n"
         f"  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)\n"
         f"  - 'huggingface': Universal HuggingFace ASR (requires [huggingface] extras)\n"
-        f"Check your config.json: {{\"transcription\": {{\"backend\": \"{available[0]}\"}}}}"
+        f'Check your config.json: {{"transcription": {{"backend": "{available[0]}"}}}}'
     )

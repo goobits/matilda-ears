@@ -41,7 +41,6 @@ class ConfigLoader:
 
     def _find_config_file(self) -> Path:
         """Find config file in multiple locations"""
-        
         # Method 1: Try package data (for installed packages)
         try:
             import importlib.resources
@@ -57,20 +56,20 @@ class ConfigLoader:
                         return config_path
         except (ImportError, FileNotFoundError, ModuleNotFoundError):
             pass
-        
+
         # Method 2: Try relative to source code (development mode)
         current = Path(__file__).parent.parent.parent  # Go up 3 levels: core -> src -> project root
         for filename in ["config.jsonc", "config.json"]:
             config_path = current / filename
             if config_path.exists():
                 return config_path
-        
+
         # Method 3: Try current working directory
         for filename in ["config.jsonc", "config.json"]:
             config_path = Path.cwd() / filename
             if config_path.exists():
                 return config_path
-        
+
         # Method 4: Create a default config
         return self._create_default_config()
 
@@ -78,8 +77,11 @@ class ConfigLoader:
         """Create a default config file in temp directory"""
         import tempfile
         import json
-        
+
         default_config = {
+            "transcription": {
+                "backend": "auto"
+            },
             "whisper": {
                 "model": "base",
                 "device": "auto",
@@ -170,12 +172,12 @@ class ConfigLoader:
                 "server_stop_delay": 1.0
             }
         }
-        
+
         # Create temporary config file
         temp_config = Path(tempfile.gettempdir()) / "goobits-stt-config.json"
-        with open(temp_config, 'w') as f:
+        with open(temp_config, "w") as f:
             json.dump(default_config, f, indent=2)
-        
+
         return temp_config
 
     def _setup_paths(self) -> None:
@@ -238,12 +240,12 @@ class ConfigLoader:
         env_key = os.environ.get("STT_JWT_SECRET")
         if env_key and self._validate_secret_key(env_key):
             return env_key
-        
+
         # 2. Config file (fallback for development)
         config_key = self.get("server.websocket.jwt_secret_key")
         if config_key and config_key != "GENERATE_RANDOM_SECRET_HERE" and self._validate_secret_key(config_key):
             return str(config_key)
-        
+
         # 3. Auto-generate in memory only (no file modification)
         import logging
         logger = logging.getLogger(__name__)
@@ -269,10 +271,18 @@ class ConfigLoader:
 
     @property
     def whisper_model(self) -> str:
+        # Check environment variable first
+        env_model = os.environ.get("EARS_MODEL")
+        if env_model:
+            return env_model
         return str(self.get("whisper.model", "large-v3-turbo"))
 
     @property
     def whisper_device(self) -> str:
+        # Check environment variable first
+        env_device = os.environ.get("EARS_DEVICE")
+        if env_device:
+            return env_device
         return str(self.get("whisper.device", "cuda"))
 
     @property
@@ -329,8 +339,30 @@ class ConfigLoader:
 
     @property
     def transcription_backend(self) -> str:
-        """Get the transcription backend to use."""
-        return str(self.get("transcription.backend", "faster_whisper"))
+        """Get the transcription backend to use.
+
+        If set to 'auto', automatically selects the best backend:
+        - parakeet on Apple Silicon (if available)
+        - faster_whisper on other platforms
+
+        Prioritizes 'EARS_BACKEND' environment variable if set.
+
+        Returns:
+            Backend name: 'faster_whisper', 'parakeet', or 'huggingface'
+        """
+        # Check environment variable first
+        env_backend = os.environ.get("EARS_BACKEND")
+        if env_backend:
+            return env_backend
+
+        backend = str(self.get("transcription.backend", "auto"))
+
+        if backend == "auto":
+            # Import here to avoid circular imports
+            from matilda_ears.transcription.backends import get_recommended_backend
+            return get_recommended_backend()
+
+        return backend
 
     def get_hotkey_config(self, key_name: str) -> Dict[str, Any]:
         """Get configuration for a specific hotkey from array"""
@@ -659,7 +691,7 @@ def setup_logging(
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-    
+
     # Prevent propagation to root logger to avoid duplicate console output
     logger.propagate = False
 
