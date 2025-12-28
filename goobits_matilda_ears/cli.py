@@ -213,7 +213,7 @@ def cli(ctx, verbose, debug, config):
     ctx.obj = CLIContext(config_manager, verbose, debug)
 
 @cli.command('status')
-@click.option('--json', '-', default=None,              help='Output JSON format')
+@click.option('--json', is_flag=True, default=None,              help="Output JSON format")
 @click.pass_obj
 def status(ctx, json):
     """Show system status and capabilities"""
@@ -227,7 +227,7 @@ def status(ctx, json):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
-@click.option('--json', '-', default=None,              help='Output JSON format')
+@click.option('--json', is_flag=True, default=None,              help="Output JSON format")
 @click.pass_obj
 def models(ctx, json):
     """List available Whisper models"""

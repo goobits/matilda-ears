@@ -64,7 +64,6 @@ async def start_server(
 
     protocol = "wss" if server.ssl_enabled else "ws"
     logger.info(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
-    logger.info(f"Your Ubuntu IP: {server_host} (Mac clients should connect to this IP)")
     logger.info("Authentication: JWT required")
     logger.info(f"Backend: {server.backend_name}")
     if server.backend_name == "faster_whisper":
