@@ -1067,9 +1067,7 @@ main() {
     
     # Header
     if [[ "$TREE_MODE" == "true" ]]; then
-        # POSIX-compatible capitalization (macOS has Bash 3.2)
-        capitalized_cmd="$(echo "$command" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
-        tree_start "$capitalized_cmd Process"
+        tree_start "${command^} Process"
     else
         echo
         log_info "Starting $DISPLAY_NAME setup..."

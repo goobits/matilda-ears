@@ -186,15 +186,14 @@ class CLIContext:
 def load_hooks():
     """Load user-defined hooks."""
     try:
-        from goobits_matilda_ears import cli_hooks
+        from . import cli_hooks
         return cli_hooks
     except ImportError:
-        try:
-            from matilda_ears import app_hooks
-            return app_hooks
-        except ImportError:
-            logger.warning("No hooks module found.")
-            return None
+        logger.warning("No cli_hooks.py found. Please create one with your command implementations.")
+        logger.warning("Example:")
+        logger.warning("  def on_build(ctx, **kwargs):")
+        logger.warning("      print('Build command implementation')")
+        return None
 
 hooks = load_hooks()
 
@@ -214,7 +213,7 @@ def cli(ctx, verbose, debug, config):
     ctx.obj = CLIContext(config_manager, verbose, debug)
 
 @cli.command('status')
-@click.option('--json', is_flag=True,              help='Output JSON format')
+@click.option('--json', '-None', default=None,              help='Output JSON format')
 @click.pass_obj
 def status(ctx, json):
     """Show system status and capabilities"""
@@ -228,7 +227,7 @@ def status(ctx, json):
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
-@click.option('--json', is_flag=True,              help='Output JSON format')
+@click.option('--json', '-None', default=None,              help='Output JSON format')
 @click.pass_obj
 def models(ctx, json):
     """List available Whisper models"""

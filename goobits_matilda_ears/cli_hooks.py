@@ -1,18 +1,16 @@
 """
-Hook implementations for Matilda Ears - Speech-to-Text Engine.
+Bridge module for Matilda Ears CLI hooks.
 
-This file proxies to the actual implementations in matilda_ears.app_hooks.
+This module bridges the generated CLI to the real hook implementations
+in matilda_ears.app_hooks.
 """
 
-# Re-export all hooks from the main app_hooks module
+# Import all hooks from the real implementation
 from matilda_ears.app_hooks import (
-    on_transcribe,
     on_status,
     on_models,
+    on_transcribe,
 )
 
-__all__ = [
-    "on_transcribe",
-    "on_status",
-    "on_models",
-]
+# Re-export for the generated CLI
+__all__ = ["on_status", "on_models", "on_transcribe"]
