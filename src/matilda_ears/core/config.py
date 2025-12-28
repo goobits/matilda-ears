@@ -537,6 +537,32 @@ class ConfigLoader:
         """Get number of audio channels"""
         return int(self.get("audio.channels", 1))
 
+    # Wake word configuration
+    @property
+    def wake_word_enabled(self) -> bool:
+        """Check if wake word detection is enabled"""
+        return bool(self.get("modes.wake_word.enabled", False))
+
+    @property
+    def wake_word_agents(self) -> List[str]:
+        """Get list of wake word agents"""
+        return list(self.get("modes.wake_word.agents", ["Matilda"]))
+
+    @property
+    def wake_word_threshold(self) -> float:
+        """Get wake word detection threshold"""
+        return float(self.get("modes.wake_word.threshold", 0.5))
+
+    @property
+    def wake_word_silence_duration(self) -> float:
+        """Get silence duration to end utterance capture"""
+        return float(self.get("modes.wake_word.silence_duration", 0.8))
+
+    @property
+    def wake_word_noise_suppression(self) -> bool:
+        """Check if noise suppression is enabled for wake word"""
+        return bool(self.get("modes.wake_word.noise_suppression", True))
+
     # Embedded server configuration
     @property
     def embedded_server_enabled(self) -> Union[bool, str]:

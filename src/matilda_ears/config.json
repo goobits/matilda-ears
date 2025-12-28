@@ -77,6 +77,15 @@
       "min_speech_duration_s": 0.3,
       "max_silence_duration_s": 0.8,
       "max_recording_duration_s": 30.0
+    },
+    "wake_word": {
+      "enabled": false,
+      "agents": ["Matilda"],
+      "threshold": 0.5,
+      "vad_threshold": 0.5,
+      "min_speech_duration": 0.25,
+      "silence_duration": 0.8,
+      "noise_suppression": true
     }
   },
   "text_formatting": {

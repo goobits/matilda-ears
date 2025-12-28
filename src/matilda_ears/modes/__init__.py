@@ -33,4 +33,10 @@ try:
 except ImportError:
     pass
 
-__all__ = ["ConversationMode", "HoldToTalkMode", "TapToTalkMode"]
+WakeWordMode: Optional[Type] = None
+try:
+    from ..wake_word.mode import WakeWordMode
+except ImportError:
+    pass
+
+__all__ = ["ConversationMode", "HoldToTalkMode", "TapToTalkMode", "WakeWordMode"]

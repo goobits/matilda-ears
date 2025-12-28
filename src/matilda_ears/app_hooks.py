@@ -141,6 +141,31 @@ async def run_server(args):
             print(f"Error: {error_msg}", file=sys.stderr)
 
 
+async def run_wake_word(args):
+    """Run wake word detection mode."""
+    try:
+        from matilda_ears.wake_word.mode import WakeWordMode
+        mode = WakeWordMode(args)
+        await mode.run()
+    except ImportError as e:
+        error_msg = f"Wake word mode not available: {e}. Install with: pip install goobits-matilda-ears[wake_word]"
+        if args.format == "json":
+            print(json_module.dumps({"error": error_msg, "mode": "wake_word"}))
+        else:
+            print(f"Error: {error_msg}", file=sys.stderr)
+    except Exception as e:
+        error_result = {
+            "error": str(e),
+            "status": "failed",
+            "mode": "wake_word"
+        }
+        if args.format == "json":
+            print(json_module.dumps(error_result))
+        else:
+            print(f"Error: {e}", file=sys.stderr)
+        raise
+
+
 async def async_worker(args):
     """Async worker for STT operations."""
     try:
@@ -148,6 +173,8 @@ async def async_worker(args):
             await run_listen_once(args)
         elif args.conversation:
             await run_conversation(args)
+        elif args.wake_word:
+            await run_wake_word(args)
         elif args.tap_to_talk and args.hold_to_talk:
             # Combined mode
             print(json_module.dumps({
@@ -183,6 +210,7 @@ async def async_worker(args):
 def on_transcribe(
     listen_once=False,
     conversation=False,
+    wake_word=None,
     tap_to_talk=None,
     hold_to_talk=None,
     file=None,
@@ -197,6 +225,8 @@ def on_transcribe(
     device=None,
     sample_rate=16000,
     config=None,
+    agents=None,
+    threshold=None,
 ):
     """Main transcription hook - handles all operation modes."""
     # Ensure stdout is unbuffered for piping
@@ -206,6 +236,7 @@ def on_transcribe(
     args = SimpleNamespace(
         listen_once=listen_once,
         conversation=conversation,
+        wake_word=wake_word,
         tap_to_talk=tap_to_talk,
         hold_to_talk=hold_to_talk,
         file=file,
@@ -221,12 +252,15 @@ def on_transcribe(
         device=device,
         sample_rate=sample_rate,
         config=config,
+        agents=agents,
+        threshold=threshold,
     )
 
     # Check if no mode selected
     modes_selected = sum([
         bool(listen_once),
         bool(conversation),
+        bool(wake_word),
         bool(tap_to_talk),
         bool(hold_to_talk),
         bool(file),
@@ -338,6 +372,7 @@ __all__ = [
     # Mode runners (for testing)
     "run_listen_once",
     "run_conversation",
+    "run_wake_word",
     "run_tap_to_talk",
     "run_hold_to_talk",
     "run_file_transcription",
