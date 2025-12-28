@@ -54,7 +54,7 @@ async def transcribe_audio_from_wav(
 
     try:
         # Transcribe in executor to avoid blocking
-        logger.info(f"Client {client_id}: Starting transcription...")
+        logger.debug(f"Client {client_id}: Starting transcription...")
         loop = asyncio.get_event_loop()
 
         def transcribe_audio():
@@ -74,7 +74,7 @@ async def transcribe_audio_from_wav(
             # No serialization needed (faster_whisper/huggingface can run concurrently)
             text, info = await loop.run_in_executor(None, transcribe_audio)
 
-        logger.info(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
+        logger.debug(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
 
         # Early detection: Skip formatting if transcription contains <unk> tokens (corrupted output)
         if "<unk>" in text:
@@ -86,11 +86,11 @@ async def transcribe_audio_from_wav(
             try:
                 formatted_text = format_transcription(text)
                 if formatted_text != text:
-                    logger.info(
+                    logger.debug(
                         f"Client {client_id}: Formatted text: '{formatted_text[:50]}...' ({len(formatted_text)} chars)"
                     )
                 else:
-                    logger.info(f"Client {client_id}: Text processed (no changes): '{formatted_text[:50]}...'")
+                    logger.debug(f"Client {client_id}: Text processed (no changes): '{formatted_text[:50]}...'")
                 text = formatted_text  # Always use formatted version
             except Exception as e:
                 logger.warning(f"Client {client_id}: Text formatting failed: {e}")

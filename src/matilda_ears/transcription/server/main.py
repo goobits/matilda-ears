@@ -63,18 +63,14 @@ async def start_server(
             logger.warning(f"Health server disabled: {e2}")
 
     protocol = "wss" if server.ssl_enabled else "ws"
-    logger.info(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
-    logger.info("Authentication: JWT required")
-    logger.info(f"Backend: {server.backend_name}")
+    logger.debug(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
+    logger.debug(f"Backend: {server.backend_name}")
     if server.backend_name == "faster_whisper":
-        logger.info(
-            f"Model: {config.whisper_model}, Device: {config.whisper_device_auto}, Compute: {config.whisper_compute_type_auto}"
+        logger.debug(
+            f"Model: {config.whisper_model}, Device: {config.whisper_device_auto}"
         )
     elif server.backend_name == "parakeet":
-        logger.info(f"Model: {config.get('parakeet.model', 'default')}")
-
-    if server.ssl_enabled:
-        logger.info(f"SSL enabled - cert: {config.ssl_cert_file}, verify: {config.ssl_verify_mode}")
+        logger.debug(f"Model: {config.get('parakeet.model', 'default')}")
 
     # Start WebSocket server with SSL support
     server_kwargs = {
@@ -88,9 +84,7 @@ async def start_server(
         server_kwargs["ssl"] = server.ssl_context
 
     async with websockets.serve(server.handle_client, server_host, server_port, **server_kwargs):
-        logger.info("WebSocket Matilda Server is ready for connections!")
-        logger.info(f"Protocol: {protocol.upper()}")
-        logger.info(f"Active clients: {len(server.connected_clients)}")
+        logger.info(f"✓ Ears ready ({server.backend_name}) on {protocol}://{server_host}:{server_port}")
 
         # Keep server running
         await asyncio.Future()

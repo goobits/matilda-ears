@@ -57,16 +57,7 @@ async def handle_binary_audio(
         client_id: Client identifier
 
     """
-    logger.info(f"Client {client_id}: Received binary audio data ({len(wav_data)} bytes)")
-
-    # DEBUG: Save received WAV for analysis
-    debug_dir = "/tmp/stt-debug"
-    os.makedirs(debug_dir, exist_ok=True)
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    debug_path = f"{debug_dir}/web-{timestamp}-{len(wav_data)}b.wav"
-    with open(debug_path, "wb") as f:
-        f.write(wav_data)
-    logger.info(f"DEBUG: Saved received audio to {debug_path}")
+    logger.debug(f"Client {client_id}: Received binary audio ({len(wav_data)} bytes)")
 
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
@@ -168,7 +159,7 @@ async def handle_transcription(
     try:
         # Decode base64 audio
         audio_bytes = base64.b64decode(audio_data_b64)
-        logger.info(f"Client {client_id}: Received {len(audio_bytes)} bytes of audio data")
+        logger.debug(f"Client {client_id}: Received {len(audio_bytes)} bytes of audio data")
 
         # Check audio format and handle Opus decoding if needed
         audio_format = data.get("audio_format", "wav")
@@ -178,7 +169,7 @@ async def handle_transcription(
             try:
                 decoder = OpusBatchDecoder()
                 wav_bytes = decoder.decode_opus_to_wav(audio_bytes, metadata)
-                logger.info(
+                logger.debug(
                     f"Client {client_id}: Decoded Opus ({len(audio_bytes)} bytes) to WAV ({len(wav_bytes)} bytes)"
                 )
                 audio_bytes = wav_bytes
@@ -229,7 +220,7 @@ async def handle_start_stream(
     # Log client info if JWT
     if jwt_payload:
         client_name = jwt_payload.get("client_id", "unknown")
-        logger.info(f"Stream session started by JWT client: {client_name}")
+        logger.debug(f"Stream session started by JWT client: {client_name}")
 
     # Check if model is loaded
     if not server.backend.is_ready:
@@ -260,7 +251,7 @@ async def handle_start_stream(
     # Track if resampling is needed (8kHz -> 16kHz)
     resampling_needed = needs_resampling(sample_rate)
     if resampling_needed:
-        logger.info(
+        logger.debug(
             f"Client {client_id}: Session {session_id} uses {sample_rate}Hz, "
             f"will resample to {TARGET_SAMPLE_RATE}Hz"
         )
@@ -292,7 +283,7 @@ async def handle_start_stream(
         streaming_enabled = True
         strategy_name = streaming_config.strategy
 
-        logger.info(
+        logger.debug(
             f"Client {client_id}: Started streaming session {session_id} "
             f"with {strategy_name} strategy (backend={server.backend_name})"
         )
@@ -305,7 +296,7 @@ async def handle_start_stream(
         streaming_enabled = False
 
     if not streaming_enabled:
-        logger.info(f"Client {client_id}: Started streaming session {session_id} (batch mode)")
+        logger.debug(f"Client {client_id}: Started streaming session {session_id} (batch mode)")
 
     # Send acknowledgment with streaming capability info
     await websocket.send(
@@ -465,12 +456,12 @@ async def handle_pcm_chunk(
             "needs_resampling": resampling_needed,
         }
         if resampling_needed:
-            logger.info(
+            logger.debug(
                 f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch) "
                 f"- will resample to {TARGET_SAMPLE_RATE}Hz"
             )
         else:
-            logger.info(f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch)")
+            logger.debug(f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch)")
 
     pcm_session = server.pcm_sessions[session_id]
 
@@ -576,7 +567,7 @@ async def handle_end_stream(
             )
             # Continue anyway - we have what we have
         else:
-            logger.info(f"Client {client_id}: All {received_chunks} chunks received")
+            logger.debug(f"Client {client_id}: All {received_chunks} chunks received")
 
     # Clean up chunk tracking
     if session_id in server.session_chunk_counts:
@@ -601,7 +592,7 @@ async def handle_end_stream(
                 text = result.confirmed_text
                 duration = result.audio_duration_seconds
 
-                logger.info(
+                logger.debug(
                     f"Client {client_id}: Stream ended (streaming framework). "
                     f"Duration: {duration:.2f}s, Text: {len(text)} chars"
                 )
@@ -640,7 +631,7 @@ async def handle_end_stream(
             output_sample_rate = TARGET_SAMPLE_RATE if pcm_session.get("needs_resampling", False) else pcm_session["sample_rate"]
             duration = len(all_samples) / output_sample_rate
             wav_data = pcm_to_wav(all_samples, output_sample_rate, pcm_session["channels"])
-            logger.info(
+            logger.debug(
                 f"Client {client_id}: PCM stream ended (batch mode). "
                 f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
             )
@@ -648,7 +639,7 @@ async def handle_end_stream(
             # Opus session: get WAV from decoder
             wav_data = decoder.get_wav_data()
             duration = decoder.get_duration()
-            logger.info(
+            logger.debug(
                 f"Client {client_id}: Opus stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes"
             )
         else:

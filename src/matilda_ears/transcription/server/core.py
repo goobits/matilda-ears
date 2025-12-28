@@ -56,7 +56,7 @@ class MatildaWebSocketServer:
         try:
             backend_class = get_backend_class(self.backend_name)
             self.backend = backend_class()
-            logger.info(f"Using transcription backend: {self.backend_name}")
+            logger.debug(f"Using transcription backend: {self.backend_name}")
         except ValueError as e:
             logger.error(f"Failed to initialize backend: {e}")
             # Use package's sys for patchability in tests
@@ -68,12 +68,12 @@ class MatildaWebSocketServer:
         self.transcription_semaphore = None
         if self.backend_name == "parakeet":
             self.transcription_semaphore = asyncio.Semaphore(1)
-            logger.info("GPU serialization enabled: Only 1 concurrent transcription for Parakeet (prevents MPS crashes)")
+            logger.debug("GPU serialization enabled for Parakeet")
 
         # Set MPS fallback for Parakeet to allow CPU fallback for unsupported ops
         if self.backend_name == "parakeet":
             os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
-            logger.info("PYTORCH_ENABLE_MPS_FALLBACK=1 set for Parakeet backend")
+            logger.debug("PYTORCH_ENABLE_MPS_FALLBACK=1 set")
 
         # WebSocket-level session tracking (self-contained)
         self.streaming_sessions = {}  # session_id -> StreamingSession (new framework)
@@ -123,10 +123,9 @@ class MatildaWebSocketServer:
         }
 
         protocol = "wss" if self.ssl_enabled else "ws"
-        logger.info(f"Initializing WebSocket Matilda Server on {protocol}://{self.host}:{self.port}")
-        logger.info("Self-contained session management enabled")
+        logger.debug(f"Initializing server on {protocol}://{self.host}:{self.port}")
         if self.ssl_enabled:
-            logger.info("SSL/TLS encryption enabled")
+            logger.debug("SSL/TLS encryption enabled")
 
     def _wrap_handler(self, handler):
         """Wrap a handler to inject self as the first argument.
@@ -198,7 +197,7 @@ class MatildaWebSocketServer:
 
         try:
             self.connected_clients.add(websocket)
-            logger.info(f"Client {client_id} connected from {client_ip}")
+            logger.debug(f"Client {client_id} connected from {client_ip}")
 
             # Send welcome message
             await websocket.send(
@@ -229,7 +228,7 @@ class MatildaWebSocketServer:
                     await send_error(websocket, f"Processing error: {e!s}")
 
         except websockets.exceptions.ConnectionClosed:
-            logger.info(f"Client {client_id} disconnected normally")
+            logger.debug(f"Client {client_id} disconnected")
         except Exception as e:
             logger.exception(f"Error handling client {client_id}: {e}")
             logger.exception(traceback.format_exc())
@@ -253,8 +252,8 @@ class MatildaWebSocketServer:
                             # Ignore errors during cleanup
                             pass
                 if orphaned_sessions:
-                    logger.info(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
-            logger.info(f"Client {client_id} removed from active connections")
+                    logger.debug(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
+            logger.debug(f"Client {client_id} removed")
 
     async def process_message(self, websocket, data: dict, client_ip: str, client_id: str):
         """Process different types of messages from clients.
@@ -330,7 +329,7 @@ class EnhancedWebSocketServer(MatildaWebSocketServer):
 
     def __init__(self):
         super().__init__()
-        logger.info("Enhanced WebSocket server initialized with dual-mode support")
+        logger.debug("Enhanced WebSocket server initialized with dual-mode support")
 
 
 # Use enhanced server as default

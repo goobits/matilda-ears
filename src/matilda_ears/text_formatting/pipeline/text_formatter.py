@@ -108,23 +108,23 @@ class TextFormatter:
         # Code and Web entities are highly specific and should run first.
         web_entities = self.web_detector.detect(text, final_entities)
         final_entities.extend(web_entities)
-        logger.info(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
+        logger.debug(f"Web entities detected: {len(web_entities)} - {[f'{e.type}:{e.text}' for e in web_entities]}")
 
         code_entities = self.code_detector.detect(text, final_entities)
         final_entities.extend(code_entities)
-        logger.info(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
+        logger.debug(f"Code entities detected: {len(code_entities)} - {[f'{e.type}:{e.text}' for e in code_entities]}")
 
         # Numeric entities are next, as they are more specific than base SpaCy entities.
         numeric_entities = self.numeric_detector.detect(text, final_entities)
         final_entities.extend(numeric_entities)
-        logger.info(
+        logger.debug(
             f"Numeric entities detected: {len(numeric_entities)} - {[f'{e.type}:{e.text}' for e in numeric_entities]}"
         )
 
         # Finally, run the base SpaCy detector for general entities like DATE, TIME, etc.
         base_spacy_entities = self.entity_detector.detect_entities(text, final_entities, doc=doc)
         final_entities.extend(base_spacy_entities)
-        logger.info(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}")
+        logger.debug(f"Base SpaCy entities detected: {len(base_spacy_entities)} - {[f'{e.type}:{e.text}' for e in base_spacy_entities]}")
 
         # Phase 4 Fix: Deduplicate entities with identical boundaries and overlapping entities
         # This fixes cases where SpaCy and custom detectors find overlapping entities
