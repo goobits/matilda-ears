@@ -21,7 +21,7 @@ pipx install .
 pipx install .[mac]
 
 # Development install
-pip install -e .[dev]
+./setup.sh install --dev
 
 # Verify installation
 ears --version
@@ -30,26 +30,24 @@ ears --version
 **Basic usage:**
 
 ```bash
-ears --listen-once                  # Single transcription
-ears --conversation                 # Always listening
-ears --tap-to-talk=f8              # Toggle with F8
-ears --hold-to-talk=space          # Push-to-talk
-ears --server --port=8769          # WebSocket server
+ears status                         # Show system status
+ears models                         # List available models
+ears-server --port 8769             # WebSocket server
 ```
 
 ## 📚 Operation Modes
 
+The following operation modes are available through the Python library:
+
+- **Listen-Once** - Single utterance capture with VAD
+- **Conversation** - Always-listening mode with interruption support
+- **Tap-to-Talk** - Press key to start/stop recording
+- **Hold-to-Talk** - Hold key to record, release to stop
+- **WebSocket Server** - Remote client connections
+
 ```bash
-# Pipe to other tools
-ears --listen-once | llm-process
-ears --conversation | tts-speak
-
-# Hotkey modes
-ears --tap-to-talk=f8              # Toggle recording
-ears --hold-to-talk=ctrl+space     # Hold to record
-
-# Server mode
-ears --server --host 0.0.0.0 --port 8769
+# Server mode (standalone entry point)
+ears-server --host 0.0.0.0 --port 8769
 ```
 
 ## ⚙️ Configuration
@@ -69,13 +67,11 @@ Edit `config.json` for persistent settings:
 }
 ```
 
-**CLI overrides:**
+**CLI options:**
 
 ```bash
-ears --model large-v3-turbo --language en
-ears --device "USB Audio" --sample-rate 16000
-ears --format json | jq -r '.text'
-ears --no-formatting
+ears status --json                  # JSON output format
+ears models --json                  # List models as JSON
 ```
 
 ## 🔧 Transcription Backends
@@ -126,28 +122,21 @@ pip install goobits-matilda-ears[mac]
 
 ## 🎭 Text Formatting
 
-```bash
-# Entity detection
-ears --listen-once  # "Call 555-123-4567" → "(555) 123-4567"
-ears --listen-once  # "github dot com" → "github.com"
-ears --listen-once  # "Three point one four" → "3.14"
+The text formatting pipeline provides:
 
-# Language support
-ears --language es  # Spanish
-ears --language en  # English (default)
-
-# Raw output
-ears --no-formatting
-```
+- **Entity detection**: Phone numbers, URLs, emails
+- **Number conversion**: "three point one four" to "3.14"
+- **Symbol replacement**: "at" to "@", "dot" to "."
+- **Language support**: English, Spanish
 
 ## 🌐 Server Deployment
 
 ```bash
 # Local server
-ears --server
+ears-server
 
 # Production
-ears --server --port 443 --host 0.0.0.0
+ears-server --port 443 --host 0.0.0.0
 
 # Docker
 docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
@@ -198,13 +187,13 @@ export JWT_TOKEN="your.jwt.token"
 
 ```bash
 # Install dev dependencies
-pip install -e .[dev]
+./setup.sh install --dev
 python -m spacy download en_core_web_sm
 
 # Run tests
-pytest                            # All tests
-pytest tests/text_formatting/    # Specific module
-pytest -v -n auto                # Parallel execution
+./test.py                                   # All tests with help
+./test.py tests/text_formatting/ --summary  # Text formatting tests
+pytest -v -n auto                           # Parallel execution
 
 # Code quality
 ruff check src/ tests/
@@ -214,9 +203,9 @@ mypy src/
 
 ## 🔗 Related Projects
 
-- **[Matilda](https://github.com/goobits/matilda)** - AI assistant orchestrator
-- **[Matilda Voice](https://github.com/goobits/matilda-voice)** - Text-to-speech engine
-- **[Matilda Brain](https://github.com/goobits/matilda-brain)** - Text-to-text processing
+- **Matilda** - AI assistant orchestrator
+- **Matilda Voice** - Text-to-speech engine
+- **Matilda Brain** - Text-to-text processing
 
 ## 🛠️ Tech Stack
 
