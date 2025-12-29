@@ -64,7 +64,7 @@ Configuration is loaded from `src/matilda_ears/config.json`:
 ```json
 {
   "transcription": {
-    "backend": "faster_whisper"
+    "backend": "auto"
   },
   "whisper": {
     "model": "base",
@@ -85,11 +85,11 @@ ears models --json                  # List models as JSON
 
 ### faster-whisper (Default)
 
-Cross-platform with CUDA support.
+Cross-platform with CUDA support. The `auto` backend auto-selects `parakeet` on Apple Silicon if available, otherwise `faster_whisper`.
 
 ```json
 {
-  "transcription": { "backend": "faster_whisper" },
+  "transcription": { "backend": "auto" },
   "whisper": { "model": "base", "device": "auto" }
 }
 ```
@@ -163,12 +163,14 @@ docker-compose up
 
 This starts the server with:
 - WebSocket server on port 8773
-- Admin dashboard on port 8081
+- Admin dashboard on port 8081 (internal 8080)
 
 ### Python Server
 
+The server is designed to be started via the management script. For programmatic access:
+
 ```python
-from matilda_ears.transcription.server import MatildaWebSocketServer
+from matilda_ears.transcription.server.core import MatildaWebSocketServer
 import asyncio
 
 server = MatildaWebSocketServer()
