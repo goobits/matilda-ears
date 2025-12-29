@@ -60,9 +60,9 @@
       "windows": "venv\\Scripts\\python.exe"
     },
     "temp_dir": {
-      "linux": "/tmp/goobits-stt",
-      "darwin": "/tmp/goobits-stt",
-      "windows": "%TEMP%\\goobits-stt"
+      "linux": "/tmp/goobits-matilda-ears",
+      "darwin": "/tmp/goobits-matilda-ears",
+      "windows": "%TEMP%\\goobits-matilda-ears"
     }
   },
   "modes": {

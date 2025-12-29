@@ -106,7 +106,7 @@ class HuggingFaceBackend(TranscriptionBackend):
             raise ImportError(
                 "HuggingFace Transformers is not installed.\n"
                 "Install with: pip install transformers torch\n"
-                "Or: pip install goobits-stt[huggingface]"
+                "Or: pip install goobits-matilda-ears[huggingface]"
             )
 
         # Load config with defaults

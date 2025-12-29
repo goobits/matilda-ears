@@ -129,13 +129,13 @@ def get_backend_info() -> Dict[str, Dict]:
             "available": _check_parakeet_available(),
             "description": "Apple Silicon MLX-optimized (M1/M2/M3)",
             "models": "Parakeet TDT, RNNT, CTC variants",
-            "install": "pip install goobits-stt[mac]",
+            "install": "pip install goobits-matilda-ears[mac]",
         },
         "huggingface": {
             "available": _check_huggingface_available(),
             "description": "Universal backend for 17,000+ HuggingFace ASR models",
             "models": "Whisper, Wav2Vec2, Wav2Vec2-BERT, HuBERT, MMS, Canary, etc.",
-            "install": "pip install goobits-stt[huggingface]",
+            "install": "pip install goobits-matilda-ears[huggingface]",
         },
     }
 
@@ -162,7 +162,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
                 "Parakeet backend requested but dependencies are not installed.\n"
                 "To use Parakeet on macOS with Apple Silicon:\n"
                 "  1. Install: ./setup.sh install --dev (includes [mac] extras)\n"
-                "  2. Or: pip install goobits-stt[mac]\n"
+                "  2. Or: pip install goobits-matilda-ears[mac]\n"
                 "Note: Parakeet requires macOS with Metal/MLX support (M1/M2/M3 chips)"
             )
         from .parakeet_backend import ParakeetBackend
@@ -173,7 +173,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
             raise ValueError(
                 "HuggingFace backend requested but dependencies are not installed.\n"
                 "To use HuggingFace Transformers ASR models:\n"
-                "  1. Install: pip install goobits-stt[huggingface]\n"
+                "  1. Install: pip install goobits-matilda-ears[huggingface]\n"
                 "  2. Or: pip install transformers torch\n"
                 "This backend supports 17,000+ ASR models from HuggingFace Hub."
             )

@@ -130,9 +130,9 @@ class ConfigLoader:
                     "windows": "venv\\Scripts\\python.exe"
                 },
                 "temp_dir": {
-                    "linux": "/tmp/goobits-stt",
-                    "darwin": "/tmp/goobits-stt",
-                    "windows": "%TEMP%\\goobits-stt"
+                    "linux": "/tmp/goobits-matilda-ears",
+                    "darwin": "/tmp/goobits-matilda-ears",
+                    "windows": "%TEMP%\\goobits-matilda-ears"
                 }
             },
             "modes": {
@@ -174,7 +174,7 @@ class ConfigLoader:
         }
 
         # Create temporary config file
-        temp_config = Path(tempfile.gettempdir()) / "goobits-stt-config.json"
+        temp_config = Path(tempfile.gettempdir()) / "goobits-matilda-ears-config.json"
         with open(temp_config, "w") as f:
             json.dump(default_config, f, indent=2)
 

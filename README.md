@@ -1,113 +1,62 @@
-# 🎙️ Matilda Ears
+# 🎤 Matilda Ears
 
-A pure speech-to-text engine with multiple operation modes and advanced text formatting. Features real-time transcription, WebSocket server capabilities, and comprehensive text processing with internationalization support. Built on Whisper models for accurate transcription across various languages and use cases.
+Speech-to-text engine with multiple operation modes, real-time transcription, and advanced text formatting.
 
-## 🔗 Related Projects
+## ✨ Key Features
 
-- **[Matilda](https://github.com/goobits/matilda)** - AI assistant
-- **[Matilda Ears](https://github.com/goobits/matilda-ears)** - Speech-to-Text engine (this project)
-- **[Matilda Voice](https://github.com/goobits/matilda-voice)** - Text-to-Speech engine
-- **[Matilda Brain](https://github.com/goobits/matilda-brain)** - Text-to-Text processing
+- **🎯 Listen-Once** - Single utterance capture with voice activity detection
+- **🔄 Conversation** - Always-listening mode with interruption support
+- **⌨️ Hotkey Control** - Tap-to-talk and hold-to-talk with customizable keys
+- **🌐 WebSocket Server** - Remote client connections with JWT authentication
+- **📝 Text Formatting** - Entity detection, number conversion, and i18n support
+- **⚡ Multiple Backends** - faster-whisper (CUDA) or Parakeet (Apple Silicon)
 
-## 📋 Table of Contents
-
-- [Installation](#-installation)
-- [Basic Usage](#-basic-usage)
-- [Configuration](#️-configuration)
-- [Operation Modes](#-operation-modes)
-- [Performance Optimization](#-performance-optimization)
-- [Transcription Backends](#-transcription-backends)
-- [Text Formatting Features](#-text-formatting-features)
-- [Server Deployment](#-server-deployment)
-- [Testing & Development](#-testing--development)
-- [Model Comparison](#-model-comparison)
-- [Audio Features](#️-audio-features)
-- [Tech Stack](#️-tech-stack)
-
-## 📦 Installation
+## 🚀 Quick Start
 
 ```bash
-# Install globally with pipx (recommended)
-pipx install .                     # Install globally, isolated environment
-pipx install .[dev]               # Install with development dependencies
+# Install with pipx (recommended)
+pipx install .
 
-# Install with Apple Silicon optimization (macOS M1/M2/M3)
-pipx install .[mac]               # Install with Parakeet MLX backend
-pipx install .[mac,dev]           # Install with both mac and dev extras
+# Apple Silicon (M1/M2/M3)
+pipx install .[mac]
 
-# Or with pip for development
-pip install -e .[dev]              # Install editable with dev dependencies
-ears --version                      # Verify installation
-ears --listen-once                  # Test basic functionality
+# Development install
+pip install -e .[dev]
+
+# Verify installation
+ears --version
 ```
 
-## 🎯 Basic Usage
+**Basic usage:**
 
 ```bash
-ears --listen-once                  # Single utterance with VAD
-ears --conversation                 # Always listening mode
-ears --tap-to-talk=f8              # Tap F8 to start/stop recording
-ears --hold-to-talk=space          # Hold spacebar to record
-ears --server --port=8769          # Run WebSocket server
+ears --listen-once                  # Single transcription
+ears --conversation                 # Always listening
+ears --tap-to-talk=f8              # Toggle with F8
+ears --hold-to-talk=space          # Push-to-talk
+ears --server --port=8769          # WebSocket server
+```
+
+## 📚 Operation Modes
+
+```bash
+# Pipe to other tools
+ears --listen-once | llm-process
+ears --conversation | tts-speak
+
+# Hotkey modes
+ears --tap-to-talk=f8              # Toggle recording
+ears --hold-to-talk=ctrl+space     # Hold to record
+
+# Server mode
+ears --server --host 0.0.0.0 --port 8769
 ```
 
 ## ⚙️ Configuration
 
-```bash
-# Edit main configuration
-nano config.json
+Edit `config.json` for persistent settings:
 
-# Configure Whisper model
-ears --model large-v3-turbo --language en
-
-# Audio settings
-ears --device "USB Audio" --sample-rate 16000
-
-# Output formats
-ears --format json | jq -r '.text'
-ears --format text --no-formatting
-```
-
-## 🎤 Operation Modes
-
-```bash
-# Quick transcription
-ears --listen-once | llm-process
-
-# Interactive conversation
-ears --conversation | tts-speak
-
-# Hotkey control
-ears --tap-to-talk=f8              # Toggle recording with F8
-ears --hold-to-talk=ctrl+space     # Push-to-talk mode
-
-# Server mode for remote clients
-ears --server --host 0.0.0.0 --port 8769
-```
-
-## 🚀 Performance Optimization
-
-```bash
-# GPU acceleration (if available)
-ears --model base --device cuda
-
-# CPU optimization
-ears --model tiny --device cpu
-
-# Model selection by speed/quality
-ears --model tiny      # Fastest, lower quality
-ears --model base      # Balanced (default)
-ears --model large-v3-turbo  # Best quality
-```
-
-## 🔧 Transcription Backends
-
-STT supports pluggable backends optimized for different platforms:
-
-### faster_whisper (Default)
-```bash
-# Cross-platform backend with CUDA support
-# Edit config.json:
+```json
 {
   "transcription": {
     "backend": "faster_whisper"
@@ -120,87 +69,110 @@ STT supports pluggable backends optimized for different platforms:
 }
 ```
 
-**Features:**
-- ✅ Cross-platform (Linux, macOS, Windows)
-- ✅ GPU acceleration (CUDA)
-- ✅ All model sizes (tiny → large-v3-turbo)
-- ✅ Auto-detection of optimal compute type
+**CLI overrides:**
 
-### parakeet (Apple Silicon)
 ```bash
-# Install MLX backend for macOS M1/M2/M3
-pip install goobits-matilda-ears[mac]
+ears --model large-v3-turbo --language en
+ears --device "USB Audio" --sample-rate 16000
+ears --format json | jq -r '.text'
+ears --no-formatting
+```
 
-# Edit config.json:
+## 🔧 Transcription Backends
+
+### faster-whisper (Default)
+
+Cross-platform with CUDA support.
+
+```json
 {
-  "transcription": {
-    "backend": "parakeet"
-  },
-  "parakeet": {
-    "model": "mlx-community/parakeet-tdt-0.6b-v3"
-  }
+  "transcription": { "backend": "faster_whisper" },
+  "whisper": { "model": "base", "device": "auto" }
 }
 ```
 
-**Features:**
-- ✅ Optimized for Apple Silicon (M1/M2/M3)
-- ✅ Lower memory footprint
-- ✅ Native Metal acceleration
-- ⚠️ macOS only (requires MLX support)
+- Cross-platform (Linux, macOS, Windows)
+- GPU acceleration (CUDA)
+- Models: tiny, base, small, medium, large-v3-turbo
 
-**Backend Selection:**
-- **Use faster_whisper**: Cross-platform needs, CUDA GPU, larger models
-- **Use parakeet**: Apple Silicon (M1/M2/M3), lower memory usage
+### Parakeet (Apple Silicon)
 
-## 🎭 Text Formatting Features
+Optimized for M1/M2/M3 chips.
 
 ```bash
-# Advanced entity detection
-ears --listen-once  # "Call me at 555-123-4567" → "Call me at (555) 123-4567"
-ears --listen-once  # "Go to github dot com" → "Go to github.com"
-ears --listen-once  # "Three point one four" → "3.14"
-
-# Multilingual support
-ears --language es  # Spanish formatting rules
-ears --language en  # English formatting (default)
-
-# Disable formatting
-ears --no-formatting  # Raw transcription output
+pip install goobits-matilda-ears[mac]
 ```
 
-## 🔧 Server Deployment
+```json
+{
+  "transcription": { "backend": "parakeet" },
+  "parakeet": { "model": "mlx-community/parakeet-tdt-0.6b-v3" }
+}
+```
+
+- Native Metal acceleration
+- Lower memory footprint
+- macOS only
+
+## 📊 Model Comparison
+
+| Model | Speed | Quality | Memory | Use Case |
+|-------|-------|---------|--------|----------|
+| tiny | Fastest | Basic | 39MB | Real-time, low resources |
+| base | Fast | Good | 74MB | General use (default) |
+| small | Moderate | Better | 244MB | Accuracy balance |
+| medium | Slower | Great | 769MB | High accuracy |
+| large-v3-turbo | Fast | Best | 1550MB | Production quality |
+
+## 🎭 Text Formatting
 
 ```bash
-# Basic server
+# Entity detection
+ears --listen-once  # "Call 555-123-4567" → "(555) 123-4567"
+ears --listen-once  # "github dot com" → "github.com"
+ears --listen-once  # "Three point one four" → "3.14"
+
+# Language support
+ears --language es  # Spanish
+ears --language en  # English (default)
+
+# Raw output
+ears --no-formatting
+```
+
+## 🌐 Server Deployment
+
+```bash
+# Local server
 ears --server
 
-# Production with SSL
+# Production
 ears --server --port 443 --host 0.0.0.0
 
-# Docker deployment
+# Docker
 docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
 ```
 
-### Authentication (JWT)
-
-All WebSocket requests require a valid JWT.
+### Authentication
 
 ```bash
-# Generate a dev token
+# Generate token
 python scripts/generate_token.py "Dev Client" --days 30 --show-full-token
 
-# Export token for clients/tests
+# Client authentication
 export JWT_TOKEN="your.jwt.token"
 ```
 
-Authenticate with:
+**WebSocket auth message:**
+
 ```json
 { "type": "auth", "token": "YOUR_TOKEN_HERE" }
 ```
 
-### Streaming Schema
+### Streaming Protocol
 
-Partial results:
+**Partial result:**
+
 ```json
 {
   "type": "partial_result",
@@ -211,81 +183,50 @@ Partial results:
 }
 ```
 
-Final stream result:
+**Final result:**
+
 ```json
 {
   "type": "stream_transcription_complete",
   "session_id": "...",
   "confirmed_text": "final text",
-  "tentative_text": "",
   "success": true
 }
 ```
 
-## 🎯 Testing & Development
+## 🧪 Development
 
 ```bash
-# Install test dependencies
-pip install -e .[dev]              # Install dev dependencies
-python -m spacy download en_core_web_sm  # Required for text formatting tests
+# Install dev dependencies
+pip install -e .[dev]
+python -m spacy download en_core_web_sm
 
-# Run test suite
-pytest                             # All tests
-pytest tests/text_formatting/     # Specific module
-pytest -v -n auto                 # Parallel with verbose output
+# Run tests
+pytest                            # All tests
+pytest tests/text_formatting/    # Specific module
+pytest -v -n auto                # Parallel execution
 
 # Code quality
-ruff check src/ tests/             # Linting
-black src/ tests/ stt.py          # Formatting
-mypy src/ stt.py                  # Type checking
-
-# Test with real audio
-pytest tests/__fixtures__/audio/
+ruff check src/ tests/
+black src/ tests/
+mypy src/
 ```
 
-## 🔧 Model Comparison
+## 🔗 Related Projects
 
-| Model | Speed | Quality | Memory | Best For |
-|-------|-------|---------|---------|----------|
-| **tiny** | ⚡ Fastest | 🌟 Basic | 💾 39MB | Real-time, low resources |
-| **base** | 🔥 Fast | 🌟🌟 Good | 💾 74MB | General use (default) |
-| **small** | ⚡ Quick | 🌟🌟🌟 Better | 💾 244MB | Accuracy balance |
-| **medium** | 🔥 Moderate | 🌟🌟🌟🌟 Great | 💾 769MB | High accuracy |
-| **large-v3-turbo** | 🔥 Fast | 🏆 Best | 💾 1550MB | Production quality |
-
-Choose based on your speed/accuracy requirements and available system resources.
-
-## 🎙️ Audio Features
-
-- **Real-time streaming**: Opus audio encoding for efficient transmission
-- **Voice Activity Detection**: Automatic speech detection and silence handling  
-- **Multiple input devices**: Support for various microphones and audio interfaces
-- **Hotkey integration**: System-wide keyboard shortcuts for hands-free operation
-- **Background operation**: Run as daemon with minimal resource usage
+- **[Matilda](https://github.com/goobits/matilda)** - AI assistant orchestrator
+- **[Matilda Voice](https://github.com/goobits/matilda-voice)** - Text-to-speech engine
+- **[Matilda Brain](https://github.com/goobits/matilda-brain)** - Text-to-text processing
 
 ## 🛠️ Tech Stack
 
-### Core Technologies
-- **🧠 AI/ML**: OpenAI Whisper (faster-whisper), CTranslate2, PyTorch
-- **🍎 Apple Silicon**: MLX, Parakeet (optional, macOS only)
-- **🎙️ Audio**: OpusLib, NumPy, custom pipe-based audio capture
-- **⌨️ System**: pynput for global hotkeys, cross-platform support
+**Core:** OpenAI Whisper (faster-whisper), CTranslate2, PyTorch
+**Apple Silicon:** MLX, Parakeet
+**Audio:** OpusLib, pynput, NumPy
+**Text Processing:** spaCy, deepmultilingualpunctuation
+**Server:** WebSockets, FastAPI, JWT authentication
+**Deployment:** Docker (CUDA 12.1), RSA+AES encryption
 
-### Text Processing
-- **📝 NLP**: spaCy, deepmultilingualpunctuation
-- **🌍 i18n**: Multi-language entity detection and formatting
-- **🔧 Parsing**: pyparsing for complex text transformations
-- **📊 Output**: JSON/text formatting with rich entity support
+## 📝 License
 
-### Development & Testing
-- **🧪 Testing**: pytest with asyncio, xdist, custom plugins
-- **📊 Quality**: ruff (linting), black (formatting), mypy (typing)
-- **🔍 Security**: bandit for security analysis
-- **📦 Build**: setuptools, pyproject.toml configuration
-
-### Deployment
-- **🐳 Containerization**: Docker with CUDA 12.1 support
-- **🖥️ Interface**: FastAPI admin dashboard (Docker), responsive web UI
-- **🔒 Security**: JWT authentication, RSA+AES encryption (Docker)
-- **📈 Monitoring**: Structured logging, health checks
-- **☁️ Cloud**: Ready for production deployment with SSL/TLS
+MIT License
