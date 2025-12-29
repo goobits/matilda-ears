@@ -1,30 +1,30 @@
-# 🎤 Matilda Ears
+# Matilda Ears
 
 Speech-to-text engine with multiple operation modes, real-time transcription, and advanced text formatting.
 
-## ✨ Key Features
+## Key Features
 
-- **🎯 Listen-Once** - Single utterance capture with voice activity detection
-- **🔄 Conversation** - Always-listening mode with interruption support
-- **⌨️ Hotkey Control** - Tap-to-talk and hold-to-talk with customizable keys
-- **🌐 WebSocket Server** - Remote client connections with JWT authentication
-- **📝 Text Formatting** - Entity detection, number conversion, and i18n support
-- **⚡ Multiple Backends** - faster-whisper (CUDA) or Parakeet (Apple Silicon)
+- **Listen-Once** - Single utterance capture with voice activity detection
+- **Conversation** - Always-listening mode with interruption support
+- **Hotkey Control** - Tap-to-talk and hold-to-talk with customizable keys
+- **WebSocket Server** - Remote client connections with JWT authentication
+- **Text Formatting** - Entity detection, number conversion, and i18n support
+- **Multiple Backends** - faster-whisper (CUDA) or Parakeet (Apple Silicon)
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install with pipx (recommended)
 pipx install .
 
 # Apple Silicon (M1/M2/M3)
-pipx install .[mac]
+pipx install ".[mac]"
 
 # Development install
 ./setup.sh install --dev
 
 # Verify installation
-ears --version
+ears status
 ```
 
 **Basic usage:**
@@ -32,10 +32,10 @@ ears --version
 ```bash
 ears status                         # Show system status
 ears models                         # List available models
-ears-server --port 8769             # WebSocket server
+ears status --json                  # JSON output format
 ```
 
-## 📚 Operation Modes
+## Operation Modes
 
 The following operation modes are available through the Python library:
 
@@ -43,16 +43,23 @@ The following operation modes are available through the Python library:
 - **Conversation** - Always-listening mode with interruption support
 - **Tap-to-Talk** - Press key to start/stop recording
 - **Hold-to-Talk** - Hold key to record, release to stop
+- **File Transcribe** - Transcribe audio files
 - **WebSocket Server** - Remote client connections
 
-```bash
-# Server mode (standalone entry point)
-ears-server --host 0.0.0.0 --port 8769
+```python
+# Python API examples
+from matilda_ears.modes import ConversationMode
+
+# Conversation mode (always listening)
+mode = ConversationMode(args)
+await mode.run()
 ```
 
-## ⚙️ Configuration
+See the `src/matilda_ears/modes/` directory for mode implementations and usage.
 
-Edit `config.json` for persistent settings:
+## Configuration
+
+Configuration is loaded from `src/matilda_ears/config.json`:
 
 ```json
 {
@@ -74,7 +81,7 @@ ears status --json                  # JSON output format
 ears models --json                  # List models as JSON
 ```
 
-## 🔧 Transcription Backends
+## Transcription Backends
 
 ### faster-whisper (Default)
 
@@ -96,7 +103,7 @@ Cross-platform with CUDA support.
 Optimized for M1/M2/M3 chips.
 
 ```bash
-pip install goobits-matilda-ears[mac]
+pip install "goobits-matilda-ears[mac]"
 ```
 
 ```json
@@ -110,36 +117,62 @@ pip install goobits-matilda-ears[mac]
 - Lower memory footprint
 - macOS only
 
-## 📊 Model Comparison
+### HuggingFace Transformers
+
+Alternative backend using HuggingFace pipelines.
+
+```bash
+pip install "goobits-matilda-ears[huggingface]"
+```
+
+```json
+{
+  "transcription": { "backend": "huggingface" },
+  "huggingface": { "model": "openai/whisper-tiny", "device": "cpu" }
+}
+```
+
+## Model Comparison
 
 | Model | Speed | Quality | Memory | Use Case |
 |-------|-------|---------|--------|----------|
-| tiny | Fastest | Basic | 39MB | Real-time, low resources |
-| base | Fast | Good | 74MB | General use (default) |
-| small | Moderate | Better | 244MB | Accuracy balance |
-| medium | Slower | Great | 769MB | High accuracy |
-| large-v3-turbo | Fast | Best | 1550MB | Production quality |
+| tiny | Fastest | Basic | ~39MB | Real-time, low resources |
+| base | Fast | Good | ~74MB | General use (default) |
+| small | Moderate | Better | ~244MB | Accuracy balance |
+| medium | Slower | Great | ~769MB | High accuracy |
+| large-v3-turbo | Fast | Best | ~1.5GB | Production quality |
 
-## 🎭 Text Formatting
+## Text Formatting
 
 The text formatting pipeline provides:
 
-- **Entity detection**: Phone numbers, URLs, emails
+- **Entity detection**: Phone numbers, URLs, emails, filenames, code blocks
 - **Number conversion**: "three point one four" to "3.14"
 - **Symbol replacement**: "at" to "@", "dot" to "."
+- **Capitalization**: Smart casing for sentences, proper nouns
 - **Language support**: English, Spanish
 
-## 🌐 Server Deployment
+## Server Deployment
+
+### Docker (Recommended)
 
 ```bash
-# Local server
-ears-server
+cd docker
+docker-compose up
+```
 
-# Production
-ears-server --port 443 --host 0.0.0.0
+This starts the server with:
+- WebSocket server on port 8773
+- Admin dashboard on port 8081
 
-# Docker
-docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
+### Python Server
+
+```python
+from matilda_ears.transcription.server import MatildaWebSocketServer
+import asyncio
+
+server = MatildaWebSocketServer()
+asyncio.run(server.start_server())
 ```
 
 ### Authentication
@@ -147,9 +180,6 @@ docker run -p 8080:8080 -p 8769:8769 sttservice/transcribe
 ```bash
 # Generate token
 python scripts/generate_token.py "Dev Client" --days 30 --show-full-token
-
-# Client authentication
-export JWT_TOKEN="your.jwt.token"
 ```
 
 **WebSocket auth message:**
@@ -183,7 +213,7 @@ export JWT_TOKEN="your.jwt.token"
 }
 ```
 
-## 🧪 Development
+## Development
 
 ```bash
 # Install dev dependencies
@@ -191,8 +221,9 @@ export JWT_TOKEN="your.jwt.token"
 python -m spacy download en_core_web_sm
 
 # Run tests
-./test.py                                   # All tests with help
+./test.py                                   # Show help and examples
 ./test.py tests/text_formatting/ --summary  # Text formatting tests
+./test.py --diff=-1                         # Compare with last run
 pytest -v -n auto                           # Parallel execution
 
 # Code quality
@@ -201,21 +232,21 @@ black src/ tests/
 mypy src/
 ```
 
-## 🔗 Related Projects
+## Related Projects
 
 - **Matilda** - AI assistant orchestrator
 - **Matilda Voice** - Text-to-speech engine
 - **Matilda Brain** - Text-to-text processing
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 **Core:** OpenAI Whisper (faster-whisper), CTranslate2, PyTorch
 **Apple Silicon:** MLX, Parakeet
 **Audio:** OpusLib, pynput, NumPy
 **Text Processing:** spaCy, deepmultilingualpunctuation
-**Server:** WebSockets, FastAPI, JWT authentication
-**Deployment:** Docker (CUDA 12.1), RSA+AES encryption
+**Server:** WebSockets, aiohttp, JWT authentication
+**Deployment:** Docker, RSA+AES encryption
 
-## 📝 License
+## License
 
 MIT License
