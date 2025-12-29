@@ -1,5 +1,4 @@
-"""
-Matilda Ears i18n Module
+"""Matilda Ears i18n Module
 ========================
 
 Internationalization support for Matilda Ears.
@@ -27,7 +26,6 @@ Usage:
 
 import sys
 from pathlib import Path
-from typing import Any
 
 # Add central i18n to path for base_loader import
 _I18N_PATH = Path("/workspace/i18n")
@@ -38,7 +36,7 @@ try:
     from base_loader import I18nLoader, get_monorepo_locales_path
 except ImportError:
     # Fallback: define minimal loader inline if base not available
-    from typing import Callable, Dict, Optional
+    from typing import Callable, Dict
     import json
     import threading
     import os
@@ -106,10 +104,10 @@ get_language = _loader.get_language
 
 # Re-export for convenience
 __all__ = [
-    "t",
-    "t_ears",
-    "t_common",
-    "set_language",
-    "get_language",
     "I18nLoader",
+    "get_language",
+    "set_language",
+    "t",
+    "t_common",
+    "t_ears",
 ]

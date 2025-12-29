@@ -239,6 +239,7 @@ def on_transcribe(
         agents: Comma-separated agent names (legacy format)
         agent_aliases: Agent aliases string (format: 'Agent1:phrase1,phrase2;Agent2:phrase3')
         ww_threshold: Wake word detection threshold (0.0-1.0)
+
     """
     # Ensure stdout is unbuffered for piping
     sys.stdout.reconfigure(line_buffering=True)

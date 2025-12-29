@@ -349,6 +349,7 @@ class ConfigLoader:
 
         Returns:
             Backend name: 'faster_whisper', 'parakeet', or 'huggingface'
+
         """
         # Check environment variable first
         env_backend = os.environ.get("EARS_BACKEND")

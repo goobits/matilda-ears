@@ -40,8 +40,7 @@ def _get_openwakeword_model():
             _openwakeword_model = Model
         except ImportError as e:
             raise ImportError(
-                "OpenWakeWord is required for wake word detection. "
-                "Install with: pip install openwakeword"
+                "OpenWakeWord is required for wake word detection. " "Install with: pip install openwakeword"
             ) from e
     return _openwakeword_model
 
@@ -68,6 +67,7 @@ class WakeWordDetector:
                 "Bob": ["hey_bob", "hey_mycroft"],
             }
         )
+
     """
 
     # Audio requirements
@@ -94,6 +94,7 @@ class WakeWordDetector:
             threshold: Detection confidence threshold (0.0-1.0).
             models_dir: Custom models directory. Defaults to wake_word/models/.
             noise_suppression: Enable Speex noise suppression (Linux only).
+
         """
         if not NUMPY_AVAILABLE:
             raise ImportError("NumPy is required for wake word detection.")
@@ -121,6 +122,13 @@ class WakeWordDetector:
                 # Normalize phrase (replace spaces with underscores, lowercase)
                 normalized = phrase.lower().replace(" ", "_").replace("-", "_")
                 all_phrases.append(normalized)
+                # Warn if phrase collision (two agents mapping to same phrase)
+                if normalized in self._phrase_to_agent:
+                    existing_agent = self._phrase_to_agent[normalized]
+                    logger.warning(
+                        f"Wake phrase '{normalized}' already mapped to '{existing_agent}', "
+                        f"overwriting with '{agent}'"
+                    )
                 self._phrase_to_agent[normalized] = agent
                 logger.debug(f"Registered wake phrase '{normalized}' -> agent '{agent}'")
 
@@ -140,10 +148,7 @@ class WakeWordDetector:
                 logger.warning(f"Model '{phrase}' not found locally, trying OpenWakeWord...")
 
         if not model_specs:
-            raise RuntimeError(
-                f"No wake word models to load. "
-                f"Configured aliases: {self._agent_aliases}"
-            )
+            raise RuntimeError(f"No wake word models to load. " f"Configured aliases: {self._agent_aliases}")
 
         # Load single model with ALL wake phrases for efficiency
         try:
@@ -168,6 +173,7 @@ class WakeWordDetector:
         Returns:
             Tuple of (agent_name, wake_phrase, confidence) if detected, None otherwise.
             Example: ("Matilda", "computer", 0.87)
+
         """
         predictions = self.model.predict(audio)
 
@@ -182,10 +188,7 @@ class WakeWordDetector:
 
         if best_phrase and best_phrase in self._phrase_to_agent:
             agent = self._phrase_to_agent[best_phrase]
-            logger.info(
-                f"Detected: agent='{agent}', phrase='{best_phrase}', "
-                f"confidence={best_confidence:.2%}"
-            )
+            logger.info(f"Detected: agent='{agent}', phrase='{best_phrase}', " f"confidence={best_confidence:.2%}")
             return (agent, best_phrase, best_confidence)
 
         return None
@@ -200,6 +203,7 @@ class WakeWordDetector:
 
         Returns:
             Agent name if wake word detected, None otherwise.
+
         """
         result = self.detect(audio)
         return result[0] if result else None
@@ -250,6 +254,7 @@ class WakeWordDetector:
                 "agents": ["Matilda", "Bob"],
                 "threshold": 0.5
             }
+
         """
         # Parse agent aliases
         agent_aliases = None
@@ -283,6 +288,7 @@ class WakeWordDetector:
 
         Returns:
             Dict mapping agent names to list of wake phrases.
+
         """
         result = {}
         for part in aliases_str.split(";"):

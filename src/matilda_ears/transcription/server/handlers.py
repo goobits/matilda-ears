@@ -13,7 +13,6 @@ This module contains all message handlers for the WebSocket protocol:
 
 import base64
 import json
-import os
 import time
 import uuid
 from typing import TYPE_CHECKING

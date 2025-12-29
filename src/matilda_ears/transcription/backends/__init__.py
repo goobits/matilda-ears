@@ -41,7 +41,7 @@ def _is_apple_silicon() -> bool:
     try:
         result = subprocess.run(
             ["sysctl", "-n", "machdep.cpu.brand_string"],
-            capture_output=True,
+            check=False, capture_output=True,
             text=True,
             timeout=5,
         )
@@ -61,6 +61,7 @@ def get_recommended_backend() -> str:
 
     Returns:
         'parakeet' on Apple Silicon if available, otherwise 'faster_whisper'.
+
     """
     if _is_apple_silicon() and _check_parakeet_available():
         logger.info("Recommending parakeet backend for Apple Silicon")

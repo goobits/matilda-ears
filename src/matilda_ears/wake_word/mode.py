@@ -51,6 +51,7 @@ class WakeWordMode(BaseMode):
                   Format: "Agent1:phrase1,phrase2;Agent2:phrase3"
                 - ww_threshold: Detection threshold (default: 0.5)
                 - sample_rate: Audio sample rate (default: 16000)
+
         """
         super().__init__(args)
 
@@ -61,11 +62,15 @@ class WakeWordMode(BaseMode):
         self.agent_aliases = self._parse_agent_aliases(args, mode_config)
 
         # Threshold can come from CLI (ww_threshold) or config
-        self.threshold = (
-            getattr(args, "ww_threshold", None)
-            or getattr(args, "threshold", None)
-            or mode_config.get("threshold", 0.5)
-        )
+        # Use explicit None checks to allow threshold=0.0
+        ww_threshold = getattr(args, "ww_threshold", None)
+        threshold = getattr(args, "threshold", None)
+        if ww_threshold is not None:
+            self.threshold = ww_threshold
+        elif threshold is not None:
+            self.threshold = threshold
+        else:
+            self.threshold = mode_config.get("threshold", 0.5)
         self.silence_duration = mode_config.get("silence_duration", 0.8)
         self.noise_suppression = mode_config.get("noise_suppression", True)
 
@@ -74,9 +79,7 @@ class WakeWordMode(BaseMode):
         self.vad = None
         self._running = False
 
-    def _parse_agent_aliases(
-        self, args, mode_config: Dict
-    ) -> Optional[Dict[str, List[str]]]:
+    def _parse_agent_aliases(self, args, mode_config: Dict) -> Optional[Dict[str, List[str]]]:
         """Parse agent aliases from CLI or config.
 
         Priority:
@@ -87,6 +90,7 @@ class WakeWordMode(BaseMode):
 
         Returns:
             Dict mapping agent names to list of wake phrases, or None for defaults.
+
         """
         # 1. CLI agent_aliases (highest priority)
         cli_aliases = getattr(args, "agent_aliases", None)
@@ -127,7 +131,7 @@ class WakeWordMode(BaseMode):
                     agent_aliases=self.agent_aliases,
                     threshold=self.threshold,
                     noise_suppression=self.noise_suppression,
-                )
+                ),
             )
 
             # Load VAD for utterance boundary detection
@@ -137,12 +141,11 @@ class WakeWordMode(BaseMode):
             await self._load_model()
 
             # Setup audio streaming
-            await self._setup_audio_streamer(
-                maxsize=2000,
-                chunk_duration_ms=WakeWordDetector.CHUNK_DURATION_MS
-            )
+            await self._setup_audio_streamer(maxsize=2000, chunk_duration_ms=WakeWordDetector.CHUNK_DURATION_MS)
 
             # Start audio capture
+            if self.audio_streamer is None:
+                raise RuntimeError("Audio streamer not initialized")
             self.audio_streamer.start_recording()
             self.is_recording = True
 
@@ -152,9 +155,7 @@ class WakeWordMode(BaseMode):
                 f"{agent} ({', '.join(phrases)})" for agent, phrases in aliases_info.items()
             )
             await self._send_status(
-                "listening",
-                listening_msg,
-                {"agents": self.detector.loaded_agents, "aliases": aliases_info}
+                "listening", listening_msg, {"agents": self.detector.loaded_agents, "aliases": aliases_info}
             )
 
             # Main detection loop
@@ -168,9 +169,7 @@ class WakeWordMode(BaseMode):
                     # Reset for next detection
                     self.detector.reset()
                     await self._send_status(
-                        "listening",
-                        f"Ready for next wake word",
-                        {"agents": self.detector.loaded_agents}
+                        "listening", "Ready for next wake word", {"agents": self.detector.loaded_agents}
                     )
 
         except KeyboardInterrupt:
@@ -196,8 +195,8 @@ class WakeWordMode(BaseMode):
                     threshold=mode_config.get("vad_threshold", 0.5),
                     min_speech_duration=mode_config.get("min_speech_duration", 0.25),
                     min_silence_duration=self.silence_duration,
-                    use_onnx=True
-                )
+                    use_onnx=True,
+                ),
             )
             self.logger.info("VAD initialized for utterance detection")
         except ImportError as e:
@@ -209,16 +208,14 @@ class WakeWordMode(BaseMode):
 
         Returns:
             Transcription result dict with agent, or None if stopped.
+
         """
         audio_buffer = []
 
         while self._running:
             try:
                 # Get audio chunk (80ms for OpenWakeWord)
-                chunk = await asyncio.wait_for(
-                    self.audio_queue.get(),
-                    timeout=0.1
-                )
+                chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
 
                 # Normalize to float32 for OpenWakeWord
                 if chunk.dtype == np.int16:
@@ -232,13 +229,12 @@ class WakeWordMode(BaseMode):
                 if detection:
                     agent, wake_phrase, confidence = detection
                     self.logger.info(
-                        f"Wake word detected: agent='{agent}', "
-                        f"phrase='{wake_phrase}', confidence={confidence:.2%}"
+                        f"Wake word detected: agent='{agent}', " f"phrase='{wake_phrase}', confidence={confidence:.2%}"
                     )
                     await self._send_status(
                         "wake_word_detected",
                         f"Detected: {wake_phrase} -> {agent}",
-                        {"agent": agent, "wake_phrase": wake_phrase, "confidence": confidence}
+                        {"agent": agent, "wake_phrase": wake_phrase, "confidence": confidence},
                     )
 
                     # Capture full utterance
@@ -248,9 +244,7 @@ class WakeWordMode(BaseMode):
                         # Transcribe
                         audio_array = np.concatenate(utterance_chunks)
                         result = await asyncio.get_event_loop().run_in_executor(
-                            None,
-                            self._transcribe_audio,
-                            audio_array
+                            None, self._transcribe_audio, audio_array
                         )
 
                         if result.get("success"):
@@ -258,8 +252,7 @@ class WakeWordMode(BaseMode):
                             result["wake_phrase"] = wake_phrase
                             result["wake_word_detected"] = True
                             return result
-                        else:
-                            await self._send_error(f"Transcription failed: {result.get('error')}")
+                        await self._send_error(f"Transcription failed: {result.get('error')}")
                     else:
                         await self._send_status("timeout", "No speech detected after wake word")
 
@@ -276,6 +269,7 @@ class WakeWordMode(BaseMode):
 
         Returns:
             List of audio chunks forming the utterance.
+
         """
         chunks = []
         silence_count = 0
@@ -286,10 +280,7 @@ class WakeWordMode(BaseMode):
 
         while len(chunks) < max_duration_chunks:
             try:
-                chunk = await asyncio.wait_for(
-                    self.audio_queue.get(),
-                    timeout=0.5
-                )
+                chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.5)
                 chunks.append(chunk)
 
                 # Check VAD for speech/silence
