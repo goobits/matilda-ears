@@ -89,6 +89,7 @@ cli:
       items:
         - { item: "--listen-once", desc: "Single utterance capture", style: "command" }
         - { item: "--conversation", desc: "Continuous listening", style: "command" }
+        - { item: "--wake-word", desc: "Always-listening wake word detection", style: "command" }
         - { item: "--server", desc: "WebSocket server mode", style: "command" }
 
   command_groups:
@@ -103,6 +104,21 @@ cli:
     - name: "conversation"
       type: "flag"
       desc: "Always listening with interruption support"
+    - name: "wake_word"
+      type: "flag"
+      desc: "Always-listening wake word detection mode"
+    - name: "agent_aliases"
+      type: "str"
+      metavar: "ALIASES"
+      desc: "Agent wake word aliases (format: 'Agent1:phrase1,phrase2;Agent2:phrase3')"
+    - name: "agents"
+      type: "str"
+      metavar: "AGENTS"
+      desc: "Comma-separated agent names (legacy, use --agent-aliases for aliases)"
+    - name: "ww_threshold"
+      type: "float"
+      default: 0.5
+      desc: "Wake word detection threshold (0.0-1.0)"
     - name: "tap_to_talk"
       type: "str"
       metavar: "KEY"

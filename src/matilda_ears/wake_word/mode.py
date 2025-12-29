@@ -3,6 +3,7 @@
 
 Provides always-listening wake word detection that activates
 transcription when "Hey Matilda" (or other wake phrase) is detected.
+Supports multiple aliases per agent (e.g., "Hey Matilda", "computer", "assistant").
 """
 
 import asyncio
@@ -11,6 +12,7 @@ from typing import Optional, Dict, Any, List
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
@@ -25,9 +27,13 @@ class WakeWordMode(BaseMode):
     """Always-listening wake word detection with automatic agent routing.
 
     Flow:
-    1. Continuously listen for wake word ("Hey Matilda")
+    1. Continuously listen for wake word ("Hey Matilda", "computer", etc.)
     2. When detected, capture full utterance using VAD
     3. Transcribe and return with pre-identified agent
+
+    Supports multiple wake word aliases per agent:
+    - CLI: --agent-aliases="Matilda:hey_matilda,computer;Bob:hey_bob"
+    - Config: agent_aliases: [{agent: "Matilda", aliases: ["hey_matilda", "computer"]}]
 
     Reuses:
     - BaseMode: Audio setup, transcription, output methods
@@ -40,16 +46,26 @@ class WakeWordMode(BaseMode):
 
         Args:
             args: Namespace with CLI arguments including:
-                - agents: Comma-separated agent names (default: "Matilda")
-                - threshold: Detection threshold (default: 0.5)
+                - agents: Comma-separated agent names (legacy, default: "Matilda")
+                - agent_aliases: Agent aliases string (new format)
+                  Format: "Agent1:phrase1,phrase2;Agent2:phrase3"
+                - ww_threshold: Detection threshold (default: 0.5)
                 - sample_rate: Audio sample rate (default: 16000)
         """
         super().__init__(args)
 
         # Wake word specific config
         mode_config = self._get_mode_config()
-        self.agents = self._parse_agents(getattr(args, "agents", None), mode_config)
-        self.threshold = getattr(args, "threshold", None) or mode_config.get("threshold", 0.5)
+
+        # Parse agent aliases (new) or agents (legacy)
+        self.agent_aliases = self._parse_agent_aliases(args, mode_config)
+
+        # Threshold can come from CLI (ww_threshold) or config
+        self.threshold = (
+            getattr(args, "ww_threshold", None)
+            or getattr(args, "threshold", None)
+            or mode_config.get("threshold", 0.5)
+        )
         self.silence_duration = mode_config.get("silence_duration", 0.8)
         self.noise_suppression = mode_config.get("noise_suppression", True)
 
@@ -58,11 +74,45 @@ class WakeWordMode(BaseMode):
         self.vad = None
         self._running = False
 
-    def _parse_agents(self, agents_arg: Optional[str], mode_config: Dict) -> List[str]:
-        """Parse agents from CLI arg or config."""
+    def _parse_agent_aliases(
+        self, args, mode_config: Dict
+    ) -> Optional[Dict[str, List[str]]]:
+        """Parse agent aliases from CLI or config.
+
+        Priority:
+        1. CLI --agent-aliases="Matilda:hey_matilda,computer;Bob:hey_bob"
+        2. Config agent_aliases: [{agent: "Matilda", aliases: [...]}]
+        3. CLI --agents="Matilda,Bob" (legacy, converts to hey_{name})
+        4. Config agents: ["Matilda"] (legacy)
+
+        Returns:
+            Dict mapping agent names to list of wake phrases, or None for defaults.
+        """
+        # 1. CLI agent_aliases (highest priority)
+        cli_aliases = getattr(args, "agent_aliases", None)
+        if cli_aliases:
+            return WakeWordDetector.parse_cli_aliases(cli_aliases)
+
+        # 2. Config agent_aliases (new format)
+        if "agent_aliases" in mode_config:
+            result = {}
+            for item in mode_config["agent_aliases"]:
+                result[item["agent"]] = item["aliases"]
+            return result
+
+        # 3. CLI --agents (legacy)
+        agents_arg = getattr(args, "agents", None)
         if agents_arg:
-            return [a.strip() for a in agents_arg.split(",")]
-        return mode_config.get("agents", ["Matilda"])
+            agents = [a.strip() for a in agents_arg.split(",")]
+            return {agent: [f"hey_{agent.lower()}"] for agent in agents}
+
+        # 4. Config agents (legacy)
+        if "agents" in mode_config:
+            agents = mode_config["agents"]
+            return {agent: [f"hey_{agent.lower()}"] for agent in agents}
+
+        # Default
+        return None
 
     async def run(self):
         """Main wake word detection loop."""
@@ -74,7 +124,7 @@ class WakeWordMode(BaseMode):
             self.detector = await loop.run_in_executor(
                 None,
                 lambda: WakeWordDetector(
-                    agents=self.agents,
+                    agent_aliases=self.agent_aliases,
                     threshold=self.threshold,
                     noise_suppression=self.noise_suppression,
                 )
@@ -96,10 +146,15 @@ class WakeWordMode(BaseMode):
             self.audio_streamer.start_recording()
             self.is_recording = True
 
+            # Build listening message showing agents and their aliases
+            aliases_info = self.detector.agent_aliases
+            listening_msg = "Listening for: " + ", ".join(
+                f"{agent} ({', '.join(phrases)})" for agent, phrases in aliases_info.items()
+            )
             await self._send_status(
                 "listening",
-                f"Listening for: {', '.join(self.detector.loaded_agents)}",
-                {"agents": self.detector.loaded_agents}
+                listening_msg,
+                {"agents": self.detector.loaded_agents, "aliases": aliases_info}
             )
 
             # Main detection loop
@@ -172,14 +227,18 @@ class WakeWordMode(BaseMode):
                     chunk_float = chunk
 
                 # Check for wake word
-                agent = self.detector.detect(chunk_float)
+                detection = self.detector.detect(chunk_float)
 
-                if agent:
-                    self.logger.info(f"Wake word detected: {agent}")
+                if detection:
+                    agent, wake_phrase, confidence = detection
+                    self.logger.info(
+                        f"Wake word detected: agent='{agent}', "
+                        f"phrase='{wake_phrase}', confidence={confidence:.2%}"
+                    )
                     await self._send_status(
                         "wake_word_detected",
-                        f"Detected: Hey {agent}",
-                        {"agent": agent}
+                        f"Detected: {wake_phrase} -> {agent}",
+                        {"agent": agent, "wake_phrase": wake_phrase, "confidence": confidence}
                     )
 
                     # Capture full utterance
@@ -196,6 +255,7 @@ class WakeWordMode(BaseMode):
 
                         if result.get("success"):
                             result["agent"] = agent
+                            result["wake_phrase"] = wake_phrase
                             result["wake_word_detected"] = True
                             return result
                         else:

@@ -36,7 +36,7 @@ select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE"
 ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "S602", "S603", "S607", "PLR0913", "PLR2004", "FBT002", "COM812", "ISC001",]
 fixable = [ "ALL",]
 unfixable = []
-exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", ".test_artifacts", "logs", "*.egg-info", "docker", ".pytest_cache", "/tmp",]
+exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", ".artifacts", "logs", "*.egg-info", "docker", ".pytest_cache", "/tmp",]
 line-length = 120
 indent-width = 4
 target-version = "py38"
@@ -45,7 +45,7 @@ target-version = "py38"
 line-length = 120
 target-version = [ "py38",]
 include = "\\.pyi?$"
-extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.tox\n  | \\.venv\n  | build\n  | dist\n  | venv\n  | \\.test_artifacts\n  | logs\n  | .*\\.egg-info\n  | docker\n  | \\.pytest_cache\n  | tmp\n)/\n"
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.tox\n  | \\.venv\n  | build\n  | dist\n  | venv\n  | \\.artifacts\n  | logs\n  | .*\\.egg-info\n  | docker\n  | \\.pytest_cache\n  | tmp\n)/\n"
 
 [tool.mypy]
 python_version = "3.8"
@@ -62,7 +62,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-exclude = [ "venv/", ".test_artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", "*.egg-info/",]
+exclude = [ "venv/", ".artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", "*.egg-info/",]
 [[tool.mypy.overrides]]
 module = [ "websockets.*", "faster_whisper.*", "deepmultilingualpunctuation.*", "spacy.*", "opuslib.*", "silero_vad.*", "torchaudio.*", "ctranslate2.*", "numpy.*", "pynput.*", "whisper_online.*", "soundfile.*", "parakeet_mlx.*", "mlx.*", "openwakeword.*",]
 ignore_missing_imports = true

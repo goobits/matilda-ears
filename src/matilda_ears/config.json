@@ -80,6 +80,12 @@
     },
     "wake_word": {
       "enabled": false,
+      "agent_aliases": [
+        {
+          "agent": "Matilda",
+          "aliases": ["hey_matilda", "computer", "hey_jarvis"]
+        }
+      ],
       "agents": ["Matilda"],
       "threshold": 0.5,
       "vad_threshold": 0.5,

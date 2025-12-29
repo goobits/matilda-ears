@@ -12,7 +12,7 @@ import os
 # Auto-detect and use test environment if available
 def check_and_use_test_env():
     """Check if test environment exists and re-exec with it if needed."""
-    test_env_python = os.path.join(".test_artifacts", "test-env", "bin", "python")
+    test_env_python = os.path.join(".artifacts/test", "test-env", "bin", "python")
     
     # If test env exists and we're not already using it
     if os.path.exists(test_env_python) and sys.executable != os.path.abspath(test_env_python):
@@ -119,11 +119,11 @@ def main():
         if not in_venv:
             print("⚠️  Not in a virtual environment!")
             
-            # Ensure .test_artifacts directory exists first
-            os.makedirs(".test_artifacts", exist_ok=True)
+            # Ensure .artifacts/test directory exists first
+            os.makedirs(".artifacts/test", exist_ok=True)
             
             # Check if test-env already exists
-            test_env_path = os.path.join(".test_artifacts", "test-env")
+            test_env_path = os.path.join(".artifacts/test", "test-env")
             if not os.path.exists(test_env_path):
                 print("\nCreating test environment...")
                 try:
@@ -131,7 +131,7 @@ def main():
                     print(f"✅ Test environment created in {test_env_path}")
                 except subprocess.CalledProcessError as e:
                     print(f"❌ Failed to create test environment: {e}")
-                    print("   Try running: python3 -m venv .test_artifacts/test-env")
+                    print("   Try running: python3 -m venv .artifacts/test/test-env")
                     return 1
             else:
                 print(f"✅ Using existing test environment in {test_env_path}")
@@ -200,7 +200,7 @@ def main():
     # Handle read-only operations (history and diff) without running tests
     if known_args.history is not None or known_args.diff_range is not None:
         # Check if test environment exists and use it
-        test_env_python = os.path.join(".test_artifacts", "test-env", "bin", "python")
+        test_env_python = os.path.join(".artifacts/test", "test-env", "bin", "python")
         if os.path.exists(test_env_python):
             python_cmd = test_env_python
         else:
@@ -242,7 +242,7 @@ def main():
     
     # Regular test execution
     # Check if test environment exists and use it
-    test_env_python = os.path.join(".test_artifacts", "test-env", "bin", "python")
+    test_env_python = os.path.join(".artifacts/test", "test-env", "bin", "python")
     if os.path.exists(test_env_python):
         python_cmd = test_env_python
     else:

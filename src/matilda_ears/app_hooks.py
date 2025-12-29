@@ -213,7 +213,7 @@ async def async_worker(args):
 def on_transcribe(
     listen_once=False,
     conversation=False,
-    wake_word=None,
+    wake_word=False,
     tap_to_talk=None,
     hold_to_talk=None,
     file=None,
@@ -229,9 +229,17 @@ def on_transcribe(
     sample_rate=16000,
     config=None,
     agents=None,
-    threshold=None,
+    agent_aliases=None,
+    ww_threshold=None,
 ):
-    """Main transcription hook - handles all operation modes."""
+    """Main transcription hook - handles all operation modes.
+
+    Args:
+        wake_word: Enable wake word detection mode
+        agents: Comma-separated agent names (legacy format)
+        agent_aliases: Agent aliases string (format: 'Agent1:phrase1,phrase2;Agent2:phrase3')
+        ww_threshold: Wake word detection threshold (0.0-1.0)
+    """
     # Ensure stdout is unbuffered for piping
     sys.stdout.reconfigure(line_buffering=True)
 
@@ -256,7 +264,8 @@ def on_transcribe(
         sample_rate=sample_rate,
         config=config,
         agents=agents,
-        threshold=threshold,
+        agent_aliases=agent_aliases,
+        ww_threshold=ww_threshold,
     )
 
     # Check if no mode selected

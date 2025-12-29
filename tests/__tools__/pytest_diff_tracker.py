@@ -12,7 +12,7 @@ from functools import lru_cache
 import sys
 
 # --- Constants ---
-HISTORY_DIR = Path(".test_artifacts")
+HISTORY_DIR = Path(".artifacts/test")
 
 # --- Pytest Hooks ---
 

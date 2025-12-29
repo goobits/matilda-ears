@@ -1,0 +1,50 @@
+# Matilda Ears Development Makefile
+
+.PHONY: help test test-summary test-diff test-sequential lint format type-check quality clean install dev
+
+help: ## Show this help message
+	@echo "Matilda Ears Development Commands:"
+	@echo "==================================="
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+test: ## Run all tests with auto-parallel
+	@./scripts/test.py
+
+test-summary: ## Run tests with YAML failure summary
+	@./scripts/test.py --summary
+
+test-diff: ## Compare test results vs last run
+	@./scripts/test.py --diff=-1
+
+test-sequential: ## Run tests sequentially (for debugging)
+	@./scripts/test.py --sequential
+
+test-formatting: ## Run text formatting tests only
+	@./scripts/test.py tests/unit/text_formatting/ --summary
+
+lint: ## Run linting with ruff
+	@echo "Running linter..."
+	@ruff check src/matilda_ears/ tests/
+
+format: ## Format code with black
+	@echo "Formatting code..."
+	@black src/matilda_ears/ tests/ --line-length 120
+
+type-check: ## Run type checking with mypy
+	@echo "Running type checker..."
+	@mypy src/matilda_ears/
+
+quality: format lint type-check ## Run all code quality checks
+	@echo "All quality checks completed!"
+
+clean: ## Clean up build artifacts and cache
+	@echo "Cleaning up..."
+	@rm -rf __pycache__ .pytest_cache .mypy_cache .coverage htmlcov
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete
+
+install: ## Install package with pipx
+	@./setup.sh install
+
+dev: ## Install in development mode
+	@./setup.sh install --dev
