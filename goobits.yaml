@@ -8,8 +8,8 @@ display_name: "Matilda Ears - Speech-to-Text Engine"
 description: "Pure speech-to-text engine with multiple operation modes"
 
 # CLI generation configuration
-cli_output_path: "goobits_matilda_ears/cli.py"
-hooks_path: "goobits_matilda_ears/cli_hooks.py"
+cli_path: "src/matilda_ears/cli.py"
+cli_hooks_path: "src/matilda_ears/app_hooks.py"
 
 python:
   minimum_version: "3.8"
