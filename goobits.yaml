@@ -58,7 +58,7 @@ messages:
     Development workflow:
       - Edit code in src/matilda_ears/ directory
       - Test immediately with: ears --listen-once
-      - Run tests with: ./test.py tests/text_formatting/ --summary
+      - Run tests with: make test-formatting
 
   upgrade_success: |
     Matilda Ears has been upgraded successfully!

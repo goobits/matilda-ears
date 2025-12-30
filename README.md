@@ -219,13 +219,13 @@ python scripts/generate_token.py "Dev Client" --days 30 --show-full-token
 
 ```bash
 # Install dev dependencies
-./setup.sh install --dev
+./scripts/setup.sh install --dev
 python -m spacy download en_core_web_sm
 
 # Run tests
-./test.py                                   # Show help and examples
-./test.py tests/text_formatting/ --summary  # Text formatting tests
-./test.py --diff=-1                         # Compare with last run
+./scripts/test.py                                   # Show help and examples
+./scripts/test.py tests/text_formatting/ --summary  # Text formatting tests
+./scripts/test.py --diff=-1                         # Compare with last run
 pytest -v -n auto                           # Parallel execution
 
 # Code quality

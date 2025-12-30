@@ -19,24 +19,24 @@ The project is built around Whisper models for transcription and includes advanc
 
 ### Testing (Primary workflow)
 ```bash
-./test.py                                    # Show comprehensive help
-./test.py tests/text_formatting/ --summary  # Main testing workflow (YAML summary)
-./test.py tests/text_formatting/ --sequential  # Sequential mode for debugging
-./test.py --diff=-1                          # Check changes vs last run
-./test.py --history                          # View test run history
-./test.py --install                          # Install dependencies with verification
+./scripts/test.py                                    # Show comprehensive help
+./scripts/test.py tests/text_formatting/ --summary  # Main testing workflow (YAML summary)
+./scripts/test.py tests/text_formatting/ --sequential  # Sequential mode for debugging
+./scripts/test.py --diff=-1                          # Check changes vs last run
+./scripts/test.py --history                          # View test run history
+./scripts/test.py --install                          # Install dependencies with verification
 ```
 
 ### Advanced Testing Options
 ```bash
 # Execution modes
-./test.py --parallel 4                       # Use 4 parallel workers
-./test.py --parallel off                     # Force sequential execution
+./scripts/test.py --parallel 4                       # Use 4 parallel workers
+./scripts/test.py --parallel off                     # Force sequential execution
 
 # Analysis and tracking
-./test.py --detailed                         # Show detailed failure analysis
-./test.py --full-diff                        # Show full assertion diffs
-./test.py --track-diff                       # Auto-track changes vs last run
+./scripts/test.py --detailed                         # Show detailed failure analysis
+./scripts/test.py --full-diff                        # Show full assertion diffs
+./scripts/test.py --track-diff                       # Auto-track changes vs last run
 
 # Direct pytest (if preferred)
 pytest tests/text_formatting/ --track-diff --sequential
@@ -65,7 +65,7 @@ bandit -r src/
 ### Running the Application
 ```bash
 # Install in development mode
-./setup.sh install --dev
+./scripts/setup.sh install --dev
 
 # Run different modes
 ears --listen-once
@@ -184,7 +184,7 @@ logger = setup_logging(__name__, log_level="INFO")
 
 ## Development Workflow
 
-1. **Setup**: Install with `./setup.sh install --dev` for development dependencies
+1. **Setup**: Install with `./scripts/setup.sh install --dev` for development dependencies
 2. **Configuration**: Modify `config.json` for local settings
 3. **Testing**: Run `pytest` before committing changes
 4. **Code Quality**: Use `ruff` and `black` for formatting, `mypy` for type checking
