@@ -27,7 +27,7 @@ wake_word = [ "openwakeword>=0.6.0", "onnxruntime>=1.15.0",]
 dev = [ "pytest>=6.0", "pytest-asyncio>=0.20.0", "pytest-xdist>=3.0.0", "pytest-sugar>=0.9.0", "pytest-clarity>=1.0.0", "pytest-html>=3.0.0", "pytest-json-report>=1.5.0", "rich>=13.0.0", "ruff>=0.1.0", "black>=22.0.0", "mypy>=1.0.0", "bandit>=1.7.0", "pyyaml>=6.0.0",]
 
 [project.scripts]
-ears = "goobits_matilda_ears.cli:cli_entry"
+ears = "matilda_ears.cli:cli_entry"
 ears-server = "matilda_ears.transcription.server:main"
 
 [tool.ruff]
@@ -36,123 +36,6 @@ exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_ca
 line-length = 120
 indent-width = 4
 target-version = "py38"
-
-[tool.ruff.lint]
-select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
-ignore = [
-    # Missing docstrings (too noisy for CLI project)
-    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
-    # Docstring formatting (style preference)
-    "D400", "D401", "D415",
-    # Type annotations (too strict)
-    "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206",
-    # Future annotations (would require significant refactoring)
-    "FA100",
-    # Security (handled appropriately)
-    "S602", "S603", "S607",
-    # Complexity (acceptable for CLI)
-    "PLR0913", "PLR2004", "C901", "PLR0911", "PLR0912", "PLR0915",
-    # Boolean trap (acceptable for CLI flags)
-    "FBT001", "FBT002",
-    # Formatting conflicts
-    "COM812", "ISC001",
-    # Blind exception (CLI needs catch-all for user experience)
-    "BLE001",
-    # f-string vs % formatting (preference)
-    "G004",
-    # Try-except patterns (acceptable for CLI)
-    "TRY003", "TRY300", "TRY400", "TRY401", "PERF203",
-    # Line length (will fix critical ones manually)
-    "E501",
-    # Explicit return None (style preference)
-    "RET501", "RET502", "RET503", "RET504", "RET505", "RET506", "RET507", "RET508",
-    # Nested with/if statements (sometimes cleaner)
-    "SIM102", "SIM117",
-    # Import at top of file (lazy loading is intentional)
-    "PLC0415",
-    # Shebang (module files don't need to be executable)
-    "EXE001",
-    # Relative imports (project style)
-    "TID252",
-    # Exception messages (acceptable for CLI)
-    "EM101", "EM102",
-    # Commented out code (sometimes useful for reference)
-    "ERA001",
-    # Global statement (needed for singleton patterns)
-    "PLW0603",
-    # Ambiguous unicode (false positives on docs)
-    "RUF001",
-    # Print statements (CLI tool uses print)
-    "T201",
-    # Unused arguments (API compatibility)
-    "ARG001", "ARG002",
-    # pathlib vs os.path (legacy code)
-    "PTH100", "PTH103", "PTH107", "PTH110", "PTH118", "PTH119", "PTH120", "PTH123",
-    # Hardcoded credentials (false positives)
-    "S105",
-    # Exception chaining (style preference)
-    "B904", "TRY301",
-    # Use walrus operator (readability preference)
-    "SIM105",
-    # Implicit optional (legacy type hints)
-    "RUF013",
-    # Performance: manual list comprehension (readability preference)
-    "PERF401",
-    # Naming conventions (project-specific)
-    "N801", "N802", "N803", "N806",
-    # Use __all__ (not always needed)
-    "RUF022",
-    # Ambiguous characters (false positives in strings)
-    "RUF002",
-    # Loop variable not used (intentional patterns)
-    "B007",
-    # Function uses loop variable (intentional)
-    "B023",
-    # Private member access (sometimes necessary)
-    "SLF001",
-    # Datetime without timezone (acceptable for local time)
-    "DTZ003", "DTZ005", "DTZ006",
-    # Ternary operator (readability preference)
-    "SIM108", "SIM103", "SIM110",
-    # Bind all interfaces (acceptable for dev server)
-    "S104",
-    # Try except pass (intentional for error suppression)
-    "S110",
-    # More pathlib vs os (legacy)
-    "PTH101", "PTH108", "PTH202",
-    # Collection literals (style preference)
-    "RUF005",
-    # Type checking (acceptable patterns)
-    "TC002", "TC003",
-    # Asyncio patterns (intentional)
-    "ASYNC110", "ASYNC230", "RUF006",
-    # Any type (acceptable for dynamic code)
-    "ANN401",
-    # Unused local assigned (will be used later)
-    "F841",
-    # Docstring blank line (style)
-    "D200", "D205", "D417",
-    # Missing __init__.py (not always needed)
-    "INP001",
-    # Unused arguments in tests
-    "ARG005",
-    # Other minor style issues
-    "RUF003", "RUF015", "RUF059", "PLR1714", "PLW2901", "PERF403", "G201", "FA102", "E702", "W293", "TRY002", "B025",
-    # Temp file usage (intentional paths)
-    "S108",
-]
-fixable = [ "ALL",]
-unfixable = []
-
-[tool.ruff.lint.per-file-ignores]
-# CLI files use print for output
-"src/matilda_ears/app_hooks.py" = ["T201", "PLC0415", "EXE001"]
-"src/matilda_ears/cli.py" = ["T201"]
-# TYPE_CHECKING imports are used for type hints
-"src/matilda_ears/modes/__init__.py" = ["F401"]
-# Imports used to check availability
-"src/matilda_ears/transcription/backends/huggingface_backend.py" = ["F401"]
-"src/matilda_ears/transcription/backends/parakeet_backend.py" = ["F401"]
 
 [tool.black]
 line-length = 120
@@ -188,6 +71,12 @@ disable = [ "missing-docstring", "too-few-public-methods", "too-many-arguments",
 exclude_dirs = [ "tests", "venv",]
 skips = [ "B602", "B603", "B607",]
 
+[tool.ruff.lint]
+select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
+ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D400", "D401", "D415", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "FA100", "S602", "S603", "S607", "PLR0913", "PLR2004", "C901", "PLR0911", "PLR0912", "PLR0915", "FBT001", "FBT002", "COM812", "ISC001", "BLE001", "G004", "TRY003", "TRY300", "TRY400", "TRY401", "PERF203", "E501", "RET501", "RET502", "RET503", "RET504", "RET505", "RET506", "RET507", "RET508", "SIM102", "SIM117", "PLC0415", "EXE001", "TID252", "EM101", "EM102", "ERA001", "PLW0603", "RUF001", "T201", "ARG001", "ARG002", "PTH100", "PTH103", "PTH107", "PTH110", "PTH118", "PTH119", "PTH120", "PTH123", "S105", "B904", "TRY301", "SIM105", "RUF013", "PERF401", "N801", "N802", "N803", "N806", "RUF022", "RUF002", "B007", "B023", "SLF001", "DTZ003", "DTZ005", "DTZ006", "SIM108", "SIM103", "SIM110", "S104", "S110", "PTH101", "PTH108", "PTH202", "RUF005", "TC002", "TC003", "ASYNC110", "ASYNC230", "RUF006", "ANN401", "F841", "D200", "D205", "D417", "INP001", "ARG005", "RUF003", "RUF015", "RUF059", "PLR1714", "PLW2901", "PERF403", "G201", "FA102", "E702", "W293", "TRY002", "B025", "S108",]
+fixable = [ "ALL",]
+unfixable = []
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -195,7 +84,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.setuptools.package-data]
-matilda_ears = [ "*.json",]
+matilda_ears = [ "*.json", "setup.sh",]
 goobits_matilda_ears = [ "setup.sh",]
 
 [tool.pytest.ini_options]
@@ -215,6 +104,13 @@ skip_covered = false
 
 [tool.coverage.html]
 directory = ".artifacts/cache/htmlcov"
+
+[tool.ruff.lint.per-file-ignores]
+"src/matilda_ears/app_hooks.py" = [ "T201", "PLC0415", "EXE001",]
+"src/matilda_ears/cli.py" = [ "T201",]
+"src/matilda_ears/modes/__init__.py" = [ "F401",]
+"src/matilda_ears/transcription/backends/huggingface_backend.py" = [ "F401",]
+"src/matilda_ears/transcription/backends/parakeet_backend.py" = [ "F401",]
 
 [tool.setuptools.packages.find]
 where = [ "src", ".",]
