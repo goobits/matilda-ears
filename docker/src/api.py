@@ -5,16 +5,40 @@ import asyncio
 import base64
 import json
 import ssl
+import secrets
 import websockets
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Security, Depends
+from fastapi.security import APIKeyHeader
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+# Security: API Token Management
+API_TOKEN = os.getenv("MATILDA_API_TOKEN")
+if not API_TOKEN:
+    API_TOKEN = secrets.token_hex(32)
+    print(f"⚠️  SECURITY WARNING: MATILDA_API_TOKEN not set.")
+    print(f"⚠️  Generated temporary secure token: {API_TOKEN}")
+    print(f"⚠️  Please set MATILDA_API_TOKEN in your environment for persistence.")
+
+api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+
+async def verify_api_key(auth_header: str = Security(api_key_header)):
+    """Verify the Bearer token."""
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid Authorization header format")
+    
+    token = auth_header.split(" ")[1]
+    if not secrets.compare_digest(token, API_TOKEN):
+        raise HTTPException(status_code=403, detail="Invalid token")
+    return token
 
 # Pydantic models for API requests/responses
 class TokenRequest(BaseModel):
@@ -88,9 +112,13 @@ class DashboardAPI:
 
     def setup_middleware(self):
         """Setup CORS and other middleware"""
+        # Security: Do not use wildcard "*" with allow_credentials=True
+        # Default to localhost for development
+        allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+        
         self.app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=allowed_origins,
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -125,7 +153,7 @@ class DashboardAPI:
                     status="error", model="unknown", gpu_available=False, clients=0, uptime=0, error=str(e)
                 )
 
-        @self.app.post("/api/generate-token")
+        @self.app.post("/api/generate-token", dependencies=[Depends(verify_api_key)])
         async def generate_token(request: TokenRequest) -> TokenResponse:
             """Generate a new client token with QR code data"""
             try:
@@ -148,13 +176,13 @@ class DashboardAPI:
                 logging.exception(f"Failed to generate token: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.get("/api/clients")
+        @self.app.get("/api/clients", dependencies=[Depends(verify_api_key)])
         async def get_active_clients() -> List[ClientInfo]:
             """Get list of all active clients"""
             clients = self.token_manager.get_active_clients()
             return [ClientInfo(**client) for client in clients]
 
-        @self.app.post("/api/revoke-token")
+        @self.app.post("/api/revoke-token", dependencies=[Depends(verify_api_key)])
         async def revoke_token(request: RevokeTokenRequest):
             """Revoke a client token"""
             success = self.token_manager.revoke_token(request.token_id)
@@ -162,7 +190,7 @@ class DashboardAPI:
                 return {"success": True}
             raise HTTPException(status_code=404, detail="Token not found")
 
-        @self.app.post("/api/transcribe")
+        @self.app.post("/api/transcribe", dependencies=[Depends(verify_api_key)])
         async def transcribe_audio(audio: UploadFile = File(...)) -> TranscriptionResult:
             """Transcribe audio file via WebSocket server"""
             try:
@@ -198,7 +226,7 @@ class DashboardAPI:
                 logging.exception(f"Transcription test failed: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @self.app.post("/api/settings")
+        @self.app.post("/api/settings", dependencies=[Depends(verify_api_key)])
         async def save_settings(settings: ServerSettings):
             """Save server settings"""
             try:
