@@ -95,20 +95,23 @@ class SmartCapitalizer:
         # Sort matches by position and process in reverse order to maintain positions
         matches.sort(key=lambda m: m.start())
 
-        # Remove duplicates and overlapping matches
+        # Remove duplicates and overlapping matches (O(n²) instead of O(n³))
         unique_matches: list[re.Match[str]] = []
         for match in matches:
             # Check if this match overlaps with any already added
             overlaps = False
-            for existing in unique_matches:
+            replace_index = -1
+            for i, existing in enumerate(unique_matches):
                 if match.start() < existing.end() and match.end() > existing.start():
                     # If there's overlap, keep the longer match
                     if len(match.group()) > len(existing.group()):
-                        unique_matches.remove(existing)
+                        replace_index = i  # Mark for replacement instead of remove()
                     else:
                         overlaps = True
                         break
-            if not overlaps:
+            if replace_index >= 0:
+                unique_matches[replace_index] = match  # O(1) replacement
+            elif not overlaps:
                 unique_matches.append(match)
 
         # Process in reverse order to maintain positions
@@ -246,11 +249,12 @@ class SmartCapitalizer:
                     # than to risk corrupting the text with the old regex method.
         else:
             # No SpaCy available, use regex approach with context check
-            new_text = ""
+            # Use list and join() instead of string concatenation for O(n) performance
+            text_parts = []
             last_end = 0
             for match in re.finditer(r"\bi\b", text):
                 start, end = match.span()
-                new_text += text[last_end:start]
+                text_parts.append(text[last_end:start])
 
                 is_protected = False
                 if entities:
@@ -267,13 +271,13 @@ class SmartCapitalizer:
                 )
 
                 if not is_protected and not is_part_of_identifier and not is_variable_context:
-                    new_text += "I"  # Capitalize
+                    text_parts.append("I")  # Capitalize
                 else:
-                    new_text += "i"  # Keep lowercase
+                    text_parts.append("i")  # Keep lowercase
                 last_end = end
 
-            new_text += text[last_end:]
-            text = new_text
+            text_parts.append(text[last_end:])
+            text = "".join(text_parts)
 
         # Post-processing: Fix any remaining abbreviation capitalization issues
         # Use simple string replacement to avoid regex complications
