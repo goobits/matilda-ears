@@ -190,7 +190,9 @@ class TestMeasurementEdgeCases:
         format_transcription = preloaded_formatter
         result = format_transcription("add five grams ten grams and fifteen grams")
         # Should handle measurements in a list context
-        assert "5 g" in result and "10 g" in result and "15 g" in result
+        assert "5 g" in result
+        assert "10 g" in result
+        assert "15 g" in result
 
     def test_measurements_vs_regular_numbers(self, preloaded_formatter):
         """Test that measurements take priority over plain numbers."""

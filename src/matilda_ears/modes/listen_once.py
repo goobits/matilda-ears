@@ -9,10 +9,11 @@ This mode provides automatic speech detection and transcription of a single utte
 """
 
 import asyncio
+import sys
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
-from ._imports import np, NUMPY_AVAILABLE
+from ._imports import np
 from .base_mode import BaseMode
 from matilda_ears.audio.vad import SileroVAD
 

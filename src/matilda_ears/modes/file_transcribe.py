@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 # Import shared path setup (also adds project root to sys.path)
-from ._imports import *  # noqa: F401,F403
+from ._imports import *  # noqa: F403
 
 from matilda_ears.core.config import get_config, setup_logging
 from matilda_ears.transcription.backends import get_backend_class

@@ -34,7 +34,7 @@ INSTALLATION:
 
 BASIC USAGE:
   ./test.py                                         # Run all tests (auto-parallel + tracking)
-  ./test.py tests/text_formatting/                 # Run specific test directory  
+  ./test.py tests/text_formatting/                 # Run specific test directory
   ./test.py tests/text_formatting/test_basic_formatting.py  # Run specific file
 
 EXECUTION MODES:

@@ -64,7 +64,7 @@ class TestStreamingResult:
         result = StreamingResult()
         assert result.confirmed_text == ""
         assert result.tentative_text == ""
-        assert result.is_final == False
+        assert not result.is_final
         assert result.confirmed_word_count == 0
         assert result.tentative_word_count == 0
 
@@ -115,7 +115,7 @@ class TestStreamingResult:
 
         assert d["confirmed_text"] == "hello"
         assert d["tentative_text"] == "world"
-        assert d["is_final"] == True
+        assert d["is_final"]
         assert "confirmed_word_count" in d
 
 

@@ -3,7 +3,7 @@
 
 These tests detect when the app is fundamentally broken:
 - Import errors
-- Config file corruption  
+- Config file corruption
 - Basic CLI functionality
 - Startup crashes
 

@@ -13,7 +13,7 @@ import threading
 import time
 from typing import Dict, Any
 
-from ._imports import np, NUMPY_AVAILABLE
+from ._imports import np
 from .base_mode import BaseMode
 
 
