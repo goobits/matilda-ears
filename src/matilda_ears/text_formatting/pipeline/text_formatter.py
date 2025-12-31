@@ -77,6 +77,7 @@ class TextFormatter:
             key_name: Key name for context
             enter_pressed: Whether enter was pressed
             language: Optional language override (uses instance default if None)
+
         """
         # Use the override language if provided, otherwise use the instance's default
         current_language = language or self.language
@@ -471,6 +472,7 @@ def format_transcription(text: str, key_name: str = "", enter_pressed: bool = Fa
 
     Returns:
         Fully formatted text ready for output
+
     """
     global _formatter_instance
     if _formatter_instance is None:

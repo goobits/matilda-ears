@@ -2,7 +2,6 @@
 """Text preprocessing: artifact cleaning and filtering."""
 
 import re
-from typing import List
 
 from .. import regex_patterns
 from ..constants import get_resources

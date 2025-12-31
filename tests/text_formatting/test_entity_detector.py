@@ -7,6 +7,7 @@ from matilda_ears.text_formatting.formatter import EntityDetector
 
 class MockSpacyEntity:
     """Mock SpaCy entity object for testing."""
+
     def __init__(self, text, start_char, end_char, label_):
         self.text = text
         self.start_char = start_char

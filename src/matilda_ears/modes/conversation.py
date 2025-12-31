@@ -12,24 +12,9 @@ import asyncio
 import threading
 import time
 from typing import Dict, Any
-from pathlib import Path
-import sys
 
-# Add project root to path for local imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
-
+from ._imports import np, NUMPY_AVAILABLE
 from .base_mode import BaseMode
-
-try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except ImportError:
-    NUMPY_AVAILABLE = False
-    # Create dummy for type annotations
-    class _DummyNumpy:
-        class ndarray:
-            pass
-    np = _DummyNumpy()
 
 
 class ConversationMode(BaseMode):

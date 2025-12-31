@@ -84,7 +84,7 @@ def main():
     
     # Parse our specific args, pass everything else to pytest
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--sequential", action="store_true", 
+    parser.add_argument("--sequential", action="store_true",
                        help="Force sequential execution (disable parallel)")
     parser.add_argument("--parallel", default="auto",
                        help='Parallel workers: "auto" (7), "off" (sequential), or number like "4"')
@@ -93,9 +93,9 @@ def main():
     # Removed --detailed for now as it's not implemented in pytest plugins
     parser.add_argument("--full-diff", action="store_true",
                        help="Show full assertion diffs")
-    parser.add_argument("--history", nargs="?", const=True, 
+    parser.add_argument("--history", nargs="?", const=True,
                        help="Show test run history. Optional: number of runs to show")
-    parser.add_argument("--diff", dest="diff_range", 
+    parser.add_argument("--diff", dest="diff_range",
                        help="Compare test runs (e.g., --diff=-1 or --diff='-5,-1')")
     parser.add_argument("--install", action="store_true",
                        help="Install the project with all dependencies")
@@ -114,7 +114,7 @@ def main():
         print("=" * 50)
         
         # Check if we're in a virtual environment
-        in_venv = sys.prefix != sys.base_prefix or os.environ.get('VIRTUAL_ENV') is not None
+        in_venv = sys.prefix != sys.base_prefix or os.environ.get("VIRTUAL_ENV") is not None
         
         if not in_venv:
             print("⚠️  Not in a virtual environment!")
@@ -142,7 +142,7 @@ def main():
             else:
                 python_exe = os.path.join(test_env_path, "bin", "python")
             
-            print(f"\n📝 Activate it with:")
+            print("\n📝 Activate it with:")
             if platform.system() == "Windows":
                 print(f"   .\\{test_env_path}\\Scripts\\activate")
             else:
@@ -153,7 +153,7 @@ def main():
         
         print("\n📦 Installing GOOBITS STT with all dependencies...")
         # Use the venv's python to ensure pip is available
-        if not in_venv and 'python_exe' in locals():
+        if not in_venv and "python_exe" in locals():
             # Verify the python executable exists before using it
             if not os.path.exists(python_exe):
                 print(f"❌ Python executable not found at {python_exe}")
@@ -176,7 +176,7 @@ def main():
                 print("✅ SpaCy model installed successfully!")
             else:
                 print("⚠️  SpaCy model installation failed, trying fallback method...")
-                fallback_cmd = [spacy_python, "-m", "pip", "install", 
+                fallback_cmd = [spacy_python, "-m", "pip", "install",
                                "en_core_web_sm@https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"]
                 fallback_result = subprocess.run(fallback_cmd, check=False)
                 if fallback_result.returncode == 0:
@@ -186,7 +186,7 @@ def main():
                     print("   Text formatting may not work properly.")
             
             print("\n🧪 Verifying installation...")
-            verify_cmd = [sys.executable if in_venv else python_exe, 
+            verify_cmd = [sys.executable if in_venv else python_exe,
                          "tests/__tools__/verify_test_setup.py"]
             subprocess.run(verify_cmd, check=False)
             print("\n🚀 Ready to run tests with: ./test.py")
@@ -228,9 +228,9 @@ def main():
         if known_args.diff_range is not None:
             cmd.append("--diff")
             # Parse the diff range string
-            if ',' in known_args.diff_range:
+            if "," in known_args.diff_range:
                 # Format like "-5,-1"
-                parts = known_args.diff_range.split(',')
+                parts = known_args.diff_range.split(",")
                 cmd.extend([part.strip() for part in parts])
             else:
                 # Single value like "-1"
@@ -294,7 +294,7 @@ def main():
             console = Console()
             
             # Start the process
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, 
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                      text=True, bufsize=1, universal_newlines=True)
             
             recent_lines = []
@@ -315,7 +315,7 @@ def main():
             with Live(create_progress_panel(), console=console, refresh_per_second=4) as live:
                 while True:
                     line = process.stdout.readline()
-                    if line == '' and process.poll() is not None:
+                    if line == "" and process.poll() is not None:
                         break
                     if line:
                         output_lines.append(line)
@@ -349,7 +349,7 @@ def main():
             print("🧪 Running tests with summary mode...")
             print("Running tests... (progress display requires 'rich' library)")
             
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, 
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                      text=True)
             output_lines = []
             for line in process.stdout:
@@ -357,7 +357,7 @@ def main():
             process.wait()
         
         # Get full output
-        output = ''.join(output_lines)
+        output = "".join(output_lines)
         
         # Check for collection errors or other critical issues first
         if "ERROR" in output and ("Interrupted" in output or "error during collection" in output):
@@ -399,10 +399,9 @@ def main():
             print("📊 Tests completed - checking for failures...")
         
         return process.returncode
-    else:
-        # Always use at least -v for better output unless user specified verbosity
-        if not any(arg.startswith("-v") or arg in ["-q", "--quiet"] for arg in pytest_args):
-            cmd.append("-v")
+    # Always use at least -v for better output unless user specified verbosity
+    elif not any(arg.startswith("-v") or arg in ["-q", "--quiet"] for arg in pytest_args):
+        cmd.append("-v")
     
     # Default to tests/ if no test paths specified
     if not any(arg.startswith("tests/") or arg.endswith(".py") for arg in pytest_args):

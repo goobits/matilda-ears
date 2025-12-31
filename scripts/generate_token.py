@@ -53,7 +53,7 @@ def main():
         print("\n📋 Example usage in WebSocket messages:")
         print('{ "type": "auth", "token": "YOUR_TOKEN_HERE" }')
         print("\n🔧 Export for local use:")
-        print(f"export JWT_TOKEN=\"{token}\"")
+        print(f'export JWT_TOKEN="{token}"')
         print("\n⚠️  SECURITY WARNING: Token displayed in plaintext!")
     else:
         # Show truncated token for security
@@ -62,7 +62,7 @@ def main():
         print("\n📋 Example usage in WebSocket messages:")
         print('{ "type": "auth", "token": "YOUR_TOKEN_HERE" }')
         print("\n🔧 Export for local use:")
-        print("export JWT_TOKEN=\"<paste token here>\"")
+        print('export JWT_TOKEN="<paste token here>"')
         print("\n💡 Use --show-full-token to display the complete token (security risk)")
 
         # Save to secure location instead

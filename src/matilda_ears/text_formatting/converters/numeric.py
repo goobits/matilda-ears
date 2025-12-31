@@ -78,7 +78,7 @@ class NumericConverterMixin(
         - convert_spoken_emoji: "smiley face" → "🙂"
     """
 
-    pass  # All functionality inherited from mixins
+    # All functionality inherited from mixins
 
 
 # Re-export individual mixins for granular imports

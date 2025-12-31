@@ -1,6 +1,5 @@
 """Unit tests for streaming types."""
 
-import pytest
 from matilda_ears.transcription.streaming.types import (
     TimestampedWord,
     StreamingResult,

@@ -1,5 +1,4 @@
-"""
-Hook implementations for Matilda Ears - Speech-to-Text Engine.
+"""Hook implementations for Matilda Ears - Speech-to-Text Engine.
 
 This file contains the business logic for your CLI commands.
 Implement the hook functions below to handle your CLI commands.
@@ -11,31 +10,27 @@ Example:
 """
 
 # Import any modules you need here
-import sys
-import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 def on_status(    json: bool = False,    **kwargs
 ) -> Dict[str, Any]:
-    """
-    Handle status command.        json: Output JSON format
+    """Handle status command.        json: Output JSON format
     Returns:
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing status command")
+    print("Executing status command")
     return {
         "status": "success",
         "message": "status completed successfully"
     }
 def on_models(    json: bool = False,    **kwargs
 ) -> Dict[str, Any]:
-    """
-    Handle models command.        json: Output JSON format
+    """Handle models command.        json: Output JSON format
     Returns:
         Dictionary with status and optional results
     """
     # Add your business logic here
-    print(f"Executing models command")
+    print("Executing models command")
     return {
         "status": "success",
         "message": "models completed successfully"

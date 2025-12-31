@@ -11,30 +11,9 @@ This mode offers a "walkie-talkie" style interaction:
 import asyncio
 import threading
 from typing import Dict, Any
-from pathlib import Path
-import sys
 
-# Add project root to path for local imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
-
+from ._imports import Key, Listener, PYNPUT_AVAILABLE
 from .base_mode import BaseMode
-
-try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except ImportError:
-    NUMPY_AVAILABLE = False
-    # Create dummy for type annotations
-    class _DummyNumpy:
-        class ndarray:
-            pass
-    np = _DummyNumpy()
-
-try:
-    from pynput.keyboard import Key, Listener
-    PYNPUT_AVAILABLE = True
-except ImportError:
-    PYNPUT_AVAILABLE = False
 
 
 class HoldToTalkMode(BaseMode):
@@ -247,22 +226,7 @@ class HoldToTalkMode(BaseMode):
             self.logger.error(f"Error stopping recording: {e}")
             await self._send_error(f"Failed to stop recording: {e}")
 
-    async def _collect_audio(self):
-        """Collect audio chunks while recording."""
-        while self.is_recording:
-            try:
-                # Get audio chunk with timeout
-                if self.audio_queue is None:
-                    break
-                audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
-                self.audio_data.append(audio_chunk)
-
-            except asyncio.TimeoutError:
-                # No audio data - continue if still recording
-                continue
-            except Exception as e:
-                self.logger.error(f"Error collecting audio: {e}")
-                break
+    # _collect_audio is inherited from BaseMode
 
     async def _transcribe_recording(self):
         """Transcribe the recorded audio."""

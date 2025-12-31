@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Integration tests for backend switching system.
+"""Integration tests for backend switching system.
 
 These tests verify that the factory pattern, config loading, and
 server integration all work together correctly.
@@ -29,7 +28,7 @@ class TestBackendFactory:
     def test_factory_creates_parakeet_backend_when_available(self):
         """Verify factory returns ParakeetBackend when dependencies are available."""
         # Mock parakeet availability
-        with patch('matilda_ears.transcription.backends.PARAKEET_AVAILABLE', True):
+        with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", True):
             from matilda_ears.transcription.backends import get_backend_class
             from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
 
@@ -51,7 +50,7 @@ class TestBackendFactory:
     def test_factory_parakeet_unavailable_raises_valueerror(self):
         """Verify factory raises ValueError when Parakeet is requested but unavailable."""
         # Mock parakeet as unavailable
-        with patch('matilda_ears.transcription.backends.PARAKEET_AVAILABLE', False):
+        with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", False):
             from matilda_ears.transcription.backends import get_backend_class
 
             with pytest.raises(ValueError) as exc_info:
@@ -71,7 +70,7 @@ class TestBackendFactory:
 
     def test_get_available_backends_includes_parakeet_when_available(self):
         """Verify get_available_backends includes parakeet when available."""
-        with patch('matilda_ears.transcription.backends.PARAKEET_AVAILABLE', True):
+        with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", True):
             # Need to reimport to pick up the mocked value
             import importlib
             import matilda_ears.transcription.backends as backends_module
@@ -86,7 +85,7 @@ class TestBackendFactory:
         # NOTE: This test cannot work in integration tests because conftest.py
         # globally mocks mlx/parakeet_mlx to make all backend tests work.
         # The "unavailable" state is tested in unit tests instead.
-        with patch('matilda_ears.transcription.backends.PARAKEET_AVAILABLE', False):
+        with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", False):
             import importlib
             import matilda_ears.transcription.backends as backends_module
             importlib.reload(backends_module)
@@ -103,7 +102,7 @@ class TestConfigIntegration:
         from matilda_ears.core.config import get_config
         
         config = get_config()
-        assert hasattr(config, 'transcription_backend')
+        assert hasattr(config, "transcription_backend")
         
         # Should return a string
         backend = config.transcription_backend
@@ -119,7 +118,7 @@ class TestConfigIntegration:
     def test_config_custom_backend_selection(self):
         """Verify config can specify custom backend."""
         # Create a temporary config file with parakeet backend
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             config_data = {
                 "transcription": {"backend": "parakeet"},
                 "whisper": {"model": "base", "device": "cpu", "compute_type": "int8"},
@@ -178,8 +177,8 @@ class TestServerIntegration:
 
     def test_server_initializes_backend_from_config(self, mock_config):
         """Verify server creates backend instance based on config."""
-        with patch('matilda_ears.transcription.server.get_config', return_value=mock_config):
-            with patch('matilda_ears.transcription.server.TokenManager'):
+        with patch("matilda_ears.transcription.server.get_config", return_value=mock_config):
+            with patch("matilda_ears.transcription.server.TokenManager"):
                 from matilda_ears.transcription.server import MatildaWebSocketServer
 
                 server = MatildaWebSocketServer()
@@ -192,9 +191,9 @@ class TestServerIntegration:
         mock_config.transcription_backend = "invalid_backend"
 
         # Patch the module-level config variable, not get_config()
-        with patch('matilda_ears.transcription.server.config', mock_config):
-            with patch('matilda_ears.transcription.server.TokenManager'):
-                with patch('matilda_ears.transcription.server.sys.exit') as mock_exit:
+        with patch("matilda_ears.transcription.server.config", mock_config):
+            with patch("matilda_ears.transcription.server.TokenManager"):
+                with patch("matilda_ears.transcription.server.sys.exit") as mock_exit:
                     from matilda_ears.transcription.server import MatildaWebSocketServer
 
                     server = MatildaWebSocketServer()
@@ -204,8 +203,8 @@ class TestServerIntegration:
 
     def test_server_load_model_delegates_to_backend(self, mock_config):
         """Verify server's load_model() delegates to backend.load()."""
-        with patch('matilda_ears.transcription.server.get_config', return_value=mock_config):
-            with patch('matilda_ears.transcription.server.TokenManager'):
+        with patch("matilda_ears.transcription.server.get_config", return_value=mock_config):
+            with patch("matilda_ears.transcription.server.TokenManager"):
                 from matilda_ears.transcription.server import MatildaWebSocketServer
 
                 server = MatildaWebSocketServer()
@@ -233,7 +232,7 @@ class TestBackendOutputCompatibility:
     @pytest.fixture
     def mock_audio_file(self):
         """Create a temporary empty audio file for testing."""
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
         yield temp_path
         if os.path.exists(temp_path):
@@ -246,7 +245,7 @@ class TestBackendOutputCompatibility:
         mock_config.whisper_device_auto = "cpu"
         mock_config.whisper_compute_type_auto = "int8"
 
-        with patch('matilda_ears.transcription.backends.faster_whisper_backend.get_config', return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
             
             backend = FasterWhisperBackend()
@@ -275,15 +274,15 @@ class TestBackendOutputCompatibility:
     def test_parakeet_output_format(self, mock_audio_file):
         """Verify ParakeetBackend produces compatible output format."""
         # Mock MLX imports
-        sys.modules['mlx'] = MagicMock()
-        sys.modules['mlx.core'] = MagicMock()
-        sys.modules['parakeet_mlx'] = MagicMock()
+        sys.modules["mlx"] = MagicMock()
+        sys.modules["mlx.core"] = MagicMock()
+        sys.modules["parakeet_mlx"] = MagicMock()
         
         try:
             mock_config = Mock()
             mock_config.get = Mock(return_value="mlx-community/parakeet-tdt-0.6b-v3")
             
-            with patch('matilda_ears.transcription.backends.parakeet_backend.get_config', return_value=mock_config):
+            with patch("matilda_ears.transcription.backends.parakeet_backend.get_config", return_value=mock_config):
                 from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
                 
                 backend = ParakeetBackend()
@@ -314,7 +313,7 @@ class TestBackendOutputCompatibility:
                 assert metadata["backend"] == "parakeet"
         finally:
             # Cleanup
-            for module in ['mlx', 'mlx.core', 'parakeet_mlx']:
+            for module in ["mlx", "mlx.core", "parakeet_mlx"]:
                 if module in sys.modules:
                     del sys.modules[module]
 

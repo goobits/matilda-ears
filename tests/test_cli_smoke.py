@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-CLI Smoke Tests - "Does it still work?" tests
+"""CLI Smoke Tests - "Does it still work?" tests
 
 These tests detect when the app is fundamentally broken:
 - Import errors
@@ -16,8 +15,6 @@ import json
 import io
 import sys
 import subprocess
-import os
-from pathlib import Path
 
 
 class TestCLIImports:
@@ -123,7 +120,7 @@ class TestCLICommands:
         # Test via the ears command entry point
         result = subprocess.run(
             [sys.executable, "-m", "matilda_ears.cli", "--help"],
-            capture_output=True, text=True, timeout=10
+            check=False, capture_output=True, text=True, timeout=10
         )
 
         # Should exit with 0 and show help text
@@ -166,7 +163,7 @@ class TestBaseModeLogic:
         from matilda_ears.modes.base_mode import BaseMode
         from types import SimpleNamespace
         
-        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, 
+        args = SimpleNamespace(debug=False, format="json", sample_rate=16000,
                              device=None, model="base", language=None)
         
         class TestSampleMode(BaseMode):

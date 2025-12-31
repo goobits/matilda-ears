@@ -20,23 +20,15 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import sys
 
-# Add project root to path for local imports
+# Shared imports and fallbacks
+from ._imports import np, NUMPY_AVAILABLE
+
+# Add project root to path for local imports (also done in _imports.py)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
 from matilda_ears.core.config import get_config, setup_logging
 from matilda_ears.audio.capture import PipeBasedAudioStreamer
 from matilda_ears.transcription.backends import get_backend_class
-
-try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except ImportError:
-    NUMPY_AVAILABLE = False
-    # Create dummy for type annotations
-    class _DummyNumpy:
-        class ndarray:
-            pass
-    np = _DummyNumpy()
 
 
 class BaseMode(ABC):
@@ -271,6 +263,25 @@ class BaseMode(ABC):
         except Exception as e:
             self.logger.exception(f"Error during transcription processing: {e}")
             await self._send_error(f"Transcription error: {e}")
+
+    async def _collect_audio(self):
+        """Collect audio chunks while recording.
+
+        This shared method is used by tap-to-talk and hold-to-talk modes
+        to accumulate audio data into self.audio_data while self.is_recording is True.
+        """
+        while self.is_recording:
+            try:
+                if self.audio_queue is None:
+                    break
+                audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
+                self.audio_data.append(audio_chunk)
+            except asyncio.TimeoutError:
+                # No audio data available - continue if still recording
+                continue
+            except Exception as e:
+                self.logger.error(f"Error collecting audio: {e}")
+                break
 
     async def _cleanup(self):
         """Default cleanup behavior. Can be overridden by subclasses."""
