@@ -494,8 +494,8 @@ class TestEdgeCasesAndRegressions:
             assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
-class TestIdiomaticExpressions:
-    """Test idiomatic expressions that shouldn't be converted."""
+class TestIdiomaticMathExpressions:
+    """Test idiomatic expressions with math words that shouldn't be converted."""
 
     def test_idiomatic_math_words(self, preloaded_formatter):
         """Test that idiomatic expressions with math words aren't converted."""

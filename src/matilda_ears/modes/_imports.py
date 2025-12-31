@@ -36,7 +36,7 @@ except ImportError:
         def concatenate(self, *args, **kwargs):
             raise ImportError("NumPy is required for this operation")
 
-    np = _DummyNumpy()  # type: ignore
+    np = _DummyNumpy()  # type: ignore[assignment]
 
 # =============================================================================
 # Pynput keyboard fallback
@@ -49,15 +49,17 @@ try:
     PYNPUT_AVAILABLE = True
 except ImportError:
     PYNPUT_AVAILABLE = False
-    keyboard = None  # type: ignore
-    Key = None  # type: ignore
-    Listener = None  # type: ignore
+    keyboard = None  # type: ignore[assignment]
+    Key = None  # type: ignore[assignment]
+    Listener = None  # type: ignore[assignment]
 
 # =============================================================================
 # Exports
 # =============================================================================
 
 __all__ = [
+    # Standard library
+    "sys",
     # NumPy
     "np",
     "NUMPY_AVAILABLE",

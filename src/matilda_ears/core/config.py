@@ -678,7 +678,7 @@ def get_config() -> ConfigLoader:
 
 
 # Re-export logging functions for backwards compatibility
-from .logging import get_logger, setup_logging  # noqa: F401
+from .logging import get_logger, setup_logging  # noqa: E402, F401
 
 
 if __name__ == "__main__":

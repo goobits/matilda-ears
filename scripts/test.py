@@ -254,15 +254,15 @@ def main():
     if known_args.summary:
         print("🚀 Running tests in sequential mode (required for summary)...")
     elif not known_args.sequential and known_args.parallel != "off":
-        try:
-            import xdist
+        import importlib.util
+        if importlib.util.find_spec("xdist") is not None:
             workers = known_args.parallel if known_args.parallel != "auto" else "7"
             
             # Only add if not already specified
             if not any(arg.startswith("-n") for arg in pytest_args):
                 cmd.extend(["-n", workers])
                 print(f"🚀 Running tests in parallel with {workers} workers...")
-        except ImportError:
+        else:
             print("⚠️  pytest-xdist not installed. Install with: pip install pytest-xdist")
             print("Falling back to sequential execution...")
     else:

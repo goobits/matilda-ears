@@ -25,9 +25,8 @@ sys.modules["parakeet_mlx"] = MagicMock()
 sys.modules["matilda_ears.core.token_manager"] = MagicMock()
 
 # Also mock pytest-asyncio if not installed
-try:
-    import pytest_asyncio
-except ImportError:
+import importlib.util
+if importlib.util.find_spec("pytest_asyncio") is None:
     # Create a simple mock for asyncio marker if pytest-asyncio is not installed
 
     # Register the asyncio marker to avoid warnings

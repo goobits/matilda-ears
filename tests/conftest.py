@@ -387,10 +387,3 @@ def spanish_formatter():
                 del os.environ["STT_DISABLE_PUNCTUATION"]
         else:
             os.environ["STT_DISABLE_PUNCTUATION"] = old_env
-
-
-@pytest.fixture
-def preloaded_formatter():
-    """Provide preloaded text formatter for tests."""
-    from matilda_ears.text_formatting.formatter import format_transcription
-    return format_transcription

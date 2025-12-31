@@ -7,6 +7,7 @@ No audio capture, no VAD - just direct file-to-text transcription.
 
 import asyncio
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Dict, Any
