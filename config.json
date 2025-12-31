@@ -4,5 +4,17 @@
   },
   "parakeet": {
     "model": "mlx-community/parakeet-tdt-0.6b-v3"
+  },
+  "paths": {
+    "venv": {
+      "linux": "venv/bin/python",
+      "darwin": "venv/bin/python",
+      "windows": "venv\\Scripts\\python.exe"
+    },
+    "temp_dir": {
+      "linux": "/tmp/goobits-matilda-ears",
+      "darwin": "/tmp/goobits-matilda-ears",
+      "windows": "%TEMP%\\goobits-matilda-ears"
+    }
   }
 }

@@ -19,18 +19,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 pytest_plugins = ["tests.__tools__.pytest_diff_tracker", "tests.__tools__.pytest_summary_plugin"]
 
 # Disable excessive logging during tests for performance
-logging.getLogger("src.text_formatting").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.formatter").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.detectors").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
-logging.getLogger("src.core").setLevel(logging.CRITICAL)
-logging.getLogger("src.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears.text_formatting").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears.text_formatting.formatter").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears.text_formatting.detectors").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
+logging.getLogger("matilda_ears.core").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
 
 # Also disable the root logger for these modules to catch all sub-loggers
 for logger_name in [
-    "src.text_formatting.formatter",
-    "src.text_formatting.detectors",
-    "src.text_formatting.pattern_converter",
+    "matilda_ears.text_formatting.formatter",
+    "matilda_ears.text_formatting.detectors",
+    "matilda_ears.text_formatting.pattern_converter",
 ]:
     logging.getLogger(logger_name).disabled = True
 

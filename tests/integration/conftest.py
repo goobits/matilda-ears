@@ -23,7 +23,7 @@ sys.modules['mlx.core'] = MagicMock()
 sys.modules['parakeet_mlx'] = MagicMock()
 
 # Mock missing token_manager module
-sys.modules['src.core.token_manager'] = MagicMock()
+sys.modules['matilda_ears.core.token_manager'] = MagicMock()
 
 # Also mock pytest-asyncio if not installed
 try:
