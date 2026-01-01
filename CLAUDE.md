@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Package**: `goobits-matilda-ears` | **Command**: `ears` | **Python**: 3.8+
+**Package**: `goobits-matilda-ears` | **Command**: `ears` | **Python**: 3.11+
 
 Matilda Ears is a pure speech-to-text engine with multiple operation modes including:
 - **Listen-once mode**: Single utterance capture with VAD
