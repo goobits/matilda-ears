@@ -124,59 +124,15 @@ class TapToTalkMode(BaseMode):
         except Exception as e:
             self.logger.error(f"Error handling hotkey press: {e}")
 
-    async def _start_recording(self):
-        """Start audio recording."""
-        try:
-            if self.is_recording:
-                return
+    # Recording methods inherited from BaseMode - just customize messages
 
-            self.is_recording = True
-            self.audio_data = []
+    def _get_recording_start_message(self) -> str:
+        """Get the status message shown when recording starts."""
+        return f"Recording started - Press {self.hotkey} again to stop"
 
-            # Start audio streamer
-            if self.audio_streamer is None or not self.audio_streamer.start_recording():
-                raise RuntimeError("Failed to start audio recording")
-
-            # Start collecting audio in background
-            asyncio.create_task(self._collect_audio())
-
-            await self._send_status("recording", f"Recording started - Press {self.hotkey} again to stop")
-            self.logger.info("Recording started")
-
-        except Exception as e:
-            self.logger.error(f"Error starting recording: {e}")
-            await self._send_error(f"Failed to start recording: {e}")
-            self.is_recording = False
-
-    async def _stop_recording(self):
-        """Stop recording and transcribe."""
-        try:
-            if not self.is_recording:
-                return
-
-            self.is_recording = False
-
-            # Stop audio streamer
-            stats = {}
-            if self.audio_streamer is not None:
-                stats = self.audio_streamer.stop_recording()
-
-            await self._send_status("processing", "Recording stopped - Transcribing...")
-            self.logger.info(f"Recording stopped. Stats: {stats}")
-
-            # Process the recorded audio
-            if self.audio_data:
-                await self._transcribe_recording()
-            else:
-                await self._send_error("No audio data recorded")
-
-            await self._send_status("ready", f"Ready - Press {self.hotkey} to start recording")
-
-        except Exception as e:
-            self.logger.error(f"Error stopping recording: {e}")
-            await self._send_error(f"Failed to stop recording: {e}")
-
-    # _collect_audio is inherited from BaseMode
+    def _get_recording_ready_message(self) -> str:
+        """Get the status message shown when ready to record."""
+        return f"Ready - Press {self.hotkey} to start recording"
 
     async def _transcribe_recording(self):
         """Transcribe the recorded audio."""

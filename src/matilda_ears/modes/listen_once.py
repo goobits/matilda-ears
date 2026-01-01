@@ -15,8 +15,7 @@ from typing import Any, Dict
 
 from ._imports import np
 from .base_mode import BaseMode
-from matilda_ears.audio.vad import SileroVAD
-from matilda_ears.audio.vad_processor import VADConfig, VADProcessor
+from matilda_ears.core.vad import VADProcessor, VADEvent
 
 
 class ListenOnceMode(BaseMode):
@@ -28,29 +27,21 @@ class ListenOnceMode(BaseMode):
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
 
-        # VAD model
-        self.vad = None
-        self.vad_threshold = mode_config.get("vad_threshold", 0.5)
-        self.min_speech_duration = mode_config.get("min_speech_duration_s", 0.3)
-        self.max_silence_duration = mode_config.get("max_silence_duration_s", 0.8)
-        self.max_recording_duration = mode_config.get("max_recording_duration_s", 30.0)
-
-        # Create unified VAD processor
-        vad_config = VADConfig(
-            threshold=self.vad_threshold,
-            min_speech_duration=self.min_speech_duration,
-            max_silence_duration=self.max_silence_duration,
-            chunks_per_second=10,  # 100ms chunks
+        # Initialize VAD Processor
+        self.vad_processor = VADProcessor(
+            sample_rate=self.args.sample_rate,
+            threshold=mode_config.get("vad_threshold", 0.5),
+            min_speech_duration_s=mode_config.get("min_speech_duration_s", 0.3),
+            max_silence_duration_s=mode_config.get("max_silence_duration_s", 0.8),
         )
-        self.vad_processor = VADProcessor(config=vad_config)
-
-        # Recording state
-        self.utterance_chunks = []
+        
+        self.max_recording_duration = mode_config.get("max_recording_duration_s", 30.0)
         self.recording_start_time = None
+        self.speech_started = False
 
-        self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
-                        f"min_speech={self.min_speech_duration}s, "
-                        f"max_silence={self.max_silence_duration}s, "
+        self.logger.info(f"VAD config: threshold={self.vad_processor.threshold}, "
+                        f"min_speech={self.vad_processor.min_speech_duration_s}s, "
+                        f"max_silence={self.vad_processor.max_silence_duration_s}s, "
                         f"max_recording={self.max_recording_duration}s")
 
     async def run(self):
@@ -73,11 +64,11 @@ class ListenOnceMode(BaseMode):
             await self._send_status("listening", "Listening for speech...")
 
             # Capture single utterance
-            utterance_captured = await self._capture_utterance()
+            utterance_audio = await self._capture_utterance()
 
-            if utterance_captured:
+            if utterance_audio is not None and len(utterance_audio) > 0:
                 # Process and transcribe
-                await self._process_utterance()
+                await self._process_utterance(utterance_audio)
             # In piped mode, don't send error to avoid breaking the pipeline
             # Just exit quietly if no speech detected
             elif not sys.stdout.isatty():
@@ -97,27 +88,10 @@ class ListenOnceMode(BaseMode):
 
 
     async def _initialize_vad(self):
-        """Initialize Silero VAD."""
+        """Initialize VAD Processor."""
         try:
-            self.logger.info("Initializing Silero VAD...")
-
             loop = asyncio.get_event_loop()
-            self.vad = await loop.run_in_executor(
-                None,
-                lambda: SileroVAD(
-                    sample_rate=self.args.sample_rate,
-                    threshold=self.vad_threshold,
-                    min_speech_duration=self.min_speech_duration,
-                    min_silence_duration=self.max_silence_duration,
-                    use_onnx=True
-                )
-            )
-
-            self.logger.info("Silero VAD initialized successfully")
-        except ImportError as e:
-            self.logger.error(f"VAD dependencies not available: {e}")
-            self.logger.error("Install dependencies with: pip install torch torchaudio silero-vad")
-            raise RuntimeError(f"VAD initialization failed: {e}")
+            await loop.run_in_executor(None, self.vad_processor.initialize)
         except Exception as e:
             self.logger.error(f"Failed to initialize VAD: {e}")
             raise
@@ -141,7 +115,8 @@ class ListenOnceMode(BaseMode):
     async def _capture_utterance(self):
         """Capture a single utterance using VAD."""
         utterance_complete = False
-        speech_started = False
+        
+        self.vad_processor.reset()
 
         while not utterance_complete:
             try:
@@ -155,35 +130,17 @@ class ListenOnceMode(BaseMode):
                     break
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
 
-                # Process with VAD model
-                if self.vad is None:
-                    break
-                speech_prob = self.vad.process_chunk(audio_chunk)
+                # Process with VAD
+                event, speech_prob = self.vad_processor.process(audio_chunk)
 
-                # Process through unified VAD state machine
-                result = self.vad_processor.process(speech_prob)
-
-                # Handle state transitions
-                if result.is_speech and not speech_started:
-                    # Speech just started
-                    speech_started = True
-                    self.utterance_chunks = []  # Clear any noise
+                if event == VADEvent.START:
+                    self.speech_started = True
                     self.logger.debug(f"Speech detected (prob: {speech_prob:.3f})")
                     await self._send_status("recording", "Speech detected, recording...")
-
-                # Buffer audio during speech
-                if result.should_buffer:
-                    self.utterance_chunks.append(audio_chunk)
-
-                # Check for utterance completion
-                if result.utterance_complete:
-                    self.logger.debug(f"Speech ended after {result.speech_duration:.2f}s")
+                
+                elif event == VADEvent.END:
+                    self.logger.debug("Speech ended")
                     utterance_complete = True
-                elif speech_started and not result.is_speech:
-                    # Speech was too short, reset
-                    self.logger.debug("Speech too short, resetting")
-                    speech_started = False
-                    self.utterance_chunks = []
 
             except asyncio.TimeoutError:
                 # No audio data - continue waiting
@@ -192,37 +149,40 @@ class ListenOnceMode(BaseMode):
                 self.logger.error(f"Error capturing utterance: {e}")
                 break
 
-        return len(self.utterance_chunks) > 0
+        if self.speech_started and utterance_complete:
+            return self.vad_processor.get_audio()
+        return None
 
-    async def _process_utterance(self):
+    async def _process_utterance(self, audio_data):
         """Process and transcribe the captured utterance."""
-        if not self.utterance_chunks:
+        if audio_data is None or len(audio_data) == 0:
             await self._send_error("No audio data to transcribe")
             return
 
         await self._send_status("processing", "Processing speech...")
-        # Directly pass the utterance_chunks to the flexible helper
-        await self._process_and_transcribe_collected_audio(self.utterance_chunks)
+        
+        # Pass the full audio array to the base helper
+        # We wrap it in a list to mimic chunks if needed, or modify base helper
+        # BaseMode._process_and_transcribe_collected_audio expects self.audio_data list
+        # But here we have the numpy array directly.
+        # Let's use _transcribe_audio directly which takes numpy array
+        
+        try:
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, self._transcribe_audio_with_vad_stats, audio_data)
+            
+            if result["success"]:
+                await self._send_transcription(result)
+            else:
+                await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
+                
+        except Exception as e:
+            self.logger.exception(f"Error processing utterance: {e}")
+            await self._send_error(f"Processing error: {e}")
 
     def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
         """Transcribe audio data using Whisper and include VAD stats."""
         result = super()._transcribe_audio(audio_data)
-
-        # Log VAD stats if available
-        if result["success"] and self.vad:
-            vad_stats = self.vad.get_stats()
-            self.logger.debug(f"VAD stats: {vad_stats}")
+        if result["success"]:
             result["model"] = self.args.model
-
         return result
-
-
-    async def _send_transcription(self, result: Dict[str, Any]):
-        """Send transcription result with model info."""
-        extra = {"model": self.args.model} if "model" in result else {}
-        await super()._send_transcription(result, extra)
-
-
-    async def _cleanup(self):
-        """Clean up resources."""
-        await super()._cleanup()

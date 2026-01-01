@@ -15,7 +15,7 @@ from typing import Dict, Any
 
 from ._imports import np
 from .base_mode import BaseMode
-from matilda_ears.audio.vad_processor import VADConfig, VADProcessor
+from matilda_ears.core.vad import VADProcessor, VADEvent
 
 
 class ConversationMode(BaseMode):
@@ -27,32 +27,22 @@ class ConversationMode(BaseMode):
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
 
-        # VAD and transcription
-        self.is_listening = False
-        self.is_processing = False
-        self.current_utterance = []
-        self.vad = None  # Silero VAD instance
-        self.vad_threshold = mode_config.get("vad_threshold", 0.5)
-        self.min_speech_duration = mode_config.get("min_speech_duration_s", 0.5)
-        self.max_silence_duration = mode_config.get("max_silence_duration_s", 1.0)
-        self.speech_pad_duration = mode_config.get("speech_pad_duration_s", 0.3)
-
-        # Create unified VAD processor
-        vad_config = VADConfig(
-            threshold=self.vad_threshold,
-            min_speech_duration=self.min_speech_duration,
-            max_silence_duration=self.max_silence_duration,
-            chunks_per_second=10,  # 100ms chunks
+        # Initialize VAD Processor
+        self.vad_processor = VADProcessor(
+            sample_rate=self.args.sample_rate,
+            threshold=mode_config.get("vad_threshold", 0.5),
+            min_speech_duration_s=mode_config.get("min_speech_duration_s", 0.5),
+            max_silence_duration_s=mode_config.get("max_silence_duration_s", 1.0),
         )
-        self.vad_processor = VADProcessor(config=vad_config)
 
         # Threading
         self.processing_thread = None
         self.stop_event = threading.Event()
+        self.is_processing = False
 
-        self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
-                        f"min_speech={self.min_speech_duration}s, "
-                        f"max_silence={self.max_silence_duration}s")
+        self.logger.info(f"VAD config: threshold={self.vad_processor.threshold}, "
+                        f"min_speech={self.vad_processor.min_speech_duration_s}s, "
+                        f"max_silence={self.vad_processor.max_silence_duration_s}s")
 
     async def run(self):
         """Main conversation mode loop."""
@@ -82,28 +72,10 @@ class ConversationMode(BaseMode):
 
 
     async def _initialize_vad(self):
-        """Initialize Silero VAD in executor to avoid blocking."""
+        """Initialize VAD Processor."""
         try:
-            from matilda_ears.audio.vad import SileroVAD
-            self.logger.info("Initializing Silero VAD...")
-
             loop = asyncio.get_event_loop()
-            self.vad = await loop.run_in_executor(
-                None,
-                lambda: SileroVAD(
-                    sample_rate=self.args.sample_rate,
-                    threshold=self.vad_threshold,
-                    min_speech_duration=self.min_speech_duration,
-                    min_silence_duration=self.max_silence_duration,
-                    use_onnx=True  # Faster inference
-                )
-            )
-
-            self.logger.info("Silero VAD initialized successfully")
-        except ImportError as e:
-            self.logger.error(f"VAD dependencies not available: {e}")
-            self.logger.error("Install dependencies with: pip install torch torchaudio silero-vad")
-            raise RuntimeError(f"VAD initialization failed: {e}")
+            await loop.run_in_executor(None, self.vad_processor.initialize)
         except Exception as e:
             self.logger.error(f"Failed to initialize VAD: {e}")
             raise
@@ -126,7 +98,8 @@ class ConversationMode(BaseMode):
     async def _conversation_loop(self):
         """Main conversation processing loop."""
         self.is_listening = True
-        speech_active = False
+        
+        self.vad_processor.reset()
 
         while not self.stop_event.is_set():
             try:
@@ -135,34 +108,16 @@ class ConversationMode(BaseMode):
                     break
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
 
-                # Get speech probability from Silero VAD
-                if self.vad is None:
-                    break
-                speech_prob = self.vad.process_chunk(audio_chunk)
+                # Process with VAD
+                event, speech_prob = self.vad_processor.process(audio_chunk)
 
-                # Process through unified VAD state machine
-                result = self.vad_processor.process(speech_prob)
-
-                # Handle speech start
-                if result.is_speech and not speech_active:
-                    speech_active = True
-                    self.current_utterance = []
+                if event == VADEvent.START:
                     self.logger.debug(f"Speech started (prob: {speech_prob:.3f})")
-
-                # Buffer audio during speech
-                if result.should_buffer:
-                    self.current_utterance.append(audio_chunk)
-
-                # Handle utterance completion
-                if result.utterance_complete:
-                    self.logger.debug(f"Speech ended after {result.speech_duration:.2f}s")
+                
+                elif event == VADEvent.END:
+                    self.logger.debug("Speech ended, processing utterance")
                     await self._process_utterance()
-                    speech_active = False
-                elif speech_active and not result.is_speech:
-                    # Speech was too short, reset
-                    self.logger.debug("Speech too short, ignoring")
-                    speech_active = False
-                    self.current_utterance = []
+                    self.vad_processor.reset()
 
             except asyncio.TimeoutError:
                 # No audio data - continue loop
@@ -173,11 +128,12 @@ class ConversationMode(BaseMode):
 
     async def _process_utterance(self) -> None:
         """Process the current utterance in a separate thread."""
-        if not self.current_utterance or self.is_processing:
+        utterance_data = self.vad_processor.get_audio()
+        
+        if len(utterance_data) == 0 or self.is_processing:
             return
 
         self.is_processing = True
-        utterance_data = np.concatenate(self.current_utterance)
 
         try:
             await self._send_status("processing", "Transcribing speech...")
@@ -199,18 +155,10 @@ class ConversationMode(BaseMode):
             await self._send_status("listening", "Ready for next utterance")
 
     def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
-        """Transcribe audio data using Whisper and include VAD stats."""
+        """Transcribe audio data using Whisper."""
+        # We don't have separate VAD stats object from VADProcessor yet, but we could add it
         result = super()._transcribe_audio(audio_data)
-
-        # Log VAD stats if available
-        if result["success"] and self.vad:
-            vad_stats = self.vad.get_stats()
-            self.logger.debug(f"VAD stats: {vad_stats}")
-
         return result
-
-
-
 
     async def _cleanup(self):
         """Clean up resources."""

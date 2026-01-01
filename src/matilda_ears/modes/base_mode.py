@@ -283,6 +283,84 @@ class BaseMode(ABC):
                 self.logger.error(f"Error collecting audio: {e}")
                 break
 
+    # =========================================================================
+    # Recording control methods (shared by tap-to-talk and hold-to-talk)
+    # =========================================================================
+
+    def _get_recording_start_message(self) -> str:
+        """Get the status message shown when recording starts.
+
+        Override in subclasses to customize the message.
+        """
+        return "Recording..."
+
+    def _get_recording_ready_message(self) -> str:
+        """Get the status message shown when ready to record.
+
+        Override in subclasses to customize the message.
+        """
+        return "Ready to record"
+
+    async def _start_recording(self):
+        """Start audio recording.
+
+        Shared implementation for tap-to-talk and hold-to-talk modes.
+        Override _get_recording_start_message() to customize the status message.
+        """
+        try:
+            if self.is_recording:
+                return
+
+            self.is_recording = True
+            self.audio_data = []
+
+            # Start audio streamer
+            if self.audio_streamer is None or not self.audio_streamer.start_recording():
+                raise RuntimeError("Failed to start audio recording")
+
+            # Start collecting audio in background
+            asyncio.create_task(self._collect_audio())
+
+            await self._send_status("recording", self._get_recording_start_message())
+            self.logger.info("Recording started")
+
+        except Exception as e:
+            self.logger.error(f"Error starting recording: {e}")
+            await self._send_error(f"Failed to start recording: {e}")
+            self.is_recording = False
+
+    async def _stop_recording(self):
+        """Stop recording and transcribe.
+
+        Shared implementation for tap-to-talk and hold-to-talk modes.
+        Override _get_recording_ready_message() to customize the status message.
+        """
+        try:
+            if not self.is_recording:
+                return
+
+            self.is_recording = False
+
+            # Stop audio streamer
+            stats = {}
+            if self.audio_streamer is not None:
+                stats = self.audio_streamer.stop_recording()
+
+            await self._send_status("processing", "Recording stopped - Transcribing...")
+            self.logger.info(f"Recording stopped. Stats: {stats}")
+
+            # Process the recorded audio
+            if self.audio_data:
+                await self._transcribe_recording()
+            else:
+                await self._send_error("No audio data recorded")
+
+            await self._send_status("ready", self._get_recording_ready_message())
+
+        except Exception as e:
+            self.logger.exception(f"Error stopping recording: {e}")
+            await self._send_error(f"Failed to stop recording: {e}")
+
     async def _cleanup(self):
         """Default cleanup behavior. Can be overridden by subclasses."""
         if self.is_recording and self.audio_streamer:
