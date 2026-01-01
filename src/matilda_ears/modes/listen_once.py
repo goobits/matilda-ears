@@ -16,6 +16,7 @@ from typing import Any, Dict
 from ._imports import np
 from .base_mode import BaseMode
 from matilda_ears.audio.vad import SileroVAD
+from matilda_ears.audio.vad_processor import VADConfig, VADProcessor
 
 
 class ListenOnceMode(BaseMode):
@@ -27,22 +28,24 @@ class ListenOnceMode(BaseMode):
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
 
-        # VAD and utterance detection
+        # VAD model
         self.vad = None
         self.vad_threshold = mode_config.get("vad_threshold", 0.5)
         self.min_speech_duration = mode_config.get("min_speech_duration_s", 0.3)
         self.max_silence_duration = mode_config.get("max_silence_duration_s", 0.8)
         self.max_recording_duration = mode_config.get("max_recording_duration_s", 30.0)
 
-        # VAD state
-        self.vad_state = "waiting"  # waiting, speech, trailing_silence
-        self.consecutive_speech = 0
-        self.consecutive_silence = 0
-        self.chunks_per_second = 10  # 100ms chunks
+        # Create unified VAD processor
+        vad_config = VADConfig(
+            threshold=self.vad_threshold,
+            min_speech_duration=self.min_speech_duration,
+            max_silence_duration=self.max_silence_duration,
+            chunks_per_second=10,  # 100ms chunks
+        )
+        self.vad_processor = VADProcessor(config=vad_config)
 
         # Recording state
         self.utterance_chunks = []
-        self.speech_started = False
         self.recording_start_time = None
 
         self.logger.info(f"VAD config: threshold={self.vad_threshold}, "
@@ -138,6 +141,7 @@ class ListenOnceMode(BaseMode):
     async def _capture_utterance(self):
         """Capture a single utterance using VAD."""
         utterance_complete = False
+        speech_started = False
 
         while not utterance_complete:
             try:
@@ -151,49 +155,35 @@ class ListenOnceMode(BaseMode):
                     break
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
 
-                # Process with VAD
+                # Process with VAD model
                 if self.vad is None:
                     break
                 speech_prob = self.vad.process_chunk(audio_chunk)
 
-                # Update VAD state machine
-                if self.vad_state == "waiting":
-                    if speech_prob > self.vad_threshold:
-                        self.consecutive_speech += 1
-                        if self.consecutive_speech >= 2:  # Require 2 chunks to start
-                            self.vad_state = "speech"
-                            self.speech_started = True
-                            self.utterance_chunks = []  # Clear any noise
-                            self.logger.debug(f"Speech detected (prob: {speech_prob:.3f})")
-                            await self._send_status("recording", "Speech detected, recording...")
-                    else:
-                        self.consecutive_speech = 0
+                # Process through unified VAD state machine
+                result = self.vad_processor.process(speech_prob)
 
-                elif self.vad_state == "speech":
-                    # Always add chunks during speech state
+                # Handle state transitions
+                if result.is_speech and not speech_started:
+                    # Speech just started
+                    speech_started = True
+                    self.utterance_chunks = []  # Clear any noise
+                    self.logger.debug(f"Speech detected (prob: {speech_prob:.3f})")
+                    await self._send_status("recording", "Speech detected, recording...")
+
+                # Buffer audio during speech
+                if result.should_buffer:
                     self.utterance_chunks.append(audio_chunk)
 
-                    if speech_prob < (self.vad_threshold - 0.15):  # Hysteresis
-                        self.consecutive_silence += 1
-                        self.consecutive_speech = 0
-
-                        # Check if silence is long enough to end
-                        required_silence = int(self.max_silence_duration * self.chunks_per_second)
-                        if self.consecutive_silence >= required_silence:
-                            # Check minimum speech duration
-                            speech_duration = len(self.utterance_chunks) / self.chunks_per_second
-                            if speech_duration >= self.min_speech_duration:
-                                self.logger.debug(f"Speech ended after {speech_duration:.2f}s")
-                                utterance_complete = True
-                            else:
-                                # Too short, reset
-                                self.logger.debug(f"Speech too short ({speech_duration:.2f}s)")
-                                self.vad_state = "waiting"
-                                self.utterance_chunks = []
-                                self.consecutive_silence = 0
-                    else:
-                        self.consecutive_silence = 0
-                        self.consecutive_speech += 1
+                # Check for utterance completion
+                if result.utterance_complete:
+                    self.logger.debug(f"Speech ended after {result.speech_duration:.2f}s")
+                    utterance_complete = True
+                elif speech_started and not result.is_speech:
+                    # Speech was too short, reset
+                    self.logger.debug("Speech too short, resetting")
+                    speech_started = False
+                    self.utterance_chunks = []
 
             except asyncio.TimeoutError:
                 # No audio data - continue waiting
