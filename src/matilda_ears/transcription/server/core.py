@@ -255,6 +255,37 @@ class MatildaWebSocketServer:
                     logger.debug(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
             logger.debug(f"Client {client_id} removed")
 
+    async def handle_reload(self, websocket, data: dict, client_ip: str, client_id: str):
+        """Handle configuration reload request."""
+        # Verify it's a local request or authorized admin
+        if client_ip not in ["127.0.0.1", "::1", "localhost"]:
+             await self.send_error(websocket, "Unauthorized: Reload only allowed from localhost")
+             return
+
+        try:
+            logger.info("Reloading configuration...")
+            # Reload config file
+            from ...core.config import get_config, ConfigLoader
+            
+            # Force reload the singleton
+            import matilda_ears.core.config
+            matilda_ears.core.config._config_loader = ConfigLoader()
+            
+            # Update local references if any (most use the global get_config())
+            global config
+            config = get_config()
+            
+            await websocket.send(json.dumps({
+                "type": "reload_response",
+                "status": "ok", 
+                "message": "Configuration reloaded"
+            }))
+            logger.info("Configuration reloaded successfully")
+            
+        except Exception as e:
+            logger.exception("Failed to reload configuration")
+            await self.send_error(websocket, f"Reload failed: {e}")
+
     async def process_message(self, websocket, data: dict, client_ip: str, client_id: str):
         """Process different types of messages from clients.
 
@@ -266,6 +297,11 @@ class MatildaWebSocketServer:
 
         """
         message_type = data.get("type")
+
+        # Handle reload explicitly since it's new
+        if message_type == "reload":
+            await self.handle_reload(websocket, data, client_ip, client_id)
+            return
 
         # Get message handler from the dictionary
         handler = self.message_handlers.get(message_type)
