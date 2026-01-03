@@ -187,6 +187,18 @@ cli:
           type: "flag"
           desc: "Output JSON format"
 
+    download:
+      desc: "Download Whisper model for offline use"
+      icon: "📥"
+      options:
+        - name: "model"
+          type: "option"
+          desc: "Model size to download (tiny, base, small, medium, large-v3-turbo)"
+          default: "base"
+        - name: "progress"
+          type: "flag"
+          desc: "Show JSON progress events (for programmatic use)"
+
   config:
     rich_help_panel: true
     show_metavars_column: false

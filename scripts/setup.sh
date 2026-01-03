@@ -856,7 +856,7 @@ Your local changes will be reflected immediately.
 Development workflow:
   - Edit code in src/matilda_ears/ directory
   - Test immediately with: ears --listen-once
-  - Run tests with: ./test.py tests/text_formatting/ --summary
+  - Run tests with: make test-formatting
 "
     echo
 }

@@ -27,7 +27,7 @@ wake_word = [ "openwakeword>=0.6.0,<1.0", "onnxruntime>=1.15.0,<2.0",]
 dev = [ "pytest>=6.0,<9.0", "pytest-asyncio>=0.20.0,<1.0", "pytest-xdist>=3.0.0,<4.0", "pytest-sugar>=0.9.0,<2.0", "pytest-clarity>=1.0.0,<2.0", "pytest-html>=3.0.0,<5.0", "pytest-json-report>=1.5.0,<2.0", "rich>=13.0.0,<14.0", "ruff>=0.1.0,<1.0", "black>=22.0.0,<25.0", "mypy>=1.0.0,<2.0", "bandit>=1.7.0,<2.0", "pyyaml>=6.0.1,<7.0",]
 
 [project.scripts]
-ears = "matilda_ears.cli:main"
+ears = "matilda_ears.cli:cli_entry"
 ears-server = "matilda_ears.transcription.server:main"
 
 [tool.ruff]
@@ -84,7 +84,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.setuptools.package-data]
-matilda_ears = [ "*.json", "setup.sh",]
+matilda_ears = [ "**/*.json", "setup.sh",]
 goobits_matilda_ears = [ "setup.sh",]
 
 [tool.pytest.ini_options]
