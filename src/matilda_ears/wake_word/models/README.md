@@ -27,36 +27,30 @@ These work **immediately** without any training:
 
 ## Training Custom "Hey Matilda" (Google Colab)
 
-To train a real "Hey Matilda" model (~30-60 minutes, free):
+To train a real "Hey Matilda" model (~30-60 minutes, free GPU):
 
-### Step 1: Open the Training Notebook
+### Option A: One-Cell Script (Easiest)
+
+1. Open Google Colab: https://colab.research.google.com
+2. Create new notebook (File > New notebook)
+3. Copy contents of `scripts/train-wake-word.py` into a cell
+4. Change `TARGET_PHRASE = "hey matilda"` to your phrase
+5. Run the cell (Shift+Enter)
+6. Model auto-downloads when complete
+
+### Option B: Official Notebook
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb)
 
-### Step 2: Configure the Training
+1. Open the notebook above
+2. Set `target_phrase = "hey matilda"`
+3. Run all cells
+4. Download the ONNX file
 
-In the notebook, set:
-```python
-target_phrase = "hey matilda"
-model_name = "hey_matilda"
-```
+### After Training
 
-### Step 3: Run All Cells
-
-The notebook will:
-1. Generate ~5000 synthetic voice samples using TTS
-2. Add background noise and room acoustics
-3. Train the neural network
-4. Export to ONNX format
-
-### Step 4: Download and Install
-
-1. Download `hey_matilda.onnx` from Colab
-2. Place it in this directory:
-   ```
-   matilda-ears/src/matilda_ears/wake_word/models/hey_matilda.onnx
-   ```
-3. Use it:
+1. Place `hey_matilda.onnx` in this directory
+2. Use it:
    ```bash
    ears --wake-word --agent-aliases="Matilda:hey_matilda"
    ```
