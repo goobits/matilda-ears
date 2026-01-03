@@ -253,6 +253,23 @@ def download(ctx, model, progress):
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
+@cli.command('train-wake-word')
+@click.option('--phrase', default=None,              help="The wake word phrase to train (e.g., 'hey matilda')")
+@click.option('--output', default=None,              help="Output path for ONNX file (default: models/{phrase}.onnx)")
+@click.option('--samples', default='3000',              help="Number of training samples to generate")
+@click.option('--epochs', default='10',              help="Number of training epochs")
+@click.pass_obj
+def train_wake_word(ctx, phrase, output, samples, epochs):
+    """Train a custom wake word model using Modal.com cloud GPU"""
+    try:
+        if hooks and hasattr(hooks, 'on_train_wake_word'):
+            kwargs = {                'phrase': phrase,                'output': output,                'samples': samples,                'epochs': epochs,            }
+            hooks.on_train_wake_word(ctx=ctx, **kwargs)
+        else:
+            logger.error(f"Hook 'on_train_wake_word' not implemented in cli_hooks.py")
+            sys.exit(1)
+    except Exception as e:
+        handle_error(e, ctx.verbose)
 
 # ============================================================================
 # INTERACTIVE MODE (if enabled)

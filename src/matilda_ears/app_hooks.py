@@ -125,3 +125,109 @@ def on_download(model: Optional[str] = None, progress: bool = False, **kwargs) -
 
         success = download_model(model, progress_callback=progress_callback)
         return {"status": "success" if success else "error"}
+
+
+def on_train_wake_word(
+    phrase: Optional[str] = None,
+    output: Optional[str] = None,
+    samples: Optional[str] = "3000",
+    epochs: Optional[str] = "10",
+    **kwargs
+) -> Dict[str, Any]:
+    """Train a custom wake word model using Modal.com cloud GPU.
+
+    Args:
+        phrase: The wake word phrase to train (e.g., 'hey matilda')
+        output: Output path for ONNX file (default: models/{phrase}.onnx)
+        samples: Number of training samples to generate
+        epochs: Number of training epochs
+
+    Returns:
+        Dictionary with status and optional results
+    """
+    import subprocess
+    from pathlib import Path
+
+    if not phrase:
+        print("ERROR: Please provide a phrase to train.")
+        print("Usage: ears train-wake-word \"hey matilda\"")
+        return {"status": "error", "error": "No phrase provided"}
+
+    # Normalize phrase to model name
+    model_name = phrase.lower().replace(" ", "_").replace("-", "_")
+
+    # Default output path
+    if output is None:
+        models_dir = Path(__file__).parent / "wake_word" / "models"
+        output = str(models_dir / f"{model_name}.onnx")
+
+    output_path = Path(output)
+
+    print("=" * 60)
+    print(f"Training wake word model: '{phrase}'")
+    print("=" * 60)
+    print()
+    print("This uses Modal.com's cloud GPU (free tier: 30 GPU-hours/month)")
+    print("Training typically takes 20-40 minutes.")
+    print()
+
+    # Check if modal is installed
+    try:
+        import modal  # noqa: F401
+    except ImportError:
+        print("Modal is not installed. Installing...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "modal"], check=True)
+        print()
+
+    # Check if modal is authenticated
+    result = subprocess.run(
+        ["modal", "token", "show"],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        print("ERROR: Modal is not authenticated.")
+        print()
+        print("To set up Modal:")
+        print("  1. Sign up at https://modal.com (free)")
+        print("  2. Run: modal token new")
+        print("  3. Try this command again")
+        print()
+        return {"status": "error", "error": "Modal not authenticated"}
+
+    # Run the training
+    print(f"Starting training on Modal cloud GPU...")
+    print(f"Output will be saved to: {output_path}")
+    print()
+
+    modal_script = Path(__file__).parent / "wake_word" / "modal_train.py"
+
+    result = subprocess.run(
+        [
+            "modal", "run",
+            str(modal_script),
+            "--phrase", phrase,
+            "--output", str(output_path),
+            "--samples", str(samples),
+            "--epochs", str(epochs),
+        ],
+        capture_output=False,  # Show output in real-time
+    )
+
+    if result.returncode == 0 and output_path.exists():
+        print()
+        print("=" * 60)
+        print(f"✓ SUCCESS! Model saved to: {output_path}")
+        print("=" * 60)
+        print()
+        print("To use your new wake word:")
+        print(f"  ears --wake-word --agent-aliases=\"Matilda:{model_name}\"")
+        print()
+        return {"status": "success", "model_path": str(output_path)}
+    else:
+        print()
+        print("=" * 60)
+        print("✗ Training failed. Check the logs above for errors.")
+        print("=" * 60)
+        return {"status": "error", "error": "Training failed"}

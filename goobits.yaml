@@ -95,7 +95,7 @@ cli:
 
   command_groups:
     - name: "System Commands"
-      commands: ["status", "models"]
+      commands: ["status", "models", "download", "train-wake-word"]
 
   # Root command options (main CLI)
   root_options:
@@ -198,6 +198,26 @@ cli:
         - name: "progress"
           type: "flag"
           desc: "Show JSON progress events (for programmatic use)"
+
+    train-wake-word:
+      desc: "Train a custom wake word model using Modal.com cloud GPU"
+      icon: "🎯"
+      options:
+        - name: "phrase"
+          type: "argument"
+          desc: "The wake word phrase to train (e.g., 'hey matilda')"
+          required: true
+        - name: "output"
+          type: "option"
+          desc: "Output path for ONNX file (default: models/{phrase}.onnx)"
+        - name: "samples"
+          type: "option"
+          desc: "Number of training samples to generate"
+          default: "3000"
+        - name: "epochs"
+          type: "option"
+          desc: "Number of training epochs"
+          default: "10"
 
   config:
     rich_help_panel: true
