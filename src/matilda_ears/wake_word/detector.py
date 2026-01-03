@@ -21,13 +21,17 @@ logger = logging.getLogger(__name__)
 # Lazy import to avoid loading if not used
 _openwakeword_model = None
 
-# Pre-trained models available in OpenWakeWord
+# Pre-trained models available in OpenWakeWord (work immediately, no training needed)
 PRETRAINED_MODELS = [
     "alexa",
     "hey_mycroft",
     "hey_jarvis",
     "hey_rhasspy",
 ]
+
+# Default wake phrase uses a pre-trained model that works out of the box
+# Users can train custom "hey_matilda" model via Colab (see models/README.md)
+DEFAULT_AGENT_ALIASES = {"Matilda": ["hey_jarvis"]}
 
 
 def _get_openwakeword_model():
@@ -112,8 +116,8 @@ class WakeWordDetector:
             # Legacy format: simple agent list
             self._agent_aliases = {agent: [f"hey_{agent.lower()}"] for agent in agents}
         else:
-            # Default
-            self._agent_aliases = {"Matilda": ["hey_matilda"]}
+            # Default uses pre-trained model (works immediately)
+            self._agent_aliases = DEFAULT_AGENT_ALIASES.copy()
 
         # Collect all wake phrases and build reverse mapping
         all_phrases = []

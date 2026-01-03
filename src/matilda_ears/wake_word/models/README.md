@@ -1,56 +1,107 @@
 # Wake Word Models
 
-Place custom OpenWakeWord models (.onnx files) in this directory.
+This directory contains ONNX models for wake word detection.
+
+## Quick Start (No Training Required)
+
+Matilda uses OpenWakeWord's pre-trained models by default. Just configure your wake phrase:
+
+```bash
+# Use "Hey Jarvis" (recommended default - works immediately)
+ears --wake-word --agent-aliases="Matilda:hey_jarvis"
+
+# Or use multiple phrases
+ears --wake-word --agent-aliases="Matilda:hey_jarvis,hey_mycroft"
+```
+
+## Pre-trained Models Available
+
+These work **immediately** without any training:
+
+| Model | Wake Phrase | Notes |
+|-------|-------------|-------|
+| `hey_jarvis` | "Hey Jarvis" | Recommended default |
+| `hey_mycroft` | "Hey Mycroft" | Good alternative |
+| `alexa` | "Alexa" | Single word |
+| `hey_rhasspy` | "Hey Rhasspy" | Less common |
+
+## Training Custom "Hey Matilda" (Google Colab)
+
+To train a real "Hey Matilda" model (~30-60 minutes, free):
+
+### Step 1: Open the Training Notebook
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb)
+
+### Step 2: Configure the Training
+
+In the notebook, set:
+```python
+target_phrase = "hey matilda"
+model_name = "hey_matilda"
+```
+
+### Step 3: Run All Cells
+
+The notebook will:
+1. Generate ~5000 synthetic voice samples using TTS
+2. Add background noise and room acoustics
+3. Train the neural network
+4. Export to ONNX format
+
+### Step 4: Download and Install
+
+1. Download `hey_matilda.onnx` from Colab
+2. Place it in this directory:
+   ```
+   matilda-ears/src/matilda_ears/wake_word/models/hey_matilda.onnx
+   ```
+3. Use it:
+   ```bash
+   ears --wake-word --agent-aliases="Matilda:hey_matilda"
+   ```
+
+## Training Multiple Models
+
+You can train additional wake words for different agents:
+
+| File | Wake Phrase | Agent |
+|------|-------------|-------|
+| `hey_matilda.onnx` | "Hey Matilda" | Matilda |
+| `computer.onnx` | "Computer" | Matilda (Star Trek style) |
+| `hey_bob.onnx` | "Hey Bob" | Bob |
+
+## Model Specifications
+
+- **Format**: ONNX (Open Neural Network Exchange)
+- **Input**: 80ms audio frames (1280 samples @ 16kHz, 16-bit PCM)
+- **Output**: Confidence score (0.0 to 1.0)
+- **Size**: ~1-2MB per model
+- **Latency**: ~80ms detection delay
+- **CPU Usage**: ~1-2% per model during continuous listening
 
 ## Naming Convention
 
-Models should be named: `hey_<agent>.onnx`
+Models should match the wake phrase with underscores:
+- "Hey Matilda" → `hey_matilda.onnx`
+- "Computer" → `computer.onnx`
+- "Hey Bob" → `hey_bob.onnx`
 
-Examples:
-- `hey_matilda.onnx` - Custom model for "Hey Matilda"
-- `hey_bob.onnx` - Custom model for "Hey Bob"
-- `hey_maria.onnx` - Custom model for "Hey Maria"
+## Troubleshooting
 
-## Pre-trained Models
+**Model not found**: Ensure the filename matches exactly (lowercase, underscores)
 
-If no custom model exists, OpenWakeWord will try to load pre-trained models:
-- `alexa` - Amazon Alexa wake word
-- `hey_mycroft` - Mycroft AI assistant
-- `hey_jarvis` - Jarvis assistant
-- `hey_rhasspy` - Rhasspy voice assistant
+**False positives**: Lower the threshold:
+```bash
+ears --wake-word --ww-threshold=0.7  # Higher = stricter
+```
 
-Note: Pre-trained models only work for their specific phrases.
+**Missed detections**: Raise the threshold:
+```bash
+ears --wake-word --ww-threshold=0.3  # Lower = more sensitive
+```
 
-## Training Custom Models
+## Community Models
 
-1. **Generate synthetic training data**:
-   ```bash
-   pip install synthetic-speech-dataset-generation
-   python -c "
-   from synthetic_speech_dataset_generation import generate_positive_samples
-   generate_positive_samples('Hey Matilda', n_samples=5000, output_dir='positive/')
-   "
-   ```
-
-2. **Collect negative samples** (background noise, other speech):
-   ```bash
-   # Use any audio dataset without the wake word
-   ```
-
-3. **Train using Google Colab notebook**:
-   https://github.com/dscripka/openWakeWord/blob/main/notebooks/training_models.ipynb
-
-4. **Export model** and place the `.onnx` file here.
-
-## Model Requirements
-
-- Format: ONNX
-- Input: 80ms audio frames (1280 samples @ 16kHz)
-- Output: Confidence score (0.0-1.0)
-
-## Performance
-
-OpenWakeWord models are optimized for:
-- Low CPU usage (~1-2% on modern CPUs)
-- Low latency (~80ms detection delay)
-- Low memory footprint (~10-50MB per model)
+Check the Home Assistant community for additional pre-trained models:
+https://github.com/fwartner/home-assistant-wakewords-collection
