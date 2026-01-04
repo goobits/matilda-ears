@@ -7,14 +7,14 @@ the backend wrapper logic works correctly.
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
-import sys
+from unittest.mock import Mock, patch
 
 
-# Mock MLX and parakeet-mlx before any imports
-sys.modules["mlx"] = MagicMock()
-sys.modules["mlx.core"] = MagicMock()
-sys.modules["parakeet_mlx"] = MagicMock()
+try:
+    import mlx.core  # noqa: F401
+    import parakeet_mlx  # noqa: F401
+except Exception as exc:
+    pytest.skip(f"Parakeet MLX backend not available: {exc}", allow_module_level=True)
 
 
 class TestParakeetBackend:

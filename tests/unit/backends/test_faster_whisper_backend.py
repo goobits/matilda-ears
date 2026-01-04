@@ -25,6 +25,7 @@ class TestFasterWhisperBackend:
         config.whisper_model = "base"
         config.whisper_device_auto = "cpu"
         config.whisper_compute_type_auto = "int8"
+        config.get = Mock(return_value=True)
         return config
 
     @pytest.fixture
@@ -45,7 +46,7 @@ class TestFasterWhisperBackend:
 
     def test_backend_initialization(self, mock_config):
         """Verify backend initializes with correct config values."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
 
             backend = FasterWhisperBackend()
@@ -57,7 +58,7 @@ class TestFasterWhisperBackend:
 
     def test_backend_is_ready_before_load(self, mock_config):
         """Verify is_ready returns False before model is loaded."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
 
             backend = FasterWhisperBackend()
@@ -65,7 +66,7 @@ class TestFasterWhisperBackend:
 
     def test_backend_load_model_success(self, mock_config, mock_whisper_model):
         """Verify async model loading works correctly."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             # Patch at the source module where WhisperModel is imported from
             with patch("faster_whisper.WhisperModel", return_value=mock_whisper_model):
                 from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
@@ -82,7 +83,7 @@ class TestFasterWhisperBackend:
 
     def test_backend_load_model_failure(self, mock_config):
         """Verify load() raises exception on model loading failure."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             # Patch at the source module where WhisperModel is imported from
             with patch("faster_whisper.WhisperModel", side_effect=RuntimeError("Model load failed")):
                 from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
@@ -96,7 +97,7 @@ class TestFasterWhisperBackend:
 
     def test_backend_transcribe_success(self, mock_config, mock_whisper_model):
         """Verify transcription works and returns correct format."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
             
             backend = FasterWhisperBackend()
@@ -117,12 +118,13 @@ class TestFasterWhisperBackend:
             mock_whisper_model.transcribe.assert_called_once_with(
                 "/fake/audio.wav",
                 beam_size=5,
-                language="en"
+                language="en",
+                word_timestamps=True,
             )
 
     def test_backend_transcribe_not_loaded(self, mock_config):
         """Verify transcribe() raises RuntimeError if model not loaded."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
 
             backend = FasterWhisperBackend()
@@ -132,7 +134,7 @@ class TestFasterWhisperBackend:
 
     def test_backend_transcribe_multiple_segments(self, mock_config):
         """Verify transcription correctly joins multiple segments."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
             
             # Create mock with multiple segments

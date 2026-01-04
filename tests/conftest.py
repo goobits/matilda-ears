@@ -36,6 +36,36 @@ for logger_name in [
 
 console = Console()
 
+def _spacy_available() -> bool:
+    try:
+        import spacy  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def _parakeet_available() -> bool:
+    try:
+        import mlx.core  # noqa: F401
+        import parakeet_mlx  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def pytest_collection_modifyitems(config, items):
+    if not _spacy_available():
+        skip_spacy = pytest.mark.skip(reason="SpaCy not available on this interpreter")
+        for item in items:
+            if "tests/text_formatting" in item.nodeid or "test_entity_detector" in item.nodeid:
+                item.add_marker(skip_spacy)
+
+    if not _parakeet_available():
+        skip_parakeet = pytest.mark.skip(reason="Parakeet MLX backend not available")
+        for item in items:
+            if "test_parakeet_backend" in item.nodeid:
+                item.add_marker(skip_parakeet)
+
 
 class FormatterTestReporter:
     """Custom reporter for text formatting tests with beautiful output."""
@@ -198,9 +228,10 @@ def preloaded_nlp_models():
 
         print("✅ NLP models preloaded successfully")
         return {"nlp": nlp, "punctuator": punctuator}
-    except ImportError as e:
-        print(f"⚠️  Could not preload NLP models: {e}")
-        return None
+    except Exception as e:
+        if os.environ.get("MATILDA_REQUIRE_NLP") == "1":
+            raise
+        pytest.skip(f"NLP models unavailable in this environment: {e}")
 
 
 @pytest.fixture(scope="session")

@@ -22,12 +22,12 @@ class TestCLIImports:
 
     def test_app_hooks_import(self):
         """Can we import app hooks without explosions?"""
-        from matilda_ears.app_hooks import on_transcribe, on_status, on_models
+        from matilda_ears.app_hooks import on_status, on_models, on_download
 
         # Test that hooks are callable
-        assert callable(on_transcribe)
         assert callable(on_status)
         assert callable(on_models)
+        assert callable(on_download)
 
     def test_mode_classes_import(self):
         """Can we import all the mode classes without dependency errors?"""
@@ -84,13 +84,13 @@ class TestCLICommands:
         sys.stdout = captured_output = io.StringIO()
 
         try:
-            on_status(json_output=True)
+            on_status(json=True)
             output = captured_output.getvalue()
 
             # Basic smoke test - did it produce valid JSON?
             result = json.loads(output)
-            assert "system" in result
-            assert "python_version" in result
+            assert "backend" in result
+            assert "model" in result
 
         finally:
             sys.stdout = old_stdout
@@ -104,13 +104,12 @@ class TestCLICommands:
         sys.stdout = captured_output = io.StringIO()
 
         try:
-            on_models(json_output=True)
+            on_models(json=True)
             output = captured_output.getvalue()
 
             # Basic smoke test - did it produce valid JSON?
             result = json.loads(output)
-            assert "available_models" in result
-            assert len(result["available_models"]) > 0
+            assert len(result) > 0
 
         finally:
             sys.stdout = old_stdout
