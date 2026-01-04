@@ -186,11 +186,15 @@ class ConfigLoader:
         self.venv_python = os.path.join(self.project_dir, venv_path)
 
         # Temp directory
-        temp_dir_template = self._config["paths"]["temp_dir"][self._platform]
-        if self._platform == "windows":
-            # Expand Windows environment variables
-            temp_dir_template = os.path.expandvars(temp_dir_template)
-        self.temp_dir = temp_dir_template
+        if os.environ.get("EARS_TEMP_DIR"):
+            self.temp_dir = os.environ["EARS_TEMP_DIR"]
+        else:
+            temp_dir_template = self._config["paths"]["temp_dir"][self._platform]
+            if self._platform == "windows":
+                # Expand Windows environment variables
+                temp_dir_template = os.path.expandvars(temp_dir_template)
+            self.temp_dir = temp_dir_template
+            
         os.makedirs(self.temp_dir, mode=0o700, exist_ok=True)
 
     def get(self, key_path: str, default: Any = None) -> Any:

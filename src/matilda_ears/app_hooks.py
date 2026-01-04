@@ -179,19 +179,14 @@ def on_train_wake_word(
         subprocess.run([sys.executable, "-m", "pip", "install", "modal"], check=True)
         print()
 
-    # Check if modal is authenticated
-    result = subprocess.run(
-        ["modal", "token", "show"],
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
+    # Check if modal is authenticated by checking if token file exists
+    modal_toml = Path.home() / ".modal.toml"
+    if not modal_toml.exists():
         print("ERROR: Modal is not authenticated.")
         print()
         print("To set up Modal:")
         print("  1. Sign up at https://modal.com (free)")
-        print("  2. Run: modal token new")
+        print("  2. Run: modal token set --token-id <id> --token-secret <secret>")
         print("  3. Try this command again")
         print()
         return {"status": "error", "error": "Modal not authenticated"}

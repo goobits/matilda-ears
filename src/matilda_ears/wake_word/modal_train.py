@@ -14,17 +14,27 @@ import modal
 app = modal.App("matilda-wake-word-trainer")
 
 # Docker image with all dependencies
-training_image = modal.Image.debian_slim(python_version="3.11").pip_install(
-    "openwakeword",
-    "torch",
-    "torchaudio",
-    "onnx",
-    "onnxruntime",
-    "piper-tts",
-    "numpy",
-    "scipy",
-    "pyyaml",
-    "tqdm",
+training_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .apt_install("git", "ffmpeg")  # Required for cloning OpenWakeWord and audio processing
+    .pip_install(
+        "openwakeword",
+        "torch",
+        "torchaudio",
+        "onnx",
+        "onnxruntime",
+        "piper-tts",
+        "numpy",
+        "scipy",
+        "pyyaml",
+        "tqdm",
+        "torchinfo",  # Required for OpenWakeWord training
+        "torchmetrics",  # Required for OpenWakeWord training
+        "mutagen",  # Audio metadata
+        "tensorflow",  # Required by openwakeword training
+        "pronouncing",  # Required for adversarial text generation
+        "audiomentations",  # Required for audio augmentation
+    )
 )
 
 
@@ -158,32 +168,59 @@ def train_wake_word(
     # Train the model
     print("\n[4/5] Training neural network...")
 
-    try:
-        # Try using OpenWakeWord's training API
-        from openwakeword.train import train_model
+    model_output_path = output_dir / f"{model_name}.onnx"
 
-        train_model(
-            positive_dir=str(positive_dir),
-            negative_dir=str(negative_dir),
-            output_path=str(output_dir / f"{model_name}.onnx"),
-            epochs=epochs,
-        )
+    # Use OpenWakeWord's training CLI which is more reliable
+    train_result = subprocess.run(
+        [
+            "python", "-c", f"""
+import os
+import sys
+sys.path.insert(0, '{oww_dir}')
+os.chdir('{oww_dir}')
 
-    except (ImportError, Exception) as e:
-        print(f"Using alternative training method: {e}")
+from openwakeword.train import train_model
 
-        # Run the training script directly
-        subprocess.run(
+# Run training
+train_model(
+    target_phrase='{phrase}',
+    positive_audio_dir='{positive_dir}',
+    negative_audio_dir='{negative_dir}',
+    output_dir='{output_dir}',
+    epochs={epochs},
+    batch_size=64,
+)
+"""
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    if train_result.stdout:
+        print(f"Training stdout: {train_result.stdout}")
+    if train_result.stderr:
+        print(f"Training stderr: {train_result.stderr}")
+
+    if train_result.returncode != 0:
+        print(f"Training failed with code {train_result.returncode}")
+        # Try alternative method using the module directly
+        print("Trying alternative training method...")
+        alt_result = subprocess.run(
             [
                 "python", "-m", "openwakeword.train",
-                "--positive_dir", str(positive_dir),
-                "--negative_dir", str(negative_dir),
-                "--output_path", str(output_dir / f"{model_name}.onnx"),
+                "--target_phrase", phrase,
+                "--positive_audio_dir", str(positive_dir),
+                "--negative_audio_dir", str(negative_dir),
+                "--output_dir", str(output_dir),
                 "--epochs", str(epochs),
             ],
-            cwd=oww_dir,
             capture_output=True,
+            text=True,
         )
+        if alt_result.stdout:
+            print(f"Alt stdout: {alt_result.stdout}")
+        if alt_result.stderr:
+            print(f"Alt stderr: {alt_result.stderr}")
 
     # Find the output model
     print("\n[5/5] Exporting model...")
