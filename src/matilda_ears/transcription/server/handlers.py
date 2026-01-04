@@ -36,6 +36,10 @@ if TYPE_CHECKING:
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
+def _is_local_client(client_ip: str) -> bool:
+    return client_ip in {"127.0.0.1", "::1", "localhost"}
+
+
 async def handle_binary_audio(
     server: "MatildaWebSocketServer",
     websocket,
@@ -127,10 +131,10 @@ async def handle_transcription(
     client_id: str,
 ) -> None:
     """Handle transcription requests."""
-    # Check authentication - JWT only
+    # Check authentication - JWT only (allow local dev without token)
     token = data.get("token")
-    jwt_payload = server.token_manager.validate_token(token)
-    if not jwt_payload:
+    jwt_payload = server.token_manager.validate_token(token) if token else None
+    if not jwt_payload and not _is_local_client(client_ip):
         await send_error(websocket, "Authentication required")
         return
 
@@ -209,10 +213,10 @@ async def handle_start_stream(
     client_id: str,
 ) -> None:
     """Handle start of audio streaming session."""
-    # Check authentication - JWT only
+    # Check authentication - JWT only (allow local dev without token)
     token = data.get("token")
-    jwt_payload = server.token_manager.validate_token(token)
-    if not jwt_payload:
+    jwt_payload = server.token_manager.validate_token(token) if token else None
+    if not jwt_payload and not _is_local_client(client_ip):
         await send_error(websocket, "Authentication required")
         return
 
