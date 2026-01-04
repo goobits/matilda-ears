@@ -241,6 +241,7 @@ async def handle_start_stream(
     # Get audio parameters
     sample_rate = data.get("sample_rate", 16000)
     channels = data.get("channels", 1)
+    use_binary = bool(data.get("binary"))
 
     # Validate sample rate
     is_valid, error_msg = validate_sample_rate(sample_rate)
@@ -261,6 +262,9 @@ async def handle_start_stream(
 
     # Create new decoder session (for Opus -> PCM)
     server.opus_decoder.create_session(session_id, sample_rate, channels)
+
+    if use_binary:
+        server.binary_stream_sessions[client_id] = session_id
 
     # Try to create streaming session with new framework
     streaming_enabled = False
@@ -411,6 +415,72 @@ async def handle_audio_chunk(
 
     except Exception as e:
         logger.exception(f"Error decoding audio chunk: {e}")
+        await send_error(websocket, f"Audio chunk processing failed: {e!s}")
+
+
+async def handle_binary_stream_chunk(
+    server: "MatildaWebSocketServer",
+    websocket,
+    opus_data: bytes,
+    client_ip: str,
+    client_id: str,
+) -> None:
+    """Handle incoming Opus audio chunk as binary payload."""
+    session_id = server.binary_stream_sessions.get(client_id)
+    if not session_id:
+        await send_error(websocket, "No active binary stream session")
+        return
+
+    # Skip if session is ending (prevents race condition)
+    if session_id in server.ending_sessions:
+        logger.debug(f"Client {client_id}: Ignoring Opus chunk for ending session {session_id}")
+        return
+
+    decoder = server.opus_decoder.get_session(session_id)
+    if not decoder:
+        await send_error(websocket, f"Unknown session: {session_id}")
+        return
+
+    if not opus_data:
+        logger.warning(f"Client {client_id} sent an empty audio chunk. Ignoring.")
+        return
+
+    try:
+        if session_id not in server.session_chunk_counts:
+            server.session_chunk_counts[session_id] = {"received": 0, "expected": None, "opus_log": []}
+        server.session_chunk_counts[session_id]["received"] += 1
+
+        chunk_num = server.session_chunk_counts[session_id]["received"]
+        logger.debug(f"Client {client_id}: Received binary chunk #{chunk_num}, size: {len(opus_data)} bytes")
+
+        server.session_chunk_counts[session_id]["opus_log"].append(
+            {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}
+        )
+
+        pcm_samples = decoder.decode_chunk(opus_data)
+
+        if session_id in server.streaming_sessions:
+            try:
+                streaming_session = server.streaming_sessions[session_id]
+                result = await streaming_session.process_chunk(pcm_samples)
+
+                if result.confirmed_text or result.tentative_text:
+                    await websocket.send(
+                        json.dumps(
+                            {
+                                "type": "partial_result",
+                                "session_id": session_id,
+                                "confirmed_text": result.confirmed_text,
+                                "tentative_text": result.tentative_text,
+                                "is_final": False,
+                            }
+                        )
+                    )
+            except Exception as e:
+                logger.warning(f"Client {client_id}: Error in streaming transcription: {e}")
+
+    except Exception as e:
+        logger.exception(f"Error decoding binary audio chunk: {e}")
         await send_error(websocket, f"Audio chunk processing failed: {e!s}")
 
 
@@ -683,3 +753,5 @@ async def handle_end_stream(
         # Remove from client sessions tracking
         if client_id in server.client_sessions:
             server.client_sessions[client_id].discard(session_id)
+        if server.binary_stream_sessions.get(client_id) == session_id:
+            server.binary_stream_sessions.pop(client_id, None)

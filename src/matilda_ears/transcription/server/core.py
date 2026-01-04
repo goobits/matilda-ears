@@ -108,6 +108,9 @@ class MatildaWebSocketServer:
         # Track sessions per client for cleanup on disconnect
         self.client_sessions = {}  # client_id -> set of session_ids
 
+        # Track binary streaming sessions per client (Opus chunks over binary frames)
+        self.binary_stream_sessions = {}  # client_id -> session_id
+
         # Health server runner (set during start_server)
         self._health_runner = None
 
@@ -215,7 +218,12 @@ class MatildaWebSocketServer:
                 try:
                     # Handle binary messages (raw WAV audio data)
                     if isinstance(message, bytes):
-                        await handlers.handle_binary_audio(self, websocket, message, client_ip, client_id)
+                        if client_id in self.binary_stream_sessions:
+                            await handlers.handle_binary_stream_chunk(
+                                self, websocket, message, client_ip, client_id
+                            )
+                        else:
+                            await handlers.handle_binary_audio(self, websocket, message, client_ip, client_id)
                     else:
                         # Handle JSON messages (existing protocol)
                         data = json.loads(message)
@@ -234,6 +242,7 @@ class MatildaWebSocketServer:
             logger.exception(traceback.format_exc())
         finally:
             self.connected_clients.discard(websocket)
+            self.binary_stream_sessions.pop(client_id, None)
             # Clean up any streaming sessions for this client
             if client_id in self.client_sessions:
                 orphaned_sessions = self.client_sessions.pop(client_id, set())
