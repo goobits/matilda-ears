@@ -35,22 +35,11 @@ cleanup() {
 trap cleanup EXIT
 
 ready=false
-for _ in {1..50}; do
-  if "$PYTHON" - <<'PY' 2>/dev/null; then
+for _ in {1..200}; do
+  if "$PYTHON" -c $'import asyncio, os, websockets\nasync def main():\n    async with websockets.connect(os.environ["MATILDA_E2E_WS_URL"]) as ws:\n        await asyncio.wait_for(ws.recv(), timeout=2)\nasyncio.run(main())' >/dev/null 2>&1; then
     ready=true
     break
   fi
-PY
-import asyncio
-import os
-import websockets
-
-async def main() -> None:
-    async with websockets.connect(os.environ["MATILDA_E2E_WS_URL"]) as ws:
-        await asyncio.wait_for(ws.recv(), timeout=2)
-
-asyncio.run(main())
-PY
   sleep 0.1
 done
 
