@@ -234,6 +234,19 @@ black src/ tests/
 mypy src/
 ```
 
+### Streaming E2E (Local)
+
+This uses a dedicated Python 3.11 virtual environment and runs the WebSocket
+server on the default port (8769) for a live streaming test.
+
+```bash
+# One-time setup
+./scripts/setup_e2e_venv.sh
+
+# Run the streaming E2E test (starts server, runs test, then shuts down)
+./scripts/run_streaming_e2e.sh
+```
+
 ## Related Projects
 
 - **Matilda** - AI assistant orchestrator
