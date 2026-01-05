@@ -19,6 +19,7 @@ dist/
 .venv/
 venv/
 env/
+.venv-e2e/
 
 # Tool caches (legacy - prefer .artifacts/)
 .pytest_cache/
