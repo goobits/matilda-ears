@@ -13,7 +13,7 @@ from ...core.config import setup_logging
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 # Supported sample rates
-SUPPORTED_SAMPLE_RATES = {8000, 16000}
+SUPPORTED_SAMPLE_RATES = {8000, 16000, 48000}
 TARGET_SAMPLE_RATE = 16000
 
 

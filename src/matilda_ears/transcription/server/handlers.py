@@ -13,6 +13,7 @@ This module contains all message handlers for the WebSocket protocol:
 
 import base64
 import json
+import os
 import time
 import uuid
 from typing import TYPE_CHECKING
@@ -20,7 +21,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from ...audio.opus_batch import OpusBatchDecoder
-from ...core.config import setup_logging
+from ...core.config import get_config, setup_logging
 from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 from .audio_utils import (
     validate_sample_rate,
@@ -38,6 +39,52 @@ logger = setup_logging(__name__, log_filename="transcription.txt")
 
 def _is_local_client(client_ip: str) -> bool:
     return client_ip in {"127.0.0.1", "::1", "localhost"}
+
+
+def _downmix_to_mono(pcm_samples: np.ndarray, channels: int) -> np.ndarray:
+    if channels <= 1 or pcm_samples.size == 0:
+        return pcm_samples
+
+    frame_count = pcm_samples.size // channels
+    if frame_count == 0:
+        return np.array([], dtype=pcm_samples.dtype)
+
+    trimmed = pcm_samples[: frame_count * channels]
+    frames = trimmed.reshape(frame_count, channels).astype(np.int32)
+    mono = frames.mean(axis=1)
+    return np.clip(mono, -32768, 32767).astype(np.int16)
+
+
+def _streaming_enabled() -> bool:
+    env_value = os.getenv("STT_STREAMING_ENABLED")
+    if env_value is not None:
+        return env_value.strip().lower() in {"1", "true", "yes", "on"}
+
+    config = get_config()
+    return bool(config.get("streaming", {}).get("enabled", True))
+
+
+def _audio_debug_enabled() -> bool:
+    env_value = os.getenv("STT_DEBUG_AUDIO")
+    if env_value is None:
+        return False
+    return env_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -> None:
+    if not _audio_debug_enabled():
+        return
+
+    if pcm_samples.size == 0:
+        logger.info(f"Client {client_id}: Session {session_id} decoded 0 samples")
+        return
+
+    rms = float(np.sqrt(np.mean(pcm_samples.astype(np.float32) ** 2)))
+    peak = int(np.max(np.abs(pcm_samples)))
+    logger.info(
+        f"Client {client_id}: Session {session_id} decoded {pcm_samples.size} samples, "
+        f"rms={rms:.3f}, peak={peak}"
+    )
 
 
 async def handle_binary_audio(
@@ -242,6 +289,10 @@ async def handle_start_stream(
     sample_rate = data.get("sample_rate", 16000)
     channels = data.get("channels", 1)
     use_binary = bool(data.get("binary"))
+    if _audio_debug_enabled():
+        logger.info(
+            f"Client {client_id}: Start stream {session_id} (rate={sample_rate}, channels={channels}, binary={use_binary})"
+        )
 
     # Validate sample rate
     is_valid, error_msg = validate_sample_rate(sample_rate)
@@ -270,37 +321,40 @@ async def handle_start_stream(
     streaming_enabled = False
     strategy_name = None
 
-    try:
-        # Load streaming config
-        streaming_config = StreamingConfig.from_config()
+    if _streaming_enabled():
+        try:
+            # Load streaming config
+            streaming_config = StreamingConfig.from_config()
 
-        # Create streaming session
-        streaming_session = create_streaming_session(
-            session_id=session_id,
-            backend=server.backend,
-            config=streaming_config,
-            transcription_semaphore=server.transcription_semaphore,
-        )
+            # Create streaming session
+            streaming_session = create_streaming_session(
+                session_id=session_id,
+                backend=server.backend,
+                config=streaming_config,
+                transcription_semaphore=server.transcription_semaphore,
+            )
 
-        # Start the session
-        await streaming_session.start()
+            # Start the session
+            await streaming_session.start()
 
-        # Store session
-        server.streaming_sessions[session_id] = streaming_session
-        streaming_enabled = True
-        strategy_name = streaming_config.strategy
+            # Store session
+            server.streaming_sessions[session_id] = streaming_session
+            streaming_enabled = True
+            strategy_name = streaming_config.strategy
 
-        logger.debug(
-            f"Client {client_id}: Started streaming session {session_id} "
-            f"with {strategy_name} strategy (backend={server.backend_name})"
-        )
+            logger.debug(
+                f"Client {client_id}: Started streaming session {session_id} "
+                f"with {strategy_name} strategy (backend={server.backend_name})"
+            )
 
-    except Exception as e:
-        logger.warning(
-            f"Client {client_id}: Failed to start streaming session for {session_id}: {e}. "
-            "Falling back to batch mode."
-        )
-        streaming_enabled = False
+        except Exception as e:
+            logger.warning(
+                f"Client {client_id}: Failed to start streaming session for {session_id}: {e}. "
+                "Falling back to batch mode."
+            )
+            streaming_enabled = False
+    else:
+        logger.debug(f"Client {client_id}: Streaming disabled; using batch mode for session {session_id}")
 
     if not streaming_enabled:
         logger.debug(f"Client {client_id}: Started streaming session {session_id} (batch mode)")
@@ -376,6 +430,10 @@ async def handle_audio_chunk(
         # Decode Opus chunk and append to PCM buffer
         # This returns the decoded PCM samples as numpy array
         pcm_samples = decoder.decode_chunk(opus_data)
+        pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
+        _log_audio_stats(client_id, session_id, pcm_samples)
+        if decoder.sample_rate != TARGET_SAMPLE_RATE:
+            pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
 
         # If streaming session exists, process chunk with new framework
         if session_id in server.streaming_sessions:
@@ -458,6 +516,10 @@ async def handle_binary_stream_chunk(
         )
 
         pcm_samples = decoder.decode_chunk(opus_data)
+        pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
+        _log_audio_stats(client_id, session_id, pcm_samples)
+        if decoder.sample_rate != TARGET_SAMPLE_RATE:
+            pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
 
         if session_id in server.streaming_sessions:
             try:
@@ -641,6 +703,9 @@ async def handle_end_stream(
             # Continue anyway - we have what we have
         else:
             logger.debug(f"Client {client_id}: All {received_chunks} chunks received")
+    elif _audio_debug_enabled():
+        chunk_info = server.session_chunk_counts.get(session_id, {"received": 0})
+        logger.info(f"Client {client_id}: Stream ending with {chunk_info['received']} chunks")
 
     # Clean up chunk tracking
     if session_id in server.session_chunk_counts:
@@ -709,9 +774,17 @@ async def handle_end_stream(
                 f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
             )
         elif decoder:
-            # Opus session: get WAV from decoder
-            wav_data = decoder.get_wav_data()
-            duration = decoder.get_duration()
+            # Opus session: resample to 16kHz if needed before WAV
+            pcm_samples = decoder.get_pcm_array()
+            pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
+            if decoder.sample_rate != TARGET_SAMPLE_RATE:
+                pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
+                duration = len(pcm_samples) / TARGET_SAMPLE_RATE
+                wav_data = pcm_to_wav(pcm_samples, TARGET_SAMPLE_RATE, 1)
+            else:
+                wav_data = pcm_to_wav(pcm_samples, decoder.sample_rate, 1)
+                duration = len(pcm_samples) / decoder.sample_rate
+
             logger.debug(
                 f"Client {client_id}: Opus stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes"
             )
