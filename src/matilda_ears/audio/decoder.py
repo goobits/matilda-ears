@@ -41,14 +41,14 @@ class OpusDecoder:
 
         logger.info(f"Opus decoder initialized: {sample_rate}Hz, {channels} channel(s)")
 
-    def decode_chunk(self, opus_data: bytes) -> int:
+    def decode_chunk(self, opus_data: bytes) -> np.ndarray:
         """Decode an Opus chunk and append to PCM buffer.
 
         Args:
             opus_data: Opus-encoded audio data
 
         Returns:
-            Number of samples decoded
+            Decoded PCM samples as int16 numpy array
 
         """
         try:
@@ -58,12 +58,12 @@ class OpusDecoder:
             # Write decoded PCM to buffer
             self.pcm_buffer.write(pcm_data)
 
-            # Track sample count (2 bytes per sample for 16-bit audio)
-            samples_decoded = len(pcm_data) // 2
+            pcm_samples = np.frombuffer(pcm_data, dtype=np.int16)
+            samples_decoded = len(pcm_samples)
             self.sample_count += samples_decoded
 
             logger.debug(f"Decoded {len(opus_data)} bytes Opus → {len(pcm_data)} bytes PCM ({samples_decoded} samples)")
-            return samples_decoded
+            return pcm_samples
 
         except Exception as e:
             logger.error(f"Opus decoding error: {e}")
