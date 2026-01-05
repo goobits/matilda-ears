@@ -197,6 +197,9 @@ class MatildaWebSocketServer:
         """
         client_id = str(uuid.uuid4())[:8]
         client_ip = websocket.remote_address[0]
+        forwarded_ip = websocket.request_headers.get("X-Forwarded-For")
+        if forwarded_ip:
+            client_ip = forwarded_ip.split(",")[0].strip()
 
         try:
             self.connected_clients.add(websocket)

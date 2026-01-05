@@ -181,9 +181,11 @@ async def handle_transcription(
     # Check authentication - JWT only (allow local dev without token)
     token = data.get("token")
     jwt_payload = server.token_manager.validate_token(token) if token else None
-    if not jwt_payload and not _is_local_client(client_ip):
-        await send_error(websocket, "Authentication required")
-        return
+    if not jwt_payload:
+        logger.warning(f"Client {client_id}: Auth failed (token_present={bool(token)})")
+        if not _is_local_client(client_ip):
+            await send_error(websocket, "Authentication required")
+            return
 
     # Log client info if JWT
     if jwt_payload:
