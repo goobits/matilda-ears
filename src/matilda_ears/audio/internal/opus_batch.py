@@ -8,7 +8,7 @@ from typing import Tuple
 
 # Setup standardized logging
 try:
-    from ..config import get_logger
+    from ...core.config import get_logger
 
     logger = get_logger(__name__)
 except ImportError:

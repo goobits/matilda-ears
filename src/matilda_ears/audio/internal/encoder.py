@@ -6,7 +6,7 @@ from typing import Optional
 
 # Setup standardized logging
 try:
-    from ..config import setup_logging
+    from ...core.config import setup_logging
 
     logger = setup_logging(__name__, log_filename="audio_encoder.txt")
 except ImportError:
