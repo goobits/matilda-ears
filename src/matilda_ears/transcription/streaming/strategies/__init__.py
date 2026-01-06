@@ -1,15 +1,7 @@
-"""Streaming strategies.
-
-Available strategies:
-- LocalAgreementStrategy: Uses LocalAgreement-2 with batch transcription (faster-whisper)
-- ChunkedStrategy: Simple periodic batch transcription fallback
-- NativeStrategy: Wraps native streaming APIs (Parakeet)
-"""
-
-from .protocol import StreamingStrategy
-from .local_agreement import LocalAgreementStrategy
-from .chunked import ChunkedStrategy
-from .native import NativeStrategy
+from ..internal.strategies.chunked import ChunkedStrategy
+from ..internal.strategies.local_agreement import LocalAgreementStrategy
+from ..internal.strategies.native import NativeStrategy
+from ..internal.strategies.protocol import StreamingStrategy
 
 __all__ = [
     "ChunkedStrategy",
