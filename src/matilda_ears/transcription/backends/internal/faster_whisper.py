@@ -3,10 +3,9 @@ import logging
 from typing import Tuple
 
 from ..base import TranscriptionBackend
-from ...core.config import get_config
+from ....core.config import get_config
 
 logger = logging.getLogger(__name__)
-config = get_config()
 
 
 class FasterWhisperBackend(TranscriptionBackend):
@@ -17,6 +16,9 @@ class FasterWhisperBackend(TranscriptionBackend):
     """
 
     def __init__(self):
+        from .. import faster_whisper_backend as wrapper
+
+        config = wrapper.config if hasattr(wrapper, "config") else get_config()
         self.model_size = config.whisper_model
         self.device = config.whisper_device_auto
         self.compute_type = config.whisper_compute_type_auto

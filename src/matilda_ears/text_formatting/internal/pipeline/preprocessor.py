@@ -3,9 +3,9 @@
 
 import re
 
-from .. import regex_patterns
-from ..constants import get_resources
-from ...core.config import get_config, setup_logging
+from ... import regex_patterns
+from ...constants import get_resources
+from ....core.config import get_config, setup_logging
 
 config = get_config()
 logger = setup_logging(__name__, log_filename="text_formatting.txt")

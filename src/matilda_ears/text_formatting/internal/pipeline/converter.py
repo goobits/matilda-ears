@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Pattern converter wrapper for entity conversion."""
 
-from ..common import Entity, EntityType, NumberParser
-from ..pattern_converter import PatternConverter as UnifiedPatternConverter
+from ...common import Entity, EntityType, NumberParser
+from ...pattern_converter import PatternConverter as UnifiedPatternConverter
 
 
 class PatternConverter:

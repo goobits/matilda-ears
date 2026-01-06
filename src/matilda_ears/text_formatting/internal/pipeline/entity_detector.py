@@ -3,12 +3,12 @@
 
 from typing import List
 
-from ..common import Entity, EntityType, NumberParser
-from ..constants import get_resources
+from ...common import Entity, EntityType, NumberParser
+from ...constants import get_resources
 from ..nlp_provider import get_nlp
-from ..utils import is_inside_entity
-from .. import regex_patterns
-from ...core.config import setup_logging
+from ...utils import is_inside_entity
+from ... import regex_patterns
+from ....core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -219,7 +219,7 @@ class EntityDetector:
         # This should be handled by the specialized range detector
         if " to " in ent.text.lower():
             # Check if it matches our range pattern
-            from .. import regex_patterns
+            from ... import regex_patterns
 
             range_match = regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.search(ent.text)
             if range_match:
@@ -228,7 +228,7 @@ class EntityDetector:
 
         # Check if this individual CARDINAL is part of a larger range pattern
         # Look at the surrounding context to see if it's part of "X to Y" pattern
-        from .. import regex_patterns
+        from ... import regex_patterns
 
         # Get more context around this entity (20 chars before and after)
         context_start = max(0, ent.start_char - 20)

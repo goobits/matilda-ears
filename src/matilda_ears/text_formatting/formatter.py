@@ -11,7 +11,7 @@ The implementation has been split into:
 """
 
 # Re-export all public classes for backward compatibility
-from .pipeline import (
+from .internal.pipeline import (
     EntityDetector,
     PatternConverter,
     TextFormatter,

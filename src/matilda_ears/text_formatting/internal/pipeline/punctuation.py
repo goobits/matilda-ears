@@ -5,11 +5,11 @@ import os
 import re
 from typing import List, Optional
 
-from ..common import Entity, EntityType
-from ..constants import get_resources
+from ...common import Entity, EntityType
+from ...constants import get_resources
 from ..nlp_provider import get_punctuator
-from .. import regex_patterns
-from ...core.config import setup_logging
+from ... import regex_patterns
+from ....core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 

@@ -4,10 +4,10 @@
 import re
 from typing import List
 
-from ..common import Entity, EntityType
-from ..constants import get_resources
-from .. import regex_patterns
-from ...core.config import setup_logging
+from ...common import Entity, EntityType
+from ...constants import get_resources
+from ... import regex_patterns
+from ....core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 

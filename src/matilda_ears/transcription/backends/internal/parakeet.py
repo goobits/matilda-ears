@@ -11,10 +11,9 @@ import time
 from typing import Tuple
 
 from ..base import TranscriptionBackend
-from ...core.config import get_config
+from ....core.config import get_config
 
 logger = logging.getLogger(__name__)
-config = get_config()
 
 # Enforce dependencies at module level so import fails if missing
 try:
@@ -32,6 +31,9 @@ class ParakeetBackend(TranscriptionBackend):
     """
 
     def __init__(self):
+        from .. import parakeet_backend as wrapper
+
+        config = wrapper.get_config() if hasattr(wrapper, "get_config") else get_config()
         self.model_name = config.get("parakeet.model", "mlx-community/parakeet-tdt-0.6b-v3")
         self.model = None
         self.processor = None
