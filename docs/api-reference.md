@@ -1,87 +1,125 @@
-# STT API Reference
+# Ears API Reference
 
-## CLI API (Command Line Interface)
+Complete CLI reference for the `ears` command.
+
+## Commands
+
+### Operation Modes (root options)
+
+```bash
+ears --listen-once
+ears --conversation
+ears --wake-word
+ears --tap-to-talk=f8
+ears --hold-to-talk=space
+ears --file recording.wav
+ears --server --port=8769 --host=0.0.0.0
+```
+
+### System Commands
+
+```bash
+ears status
+ears models
+ears download --model=base
+ears train-wake-word "hey matilda"
+```
+
+## Options
 
 ### Operation Modes
 
-#### 1. Listen-Once Mode
-Single utterance capture with Voice Activity Detection (VAD)
+- `--listen-once` Single utterance capture with VAD
+- `--conversation` Always listening with interruption support
+- `--wake-word` Always-listening wake word detection mode
+- `--tap-to-talk=KEY` Tap KEY to start/stop recording
+- `--hold-to-talk=KEY` Hold KEY to record, release to stop
+- `--file=PATH` Transcribe audio file (WAV, MP3, etc.)
+- `--server` Run as WebSocket server for remote clients
+- `--port=PORT` Server port (default: 8769)
+- `--host=HOST` Server host (default: 0.0.0.0)
+
+### Wake Word
+
+- `--agent-aliases=ALIASES` Agent wake word aliases (`Agent:phrase1,phrase2;Agent2:phrase3`)
+- `--agents=AGENTS` Comma-separated agent names (legacy)
+- `--ww-threshold=FLOAT` Wake word detection threshold (0.0-1.0)
+
+### Output and Debugging
+
+- `--json` Output JSON format
+- `--debug` Enable detailed debug logging
+- `--no-formatting` Disable advanced text formatting
+
+### Model and Audio
+
+- `--model=MODEL` Whisper model size (tiny, base, small, medium, large, large-v3-turbo)
+- `--language=LANG` Language code (e.g., en, es, fr)
+- `--device=DEVICE` Audio input device name or index
+- `--sample-rate=HZ` Audio sample rate in Hz (default: 16000)
+
+### Configuration
+
+- `--config=PATH` Configuration file path
+
+## Command Details
+
+### `status`
+Show system status and capabilities.
+
 ```bash
-stt --listen-once
-stt --listen-once --json  # JSON output
+ears status
+ears status --json
 ```
 
-#### 2. Conversation Mode
-Always listening with interruption support
+Options:
+- `--json` Output JSON format
+
+### `models`
+List available Whisper models.
+
 ```bash
-stt --conversation
+ears models
+ears models --json
 ```
 
-#### 3. Tap-to-Talk Mode
-Press key once to start, press again to stop
+Options:
+- `--json` Output JSON format
+
+### `download`
+Download a Whisper model for offline use.
+
 ```bash
-stt --tap-to-talk=f8     # Use F8 key
-stt --tap-to-talk=space  # Use spacebar
+ears download --model=base
+ears download --model=large-v3-turbo --progress
 ```
 
-#### 4. Hold-to-Talk Mode
-Hold key to record, release to stop
+Options:
+- `--model=MODEL` Model size to download (tiny, base, small, medium, large-v3-turbo)
+- `--progress` Show JSON progress events
+
+### `train-wake-word`
+Train a custom wake word model using Modal cloud GPU.
+
 ```bash
-stt --hold-to-talk=space  # Hold spacebar
-stt --hold-to-talk=ctrl   # Hold Ctrl key
+ears train-wake-word "hey matilda"
+ears train-wake-word "hey matilda" --samples 3000 --epochs 10
 ```
 
-#### 5. File Transcription
-Transcribe audio files (WAV, MP3, etc.)
-```bash
-stt --file recording.wav
-stt --file audio.mp3 --json
-```
+Options:
+- `--output=PATH` Output path for ONNX file (default: models/{phrase}.onnx)
+- `--samples=NUM` Number of training samples to generate (default: 3000)
+- `--epochs=NUM` Number of training epochs (default: 10)
 
-#### 6. WebSocket Server Mode
-Run as server for remote client connections
-```bash
-stt --server --port=8769 --host=0.0.0.0
-```
+By default the model is saved to `src/matilda_ears/wake_word/models/{phrase}.onnx`.
 
-### Configuration Options
+## Examples
 
 ```bash
-# Audio Settings
---device="USB Microphone"    # Specific audio input device
---sample-rate=16000          # Audio sample rate (default: 16000 Hz)
-
-# Model Settings
---model=base                 # Whisper model: tiny, base, small, medium, large
---language=en                # Language code: en, es, fr, de, etc.
-
-# Output Settings
---json                       # JSON format output
---no-formatting              # Disable text formatting
-
-# Debugging
---debug                      # Enable debug logging
---status                     # Show system status
---models                     # List available models
-
-# Advanced
---config=/path/to/config.json  # Custom config file
-```
-
-### Examples
-
-```bash
-# Quick voice note
-stt --listen-once | jq -r '.text'
-
-# Continuous conversation logging
-stt --conversation >> conversation.txt
-
-# Transcribe file with Spanish model
-stt --file audio.mp3 --language=es --model=small
-
-# Server for remote clients
-stt --server --port=8769 --debug
+ears --listen-once | jq -r '.text'
+ears --conversation >> conversation.txt
+ears --file audio.mp3 --language=es --model=small
+ears --server --port=8769 --debug
 ```
 
 ---

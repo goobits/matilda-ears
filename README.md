@@ -30,9 +30,9 @@ ears status
 **Basic usage:**
 
 ```bash
-ears status                         # Show system status
-ears models                         # List available models
-ears status --json                  # JSON output format
+ears status
+ears models
+ears status --json
 ```
 
 ## Operation Modes
@@ -45,6 +45,7 @@ The following operation modes are available through the Python library:
 - **Hold-to-Talk** - Hold key to record, release to stop
 - **File Transcribe** - Transcribe audio files
 - **WebSocket Server** - Remote client connections
+- **Wake Word** - Always-listening wake word detection
 
 ```python
 # Python API examples
@@ -56,6 +57,17 @@ await mode.run()
 ```
 
 See the `src/matilda_ears/modes/` directory for mode implementations and usage.
+
+## Wake Word
+
+Wake word models live in `src/matilda_ears/wake_word/models/`.
+
+```bash
+ears --wake-word --agent-aliases="Matilda:hey_jarvis"
+ears train-wake-word "hey matilda"
+```
+
+Full CLI reference: `docs/api-reference.md`.
 
 ## Configuration
 

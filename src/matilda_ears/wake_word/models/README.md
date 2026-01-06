@@ -25,27 +25,23 @@ These work **immediately** without any training:
 | `alexa` | "Alexa" | Single word |
 | `hey_rhasspy` | "Hey Rhasspy" | Less common |
 
-## Training Custom "Hey Matilda" (Google Colab)
+## Training Custom "Hey Matilda"
 
-To train a real "Hey Matilda" model (~30-60 minutes, free GPU):
+You can train your own model and place the resulting `.onnx` file in this directory.
 
-### Option A: One-Cell Script (Easiest)
+### Option A: One-Cell Script (Colab)
+- Copy `scripts/train-wake-word.py` into a Colab cell
+- Set `TARGET_PHRASE = "hey matilda"`
 
-1. Open Google Colab: https://colab.research.google.com
-2. Create new notebook (File > New notebook)
-3. Copy contents of `scripts/train-wake-word.py` into a cell
-4. Change `TARGET_PHRASE = "hey matilda"` to your phrase
-5. Run the cell (Shift+Enter)
-6. Model auto-downloads when complete
+### Option B: Official Notebook (Colab)
+- https://colab.research.google.com/github/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb
 
-### Option B: Official Notebook
+### Option C: Modal CLI (Cloud GPU)
+```bash
+ears train-wake-word "hey matilda"
+```
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb)
-
-1. Open the notebook above
-2. Set `target_phrase = "hey matilda"`
-3. Run all cells
-4. Download the ONNX file
+Full CLI usage: `docs/api-reference.md`.
 
 ### After Training
 
