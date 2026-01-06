@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Tuple
 
-from .base import TranscriptionBackend
+from ..base import TranscriptionBackend
 from ...core.config import get_config
 
 logger = logging.getLogger(__name__)

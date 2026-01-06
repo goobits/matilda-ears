@@ -10,7 +10,7 @@ import platform
 import subprocess
 from typing import Optional, Type, List, Dict
 from .base import TranscriptionBackend
-from .faster_whisper_backend import FasterWhisperBackend
+from .internal.faster_whisper import FasterWhisperBackend
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ def _check_parakeet_available() -> bool:
     if PARAKEET_AVAILABLE is not None:
         return PARAKEET_AVAILABLE
     try:
-        from . import parakeet_backend as _parakeet_backend  # noqa: F401
+        from .internal import parakeet as _parakeet_backend  # noqa: F401
         PARAKEET_AVAILABLE = True
     except Exception as exc:
         logger.debug(f"Parakeet backend unavailable: {exc}")
@@ -89,7 +89,7 @@ def _check_huggingface_available() -> bool:
     if HUGGINGFACE_AVAILABLE is not None:
         return HUGGINGFACE_AVAILABLE
     try:
-        from . import huggingface_backend as _huggingface_backend  # noqa: F401
+        from .internal import huggingface as _huggingface_backend  # noqa: F401
         HUGGINGFACE_AVAILABLE = True
     except Exception as exc:
         logger.debug(f"HuggingFace backend unavailable: {exc}")
@@ -166,7 +166,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
                 "  2. Or: pip install goobits-matilda-ears[mac]\n"
                 "Note: Parakeet requires macOS with Metal/MLX support (M1/M2/M3 chips)"
             )
-        from .parakeet_backend import ParakeetBackend
+        from .internal.parakeet import ParakeetBackend
         return ParakeetBackend
 
     if backend_name == "huggingface":
@@ -178,7 +178,7 @@ def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
                 "  2. Or: pip install transformers torch\n"
                 "This backend supports 17,000+ ASR models from HuggingFace Hub."
             )
-        from .huggingface_backend import HuggingFaceBackend
+        from .internal.huggingface import HuggingFaceBackend
         return HuggingFaceBackend
 
     # Unknown backend - provide helpful error
