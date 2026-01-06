@@ -197,7 +197,12 @@ class MatildaWebSocketServer:
         """
         client_id = str(uuid.uuid4())[:8]
         client_ip = websocket.remote_address[0]
-        forwarded_ip = websocket.request_headers.get("X-Forwarded-For")
+        headers = None
+        if hasattr(websocket, "request_headers"):
+            headers = websocket.request_headers
+        elif hasattr(websocket, "request") and websocket.request is not None:
+            headers = websocket.request.headers
+        forwarded_ip = headers.get("X-Forwarded-For") if headers else None
         if forwarded_ip:
             client_ip = forwarded_ip.split(",")[0].strip()
 
