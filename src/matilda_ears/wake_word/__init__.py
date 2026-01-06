@@ -4,7 +4,7 @@ All wake word functionality is contained in this module.
 Provides hands-free "Hey Matilda" activation using OpenWakeWord.
 """
 
-__all__ = ["WakeWordDetector", "WakeWordMode", "get_detector", "get_mode"]
+__all__ = ["WakeWordDetector", "WakeWordMode", "get_detector", "get_mode", "train_wake_word"]
 
 
 def get_detector():
@@ -19,6 +19,13 @@ def get_mode():
     from .mode import WakeWordMode
 
     return WakeWordMode
+
+
+def train_wake_word(*args, **kwargs):
+    """Train a custom wake word model."""
+    from .training import train_wake_word as _train_wake_word
+
+    return _train_wake_word(*args, **kwargs)
 
 
 # Lazy module-level imports for convenience

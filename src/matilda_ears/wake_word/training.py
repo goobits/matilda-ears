@@ -3,9 +3,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..domain.model import WakeWordTrainingRequest, WakeWordTrainingResult
-from ..domain.trainer import normalize_model_name, validate_phrase
-from ..infrastructure.storage import ensure_output_path, get_models_dir
+from .internal.model import WakeWordTrainingRequest, WakeWordTrainingResult
+from .internal.trainer import normalize_model_name, validate_phrase
+from .internal.storage import ensure_output_path, get_models_dir
 
 
 def _parse_int(value: Optional[object], default: int, label: str) -> int:
@@ -84,7 +84,7 @@ def train_wake_word(
     print(f"Output will be saved to: {request.output_path}")
     print()
 
-    modal_script = Path(__file__).resolve().parent.parent / "infrastructure" / "modal_train.py"
+    modal_script = Path(__file__).resolve().parent / "internal" / "modal_train.py"
 
     result = subprocess.run(
         [

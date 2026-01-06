@@ -144,6 +144,6 @@ def on_train_wake_word(
     Returns:
         Dictionary with status and optional results
     """
-    from .wake_word.application.train_wake_word import train_wake_word
+    from .wake_word.training import train_wake_word
 
     return train_wake_word(phrase=phrase, output=output, samples=samples, epochs=epochs)

@@ -2,7 +2,7 @@
 Modal.com training script for custom wake word models.
 
 This runs OpenWakeWord training on Modal's cloud GPUs.
-Usage: modal run src/matilda_ears/wake_word/infrastructure/modal_train.py --phrase "hey matilda"
+Usage: modal run src/matilda_ears/wake_word/internal/modal_train.py --phrase "hey matilda"
 
 Or via the ears CLI:
   ears train-wake-word "hey matilda"
