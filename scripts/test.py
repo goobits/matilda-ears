@@ -78,7 +78,7 @@ def main():
     import os
     
     # Custom help handling
-    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] in ["-h", "--help"]):
+    if len(sys.argv) == 2 and sys.argv[1] in ["-h", "--help"]:
         show_examples()
         return 0
     
