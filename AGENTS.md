@@ -47,5 +47,5 @@ ears --server --port=8769
 - `src/matilda_ears/cli.py`: generated CLI (do not edit)
 - `src/matilda_ears/app_hooks.py`: CLI hooks (edit here)
 - `goobits.yaml`: CLI spec for goobits
-- `config.json`: config defaults
+- `config.defaults.json`: config defaults
 - `tests/`: test suite

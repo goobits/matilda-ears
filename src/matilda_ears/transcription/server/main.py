@@ -73,10 +73,17 @@ async def start_server(
         logger.debug(f"Model: {config.get('parakeet.model', 'default')}")
 
     # Start WebSocket server with SSL support
+    max_message_mb = config.get("server.websocket.max_message_mb", 10)
+    try:
+        max_message_mb = float(max_message_mb)
+    except (TypeError, ValueError):
+        max_message_mb = 10
+
+    max_size = None if max_message_mb <= 0 else int(max_message_mb * 1024 * 1024)
     server_kwargs = {
         "ping_interval": 30,  # Send ping every 30 seconds
         "ping_timeout": 10,  # Wait 10 seconds for pong
-        "max_size": 10 * 1024 * 1024,  # 10MB limit for large audio files
+        "max_size": max_size,
     }
 
     # Add SSL context if enabled

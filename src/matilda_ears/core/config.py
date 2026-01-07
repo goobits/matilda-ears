@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Configuration loader that reads from config.json"""
+"""Configuration loader that reads from config files."""
 import json
 import logging
 import os
@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 
 
 class ConfigLoader:
-    """Load configuration from config.json"""
+    """Load configuration from config files."""
 
     def __init__(self, config_path: Optional[Union[str, Path]] = None) -> None:
         if config_path is None:
@@ -40,34 +40,23 @@ class ConfigLoader:
 
     def _find_config_file(self) -> Path:
         """Find config file in multiple locations"""
-        # Method 1: Try package data (for installed packages)
-        try:
-            import importlib.resources
-            try:
-                # Python 3.9+ syntax
-                package_data = importlib.resources.files("src") / "config.json"
-                if package_data.is_file():
-                    return package_data
-            except AttributeError:
-                # Python 3.8 fallback
-                with importlib.resources.path("src", "config.json") as config_path:
-                    if config_path.exists():
-                        return config_path
-        except (ImportError, FileNotFoundError, ModuleNotFoundError):
-            pass
-
-        # Method 2: Try relative to source code (development mode)
+        # Method 1: Try relative to source code (development mode)
         current = Path(__file__).parent.parent.parent  # Go up 3 levels: core -> src -> project root
         for filename in ["config.jsonc", "config.json"]:
             config_path = current / filename
             if config_path.exists():
                 return config_path
 
-        # Method 3: Try current working directory
+        # Method 2: Try current working directory
         for filename in ["config.jsonc", "config.json"]:
             config_path = Path.cwd() / filename
             if config_path.exists():
                 return config_path
+
+        # Method 3: Use repo defaults if present
+        defaults_path = current / "config.defaults.json"
+        if defaults_path.exists():
+            return defaults_path
 
         # Method 4: Create a default config
         return self._create_default_config()
@@ -93,6 +82,7 @@ class ConfigLoader:
                     "host": "localhost",
                     "bind_host": "0.0.0.0",
                     "connect_host": "localhost",
+                    "max_message_mb": 50,
                     "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
                     "jwt_token": "",
                     "ssl": {

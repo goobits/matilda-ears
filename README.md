@@ -71,7 +71,7 @@ Full CLI reference: `docs/api-reference.md`.
 
 ## Configuration
 
-Configuration is loaded from `src/matilda_ears/config.json`:
+Defaults live in `config.defaults.json` (overrides via `config.json` or `config.jsonc`):
 
 ```json
 {

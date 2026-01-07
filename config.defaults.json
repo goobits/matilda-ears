@@ -24,6 +24,7 @@
       "host": "localhost",
       "bind_host": "0.0.0.0",
       "connect_host": "localhost",
+      "max_message_mb": 50,
       "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
       "jwt_token": "",
       "ssl": {
