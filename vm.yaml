@@ -5,7 +5,7 @@ os: auto
 project:
   name: stt
   hostname: dev.stt.local
-  workspace_path: .
+  workspace_path: /workspace
 
 vm:
   box: '@vibe-box'
