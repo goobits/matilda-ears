@@ -85,6 +85,12 @@ class NativeStrategy:
                 tentative_word_count=self._draft_tokens,
             )
         audio_chunk = np.ascontiguousarray(audio_chunk)
+        try:
+            import mlx.core as mx
+
+            audio_chunk = mx.array(audio_chunk)
+        except Exception:
+            pass
 
         self._total_samples += len(audio_chunk)
 
