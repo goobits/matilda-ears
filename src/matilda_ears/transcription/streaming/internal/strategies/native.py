@@ -75,9 +75,16 @@ class NativeStrategy:
             StreamingResult with confirmed/tentative text
 
         """
-        # Convert to float32 if needed
-        if audio_chunk.dtype == np.int16:
-            audio_chunk = audio_chunk.astype(np.float32) / 32768.0
+        # Normalize input to contiguous float32 array
+        audio_chunk = np.asarray(audio_chunk, dtype=np.float32).reshape(-1)
+        if audio_chunk.size == 0:
+            return StreamingResult(
+                confirmed_text=self._confirmed_text,
+                tentative_text=self._draft_text,
+                confirmed_word_count=self._finalized_tokens,
+                tentative_word_count=self._draft_tokens,
+            )
+        audio_chunk = np.ascontiguousarray(audio_chunk)
 
         self._total_samples += len(audio_chunk)
 
