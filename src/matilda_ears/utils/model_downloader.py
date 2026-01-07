@@ -237,4 +237,5 @@ if __name__ == "__main__":
             print(f"  {name}: {info['size_mb']}MB [{status}]")
     else:
         success = download_with_json_output(args.model, force=args.force)
-        sys.exit(0 if success else 1)
+        if not success:
+            raise RuntimeError("Model download failed")

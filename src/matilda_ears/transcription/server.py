@@ -10,9 +10,7 @@ import sys
 
 # Check for management token
 if os.environ.get("MATILDA_MANAGEMENT_TOKEN") != "managed-by-matilda-system":
-    print("This server must be started via ./server.py")
-    print("   Use: ./server.py start-ws")
-    sys.exit(1)
+    raise RuntimeError("This server must be started via ./server.py (Use: ./server.py start-ws)")
 
 
 # Add project root to path for imports - cross-platform compatible

@@ -127,4 +127,4 @@ def main() -> None:
     except Exception as e:
         logger.exception(f"Server error: {e}")
         logger.exception(traceback.format_exc())
-        sys.exit(1)
+        raise RuntimeError("WebSocket server failed") from e
