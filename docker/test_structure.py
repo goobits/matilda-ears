@@ -6,15 +6,16 @@ Tests basic imports and structure without external dependencies
 import sys
 from pathlib import Path
 
-# Add workspace to path
-sys.path.append("/workspace")
+# Add project root to path
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT))
 
 
 def test_structure():
     """Test the new file structure"""
     print("🔍 Testing Docker folder structure...")
 
-    docker_dir = Path("/workspace/docker")
+    docker_dir = PROJECT_ROOT / "docker"
 
     # Check main directories exist
     required_dirs = ["src", "dashboard"]

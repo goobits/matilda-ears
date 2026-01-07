@@ -8,7 +8,8 @@ import os
 from pathlib import Path
 
 # Add project root to path
-sys.path.append("/workspace")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(PROJECT_ROOT))
 
 
 def test_imports():
