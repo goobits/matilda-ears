@@ -37,10 +37,7 @@ def setup_logging(
     logger.setLevel(getattr(logging, log_level.upper()))
 
     # Create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     # Console handler
     if include_console:

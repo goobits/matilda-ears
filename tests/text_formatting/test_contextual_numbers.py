@@ -1,7 +1,6 @@
 """Test contextual number handling to prevent unwanted conversions."""
 
 
-
 class TestContextualNumbers:
     """Test that number words in certain contexts are not converted to digits."""
 
@@ -14,12 +13,10 @@ class TestContextualNumbers:
             ("one of us should go", "One of us should go"),
             ("which one do you prefer", "Which one do you prefer"),
             ("one or the other", "One or the other"),
-
             # "two" in non-numeric contexts
             ("the two of us", "The two of us"),
             ("two can play that game", "Two can play that game"),
             ("between the two options", "Between the two options"),
-
             # Mixed contexts
             ("one test for each of those two issues", "One test for each of those two issues"),
             ("create one or two examples", "Create one or two examples"),
@@ -28,8 +25,10 @@ class TestContextualNumbers:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
-            assert result in [expected, expected + "."], \
-                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_number_words_that_should_convert(self, preloaded_formatter):
         """Test that number words in numeric contexts ARE converted to digits."""
@@ -40,7 +39,6 @@ class TestContextualNumbers:
             ("multiply two times three", "Multiply 2 × 3"),
             ("version one point two", "Version 1.2"),
             ("page one of ten", "Page 1 of 10"),
-
             # With units
             ("wait one second", "Wait 1s"),  # Time duration gets abbreviated
             ("two minutes remaining", "2min remaining"),  # Time duration gets abbreviated
@@ -50,8 +48,10 @@ class TestContextualNumbers:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
-            assert result in [expected, expected + "."], \
-                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestContextualOrdinals:
@@ -66,17 +66,14 @@ class TestContextualOrdinals:
             ("second generation iPhone", "2nd generation iPhone"),
             ("third party software", "3rd party software"),
             ("twenty first century technology", "21st century technology"),
-
             # Rankings/Competition
             ("first place winner", "1st place winner"),
             ("second best performance", "2nd best performance"),
             ("third fastest time", "3rd fastest time"),
-
             # Lists/Procedures
             ("first item on the agenda", "1st item on the agenda"),
             ("second step in the process", "2nd step in the process"),
             ("third option available", "3rd option available"),
-
             # Dates
             ("January first meeting", "January 1st meeting"),
             ("March twenty third deadline", "March 23rd deadline"),
@@ -86,8 +83,10 @@ class TestContextualOrdinals:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
-            assert result in [expected, expected + "."], \
-                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_ordinals_that_should_be_spelled_out(self, preloaded_formatter):
         """Test that ordinals in natural speech/idiomatic contexts remain spelled out."""
@@ -99,13 +98,11 @@ class TestContextualOrdinals:
             ("third time's the charm", "Third time's the charm"),
             ("first of all let me say", "First of all, let me say"),
             ("second thoughts about this", "Second thoughts about this"),
-
             # Common expressions
             ("first things first", "First things first"),
             ("second to none", "Second to none"),
             ("third wheel in the group", "Third wheel in the group"),
             ("first come first served", "First come, first served"),
-
             # Sentence beginnings (emphasis)
             ("first we need to discuss", "First, we need to discuss"),
             ("second the budget concerns", "Second, the budget concerns"),
@@ -115,8 +112,10 @@ class TestContextualOrdinals:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
-            assert result in [expected, expected + "."], \
-                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestStandaloneEntityPunctuation:
@@ -130,21 +129,17 @@ class TestStandaloneEntityPunctuation:
             ("slash compact.", "/compact"),
             ("slash help.", "/help"),
             ("slash status.", "/status"),
-
             # Filenames
             ("config dot json.", "config.json"),
             ("readme dot md.", "README.md"),
             ("app dot py.", "app.py"),
-
             # URLs (if detected as single entity)
             ("github dot com.", "github.com"),
             ("example dot org.", "example.org"),
-
             # CLI commands
             ("git status.", "git status"),
             ("npm install.", "npm install"),
             ("docker run.", "docker run"),
-
             # Version numbers
             ("version two point one.", "Version 2.1"),
             ("v one point zero.", "v1.0"),
@@ -152,8 +147,7 @@ class TestStandaloneEntityPunctuation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, \
-                f"Input '{input_text}' should format to '{expected}' (no period), got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}' (no period), got '{result}'"
 
     def test_sentences_with_entities_keep_punctuation(self, preloaded_formatter):
         """Test that real sentences containing entities are formatted correctly (punctuation disabled in test env)."""
@@ -169,8 +163,7 @@ class TestStandaloneEntityPunctuation:
 
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
-            assert result == expected, \
-                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result == expected, f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
 
 class TestFillerWordPreservation:
@@ -184,10 +177,8 @@ class TestFillerWordPreservation:
             ("words like actually should be preserved", "Words like actually should be preserved"),
             ("I say things like actually or like", "I say things like actually or like"),
             ("he literally said literally", "He literally said literally"),
-
             # In quoted contexts (once quote detection is implemented)
             # ("she said like three times", "She said like three times"),
-
             # When they're meaningful
             ("I actually finished it", "I actually finished it"),
             ("basically correct", "Basically correct"),
@@ -201,8 +192,10 @@ class TestFillerWordPreservation:
         for input_text, expected in test_cases:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
-            assert result in [expected, expected + "."], \
-                f"Input '{input_text}' should format to '{expected}', got '{result}'"
+            assert result in [
+                expected,
+                expected + ".",
+            ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
 
     def test_filler_words_that_should_be_removed(self, preloaded_formatter):
         """Test that filler words ARE removed in appropriate contexts."""
@@ -213,7 +206,6 @@ class TestFillerWordPreservation:
             ("it was like really hot", "It was really hot"),
             ("you know what I mean", "What I mean"),
             ("basically we need to go", "We need to go"),
-
             # Multiple fillers
             ("so like basically I think", "So I think"),
             ("actually like you know", ""),
@@ -223,8 +215,9 @@ class TestFillerWordPreservation:
             result = format_transcription(input_text)
             # Allow for optional punctuation at the end
             if expected:  # Non-empty expected output
-                assert result in [expected, expected + "."], \
-                    f"Input '{input_text}' should format to '{expected}', got '{result}'"
+                assert result in [
+                    expected,
+                    expected + ".",
+                ], f"Input '{input_text}' should format to '{expected}', got '{result}'"
             else:  # Empty expected output
-                assert result == expected, \
-                    f"Input '{input_text}' should format to empty string, got '{result}'"
+                assert result == expected, f"Input '{input_text}' should format to empty string, got '{result}'"

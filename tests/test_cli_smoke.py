@@ -35,7 +35,7 @@ class TestCLIImports:
         from matilda_ears.modes.conversation import ConversationMode
         from matilda_ears.modes.tap_to_talk import TapToTalkMode
         from matilda_ears.modes.hold_to_talk import HoldToTalkMode
-        
+
         # Just importing without crashing is the test
         assert ListenOnceMode is not None
         assert ConversationMode is not None
@@ -45,28 +45,28 @@ class TestCLIImports:
 
 class TestConfigSystem:
     """Test that configuration system works without crashing."""
-    
+
     def test_default_config_loads(self, preloaded_config):
         """Can we load the actual config.json without crashing?"""
         if preloaded_config is None:
             pytest.skip("Config not available")
-        
+
         config = preloaded_config
-        
+
         # Basic smoke test - these should not crash and return sensible values
         assert config.websocket_port > 0
         assert config.websocket_port < 65536
         assert len(config.whisper_model) > 0
         assert len(config.get_audio_tool()) > 0
-    
+
     def test_config_loader_direct(self):
         """Test creating ConfigLoader directly doesn't crash."""
         from matilda_ears.core.config import ConfigLoader
-        
+
         # Should be able to create without crashing
         config = ConfigLoader()
         assert config is not None
-        
+
         # Should be able to get basic values
         port = config.websocket_port
         assert isinstance(port, int)
@@ -119,7 +119,10 @@ class TestCLICommands:
         # Test via the ears command entry point
         result = subprocess.run(
             [sys.executable, "-m", "matilda_ears.cli", "--help"],
-            check=False, capture_output=True, text=True, timeout=10
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
 
         # Should exit with 0 and show help text
@@ -129,46 +132,38 @@ class TestCLICommands:
 
 class TestBaseModeLogic:
     """Test that base mode functionality works without hardware."""
-    
+
     def test_base_mode_can_be_created(self):
         """Can we create a BaseMode subclass without crashing?"""
         from matilda_ears.modes.base_mode import BaseMode
         from types import SimpleNamespace
-        
+
         # Create mock args
-        args = SimpleNamespace(
-            debug=False,
-            format="json",
-            sample_rate=16000,
-            device=None,
-            model="base",
-            language=None
-        )
-        
+        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, device=None, model="base", language=None)
+
         # Create a concrete implementation for testing
         class TestMode(BaseMode):
             async def run(self):
                 pass
-        
+
         # Should be able to create without crashing
         mode = TestMode(args)
         assert mode is not None
         assert mode.args == args
         assert mode.config is not None
         assert mode.logger is not None
-    
+
     def test_mode_name_generation(self):
         """Test that mode name generation works correctly."""
         from matilda_ears.modes.base_mode import BaseMode
         from types import SimpleNamespace
-        
-        args = SimpleNamespace(debug=False, format="json", sample_rate=16000,
-                             device=None, model="base", language=None)
-        
+
+        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, device=None, model="base", language=None)
+
         class TestSampleMode(BaseMode):
             async def run(self):
                 pass
-        
+
         mode = TestSampleMode(args)
         # Should convert TestSampleMode -> test_sample
         assert mode._get_mode_name() == "test_sample"

@@ -111,6 +111,8 @@ directory = ".artifacts/cache/htmlcov"
 "src/matilda_ears/modes/__init__.py" = [ "F401",]
 "src/matilda_ears/transcription/backends/huggingface_backend.py" = [ "F401",]
 "src/matilda_ears/transcription/backends/parakeet_backend.py" = [ "F401",]
+"scripts/*.py" = [ "E402",]
+"tests/**/conftest.py" = [ "E402",]
 
 [tool.setuptools.packages.find]
 where = [ "src", ".",]

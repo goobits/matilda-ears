@@ -13,6 +13,7 @@ try:
 except ImportError:
     # Fallback for standalone usage
     import logging
+
     logger = logging.getLogger(__name__)
 
 

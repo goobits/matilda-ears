@@ -82,8 +82,7 @@ def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -
     rms = float(np.sqrt(np.mean(pcm_samples.astype(np.float32) ** 2)))
     peak = int(np.max(np.abs(pcm_samples)))
     logger.info(
-        f"Client {client_id}: Session {session_id} decoded {pcm_samples.size} samples, "
-        f"rms={rms:.3f}, peak={peak}"
+        f"Client {client_id}: Session {session_id} decoded {pcm_samples.size} samples, " f"rms={rms:.3f}, peak={peak}"
     )
 
 
@@ -768,7 +767,9 @@ async def handle_end_stream(
                 np.concatenate(pcm_session["samples"]) if pcm_session["samples"] else np.array([], dtype=np.int16)
             )
             # Use 16kHz if samples were resampled, otherwise original rate
-            output_sample_rate = TARGET_SAMPLE_RATE if pcm_session.get("needs_resampling", False) else pcm_session["sample_rate"]
+            output_sample_rate = (
+                TARGET_SAMPLE_RATE if pcm_session.get("needs_resampling", False) else pcm_session["sample_rate"]
+            )
             duration = len(all_samples) / output_sample_rate
             wav_data = pcm_to_wav(all_samples, output_sample_rate, pcm_session["channels"])
             logger.debug(

@@ -100,7 +100,8 @@ def train_wake_word(
             "--epochs",
             str(request.epochs),
         ],
-        check=False, capture_output=False,
+        check=False,
+        capture_output=False,
     )
 
     if result.returncode == 0 and request.output_path.exists():

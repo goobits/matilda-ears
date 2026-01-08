@@ -36,13 +36,21 @@ class CodeConverterMixin:
 
         # Strip common leading phrases to isolate the filename
         leading_phrases_to_strip = [
-            "edit the config file", "open the config file", "check the config file",
-            "edit the file", "open the file", "check the file", "save the file",
-            "the config file", "config file", "the file", "my favorite file is"
+            "edit the config file",
+            "open the config file",
+            "check the config file",
+            "edit the file",
+            "open the file",
+            "check the file",
+            "save the file",
+            "the config file",
+            "config file",
+            "the file",
+            "my favorite file is",
         ]
         for phrase in leading_phrases_to_strip:
             if text.lower().startswith(phrase):
-                text = text[len(phrase):].lstrip()
+                text = text[len(phrase) :].lstrip()
                 break
 
         # First, handle all spoken separators to create a clean string
@@ -61,7 +69,7 @@ class CodeConverterMixin:
 
         # Check for and handle explicit underscore usage first
         # Check both the entity text and the full text context if available
-        has_spoken_underscores = "_" in text # Since we already replaced " underscore " with "_"
+        has_spoken_underscores = "_" in text  # Since we already replaced " underscore " with "_"
         if not has_spoken_underscores and full_text:
             # Check if underscore was spoken near this entity
             entity_pos = full_text.find(entity.text)
@@ -282,7 +290,7 @@ class CodeConverterMixin:
 
                 # Ensure proper spacing around operators
                 for op in ["+", "-", "×", "÷", "/", "="]:
-                     right = right.replace(op, f" {op} ")
+                    right = right.replace(op, f" {op} ")
 
                 # Clean up double spaces
                 right = re.sub(r"\s+", " ", right).strip()

@@ -414,9 +414,7 @@ class TextFormatter:
         logger.debug("Text does not meet standalone technical criteria - treating as sentence")
         return False
 
-    def _apply_capitalization_with_entity_protection(
-        self, text: str, entities: list[Entity], doc=None
-    ) -> str:
+    def _apply_capitalization_with_entity_protection(self, text: str, entities: list[Entity], doc=None) -> str:
         """Apply capitalization while protecting entities."""
         logger.debug(f"Capitalization protection called with text: '{text}' and {len(entities)} entities")
         if not text:

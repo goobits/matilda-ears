@@ -113,7 +113,10 @@ class TestFilenameEntities:
             ("edit change log dot md", "Edit CHANGE_LOG.md"),
             ("check api docs dot md", "Check API_DOCS.md"),
             ("view user guide dot md", "View USER_GUIDE.md"),
-            ("please update the clod dot md", "Please update the CLAUDE.md"),  # "clod" -> "CLAUDE" only when followed by .md
+            (
+                "please update the clod dot md",
+                "Please update the CLAUDE.md",
+            ),  # "clod" -> "CLAUDE" only when followed by .md
         ]
 
         for input_text, expected in test_cases:

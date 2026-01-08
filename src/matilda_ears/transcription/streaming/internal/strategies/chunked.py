@@ -107,10 +107,7 @@ class ChunkedStrategy:
             text, info = await self.transcribe(wav_bytes, "")
             transcribe_time = (time.time() - start_time) * 1000
 
-            logger.debug(
-                f"Chunked transcription in {transcribe_time:.0f}ms: "
-                f"'{text[:50]}...' ({len(text)} chars)"
-            )
+            logger.debug(f"Chunked transcription in {transcribe_time:.0f}ms: " f"'{text[:50]}...' ({len(text)} chars)")
 
             self._current_text = text.strip()
             self._word_count = len(self._current_text.split())

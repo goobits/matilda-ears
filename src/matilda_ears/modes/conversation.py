@@ -39,9 +39,11 @@ class ConversationMode(BaseMode):
         self.stop_event = threading.Event()
         self.is_processing = False
 
-        self.logger.info(f"VAD config: threshold={self.vad_processor.threshold}, "
-                        f"min_speech={self.vad_processor.min_speech_duration_s}s, "
-                        f"max_silence={self.vad_processor.max_silence_duration_s}s")
+        self.logger.info(
+            f"VAD config: threshold={self.vad_processor.threshold}, "
+            f"min_speech={self.vad_processor.min_speech_duration_s}s, "
+            f"max_silence={self.vad_processor.max_silence_duration_s}s"
+        )
 
     async def run(self):
         """Main conversation mode loop."""
@@ -68,7 +70,6 @@ class ConversationMode(BaseMode):
             await self._send_error(f"Conversation mode failed: {e}")
         finally:
             await self._cleanup()
-
 
     async def _initialize_vad(self):
         """Initialize VAD Processor."""
@@ -97,7 +98,7 @@ class ConversationMode(BaseMode):
     async def _conversation_loop(self):
         """Main conversation processing loop."""
         self.is_listening = True
-        
+
         self.vad_processor.reset()
 
         while not self.stop_event.is_set():
@@ -112,7 +113,7 @@ class ConversationMode(BaseMode):
 
                 if event == VADEvent.START:
                     self.logger.debug(f"Speech started (prob: {speech_prob:.3f})")
-                
+
                 elif event == VADEvent.END:
                     self.logger.debug("Speech ended, processing utterance")
                     await self._process_utterance()
@@ -128,7 +129,7 @@ class ConversationMode(BaseMode):
     async def _process_utterance(self) -> None:
         """Process the current utterance in a separate thread."""
         utterance_data = self.vad_processor.get_audio()
-        
+
         if len(utterance_data) == 0 or self.is_processing:
             return
 

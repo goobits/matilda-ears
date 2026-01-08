@@ -17,9 +17,9 @@ from enum import Enum
 class VADState(Enum):
     """VAD state machine states."""
 
-    WAITING = "waiting"      # No speech detected yet
-    SPEECH = "speech"        # Currently in speech
-    TRAILING = "trailing"    # Brief silence during speech (hysteresis zone)
+    WAITING = "waiting"  # No speech detected yet
+    SPEECH = "speech"  # Currently in speech
+    TRAILING = "trailing"  # Brief silence during speech (hysteresis zone)
 
 
 @dataclass
@@ -143,7 +143,7 @@ class VADProcessor:
             is_speech=self.state in (VADState.SPEECH, VADState.TRAILING),
             utterance_complete=utterance_complete,
             speech_duration=speech_duration,
-            should_buffer=should_buffer
+            should_buffer=should_buffer,
         )
 
     def _process_waiting(self, is_above_threshold: bool) -> None:
@@ -159,11 +159,7 @@ class VADProcessor:
         else:
             self.consecutive_speech = 0
 
-    def _process_speech(
-        self,
-        is_above_threshold: bool,
-        is_below_hysteresis: bool
-    ) -> tuple[bool, bool]:
+    def _process_speech(self, is_above_threshold: bool, is_below_hysteresis: bool) -> tuple[bool, bool]:
         """Process chunk while in SPEECH state.
 
         Returns:
@@ -195,11 +191,7 @@ class VADProcessor:
 
         return (utterance_complete, should_buffer)
 
-    def _process_trailing(
-        self,
-        is_above_threshold: bool,
-        is_below_hysteresis: bool
-    ) -> tuple[bool, bool]:
+    def _process_trailing(self, is_above_threshold: bool, is_below_hysteresis: bool) -> tuple[bool, bool]:
         """Process chunk while in TRAILING state (brief silence during speech).
 
         Returns:

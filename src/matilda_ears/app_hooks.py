@@ -134,7 +134,7 @@ def on_train_wake_word(
     output: str | None = None,
     samples: str | None = "3000",
     epochs: str | None = "10",
-    **kwargs
+    **kwargs,
 ) -> dict[str, Any]:
     """Train a custom wake word model using Modal.com cloud GPU.
 

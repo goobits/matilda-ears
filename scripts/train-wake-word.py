@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Matilda Wake Word Training Script for Google Colab
+"""Matilda Wake Word Training Script for Google Colab
 
 USAGE:
 1. Open Google Colab: https://colab.research.google.com
@@ -26,9 +25,9 @@ TARGET_PHRASE = "hey matilda"  # <-- CHANGE THIS TO YOUR WAKE WORD
 ADDITIONAL_PHRASES = []
 
 # Optional: Adjust these if needed
-NUM_SAMPLES = 5000        # More = better accuracy, slower training
-THRESHOLD = 0.5           # Detection threshold (0.3-0.7 typical)
-EPOCHS = 10               # Training epochs
+NUM_SAMPLES = 5000  # More = better accuracy, slower training
+THRESHOLD = 0.5  # Detection threshold (0.3-0.7 typical)
+EPOCHS = 10  # Training epochs
 
 # ============================================================================
 # AUTOMATIC SETUP - DO NOT MODIFY BELOW THIS LINE
@@ -38,15 +37,17 @@ import subprocess
 import sys
 import os
 
+
 def run(cmd):
     """Run shell command and print output."""
     print(f">>> {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, check=False, shell=True, capture_output=True, text=True)
     if result.stdout:
         print(result.stdout)
     if result.stderr:
         print(result.stderr)
     return result.returncode == 0
+
 
 print("=" * 60)
 print(f"Training wake word model for: {TARGET_PHRASE}")
@@ -71,12 +72,9 @@ except ImportError as e:
     print(f"Import error: {e}")
     print("Retrying installations...")
     run("pip install numpy torch pyyaml")
-    import numpy as np
     import torch
     from pathlib import Path
-    import json
     import yaml
-    import tempfile
     import shutil
 
 # Check for GPU
@@ -110,7 +108,6 @@ config = {
     "n_epochs": EPOCHS,
     "output_dir": str(work_dir / "output"),
     "batch_size": 256 if device == "cuda" else 64,
-
     # TTS settings for synthetic data generation
     "tts_engine": "piper",
     "piper_models": [
@@ -118,20 +115,18 @@ config = {
         "en_US-libritts-high",
         "en_GB-cori-medium",
     ],
-
     # Augmentation settings
     "augmentation": {
         "noise_levels": [0.0, 0.1, 0.2, 0.3],
         "room_sizes": ["small", "medium", "large"],
         "speed_variations": [0.9, 1.0, 1.1],
     },
-
     # Model settings
     "model": {
         "n_classes": 1,
         "custom_verifier_model": None,
         "custom_verifier_threshold": THRESHOLD,
-    }
+    },
 }
 
 config_path = work_dir / "training_config.yaml"
@@ -146,22 +141,24 @@ print("=" * 60)
 
 try:
     # Try using the automated training script
-    from openWakeWord import train
 
     # Generate synthetic clips
     print("\nGenerating synthetic speech samples...")
-    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
-        f"--training_config {config_path} --generate_clips")
+    run(
+        f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
+        f"--training_config {config_path} --generate_clips"
+    )
 
     # Augment clips
     print("\nAugmenting audio with noise and room acoustics...")
-    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
-        f"--training_config {config_path} --augment_clips")
+    run(
+        f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
+        f"--training_config {config_path} --augment_clips"
+    )
 
     # Train model
     print("\nTraining neural network...")
-    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
-        f"--training_config {config_path} --train_model")
+    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train " f"--training_config {config_path} --train_model")
 
 except Exception as e:
     print(f"Note: Using fallback training method due to: {e}")
@@ -170,7 +167,8 @@ except Exception as e:
     print("\nRunning alternative training pipeline...")
 
     # This is a simplified version - the full pipeline is in the notebook
-    run(f"""
+    run(
+        f"""
     cd {work_dir}/openWakeWord && python -c "
 from openwakeword.utils import train_custom_model
 train_custom_model(
@@ -180,7 +178,8 @@ train_custom_model(
     epochs={EPOCHS}
 )
 "
-    """)
+    """
+    )
 
 # Step 6: Export and download
 print("\n[6/6] Exporting model...")
@@ -203,6 +202,7 @@ if onnx_files:
     # Auto-download in Colab
     try:
         from google.colab import files
+
         print(f"\nDownloading {final_name}...")
         files.download(str(final_path))
         print("\nDone! Place the downloaded file in:")
@@ -227,5 +227,5 @@ print("NEXT STEPS:")
 print("=" * 60)
 print(f"1. Place {model_name}.onnx in:")
 print("   matilda-ears/src/matilda_ears/wake_word/models/")
-print(f"2. Use it: ears --wake-word --agent-aliases=\"Matilda:{model_name}\"")
+print(f'2. Use it: ears --wake-word --agent-aliases="Matilda:{model_name}"')
 print("=" * 60)

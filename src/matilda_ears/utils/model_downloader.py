@@ -43,6 +43,7 @@ def get_cache_dir() -> Path:
     """Get the Hugging Face cache directory."""
     try:
         from huggingface_hub import constants
+
         return Path(constants.HF_HUB_CACHE)
     except ImportError:
         # Fallback to default location
@@ -91,32 +92,34 @@ def download_model(
     """
     if model_name not in WHISPER_MODELS:
         if progress_callback:
-            progress_callback({
-                "status": "error",
-                "error": f"Unknown model: {model_name}. Available: {', '.join(WHISPER_MODELS.keys())}"
-            })
+            progress_callback(
+                {
+                    "status": "error",
+                    "error": f"Unknown model: {model_name}. Available: {', '.join(WHISPER_MODELS.keys())}",
+                }
+            )
         return False
 
     # Check cache first
     if not force and is_model_cached(model_name):
         if progress_callback:
-            progress_callback({
-                "status": "cached",
-                "model": model_name,
-                "message": f"Model {model_name} already downloaded"
-            })
+            progress_callback(
+                {"status": "cached", "model": model_name, "message": f"Model {model_name} already downloaded"}
+            )
         return True
 
     repo_id = WHISPER_MODELS[model_name]
     total_size_mb = MODEL_SIZES_MB.get(model_name, 100)
 
     if progress_callback:
-        progress_callback({
-            "status": "starting",
-            "model": model_name,
-            "repo_id": repo_id,
-            "estimated_size_mb": total_size_mb,
-        })
+        progress_callback(
+            {
+                "status": "starting",
+                "model": model_name,
+                "repo_id": repo_id,
+                "estimated_size_mb": total_size_mb,
+            }
+        )
 
     try:
         from huggingface_hub import snapshot_download
@@ -140,13 +143,15 @@ def download_model(
                 if progress_int > self.last_progress:
                     self.last_progress = progress_int
                     if progress_callback:
-                        progress_callback({
-                            "status": "downloading",
-                            "model": model_name,
-                            "progress": progress,
-                            "downloaded_mb": round(self.downloaded / (1024 * 1024), 1),
-                            "total_mb": total_size_mb,
-                        })
+                        progress_callback(
+                            {
+                                "status": "downloading",
+                                "model": model_name,
+                                "progress": progress,
+                                "downloaded_mb": round(self.downloaded / (1024 * 1024), 1),
+                                "total_mb": total_size_mb,
+                            }
+                        )
 
         tracker = ProgressTracker()
 
@@ -172,28 +177,24 @@ def download_model(
             hf_tqdm.tqdm = original_tqdm
 
         if progress_callback:
-            progress_callback({
-                "status": "complete",
-                "model": model_name,
-                "progress": 1.0,
-                "message": f"Model {model_name} downloaded successfully"
-            })
+            progress_callback(
+                {
+                    "status": "complete",
+                    "model": model_name,
+                    "progress": 1.0,
+                    "message": f"Model {model_name} downloaded successfully",
+                }
+            )
 
         return True
 
     except ImportError as e:
         if progress_callback:
-            progress_callback({
-                "status": "error",
-                "error": f"huggingface_hub not installed: {e}"
-            })
+            progress_callback({"status": "error", "error": f"huggingface_hub not installed: {e}"})
         return False
     except Exception as e:
         if progress_callback:
-            progress_callback({
-                "status": "error",
-                "error": str(e)
-            })
+            progress_callback({"status": "error", "error": str(e)})
         return False
 
 
@@ -203,6 +204,7 @@ def download_with_json_output(model_name: str = "base", force: bool = False) -> 
     Each line is a JSON object with progress information.
     Designed for parsing by Tauri or other frontend.
     """
+
     def json_callback(data: dict):
         print(json.dumps(data), flush=True)
 
@@ -224,6 +226,7 @@ def list_available_models() -> dict:
 if __name__ == "__main__":
     # CLI usage for testing
     import argparse
+
     parser = argparse.ArgumentParser(description="Download Whisper models")
     parser.add_argument("model", nargs="?", default="base", help="Model to download")
     parser.add_argument("--list", action="store_true", help="List available models")

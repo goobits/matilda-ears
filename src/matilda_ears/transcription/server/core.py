@@ -48,6 +48,7 @@ class MatildaWebSocketServer:
         self.port = _config.websocket_port
         # Initialize JWT token manager
         from . import TokenManager as _TokenManager
+
         self.token_manager = _TokenManager(_config.jwt_secret_key)
 
         # Initialize Backend
@@ -61,6 +62,7 @@ class MatildaWebSocketServer:
             logger.error(f"Failed to initialize backend: {e}")
             # Use package's sys for patchability in tests
             from . import sys as _sys
+
             _sys.exit(1)
 
         # GPU serialization: Limit concurrent transcriptions to 1 for Parakeet to prevent MPS crashes
@@ -227,9 +229,7 @@ class MatildaWebSocketServer:
                     # Handle binary messages (raw WAV audio data)
                     if isinstance(message, bytes):
                         if client_id in self.binary_stream_sessions:
-                            await handlers.handle_binary_stream_chunk(
-                                self, websocket, message, client_ip, client_id
-                            )
+                            await handlers.handle_binary_stream_chunk(self, websocket, message, client_ip, client_id)
                         else:
                             await handlers.handle_binary_audio(self, websocket, message, client_ip, client_id)
                     else:
@@ -276,29 +276,28 @@ class MatildaWebSocketServer:
         """Handle configuration reload request."""
         # Verify it's a local request or authorized admin
         if client_ip not in ["127.0.0.1", "::1", "localhost"]:
-             await self.send_error(websocket, "Unauthorized: Reload only allowed from localhost")
-             return
+            await self.send_error(websocket, "Unauthorized: Reload only allowed from localhost")
+            return
 
         try:
             logger.info("Reloading configuration...")
             # Reload config file
             from ...core.config import get_config, ConfigLoader
-            
+
             # Force reload the singleton
             import matilda_ears.core.config
+
             matilda_ears.core.config._config_loader = ConfigLoader()
-            
+
             # Update local references if any (most use the global get_config())
             global config
             config = get_config()
-            
-            await websocket.send(json.dumps({
-                "type": "reload_response",
-                "status": "ok",
-                "message": "Configuration reloaded"
-            }))
+
+            await websocket.send(
+                json.dumps({"type": "reload_response", "status": "ok", "message": "Configuration reloaded"})
+            )
             logger.info("Configuration reloaded successfully")
-            
+
         except Exception as e:
             logger.exception("Failed to reload configuration")
             await self.send_error(websocket, f"Reload failed: {e}")

@@ -21,7 +21,7 @@ class TestBackendFactory:
         """Verify factory returns FasterWhisperBackend class for 'faster_whisper'."""
         from matilda_ears.transcription.backends import get_backend_class
         from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
-        
+
         backend_class = get_backend_class("faster_whisper")
         assert backend_class == FasterWhisperBackend
 
@@ -40,10 +40,10 @@ class TestBackendFactory:
     def test_factory_unknown_backend_raises_valueerror(self):
         """Verify factory raises ValueError with helpful message for unknown backend."""
         from matilda_ears.transcription.backends import get_backend_class
-        
+
         with pytest.raises(ValueError) as exc_info:
             get_backend_class("unknown_backend")
-        
+
         error_msg = str(exc_info.value)
         assert "Unknown backend: 'unknown_backend'" in error_msg
         assert "Available backends:" in error_msg
@@ -65,7 +65,7 @@ class TestBackendFactory:
     def test_get_available_backends_includes_faster_whisper(self):
         """Verify get_available_backends always includes faster_whisper."""
         from matilda_ears.transcription.backends import get_available_backends
-        
+
         backends = get_available_backends()
         assert "faster_whisper" in backends
         assert isinstance(backends, list)
@@ -82,7 +82,9 @@ class TestBackendFactory:
         backends = get_available_backends()
         assert "parakeet" in backends
 
-    @pytest.mark.skip(reason="Conflicts with global parakeet mocking in conftest.py - parakeet is always available in integration tests")
+    @pytest.mark.skip(
+        reason="Conflicts with global parakeet mocking in conftest.py - parakeet is always available in integration tests"
+    )
     def test_get_available_backends_excludes_parakeet_when_unavailable(self):
         """Verify get_available_backends excludes parakeet when unavailable."""
         # NOTE: This test cannot work in integration tests because conftest.py
@@ -91,6 +93,7 @@ class TestBackendFactory:
         with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", False):
             import importlib
             import matilda_ears.transcription.backends as backends_module
+
             importlib.reload(backends_module)
 
             backends = backends_module.get_available_backends()
@@ -103,10 +106,10 @@ class TestConfigIntegration:
     def test_config_has_transcription_backend_property(self):
         """Verify config object has transcription_backend property."""
         from matilda_ears.core.config import get_config
-        
+
         config = get_config()
         assert hasattr(config, "transcription_backend")
-        
+
         # Should return a string
         backend = config.transcription_backend
         assert isinstance(backend, str)
@@ -119,10 +122,7 @@ class TestConfigIntegration:
         config = get_config()
         available_backends = get_available_backends()
         if config.transcription_backend not in available_backends:
-            pytest.skip(
-                "Configured backend not available in this environment: "
-                f"{config.transcription_backend}"
-            )
+            pytest.skip("Configured backend not available in this environment: " f"{config.transcription_backend}")
         assert config.transcription_backend in available_backends
 
     def test_config_custom_backend_selection(self):
@@ -137,21 +137,11 @@ class TestConfigIntegration:
                     "venv": {
                         "linux": "venv/bin/python",
                         "darwin": "venv/bin/python",
-                        "windows": "venv\\Scripts\\python.exe"
+                        "windows": "venv\\Scripts\\python.exe",
                     },
-                    "temp_dir": {
-                        "linux": "/tmp/test-stt",
-                        "darwin": "/tmp/test-stt",
-                        "windows": "%TEMP%\\test-stt"
-                    }
+                    "temp_dir": {"linux": "/tmp/test-stt", "darwin": "/tmp/test-stt", "windows": "%TEMP%\\test-stt"},
                 },
-                "tools": {
-                    "audio": {
-                        "linux": "arecord",
-                        "darwin": "arecord",
-                        "windows": "ffmpeg"
-                    }
-                }
+                "tools": {"audio": {"linux": "arecord", "darwin": "arecord", "windows": "ffmpeg"}},
             }
             json.dump(config_data, f)
             temp_config_path = f.name
@@ -159,6 +149,7 @@ class TestConfigIntegration:
         try:
             # Load custom config
             from matilda_ears.core.config import ConfigLoader
+
             config = ConfigLoader(config_path=temp_config_path)
 
             assert config.transcription_backend == "parakeet"
@@ -222,6 +213,7 @@ class TestServerIntegration:
                 # Mock backend's load method to set model (making is_ready True)
                 async def mock_load():
                     server.backend.model = Mock()
+
                 server.backend.load = mock_load
 
                 # Verify backend not ready before load
@@ -257,22 +249,22 @@ class TestBackendOutputCompatibility:
 
         with patch("matilda_ears.transcription.backends.faster_whisper_backend.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
-            
+
             backend = FasterWhisperBackend()
-            
+
             # Mock the model
             segment = Mock()
             segment.text = " test"
             info = Mock()
             info.duration = 1.0
             info.language = "en"
-            
+
             model = Mock()
             model.transcribe.return_value = ([segment], info)
             backend.model = model
-            
+
             text, metadata = backend.transcribe(mock_audio_file)
-            
+
             # Verify format
             assert isinstance(text, str)
             assert isinstance(metadata, dict)
@@ -287,29 +279,29 @@ class TestBackendOutputCompatibility:
         sys.modules["mlx"] = MagicMock()
         sys.modules["mlx.core"] = MagicMock()
         sys.modules["parakeet_mlx"] = MagicMock()
-        
+
         try:
             mock_config = Mock()
             mock_config.get = Mock(return_value="mlx-community/parakeet-tdt-0.6b-v3")
-            
+
             with patch("matilda_ears.transcription.backends.parakeet_backend.get_config", return_value=mock_config):
                 from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
-                
+
                 backend = ParakeetBackend()
-                
+
                 # Mock the model
                 result = Mock()
                 result.text = "  test  "
                 sentence = Mock()
                 sentence.end = 1.5
                 result.sentences = [sentence]
-                
+
                 model = Mock()
                 model.transcribe.return_value = result
                 backend.model = model
-                
+
                 text, metadata = backend.transcribe(mock_audio_file)
-                
+
                 # Verify format matches FasterWhisper
                 assert isinstance(text, str)
                 assert isinstance(metadata, dict)
@@ -317,7 +309,7 @@ class TestBackendOutputCompatibility:
                 assert "language" in metadata
                 assert isinstance(metadata["duration"], (int, float))
                 assert isinstance(metadata["language"], str)
-                
+
                 # Parakeet adds extra backend field
                 assert "backend" in metadata
                 assert metadata["backend"] == "parakeet"

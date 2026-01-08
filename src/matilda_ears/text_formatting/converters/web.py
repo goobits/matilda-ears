@@ -81,7 +81,9 @@ class WebConverterMixin:
 
         # Special handling for IP addresses (sequences of numbers and dots)
         # If we detect this is an IP address (e.g. "one two seven dot zero..."), convert using digit parsing
-        if "dot" in url_text.lower() and not any(tld in url_text.lower() for tld in ["com", "org", "net", "edu", "gov", "io"]):
+        if "dot" in url_text.lower() and not any(
+            tld in url_text.lower() for tld in ["com", "org", "net", "edu", "gov", "io"]
+        ):
             # Check for port number (split by colon)
             port_part = None
             ip_text = url_text
@@ -109,7 +111,7 @@ class WebConverterMixin:
 
             # Split IP by 'dot'
             parts = re.split(r"\s+dot\s+", ip_text, flags=re.IGNORECASE)
-            if len(parts) == 4: # IPv4
+            if len(parts) == 4:  # IPv4
                 # Check if parts look like numbers
                 converted_parts = []
                 all_valid = True

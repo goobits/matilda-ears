@@ -90,8 +90,6 @@ async def test_streaming_e2e():
         assert chunk_acks == len(opus_packets)
         assert final_result.get("type") == "stream_transcription_complete"
         if "partial_result" in message_types:
-            last_partial = max(
-                idx for idx, mtype in enumerate(message_types) if mtype == "partial_result"
-            )
+            last_partial = max(idx for idx, mtype in enumerate(message_types) if mtype == "partial_result")
             final_index = message_types.index("stream_transcription_complete")
             assert last_partial < final_index

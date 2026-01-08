@@ -65,9 +65,7 @@ async def start_server(
     logger.debug(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
     logger.debug(f"Backend: {server.backend_name}")
     if server.backend_name == "faster_whisper":
-        logger.debug(
-            f"Model: {config.whisper_model}, Device: {config.whisper_device_auto}"
-        )
+        logger.debug(f"Model: {config.whisper_model}, Device: {config.whisper_device_auto}")
     elif server.backend_name == "parakeet":
         logger.debug(f"Model: {config.get('parakeet.model', 'default')}")
 

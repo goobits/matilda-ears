@@ -14,19 +14,21 @@ from typing import Any
 
 import click
 import yaml
+
 # ============================================================================
 # EMBEDDED LOGGER
 # ============================================================================
+
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with color support."""
 
     COLORS = {
-        "DEBUG": "\033[36m",    # Cyan
-        "INFO": "\033[32m",     # Green
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",    # Red
-        "CRITICAL": "\033[35m", # Magenta
+        "ERROR": "\033[31m",  # Red
+        "CRITICAL": "\033[35m",  # Magenta
     }
     RESET = "\033[0m"
 
@@ -35,36 +37,33 @@ class ColoredFormatter(logging.Formatter):
         record.levelname = f"{log_color}{record.levelname}{self.RESET}"
         return super().format(record)
 
+
 def setup_logging(level=logging.INFO, log_file=None):
     """Configure logging for the CLI."""
     handlers = []
 
     # Console handler with colors
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(ColoredFormatter(
-        "%(asctime)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    ))
+    console_handler.setFormatter(
+        ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    )
     handlers.append(console_handler)
 
     # File handler if specified
     if log_file:
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-        ))
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s"))
         handlers.append(file_handler)
 
-    logging.basicConfig(
-        level=level,
-        handlers=handlers
-    )
+    logging.basicConfig(level=level, handlers=handlers)
+
 
 logger = logging.getLogger(__name__)
 
 # ============================================================================
 # EMBEDDED CONFIG MANAGER
 # ============================================================================
+
 
 class ConfigManager:
     """Manage CLI configuration."""
@@ -123,24 +122,29 @@ class ConfigManager:
             config = config[k]
         config[keys[-1]] = value
 
+
 # ============================================================================
 # EMBEDDED ERROR HANDLER
 # ============================================================================
+
 
 class CLIError(Exception):
     """Base exception for CLI errors."""
 
     exit_code = 1
 
+
 class UsageError(CLIError):
     """Exception for usage errors."""
 
     exit_code = 2
 
+
 class ConfigError(CLIError):
     """Exception for configuration errors."""
 
     exit_code = 3
+
 
 def handle_error(error: Exception, verbose: bool = False):
     """Handle CLI errors consistently."""
@@ -157,9 +161,11 @@ def handle_error(error: Exception, verbose: bool = False):
             logger.info("Run with --verbose for more details")
         sys.exit(1)
 
+
 # ============================================================================
 # CLI CONTEXT
 # ============================================================================
+
 
 class CLIContext:
     """Shared context for CLI commands."""
@@ -177,14 +183,17 @@ class CLIContext:
         else:
             setup_logging(logging.WARNING)
 
+
 # ============================================================================
 # HOOK SYSTEM
 # ============================================================================
+
 
 def load_hooks():
     """Load user-defined hooks."""
     try:
         from matilda_ears import app_hooks
+
         return app_hooks
     except ImportError:
         logger.warning("No app_hooks.py found. Please create one with your command implementations.")
@@ -193,11 +202,13 @@ def load_hooks():
         logger.warning("      print('Build command implementation')")
         return None
 
+
 hooks = load_hooks()
 
 # ============================================================================
 # CLI COMMANDS
 # ============================================================================
+
 
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
@@ -210,66 +221,74 @@ def cli(ctx, verbose, debug, config):
     config_manager = ConfigManager(config_path)
     ctx.obj = CLIContext(config_manager, verbose, debug)
 
+
 @cli.command("status")
-@click.option("--json", is_flag=True, default=None,              help="Output JSON format")
+@click.option("--json", is_flag=True, default=None, help="Output JSON format")
 @click.pass_obj
 def status(ctx, json):
     """Show system status and capabilities"""
     try:
         if hooks and hasattr(hooks, "on_status"):
-            kwargs = {                "json": json            }
+            kwargs = {"json": json}
             hooks.on_status(ctx=ctx, **kwargs)
         else:
             logger.error("Hook 'on_status' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
+
+
 @cli.command("models")
-@click.option("--json", is_flag=True, default=None,              help="Output JSON format")
+@click.option("--json", is_flag=True, default=None, help="Output JSON format")
 @click.pass_obj
 def models(ctx, json):
     """List available Whisper models"""
     try:
         if hooks and hasattr(hooks, "on_models"):
-            kwargs = {                "json": json            }
+            kwargs = {"json": json}
             hooks.on_models(ctx=ctx, **kwargs)
         else:
             logger.error("Hook 'on_models' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
+
+
 @cli.command("download")
-@click.option("--model", default="base",              help="Model size to download (tiny, base, small, medium, large-v3-turbo)")
-@click.option("--progress", is_flag=True, default=None,              help="Show JSON progress events (for programmatic use)")
+@click.option("--model", default="base", help="Model size to download (tiny, base, small, medium, large-v3-turbo)")
+@click.option("--progress", is_flag=True, default=None, help="Show JSON progress events (for programmatic use)")
 @click.pass_obj
 def download(ctx, model, progress):
     """Download Whisper model for offline use"""
     try:
         if hooks and hasattr(hooks, "on_download"):
-            kwargs = {                "model": model,                "progress": progress            }
+            kwargs = {"model": model, "progress": progress}
             hooks.on_download(ctx=ctx, **kwargs)
         else:
             logger.error("Hook 'on_download' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
+
+
 @cli.command("train-wake-word")
-@click.option("--phrase", default=None,              help="The wake word phrase to train (e.g., 'hey matilda')")
-@click.option("--output", default=None,              help="Output path for ONNX file (default: models/{phrase}.onnx)")
-@click.option("--samples", default="3000",              help="Number of training samples to generate")
-@click.option("--epochs", default="10",              help="Number of training epochs")
+@click.option("--phrase", default=None, help="The wake word phrase to train (e.g., 'hey matilda')")
+@click.option("--output", default=None, help="Output path for ONNX file (default: models/{phrase}.onnx)")
+@click.option("--samples", default="3000", help="Number of training samples to generate")
+@click.option("--epochs", default="10", help="Number of training epochs")
 @click.pass_obj
 def train_wake_word(ctx, phrase, output, samples, epochs):
     """Train a custom wake word model using Modal.com cloud GPU"""
     try:
         if hooks and hasattr(hooks, "on_train_wake_word"):
-            kwargs = {                "phrase": phrase,                "output": output,                "samples": samples,                "epochs": epochs            }
+            kwargs = {"phrase": phrase, "output": output, "samples": samples, "epochs": epochs}
             hooks.on_train_wake_word(ctx=ctx, **kwargs)
         else:
             logger.error("Hook 'on_train_wake_word' not implemented in cli_hooks.py")
             sys.exit(1)
     except Exception as e:
         handle_error(e, ctx.verbose)
+
 
 # ============================================================================
 # INTERACTIVE MODE (if enabled)
@@ -278,12 +297,14 @@ def train_wake_word(ctx, phrase, output, samples, epochs):
 # MAIN ENTRY POINT
 # ============================================================================
 
+
 def main():
     """Main entry point for the CLI."""
     try:
         cli()
     except Exception as e:
         handle_error(e, "--verbose" in sys.argv or "--debug" in sys.argv)
+
 
 # Alias for pyproject.toml entry point
 cli_entry = main

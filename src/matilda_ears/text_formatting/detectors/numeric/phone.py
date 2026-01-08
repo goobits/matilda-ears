@@ -23,9 +23,7 @@ class PhoneDetector:
         self.nlp = nlp
         self.resources = resources or {}
 
-    def detect_phone_numbers(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_phone_numbers(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect phone numbers spoken as individual digits."""
         # Use centralized phone pattern
         for match in regex_patterns.SPOKEN_PHONE_PATTERN.finditer(text):

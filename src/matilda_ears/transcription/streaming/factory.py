@@ -64,10 +64,7 @@ def create_streaming_session(
         logger.info("Using native strategy for Parakeet backend")
     elif strategy_name == "native" and "parakeet" not in backend_name:
         # Native only works with Parakeet
-        logger.warning(
-            f"Native strategy requested but backend is {backend_name}, "
-            f"falling back to local_agreement"
-        )
+        logger.warning(f"Native strategy requested but backend is {backend_name}, " f"falling back to local_agreement")
         strategy_name = "local_agreement"
 
     # Create strategy
@@ -85,9 +82,7 @@ def create_streaming_session(
         config=config,
     )
 
-    logger.info(
-        f"Created streaming session {session_id} with {strategy_name} strategy"
-    )
+    logger.info(f"Created streaming session {session_id} with {strategy_name} strategy")
 
     return session
 
@@ -95,9 +90,7 @@ def create_streaming_session(
 def _backend_has_native_streaming(backend: "TranscriptionBackend") -> bool:
     """Check if backend supports native streaming API."""
     # Check for transcribe_stream method (Parakeet MLX)
-    return hasattr(backend, "transcribe_stream") and callable(
-        getattr(backend, "transcribe_stream", None)
-    )
+    return hasattr(backend, "transcribe_stream") and callable(getattr(backend, "transcribe_stream", None))
 
 
 def _create_strategy(

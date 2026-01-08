@@ -346,9 +346,7 @@ class UnitsDetector:
                         )
                     )
 
-    def detect_measurements(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_measurements(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect measurement patterns that SpaCy might miss or misclassify.
 
         This catches patterns like:
@@ -369,9 +367,7 @@ class UnitsDetector:
                 if not is_inside_entity(match.start(), match.end(), check_entities):
                     entities.append(Entity(start=match.start(), end=match.end(), text=match.group(), type=entity_type))
 
-    def detect_metric_units(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_metric_units(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect metric unit expressions.
 
         Examples:

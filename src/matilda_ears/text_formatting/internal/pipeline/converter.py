@@ -84,6 +84,3 @@ class PatternConverter:
         self_punctuating_types.add(EntityType.SPOKEN_EMOJI)
 
         return entity_type in self_punctuating_types
-
-
-

@@ -11,17 +11,21 @@ import logging
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create a dummy numpy module for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -34,13 +38,15 @@ class SileroVAD:
     Processes 30ms+ chunks in <1ms on CPU.
     """
 
-    def __init__(self,
-                 sample_rate: int = 16000,
-                 threshold: float = 0.5,
-                 min_speech_duration: float = 0.25,
-                 min_silence_duration: float = 0.5,
-                 padding_duration: float = 0.3,
-                 use_onnx: bool = True):
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        threshold: float = 0.5,
+        min_speech_duration: float = 0.25,
+        min_silence_duration: float = 0.5,
+        padding_duration: float = 0.3,
+        use_onnx: bool = True,
+    ):
         """Initialize Silero VAD.
 
         Args:
@@ -61,16 +67,10 @@ class SileroVAD:
 
         # Check dependencies
         if not NUMPY_AVAILABLE:
-            raise ImportError(
-                "NumPy is required for VAD. "
-                "Install with: pip install numpy"
-            )
+            raise ImportError("NumPy is required for VAD. " "Install with: pip install numpy")
 
         if not TORCH_AVAILABLE:
-            raise ImportError(
-                "PyTorch is required for Silero VAD. "
-                "Install with: pip install torch torchaudio"
-            )
+            raise ImportError("PyTorch is required for Silero VAD. " "Install with: pip install torch torchaudio")
 
         # Validate sample rate
         if sample_rate not in [8000, 16000]:
@@ -103,6 +103,7 @@ class SileroVAD:
             # Try the newer silero-vad package first
             try:
                 from silero_vad import load_silero_vad, get_speech_timestamps
+
                 self.model = load_silero_vad(onnx=self.use_onnx)
                 self.get_speech_timestamps = get_speech_timestamps
                 self.logger.info("Loaded Silero VAD using silero-vad package")
@@ -116,7 +117,7 @@ class SileroVAD:
                 model="silero_vad",
                 force_reload=False,
                 onnx=self.use_onnx,
-                verbose=False
+                verbose=False,
             )
 
             # Get utility functions from torch.hub
@@ -172,8 +173,7 @@ class SileroVAD:
             self.logger.error(f"Error processing audio chunk: {e}")
             return 0.0
 
-    def process_chunk_with_state(self, audio_chunk: np.ndarray,
-                                chunk_length_ms: int = 100) -> tuple[float, str]:
+    def process_chunk_with_state(self, audio_chunk: np.ndarray, chunk_length_ms: int = 100) -> tuple[float, str]:
         """Process chunk with state machine for robust speech detection.
 
         Args:
@@ -208,17 +208,22 @@ class SileroVAD:
 
         else:
             if self.triggered:
-                if self.current_speech_start is not None and (self.temp_end - self.current_speech_start) < min_speech_chunks:
+                if (
+                    self.current_speech_start is not None
+                    and (self.temp_end - self.current_speech_start) < min_speech_chunks
+                ):
                     # Too short, reset
                     self.triggered = False
                     self.current_speech_start = None
                     state = "silence"
-                elif self.current_speech_start is not None and (self.temp_end - self.current_speech_start) >= min_silence_chunks:
+                elif (
+                    self.current_speech_start is not None
+                    and (self.temp_end - self.current_speech_start) >= min_silence_chunks
+                ):
                     # Speech ended
-                    self.speech_timestamps.append({
-                        "start": self.current_speech_start,
-                        "end": self.temp_end - min_silence_chunks
-                    })
+                    self.speech_timestamps.append(
+                        {"start": self.current_speech_start, "end": self.temp_end - min_silence_chunks}
+                    )
                     self.triggered = False
                     self.current_speech_start = None
                     state = "speech_end"
@@ -266,7 +271,7 @@ class SileroVAD:
                 min_speech_duration_ms=int(self.min_speech_duration * 1000),
                 min_silence_duration_ms=int(self.min_silence_duration * 1000),
                 speech_pad_ms=int(self.padding_duration * 1000),
-                return_seconds=True
+                return_seconds=True,
             )
 
             return list(speech_timestamps)
@@ -287,13 +292,12 @@ class SileroVAD:
             "threshold": self.threshold,
             "model_type": "ONNX" if self.use_onnx else "JIT",
             "speech_segments": len(self.speech_timestamps),
-            "is_speaking": self.triggered
+            "is_speaking": self.triggered,
         }
 
 
 class VADProcessor:
-    """High-level VAD processor with buffering and smoothing.
-    """
+    """High-level VAD processor with buffering and smoothing."""
 
     def __init__(self, vad: SileroVAD, buffer_size: int = 3):
         """Initialize VAD processor.
@@ -328,8 +332,7 @@ class VADProcessor:
 
         return instant_prob, smoothed_prob
 
-    def is_speech(self, smoothed_prob: float,
-                  aggressive: bool = False) -> bool:
+    def is_speech(self, smoothed_prob: float, aggressive: bool = False) -> bool:
         """Determine if audio contains speech.
 
         Args:
@@ -354,16 +357,10 @@ class SimpleFallbackVAD:
     as a fallback when PyTorch/Silero dependencies are not installed.
     """
 
-    def __init__(self,
-                 sample_rate: int = 16000,
-                 threshold: float = 0.01,
-                 **kwargs):
+    def __init__(self, sample_rate: int = 16000, threshold: float = 0.01, **kwargs):
         """Initialize simple VAD with amplitude threshold."""
         if not NUMPY_AVAILABLE:
-            raise ImportError(
-                "NumPy is required for VAD. "
-                "Install with: pip install numpy"
-            )
+            raise ImportError("NumPy is required for VAD. " "Install with: pip install numpy")
 
         self.sample_rate = sample_rate
         self.threshold = threshold
@@ -387,7 +384,7 @@ class SimpleFallbackVAD:
                 audio_float = audio_chunk.astype(np.float32)
 
             # Calculate RMS
-            rms = np.sqrt(np.mean(audio_float ** 2))
+            rms = np.sqrt(np.mean(audio_float**2))
 
             # Normalize to approximate probability
             # This is a rough approximation, not real speech detection
@@ -406,17 +403,14 @@ class SimpleFallbackVAD:
             "threshold": self.threshold,
             "model_type": "Fallback_RMS",
             "speech_segments": 0,
-            "is_speaking": False
+            "is_speaking": False,
         }
 
     def reset_states(self):
         """Reset VAD state (no-op for simple VAD)."""
 
 
-def create_vad(sample_rate: int = 16000,
-               threshold: float = 0.5,
-               use_fallback: bool = False,
-               **kwargs):
+def create_vad(sample_rate: int = 16000, threshold: float = 0.5, use_fallback: bool = False, **kwargs):
     """Create the best available VAD instance.
 
     Args:
@@ -434,30 +428,13 @@ def create_vad(sample_rate: int = 16000,
     """
     # Check minimum dependencies
     if not NUMPY_AVAILABLE:
-        raise ImportError(
-            "NumPy is required for VAD functionality. "
-            "Install with: pip install numpy"
-        )
+        raise ImportError("NumPy is required for VAD functionality. " "Install with: pip install numpy")
 
     if use_fallback or not TORCH_AVAILABLE:
-        return SimpleFallbackVAD(
-            sample_rate=sample_rate,
-            threshold=threshold * 20,  # Scale threshold for RMS
-            **kwargs
-        )
+        return SimpleFallbackVAD(sample_rate=sample_rate, threshold=threshold * 20, **kwargs)  # Scale threshold for RMS
 
     try:
-        return SileroVAD(
-            sample_rate=sample_rate,
-            threshold=threshold,
-            **kwargs
-        )
+        return SileroVAD(sample_rate=sample_rate, threshold=threshold, **kwargs)
     except Exception as e:
-        logging.getLogger(__name__).warning(
-            f"Failed to create SileroVAD ({e}), falling back to simple VAD"
-        )
-        return SimpleFallbackVAD(
-            sample_rate=sample_rate,
-            threshold=threshold * 20,  # Scale threshold for RMS
-            **kwargs
-        )
+        logging.getLogger(__name__).warning(f"Failed to create SileroVAD ({e}), falling back to simple VAD")
+        return SimpleFallbackVAD(sample_rate=sample_rate, threshold=threshold * 20, **kwargs)  # Scale threshold for RMS

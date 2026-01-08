@@ -85,9 +85,8 @@ class LocalAgreementStrategy:
         self.buffer.append(audio_chunk)
 
         # Check if we should transcribe
-        samples_since_transcribe = (
-            self.buffer.samples_in_buffer
-            + (self.buffer._offset_samples - self._last_transcribe_samples)
+        samples_since_transcribe = self.buffer.samples_in_buffer + (
+            self.buffer._offset_samples - self._last_transcribe_samples
         )
 
         if samples_since_transcribe < self.config.transcribe_interval_samples:
@@ -113,10 +112,7 @@ class LocalAgreementStrategy:
             text, info = await self.transcribe(wav_bytes, prompt)
             transcribe_time = (time.time() - start_time) * 1000
 
-            logger.debug(
-                f"Transcribed in {transcribe_time:.0f}ms: "
-                f"'{text[:50]}...' ({len(text)} chars)"
-            )
+            logger.debug(f"Transcribed in {transcribe_time:.0f}ms: " f"'{text[:50]}...' ({len(text)} chars)")
 
             self._transcribe_count += 1
 

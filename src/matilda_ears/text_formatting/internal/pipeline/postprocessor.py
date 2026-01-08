@@ -64,6 +64,7 @@ class TextPostprocessor:
 
     def rescue_mangled_domains(self, text: str) -> str:
         """Rescue domains that got mangled - IMPROVED VERSION."""
+
         # Fix www patterns: "wwwgooglecom" -> "www.google.com"
         def fix_www_pattern(match):
             prefix = match.group(1).lower()  # www

@@ -32,8 +32,7 @@ class FasterWhisperBackend(TranscriptionBackend):
             logger.info(f"Loading Faster Whisper {self.model_size} model on {self.device} with {self.compute_type}...")
             loop = asyncio.get_event_loop()
             self.model = await loop.run_in_executor(
-                None,
-                lambda: WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
+                None, lambda: WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
             )
             logger.info(f"Faster Whisper {self.model_size} model loaded successfully")
         except ImportError:

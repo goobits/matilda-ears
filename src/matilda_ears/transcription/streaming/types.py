@@ -134,9 +134,7 @@ class StreamingMetrics:
             "chunks_received": self.chunks_received,
             "transcriptions_run": self.transcriptions_run,
             "avg_transcription_time_ms": (
-                self.total_transcription_time_ms / self.transcriptions_run
-                if self.transcriptions_run > 0
-                else 0.0
+                self.total_transcription_time_ms / self.transcriptions_run if self.transcriptions_run > 0 else 0.0
             ),
             "confirmed_words": self.confirmed_words,
             "words_in_buffer": self.words_in_buffer,
@@ -145,7 +143,6 @@ class StreamingMetrics:
 
 class StreamingError(Exception):
     """Base exception for streaming errors."""
-
 
 
 class SessionNotFoundError(StreamingError):

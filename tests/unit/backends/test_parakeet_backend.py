@@ -31,16 +31,16 @@ class TestParakeetBackend:
     def mock_parakeet_model(self):
         """Mock Parakeet model instance."""
         model = Mock()
-        
+
         # Mock transcription result
         result = Mock()
         result.text = "  Test parakeet transcription  "
-        
+
         # Mock sentences for duration calculation
         sentence = Mock()
         sentence.end = 3.2
         result.sentences = [sentence]
-        
+
         model.transcribe.return_value = result
         return model
 
@@ -96,22 +96,22 @@ class TestParakeetBackend:
         """Verify transcription works and returns correct format."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
-            
+
             backend = ParakeetBackend()
             backend.model = mock_parakeet_model
-            
+
             text, metadata = backend.transcribe("/fake/audio.wav", language="en")
-            
+
             # Verify output format
             assert isinstance(text, str)
             assert isinstance(metadata, dict)
-            
+
             # Verify content (should be stripped)
             assert text == "Test parakeet transcription"
             assert metadata["duration"] == 3.2
             assert metadata["language"] == "en"
             assert metadata["backend"] == "parakeet"
-            
+
             # Verify model.transcribe was called with correct parameters
             # Backend should pass chunk_duration and overlap_duration from config
             mock_parakeet_model.transcribe.assert_called_once()
@@ -130,19 +130,19 @@ class TestParakeetBackend:
         """Verify transcription works when result has no sentences (duration fallback)."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
-            
+
             # Mock model with empty sentences
             model = Mock()
             result = Mock()
             result.text = "Fallback test"
             result.sentences = []
             model.transcribe.return_value = result
-            
+
             backend = ParakeetBackend()
             backend.model = model
-            
+
             text, metadata = backend.transcribe("/fake/audio.wav")
-            
+
             assert text == "Fallback test"
             # Duration should be > 0 (processing time)
             assert metadata["duration"] >= 0

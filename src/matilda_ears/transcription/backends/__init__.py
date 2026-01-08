@@ -5,6 +5,7 @@ Supported backends:
 - parakeet: Apple Silicon MLX-optimized
 - huggingface: Universal backend supporting 17,000+ HuggingFace ASR models
 """
+
 import logging
 import platform
 import subprocess
@@ -41,7 +42,8 @@ def _is_apple_silicon() -> bool:
     try:
         result = subprocess.run(
             ["sysctl", "-n", "machdep.cpu.brand_string"],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
             text=True,
             timeout=5,
         )
@@ -76,6 +78,7 @@ def _check_parakeet_available() -> bool:
         return PARAKEET_AVAILABLE
     try:
         from .internal import parakeet as _parakeet_backend  # noqa: F401
+
         PARAKEET_AVAILABLE = True
     except Exception as exc:
         logger.debug(f"Parakeet backend unavailable: {exc}")
@@ -90,6 +93,7 @@ def _check_huggingface_available() -> bool:
         return HUGGINGFACE_AVAILABLE
     try:
         from .internal import huggingface as _huggingface_backend  # noqa: F401
+
         HUGGINGFACE_AVAILABLE = True
     except Exception as exc:
         logger.debug(f"HuggingFace backend unavailable: {exc}")
@@ -167,6 +171,7 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
                 "Note: Parakeet requires macOS with Metal/MLX support (M1/M2/M3 chips)"
             )
         from .internal.parakeet import ParakeetBackend
+
         return ParakeetBackend
 
     if backend_name == "huggingface":
@@ -179,6 +184,7 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
                 "This backend supports 17,000+ ASR models from HuggingFace Hub."
             )
         from .internal.huggingface import HuggingFaceBackend
+
         return HuggingFaceBackend
 
     # Unknown backend - provide helpful error

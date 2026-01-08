@@ -42,7 +42,7 @@ class BaseMode(ABC):
             self.__class__.__name__,
             log_level="DEBUG" if args.debug else "WARNING",
             include_console=args.debug,  # Only show console logs in debug mode
-            include_file=True
+            include_file=True,
         )
 
         # Audio processing
@@ -59,10 +59,7 @@ class BaseMode(ABC):
 
         # Check dependencies
         if not NUMPY_AVAILABLE:
-            raise ImportError(
-                f"NumPy is required for {self.__class__.__name__}. "
-                "Install with: pip install numpy"
-            )
+            raise ImportError(f"NumPy is required for {self.__class__.__name__}. " "Install with: pip install numpy")
 
         self.logger.info(f"{self.__class__.__name__} initialized")
 
@@ -107,7 +104,7 @@ class BaseMode(ABC):
                 queue=self.audio_queue,
                 chunk_duration_ms=chunk_duration_ms,
                 sample_rate=self.args.sample_rate,
-                audio_device=self.args.device
+                audio_device=self.args.device,
             )
 
             self.logger.info("Audio streamer setup completed")
@@ -142,17 +139,12 @@ class BaseMode(ABC):
                 "text": text,
                 "language": info.get("language", "en"),
                 "duration": info.get("duration", 0.0),
-                "confidence": info.get("confidence", 1.0)
+                "confidence": info.get("confidence", 1.0),
             }
 
         except Exception as e:
             self.logger.error(f"Transcription error: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "text": "",
-                "duration": 0
-            }
+            return {"success": False, "error": str(e), "text": "", "duration": 0}
         finally:
             # Cleanup temp file
             if tmp_file_path and os.path.exists(tmp_file_path):
@@ -168,7 +160,7 @@ class BaseMode(ABC):
             "mode": self._get_mode_name(),
             "status": status,
             "message": message,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # Add any extra fields
@@ -191,7 +183,7 @@ class BaseMode(ABC):
             "language": result["language"],
             "duration": result["duration"],
             "confidence": result["confidence"],
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # Add any extra fields
@@ -206,12 +198,7 @@ class BaseMode(ABC):
 
     async def _send_error(self, error_message: str, extra: dict | None = None):
         """Send error message."""
-        result = {
-            "type": "error",
-            "mode": self._get_mode_name(),
-            "error": error_message,
-            "timestamp": time.time()
-        }
+        result = {"type": "error", "mode": self._get_mode_name(), "error": error_message, "timestamp": time.time()}
 
         # Add any extra fields
         if extra:
@@ -231,6 +218,7 @@ class BaseMode(ABC):
 
         # Convert CamelCase to snake_case
         import re
+
         return re.sub("([A-Z]+)", r"_\1", class_name).lower().strip("_")
 
     async def _process_and_transcribe_collected_audio(self, audio_chunks: list | None = None):

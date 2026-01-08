@@ -8,6 +8,7 @@ Public API:
     - WebSocketTranscriptionServer: Alias for EnhancedWebSocketServer
     - main: Main entry point function
 """
+
 import sys  # Re-exported for backward compatibility (tests patch sys.exit)
 
 from .core import (

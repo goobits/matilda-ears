@@ -30,7 +30,7 @@ class FileTranscribeMode:
             "FileTranscribeMode",
             log_level="DEBUG" if args.debug else "WARNING",
             include_console=args.debug,
-            include_file=True
+            include_file=True,
         )
         self.backend = None
         self.logger.info("FileTranscribeMode initialized")
@@ -57,8 +57,8 @@ class FileTranscribeMode:
         try:
             await self._load_model()
         except Exception as e:
-             await self._send_error(f"Model load failed: {e}")
-             return
+            await self._send_error(f"Model load failed: {e}")
+            return
 
         # Send transcribing status
         await self._send_status("transcribing", f"Transcribing {file_path.name}...")
@@ -72,7 +72,7 @@ class FileTranscribeMode:
     async def _load_model(self):
         """Load transcription backend."""
         try:
-             # Determine backend from config
+            # Determine backend from config
             backend_name = self.config.get("transcription", {}).get("backend", "faster_whisper")
             self.logger.info(f"Initializing backend: {backend_name}")
 
@@ -98,10 +98,7 @@ class FileTranscribeMode:
             loop = asyncio.get_event_loop()
 
             def do_transcribe():
-                return self.backend.transcribe(
-                    file_path,
-                    language=self.args.language
-                )
+                return self.backend.transcribe(file_path, language=self.args.language)
 
             text, info = await loop.run_in_executor(None, do_transcribe)
 
@@ -116,23 +113,18 @@ class FileTranscribeMode:
                 "text": text,
                 "is_final": True,
                 "language": info.get("language", "en"),
-                "file": file_path
+                "file": file_path,
             }
 
         except Exception as e:
             self.logger.error(f"Transcription error: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "text": "",
-                "is_final": True,
-                "file": file_path
-            }
+            return {"success": False, "error": str(e), "text": "", "is_final": True, "file": file_path}
 
     async def _format_text(self, text: str) -> str:
         """Apply text formatting pipeline."""
         try:
             from matilda_ears.text_formatting.formatter import TextFormatter
+
             formatter = TextFormatter()
             return formatter.format_transcription(text)
         except ImportError:
@@ -145,24 +137,13 @@ class FileTranscribeMode:
     async def _send_status(self, status: str, message: str):
         """Send status message."""
         if self.args.format == "json":
-            result = {
-                "type": "status",
-                "mode": "file",
-                "status": status,
-                "message": message,
-                "timestamp": time.time()
-            }
+            result = {"type": "status", "mode": "file", "status": status, "message": message, "timestamp": time.time()}
             print(json.dumps(result), flush=True)
 
     async def _send_result(self, result: dict[str, Any]):
         """Send transcription result."""
         if self.args.format == "json":
-            output = {
-                "type": "transcription",
-                "mode": "file",
-                **result,
-                "timestamp": time.time()
-            }
+            output = {"type": "transcription", "mode": "file", **result, "timestamp": time.time()}
             print(json.dumps(output), flush=True)
         # Plain text mode - just print the text
         elif result.get("success") and result.get("text"):
@@ -173,12 +154,7 @@ class FileTranscribeMode:
     async def _send_error(self, message: str):
         """Send error message."""
         if self.args.format == "json":
-            result = {
-                "type": "error",
-                "mode": "file",
-                "error": message,
-                "timestamp": time.time()
-            }
+            result = {"type": "error", "mode": "file", "error": message, "timestamp": time.time()}
             print(json.dumps(result), flush=True)
         else:
             print(f"Error: {message}", file=sys.stderr)

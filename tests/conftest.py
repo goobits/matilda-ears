@@ -7,7 +7,6 @@ import logging
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from typing import List, Tuple
 
 # CRITICAL: Set environment variable BEFORE any imports that might load models
 os.environ["STT_DISABLE_PUNCTUATION"] = "1"
@@ -36,9 +35,11 @@ for logger_name in [
 
 console = Console()
 
+
 def _spacy_available() -> bool:
     try:
         import spacy  # noqa: F401
+
         return True
     except Exception:
         return False
@@ -48,6 +49,7 @@ def _parakeet_available() -> bool:
     try:
         import mlx.core  # noqa: F401
         import parakeet_mlx  # noqa: F401
+
         return True
     except Exception:
         return False
@@ -71,7 +73,7 @@ class FormatterTestReporter:
     """Custom reporter for text formatting tests with beautiful output."""
 
     def __init__(self):
-        self.failures: List[Tuple[str, str, str, str]] = []
+        self.failures: list[tuple[str, str, str, str]] = []
         self.passes = 0
         self.total = 0
 
@@ -216,8 +218,9 @@ def preloaded_nlp_models():
     """Preload NLP models once per test session to avoid repeated loading."""
     # Enable no-punctuation mode for testing FIRST
     import os
+
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
-    
+
     print("\n🚀 Preloading NLP models for test session...")
     try:
         from matilda_ears.text_formatting.nlp_provider import get_nlp, get_punctuator
@@ -239,9 +242,10 @@ def preloaded_formatter(preloaded_nlp_models):
     """Preload the formatter function with warmed-up NLP models and result caching."""
     # Enable no-punctuation mode for testing
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
-    
+
     # Reset any cached models to ensure the environment variable takes effect
     from matilda_ears.text_formatting.nlp_provider import reset_models
+
     reset_models()
 
     print("🚀 Preloading formatter function with caching (PUNCTUATION DISABLED)...")
@@ -400,13 +404,13 @@ def spanish_formatter():
     """
     import os
     from matilda_ears.text_formatting.formatter import TextFormatter
-    
+
     # Save the current value of the environment variable
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")
-    
+
     # Set environment variable to disable punctuation
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
-    
+
     try:
         # Create a formatter instance for Spanish
         formatter = TextFormatter(language="es")

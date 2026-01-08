@@ -182,9 +182,7 @@ class NativeStrategy:
     async def _start_context(self) -> None:
         """Start the native streaming context."""
         if not hasattr(self.backend, "transcribe_stream"):
-            raise StreamingError(
-                f"Backend {self.backend.__class__.__name__} does not support native streaming"
-            )
+            raise StreamingError(f"Backend {self.backend.__class__.__name__} does not support native streaming")
 
         loop = asyncio.get_event_loop()
 

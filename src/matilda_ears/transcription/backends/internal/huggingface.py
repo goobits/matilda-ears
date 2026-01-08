@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 # Lazy imports - fail gracefully if not installed
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -44,6 +45,7 @@ except ImportError:
 
 try:
     from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
+
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
@@ -275,7 +277,7 @@ class HuggingFaceBackend(TranscriptionBackend):
             cleaned_words = []
             i = 0
             while i < len(words):
-                phrase = words[i:i + phrase_len]
+                phrase = words[i : i + phrase_len]
                 if len(phrase) < phrase_len:
                     cleaned_words.extend(phrase)
                     break
@@ -284,7 +286,7 @@ class HuggingFaceBackend(TranscriptionBackend):
                 repeat_count = 1
                 j = i + phrase_len
                 while j + phrase_len <= len(words):
-                    next_phrase = words[j:j + phrase_len]
+                    next_phrase = words[j : j + phrase_len]
                     if next_phrase == phrase:
                         repeat_count += 1
                         j += phrase_len
@@ -294,8 +296,7 @@ class HuggingFaceBackend(TranscriptionBackend):
                 # If too many repetitions, keep only max_repeats
                 if repeat_count > max_repeats:
                     logger.warning(
-                        f"Detected repetition: '{' '.join(phrase)}' x{repeat_count}, "
-                        f"reducing to x{max_repeats}"
+                        f"Detected repetition: '{' '.join(phrase)}' x{repeat_count}, " f"reducing to x{max_repeats}"
                     )
                     for _ in range(max_repeats):
                         cleaned_words.extend(phrase)
@@ -324,21 +325,16 @@ class HuggingFaceBackend(TranscriptionBackend):
             "openai/whisper-medium": "High accuracy (~1.5GB)",
             "openai/whisper-large-v3": "Best accuracy (~3GB)",
             "openai/whisper-large-v3-turbo": "Fast + accurate (~1.6GB)",
-
             # Distil-Whisper (faster)
             "distil-whisper/distil-large-v3": "6x faster than large-v3",
             "distil-whisper/distil-medium.en": "Fast English-only",
-
             # Wav2Vec2 models
             "facebook/wav2vec2-base-960h": "Wav2Vec2 base (~380MB)",
             "facebook/wav2vec2-large-960h-lv60-self": "Wav2Vec2 large (~1.2GB)",
-
             # Wav2Vec2-BERT (2024)
             "facebook/w2v-bert-2.0": "Wav2Vec2-BERT 580M params",
-
             # Multilingual
             "facebook/mms-1b-all": "1000+ languages",
-
             # Specialized
             "nvidia/canary-1b": "NVIDIA Canary (multilingual)",
         }

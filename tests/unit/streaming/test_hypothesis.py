@@ -10,9 +10,7 @@ def make_words(texts: list, start_time: float = 0.0, word_duration: float = 0.5)
     words = []
     current_time = start_time
     for text in texts:
-        words.append(
-            TimestampedWord(text=text, start=current_time, end=current_time + word_duration)
-        )
+        words.append(TimestampedWord(text=text, start=current_time, end=current_time + word_duration))
         current_time += word_duration
     return words
 
@@ -290,9 +288,7 @@ class TestPromptSuffix:
     def test_prompt_suffix_truncated(self):
         """Test prompt suffix truncation at word boundary."""
         buffer = HypothesisBuffer()
-        buffer.confirmed_in_buffer = make_words(
-            ["this", "is", "a", "very", "long", "sentence", "here"]
-        )
+        buffer.confirmed_in_buffer = make_words(["this", "is", "a", "very", "long", "sentence", "here"])
 
         suffix = buffer.get_prompt_suffix(max_chars=15)
 

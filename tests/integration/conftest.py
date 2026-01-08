@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 # Set environment variable to bypass server startup check
 os.environ["MATILDA_MANAGEMENT_TOKEN"] = "managed-by-matilda-system"
 
+
 def _install_integration_mocks() -> None:
     # Mock external dependencies before ANY imports
     sys.modules["faster_whisper"] = MagicMock()
@@ -31,11 +32,10 @@ if os.environ.get("MATILDA_INTEGRATION_MOCKS") == "1":
 
 # Also mock pytest-asyncio if not installed
 import importlib.util
+
 if importlib.util.find_spec("pytest_asyncio") is None:
     # Create a simple mock for asyncio marker if pytest-asyncio is not installed
 
     # Register the asyncio marker to avoid warnings
     def pytest_configure(config):
-        config.addinivalue_line(
-            "markers", "asyncio: mark test as an asyncio test"
-        )
+        config.addinivalue_line("markers", "asyncio: mark test as an asyncio test")

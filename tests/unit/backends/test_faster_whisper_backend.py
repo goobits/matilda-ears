@@ -32,15 +32,15 @@ class TestFasterWhisperBackend:
     def mock_whisper_model(self):
         """Mock WhisperModel instance."""
         model = Mock()
-        
+
         # Mock transcription output
         segment = Mock()
         segment.text = " Test transcription"
-        
+
         info = Mock()
         info.duration = 2.5
         info.language = "en"
-        
+
         model.transcribe.return_value = ([segment], info)
         return model
 
@@ -99,21 +99,21 @@ class TestFasterWhisperBackend:
         """Verify transcription works and returns correct format."""
         with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
-            
+
             backend = FasterWhisperBackend()
             backend.model = mock_whisper_model
-            
+
             text, metadata = backend.transcribe("/fake/audio.wav", language="en")
-            
+
             # Verify output format
             assert isinstance(text, str)
             assert isinstance(metadata, dict)
-            
+
             # Verify content
             assert text == "Test transcription"
             assert metadata["duration"] == 2.5
             assert metadata["language"] == "en"
-            
+
             # Verify model.transcribe was called correctly
             mock_whisper_model.transcribe.assert_called_once_with(
                 "/fake/audio.wav",
@@ -136,7 +136,7 @@ class TestFasterWhisperBackend:
         """Verify transcription correctly joins multiple segments."""
         with patch("matilda_ears.transcription.backends.faster_whisper_backend.config", mock_config):
             from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
-            
+
             # Create mock with multiple segments
             model = Mock()
             seg1 = Mock()
@@ -145,18 +145,18 @@ class TestFasterWhisperBackend:
             seg2.text = " world"
             seg3 = Mock()
             seg3.text = "!"
-            
+
             info = Mock()
             info.duration = 1.5
             info.language = "en"
-            
+
             model.transcribe.return_value = ([seg1, seg2, seg3], info)
-            
+
             backend = FasterWhisperBackend()
             backend.model = model
-            
+
             text, metadata = backend.transcribe("/fake/audio.wav")
-            
+
             assert text == "Hello world!"
             assert metadata["duration"] == 1.5
 

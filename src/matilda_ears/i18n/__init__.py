@@ -28,6 +28,7 @@ import os
 import sys
 from pathlib import Path
 
+
 def _find_i18n_root() -> Path | None:
     env_path = os.environ.get("MATILDA_I18N_PATH")
     if env_path:
@@ -77,8 +78,12 @@ except ImportError:
             self._lock = threading.Lock()
             self._lang = default_language
 
-        def set_language(self, lang: str): self._lang = lang; self._cache.clear()
-        def get_language(self) -> str: return os.environ.get("MATILDA_LANG", self._lang)[:2]
+        def set_language(self, lang: str):
+            self._lang = lang
+            self._cache.clear()
+
+        def get_language(self) -> str:
+            return os.environ.get("MATILDA_LANG", self._lang)[:2]
 
         def _load_domain(self, domain: str, lang: str = None) -> dict:
             lang = lang or self.get_language()

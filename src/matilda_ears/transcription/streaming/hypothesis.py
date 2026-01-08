@@ -78,10 +78,7 @@ class HypothesisBuffer:
         # Remove overlap with already-confirmed words in buffer
         self.current_hypothesis = self._dedupe_overlap(shifted)
 
-        logger.debug(
-            f"Inserted hypothesis: {len(words)} words, "
-            f"{len(self.current_hypothesis)} after dedup"
-        )
+        logger.debug(f"Inserted hypothesis: {len(words)} words, " f"{len(self.current_hypothesis)} after dedup")
 
     def flush(self) -> list[TimestampedWord]:
         """Apply LocalAgreement and confirm stable words.
@@ -105,9 +102,7 @@ class HypothesisBuffer:
 
         # Need at least agreement_n hypotheses to confirm
         if len(self.previous_hypotheses) < self.agreement_n:
-            logger.debug(
-                f"Not enough hypotheses yet: {len(self.previous_hypotheses)}/{self.agreement_n}"
-            )
+            logger.debug(f"Not enough hypotheses yet: {len(self.previous_hypotheses)}/{self.agreement_n}")
             return []
 
         # Find agreed-upon words
@@ -124,10 +119,7 @@ class HypothesisBuffer:
                 self.confirmed = self.confirmed[-self.max_confirmed_words :]
                 logger.debug(f"Trimmed confirmed history: removed {overflow} oldest words")
 
-            logger.info(
-                f"Confirmed {len(newly_confirmed)} words, "
-                f"total confirmed: {len(self.confirmed)}"
-            )
+            logger.info(f"Confirmed {len(newly_confirmed)} words, " f"total confirmed: {len(self.confirmed)}")
 
         return newly_confirmed
 
@@ -157,10 +149,7 @@ class HypothesisBuffer:
         for i in range(min_len):
             # Check if all hypotheses agree on word at position i
             reference_word = hypotheses[0][i]
-            all_agree = all(
-                h[i].text.lower() == reference_word.text.lower()
-                for h in hypotheses[1:]
-            )
+            all_agree = all(h[i].text.lower() == reference_word.text.lower() for h in hypotheses[1:])
 
             if all_agree:
                 agreed_count += 1
@@ -223,9 +212,7 @@ class HypothesisBuffer:
             absolute_time: Absolute time in seconds
 
         """
-        self.confirmed_in_buffer = [
-            w for w in self.confirmed_in_buffer if w.end >= absolute_time
-        ]
+        self.confirmed_in_buffer = [w for w in self.confirmed_in_buffer if w.end >= absolute_time]
 
     def get_confirmed_text(self) -> str:
         """Get confirmed text as a string."""

@@ -4,7 +4,6 @@ import pytest
 import json
 import datetime
 from pathlib import Path
-from typing import Dict
 import os
 import glob
 import hashlib
@@ -21,8 +20,14 @@ def pytest_addoption(parser):
     """Add options to pytest command line."""
     group = parser.getgroup("test-diff-tracker")
     group.addoption("--track-diff", action="store_true", default=False, help="Run tests and show diff vs last run.")
-    group.addoption("--history", nargs="?", const=10, type=int, metavar="N",
-                   help="Show test run history. Optional N specifies number of runs to show (default: 10).")
+    group.addoption(
+        "--history",
+        nargs="?",
+        const=10,
+        type=int,
+        metavar="N",
+        help="Show test run history. Optional N specifies number of runs to show (default: 10).",
+    )
     group.addoption(
         "--diff",
         dest="diff_range",
@@ -132,7 +137,7 @@ class DiffTracker:
 
         return self._normalize_test_path(tuple(test_args))
 
-    def _load_history(self, history_file: Path) -> Dict:
+    def _load_history(self, history_file: Path) -> dict:
         """Load test history from file."""
         if not history_file.exists():
             return {"runs": [], "test_metadata": {}}
@@ -146,7 +151,7 @@ class DiffTracker:
             with open(history_file) as f:
                 return json.load(f)
 
-    def _save_history(self, history: Dict, history_file: Path):
+    def _save_history(self, history: dict, history_file: Path):
         """Save test history to file."""
         if len(history["runs"]) > 50:
             history["runs"] = history["runs"][-50:]
@@ -172,7 +177,7 @@ class DiffTracker:
         # Fallback: just return the nodeid as is
         return nodeid
 
-    def _parse_failure_details(self, report) -> Dict:
+    def _parse_failure_details(self, report) -> dict:
         """Extract failure details from test report."""
         failure_details = {}
 
@@ -228,7 +233,7 @@ class DiffTracker:
 
         yield  # Allows other plugins to process the report
 
-    def _create_run_record(self, test_path: str = "tests/") -> Dict:
+    def _create_run_record(self, test_path: str = "tests/") -> dict:
         """Create a run record compatible with the old format."""
         return {
             "timestamp": datetime.datetime.now().isoformat(),
@@ -243,7 +248,7 @@ class DiffTracker:
             "return_code": 0 if all(r["status"] != "FAILED" for r in self.current_run_results.values()) else 1,
         }
 
-    def _get_diff(self, history: Dict, run1_idx: int = -2, run2_idx: int = -1) -> Dict:
+    def _get_diff(self, history: dict, run1_idx: int = -2, run2_idx: int = -1) -> dict:
         """Generate diff between two test runs."""
         if len(history["runs"]) < 2:
             return {"error": "Not enough runs to compare"}
@@ -292,7 +297,7 @@ class DiffTracker:
 
         return diff
 
-    def _print_diff(self, diff: Dict, run_summary: Dict, session=None):
+    def _print_diff(self, diff: dict, run_summary: dict, session=None):
         """Print a human-readable diff focusing on regressions."""
         if "error" in diff:
             self._write_line(f"\n❌ {diff['error']}", session)
@@ -359,7 +364,7 @@ class DiffTracker:
         if still_failing_count > 0:
             self._write_line(f"\n[dim]({still_failing_count} tests are still failing)[/dim]", session)
 
-    def _print_history(self, history: Dict, limit: int = 10):
+    def _print_history(self, history: dict, limit: int = 10):
         """Print test run history in the proposal format."""
         if not history["runs"]:
             print("No test runs recorded yet.")

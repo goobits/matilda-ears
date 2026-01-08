@@ -68,7 +68,6 @@ class PatternConverter(WebConverterMixin, CodeConverterMixin, NumericConverterMi
             EntityType.PORT_NUMBER: self.convert_port_number,
             EntityType.URL: self.convert_url,
             EntityType.EMAIL: self.convert_email,
-
             # Code converters
             EntityType.CLI_COMMAND: self.convert_cli_command,
             EntityType.PROGRAMMING_KEYWORD: self.convert_programming_keyword,
@@ -82,7 +81,6 @@ class PatternConverter(WebConverterMixin, CodeConverterMixin, NumericConverterMi
             EntityType.SLASH_COMMAND: self.convert_slash_command,
             EntityType.UNDERSCORE_DELIMITER: self.convert_underscore_delimiter,
             EntityType.SIMPLE_UNDERSCORE_VARIABLE: self.convert_simple_underscore_variable,
-
             # Numeric converters
             EntityType.MATH_EXPRESSION: self.convert_math_expression,
             EntityType.CURRENCY: self.convert_currency,

@@ -43,8 +43,7 @@ class ParakeetBackend(TranscriptionBackend):
         self.overlap_duration = config.get("parakeet.overlap_duration", 15.0)
 
         logger.info(
-            f"Parakeet config: chunk_duration={self.chunk_duration}s, "
-            f"overlap_duration={self.overlap_duration}s"
+            f"Parakeet config: chunk_duration={self.chunk_duration}s, " f"overlap_duration={self.overlap_duration}s"
         )
 
     async def load(self):
@@ -76,9 +75,7 @@ class ParakeetBackend(TranscriptionBackend):
             # Use chunk_duration and overlap_duration parameters per parakeet-mlx API
             # This prevents Metal command buffer overflows (AGXG15X crashes)
             result = self.model.transcribe(
-                audio_path,
-                chunk_duration=self.chunk_duration,
-                overlap_duration=self.overlap_duration
+                audio_path, chunk_duration=self.chunk_duration, overlap_duration=self.overlap_duration
             )
             text = result.text.strip()
 
@@ -96,8 +93,8 @@ class ParakeetBackend(TranscriptionBackend):
 
             return text, {
                 "duration": audio_duration,
-                "language": "en", # Parakeet is primarily English AFAIK
-                "backend": "parakeet"
+                "language": "en",  # Parakeet is primarily English AFAIK
+                "backend": "parakeet",
             }
 
         except Exception as e:

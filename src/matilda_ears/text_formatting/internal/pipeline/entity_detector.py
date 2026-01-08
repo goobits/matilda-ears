@@ -41,7 +41,9 @@ class EntityDetector:
         # Sorting is no longer needed here as the main formatter will sort the final list.
         return entities
 
-    def _process_spacy_entities(self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None) -> None:
+    def _process_spacy_entities(
+        self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None
+    ) -> None:
         """Process SpaCy-detected entities."""
         if not self.nlp:
             return
@@ -105,12 +107,19 @@ class EntityDetector:
                                 if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
                                     # This is the key: we check our i18n file for specific exceptions.
                                     idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
-                                    if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
-                                        logger.debug(f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'.")
+                                    if (
+                                        ordinal_token.text.lower() in idiomatic_phrases
+                                        and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
+                                    ):
+                                        logger.debug(
+                                            f"Skipping ORDINAL '{ent.text}' due to idiomatic follower noun '{next_token.text}'."
+                                        )
                                         continue
 
                                 # RULE 2: Skip if it's at sentence start and followed by comma ("First, we...")
-                                if (ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i) and next_token.text == ",":
+                                if (
+                                    ordinal_token.i == 0 or ordinal_token.sent.start == ordinal_token.i
+                                ) and next_token.text == ",":
                                     logger.debug(f"Skipping ORDINAL '{ent.text}' - sentence starter with comma")
                                     continue
 
@@ -122,7 +131,9 @@ class EntityDetector:
 
                             idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
                             if ordinal_text in idiomatic_phrases and following_text in idiomatic_phrases[ordinal_text]:
-                                logger.debug(f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources")
+                                logger.debug(
+                                    f"Skipping ORDINAL '{ordinal_text} {following_text}' - idiomatic phrase from resources"
+                                )
                                 continue
 
                         entity_type = label_to_type[ent.label_]
@@ -242,7 +253,9 @@ class EntityDetector:
 
             # Check if our CARDINAL entity is within this range match
             if abs_start <= ent.start_char and ent.end_char <= abs_end:
-                logger.debug(f"Skipping CARDINAL '{ent.text}' because it's part of range pattern '{range_match.group()}'")
+                logger.debug(
+                    f"Skipping CARDINAL '{ent.text}' because it's part of range pattern '{range_match.group()}'"
+                )
                 return True
 
         # Check if this number is followed by a known unit (prevents greedy CARDINAL detection)
@@ -284,7 +297,7 @@ class EntityDetector:
         entity_text_lower = ent.text.lower()
         if self.nlp and (" plus " in entity_text_lower or " times " in entity_text_lower):
             try:
-                doc = self.nlp(text) # Ensure we have the doc object
+                doc = self.nlp(text)  # Ensure we have the doc object
 
                 # Find the first token that starts at or after the end of our entity.
                 next_token = None
@@ -296,13 +309,17 @@ class EntityDetector:
                 if next_token:
                     # RULE: If a CARDINAL like "five plus" is followed by a NOUN ("years"), it's idiomatic.
                     if next_token.pos_ == "NOUN":
-                        logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}').")
+                        logger.debug(
+                            f"Skipping CARDINAL '{ent.text}' because it's followed by a NOUN ('{next_token.text}')."
+                        )
                         return True
 
                     # RULE: If a CARDINAL like "two times" is followed by a comparative ("better"), it's idiomatic.
-                    if next_token.tag_ in ["JJR", "RBR"]: # JJR = Adj, Comparative; RBR = Adv, Comparative
-                         logger.debug(f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}').")
-                         return True
+                    if next_token.tag_ in ["JJR", "RBR"]:  # JJR = Adj, Comparative; RBR = Adv, Comparative
+                        logger.debug(
+                            f"Skipping CARDINAL '{ent.text}' because it's followed by a comparative ('{next_token.text}')."
+                        )
+                        return True
 
             except Exception as e:
                 logger.warning(f"SpaCy idiomatic check failed for '{ent.text}': {e}")
@@ -455,7 +472,18 @@ class EntityDetector:
             if prefix_words:
                 last_word = prefix_words[-1]
                 # Don't skip if preceded by enumeration words
-                if last_word in ["page", "chapter", "section", "part", "volume", "item", "step", "line", "row", "column"]:
+                if last_word in [
+                    "page",
+                    "chapter",
+                    "section",
+                    "part",
+                    "volume",
+                    "item",
+                    "step",
+                    "line",
+                    "row",
+                    "column",
+                ]:
                     return False  # This is enumeration context, convert to number
             # Otherwise, it's likely natural speech
             logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} of' pattern")
@@ -477,7 +505,9 @@ class EntityDetector:
             if prefix_words[-1] == "or" and ent_lower in ["one", "two", "three"]:
                 # Check if followed by a plural noun (examples, things, items, etc.)
                 if suffix_words[0] in ["examples", "things", "items", "options", "choices", "ways", "methods"]:
-                    logger.debug(f"Skipping CARDINAL '{ent.text}' - part of 'X or {ent.text} {suffix_words[0]}' pattern")
+                    logger.debug(
+                        f"Skipping CARDINAL '{ent.text}' - part of 'X or {ent.text} {suffix_words[0]}' pattern"
+                    )
                     return True
 
         # Check if it's followed by a unit (indicates numeric context)
@@ -492,8 +522,23 @@ class EntityDetector:
         if suffix_words and len(suffix_words) >= 2:
             first_word = suffix_words[0]
             second_word = suffix_words[1]
-            if first_word in ["test", "tests", "thing", "things", "item", "items", "example", "examples", "issue", "issues", "problem", "problems"] and second_word in ["for", "of"]:
-                logger.debug(f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern")
+            if first_word in [
+                "test",
+                "tests",
+                "thing",
+                "things",
+                "item",
+                "items",
+                "example",
+                "examples",
+                "issue",
+                "issues",
+                "problem",
+                "problems",
+            ] and second_word in ["for", "of"]:
+                logger.debug(
+                    f"Skipping CARDINAL '{ent.text}' - part of '{ent.text} {first_word} {second_word}' pattern"
+                )
                 return True
 
         # Check for "those NUMBER things/issues" pattern
@@ -542,5 +587,3 @@ class EntityDetector:
                     return True
 
         return False
-
-

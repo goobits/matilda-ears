@@ -14,13 +14,16 @@ from dataclasses import dataclass
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
     # Create dummy for type annotations
     class _DummyNumpy:
         class ndarray:
             pass
+
     np = _DummyNumpy()
 
 # Setup standardized logging
@@ -32,6 +35,7 @@ try:
 except ImportError:
     # Fallback for standalone usage
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -94,6 +98,7 @@ class PipeBasedAudioStreamer:
         # Get config for cross-platform audio tools
         try:
             from ..core.config import get_config
+
             self.config = get_config()
         except ImportError:
             self.config = None
@@ -134,44 +139,53 @@ class PipeBasedAudioStreamer:
                 # macOS: Use AVFoundation
                 cmd = [
                     "ffmpeg",
-                    "-f", "avfoundation",
-                    "-i", f":{self.audio_device or '0'}",  # :0 = default audio input
-                    "-ar", str(self.sample_rate),
-                    "-ac", "1",
-                    "-f", "s16le",
-                    "-"  # Output to stdout
+                    "-f",
+                    "avfoundation",
+                    "-i",
+                    f":{self.audio_device or '0'}",  # :0 = default audio input
+                    "-ar",
+                    str(self.sample_rate),
+                    "-ac",
+                    "1",
+                    "-f",
+                    "s16le",
+                    "-",  # Output to stdout
                 ]
             elif system == "Windows":
                 # Windows: Use DirectShow
                 cmd = [
                     "ffmpeg",
-                    "-f", "dshow",
-                    "-i", f"audio={self.audio_device or 'default'}",
-                    "-ar", str(self.sample_rate),
-                    "-ac", "1",
-                    "-f", "s16le",
-                    "-"  # Output to stdout
+                    "-f",
+                    "dshow",
+                    "-i",
+                    f"audio={self.audio_device or 'default'}",
+                    "-ar",
+                    str(self.sample_rate),
+                    "-ac",
+                    "1",
+                    "-f",
+                    "s16le",
+                    "-",  # Output to stdout
                 ]
             else:
                 # Linux: Use ALSA
                 cmd = [
                     "ffmpeg",
-                    "-f", "alsa",
-                    "-i", self.audio_device or "default",
-                    "-ar", str(self.sample_rate),
-                    "-ac", "1",
-                    "-f", "s16le",
-                    "-"  # Output to stdout
+                    "-f",
+                    "alsa",
+                    "-i",
+                    self.audio_device or "default",
+                    "-ar",
+                    str(self.sample_rate),
+                    "-ac",
+                    "1",
+                    "-f",
+                    "s16le",
+                    "-",  # Output to stdout
                 ]
         else:
             # Linux/macOS arecord command (existing logic)
-            cmd = [
-                "arecord",
-                "-f", "S16_LE",
-                "-r", str(self.sample_rate),
-                "-c", "1",
-                "-t", "raw"
-            ]
+            cmd = ["arecord", "-f", "S16_LE", "-r", str(self.sample_rate), "-c", "1", "-t", "raw"]
             if self.audio_device:
                 cmd.extend(["-D", self.audio_device])
 
@@ -207,9 +221,7 @@ class PipeBasedAudioStreamer:
                     logger.info("[PIPE-STREAM] Started without stdbuf")
             else:
                 # For ffmpeg and other tools, start directly without stdbuf
-                self.arecord_process = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
-                )
+                self.arecord_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
                 logger.info(f"[PIPE-STREAM] Started {audio_tool} directly")
 
             # Start reader thread

@@ -15,6 +15,7 @@ from .components import COMMON_TLDS
 # NUMERIC RANGE PATTERN
 # ==============================================================================
 
+
 def _build_number_word_sequence() -> str:
     """Build the number word sequence pattern from NumberParser."""
     from ..common import NumberParser
@@ -257,7 +258,9 @@ def build_spoken_protocol_pattern(language: str = "en") -> Pattern:
     colon_pattern = "|".join(re.escape(k) for k in colon_keywords_sorted)
     slash_pattern = "|".join(re.escape(k) for k in slash_keywords_sorted)
     dot_pattern = "|".join(re.escape(k) for k in dot_keywords_sorted)
-    question_pattern = "|".join(re.escape(k) for k in question_keywords_sorted) if question_keywords_sorted else "question\\s+mark"
+    question_pattern = (
+        "|".join(re.escape(k) for k in question_keywords_sorted) if question_keywords_sorted else "question\\s+mark"
+    )
 
     pattern_str = rf"""
     \b                                  # Word boundary
@@ -479,7 +482,9 @@ def get_long_flag_pattern(language: str = "en") -> Pattern:
     dash_keywords = [k for k, v in code_keywords.items() if v == "-"]
     dash_pattern = "|".join(re.escape(k) for k in sorted(dash_keywords, key=len, reverse=True))
 
-    return re.compile(rf"\b(?:{dash_pattern})\s+(?:{dash_pattern})\s+([a-zA-Z][\w-]*(\s+[a-zA-Z][\w-]*)?)", re.IGNORECASE)
+    return re.compile(
+        rf"\b(?:{dash_pattern})\s+(?:{dash_pattern})\s+([a-zA-Z][\w-]*(\s+[a-zA-Z][\w-]*)?)", re.IGNORECASE
+    )
 
 
 def get_short_flag_pattern(language: str = "en") -> Pattern:

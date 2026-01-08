@@ -1,5 +1,3 @@
-
-
 def normalize_model_name(phrase: str) -> str:
     return phrase.lower().replace(" ", "_").replace("-", "_")
 

@@ -93,9 +93,7 @@ class TimeDetector:
                         )
                     )
 
-    def detect_time_relative(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_time_relative(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect relative time expressions (quarter past three, half past two, etc.)."""
         for match in regex_patterns.SPOKEN_TIME_RELATIVE_PATTERN.finditer(text):
             check_entities = all_entities if all_entities else entities

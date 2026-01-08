@@ -105,10 +105,10 @@ class VADProcessor:
             if speech_prob < (self.threshold - 0.15):  # Hysteresis
                 self.consecutive_silence += 1
                 self.consecutive_speech = 0
-                
+
                 # Check for end of utterance
                 required_silence_chunks = int(self.max_silence_duration_s * self.chunks_per_second)
-                
+
                 if self.consecutive_silence >= required_silence_chunks:
                     # Validate duration
                     duration_s = len(self.utterance_chunks) / self.chunks_per_second

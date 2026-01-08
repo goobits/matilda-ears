@@ -130,9 +130,7 @@ class StreamingSession:
             # Auto-start on first chunk
             await self.start()
         elif self._state != StreamingState.ACTIVE:
-            raise StreamingError(
-                f"Session {self.session_id} not active (state={self._state.value})"
-            )
+            raise StreamingError(f"Session {self.session_id} not active (state={self._state.value})")
 
         # Check timeout
         now = time.time()
@@ -140,9 +138,7 @@ class StreamingSession:
             idle_time = now - self._last_activity
             if idle_time > self.config.session_timeout_seconds:
                 self._state = StreamingState.ERROR
-                raise SessionTimeoutError(
-                    self.session_id, self.config.session_timeout_seconds
-                )
+                raise SessionTimeoutError(self.session_id, self.config.session_timeout_seconds)
 
         self._last_activity = now
 

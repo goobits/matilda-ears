@@ -70,7 +70,8 @@ def train_wake_word(
     print("\n[1/5] Setting up OpenWakeWord...")
     subprocess.run(
         ["git", "clone", "--depth=1", "https://github.com/dscripka/openWakeWord.git"],
-        check=False, cwd=work_dir,
+        check=False,
+        cwd=work_dir,
         capture_output=True,
     )
 
@@ -82,6 +83,7 @@ def train_wake_word(
     # Use OpenWakeWord's built-in synthetic data generation
     try:
         import sys
+
         sys.path.insert(0, str(oww_dir))
 
         from openwakeword.data import generate_clips
@@ -106,7 +108,8 @@ def train_wake_word(
         # Install piper voices
         subprocess.run(
             ["pip", "install", "piper-tts"],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
         )
 
         # Generate samples with different voices
@@ -124,7 +127,8 @@ def train_wake_word(
                 wav_path = positive_dir / f"sample_{sample_idx:05d}.wav"
                 subprocess.run(
                     ["piper", "--model", voice, "--output_file", str(wav_path)],
-                    check=False, input=phrase.encode(),
+                    check=False,
+                    input=phrase.encode(),
                     capture_output=True,
                 )
                 sample_idx += 1
@@ -156,7 +160,8 @@ def train_wake_word(
             wav_path = negative_dir / f"neg_{neg_idx:05d}.wav"
             subprocess.run(
                 ["piper", "--model", "en_US-lessac-medium", "--output_file", str(wav_path)],
-                check=False, input=neg_phrase.encode(),
+                check=False,
+                input=neg_phrase.encode(),
                 capture_output=True,
             )
             neg_idx += 1
@@ -171,7 +176,9 @@ def train_wake_word(
     # Use OpenWakeWord's training CLI which is more reliable
     train_result = subprocess.run(
         [
-            "python", "-c", f"""
+            "python",
+            "-c",
+            f"""
 import os
 import sys
 sys.path.insert(0, '{oww_dir}')
@@ -188,9 +195,10 @@ train_model(
     epochs={epochs},
     batch_size=64,
 )
-"""
+""",
         ],
-        check=False, capture_output=True,
+        check=False,
+        capture_output=True,
         text=True,
     )
 
@@ -205,14 +213,22 @@ train_model(
         print("Trying alternative training method...")
         alt_result = subprocess.run(
             [
-                "python", "-m", "openwakeword.train",
-                "--target_phrase", phrase,
-                "--positive_audio_dir", str(positive_dir),
-                "--negative_audio_dir", str(negative_dir),
-                "--output_dir", str(output_dir),
-                "--epochs", str(epochs),
+                "python",
+                "-m",
+                "openwakeword.train",
+                "--target_phrase",
+                phrase,
+                "--positive_audio_dir",
+                str(positive_dir),
+                "--negative_audio_dir",
+                str(negative_dir),
+                "--output_dir",
+                str(output_dir),
+                "--epochs",
+                str(epochs),
             ],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
             text=True,
         )
         if alt_result.stdout:

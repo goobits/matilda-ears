@@ -60,8 +60,6 @@ class TapToTalkMode(BaseMode):
         finally:
             await self._cleanup()
 
-
-
     def _start_hotkey_listener(self):
         """Start the global hotkey listener."""
         try:
@@ -69,9 +67,7 @@ class TapToTalkMode(BaseMode):
             parsed_hotkey = self._parse_hotkey(self.hotkey)
 
             # Create and start listener
-            self.hotkey_listener = keyboard.GlobalHotKeys({
-                parsed_hotkey: self._on_hotkey_pressed
-            })
+            self.hotkey_listener = keyboard.GlobalHotKeys({parsed_hotkey: self._on_hotkey_pressed})
 
             self.hotkey_listener.start()
             self.logger.info(f"Global hotkey listener started for: {self.hotkey}")
@@ -137,7 +133,6 @@ class TapToTalkMode(BaseMode):
     async def _transcribe_recording(self):
         """Transcribe the recorded audio."""
         await self._process_and_transcribe_collected_audio()
-
 
     async def _send_status(self, status: str, message: str):
         """Send status message with hotkey info."""

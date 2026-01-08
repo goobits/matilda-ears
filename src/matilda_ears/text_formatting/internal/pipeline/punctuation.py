@@ -22,9 +22,7 @@ class PunctuationProcessor:
         self.resources = get_resources(language)
 
         # Complete sentence phrases that need punctuation even when short
-        self.complete_sentence_phrases = set(
-            self.resources.get("technical", {}).get("complete_sentence_phrases", [])
-        )
+        self.complete_sentence_phrases = set(self.resources.get("technical", {}).get("complete_sentence_phrases", []))
 
     def add_punctuation(
         self,
@@ -206,7 +204,9 @@ class PunctuationProcessor:
                                         should_remove = True
 
                                     # Case 3: Known command/action words
-                                    base_command_words = self.resources.get("context_words", {}).get("command_words", [])
+                                    base_command_words = self.resources.get("context_words", {}).get(
+                                        "command_words", []
+                                    )
                                     command_words = list(base_command_words) + [
                                         "drive",
                                         "use",
@@ -289,9 +289,7 @@ class PunctuationProcessor:
                 # 2. Re-join sentences incorrectly split after technical entities
                 result = re.sub(r"(__ENTITY_\d+__)\.\s+([Oo]n\s+line\s+)", r"\1 \2", result)
                 result = re.sub(r"(__ENTITY_\d+__)\.\s+([Oo]n\s+(?:line|page|row|column)\s+)", r"\1 \2", result)
-                result = re.sub(
-                    r"(__ENTITY_\d+__)\.\s+([A-Z])", lambda m: f"{m.group(1)} {m.group(2).lower()}", result
-                )
+                result = re.sub(r"(__ENTITY_\d+__)\.\s+([A-Z])", lambda m: f"{m.group(1)} {m.group(2).lower()}", result)
 
                 # Rejoin sentences split after common command verbs or contexts
                 result = re.sub(

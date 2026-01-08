@@ -28,9 +28,7 @@ class SpecialDetector:
         self.resources = resources or {}
         self.language = language
 
-    def detect_ordinals(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_ordinals(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect ordinal numbers (first, second, third, etc.)."""
         # First, run the SpaCy analysis once if available.
         doc = None
@@ -58,8 +56,13 @@ class SpecialDetector:
                     if ordinal_token.pos_ == "ADJ" and next_token.pos_ == "NOUN":
                         # This is the key: we check our i18n file for specific exceptions.
                         idiomatic_phrases = self.resources.get("technical", {}).get("idiomatic_phrases", {})
-                        if ordinal_token.text.lower() in idiomatic_phrases and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]:
-                            logger.debug(f"Skipping ORDINAL '{match.group()}' due to idiomatic follower noun '{next_token.text}'.")
+                        if (
+                            ordinal_token.text.lower() in idiomatic_phrases
+                            and next_token.text.lower() in idiomatic_phrases[ordinal_token.text.lower()]
+                        ):
+                            logger.debug(
+                                f"Skipping ORDINAL '{match.group()}' due to idiomatic follower noun '{next_token.text}'."
+                            )
                             continue
 
                     # Skip if it's at sentence start and followed by comma ("First, we...")
@@ -121,9 +124,7 @@ class SpecialDetector:
                     )
                 )
 
-    def detect_spoken_emojis(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_spoken_emojis(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect spoken emoji expressions using a tiered system.
 
         Tier 1 (Implicit): Can be used without "emoji" trigger

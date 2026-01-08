@@ -34,9 +34,7 @@ async def test_binary_stream_chunk_updates_session_counts():
 
     websocket = DummyWebSocket()
 
-    await handlers.handle_binary_stream_chunk(
-        server, websocket, encoded, "127.0.0.1", client_id
-    )
+    await handlers.handle_binary_stream_chunk(server, websocket, encoded, "127.0.0.1", client_id)
 
     assert session_id in server.session_chunk_counts
     assert server.session_chunk_counts[session_id]["received"] == 1

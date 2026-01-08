@@ -26,9 +26,7 @@ class FractionalDetector:
         self.number_parser = number_parser
         self.resources = resources or {}
 
-    def detect_fractions(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_fractions(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect fraction expressions (one half, two thirds, etc.)."""
         # First, detect mixed fractions ("one and one half")
         for match in regex_patterns.SPOKEN_MIXED_FRACTION_PATTERN.finditer(text):
@@ -171,9 +169,7 @@ class FractionalDetector:
                         )
                     )
 
-    def detect_temperatures(
-        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
-    ) -> None:
+    def detect_temperatures(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect temperature expressions.
 
         Examples:

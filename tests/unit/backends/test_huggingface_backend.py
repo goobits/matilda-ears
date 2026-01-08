@@ -30,20 +30,22 @@ class TestHuggingFaceBackend:
     def mock_config(self):
         """Mock configuration object."""
         config = Mock()
-        config.get = Mock(side_effect=lambda key, default=None: {
-            "huggingface": {
-                "model": "openai/whisper-base",
-                "device": "auto",
-                "torch_dtype": "auto",
-                "chunk_length_s": 30,
-                "batch_size": 8,
-            },
-            "huggingface.model": "openai/whisper-base",
-            "huggingface.device": "auto",
-            "huggingface.torch_dtype": "auto",
-            "huggingface.chunk_length_s": 30,
-            "huggingface.batch_size": 8,
-        }.get(key, default))
+        config.get = Mock(
+            side_effect=lambda key, default=None: {
+                "huggingface": {
+                    "model": "openai/whisper-base",
+                    "device": "auto",
+                    "torch_dtype": "auto",
+                    "chunk_length_s": 30,
+                    "batch_size": 8,
+                },
+                "huggingface.model": "openai/whisper-base",
+                "huggingface.device": "auto",
+                "huggingface.torch_dtype": "auto",
+                "huggingface.chunk_length_s": 30,
+                "huggingface.batch_size": 8,
+            }.get(key, default)
+        )
         return config
 
     @pytest.fixture
@@ -89,6 +91,7 @@ class TestHuggingFaceBackend:
         """Verify backend initializes with correct config values."""
         # Patch the config object on the already-imported module
         import matilda_ears.transcription.backends.huggingface_backend as hf_module
+
         with patch.object(hf_module, "config", mock_config):
             from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
@@ -128,7 +131,10 @@ class TestHuggingFaceBackend:
     def test_backend_load_model_failure(self, mock_config):
         """Verify load() raises exception on model loading failure."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
-            with patch("matilda_ears.transcription.backends.huggingface_backend.pipeline", side_effect=RuntimeError("Model load failed")):
+            with patch(
+                "matilda_ears.transcription.backends.huggingface_backend.pipeline",
+                side_effect=RuntimeError("Model load failed"),
+            ):
                 from matilda_ears.transcription.backends.huggingface_backend import HuggingFaceBackend
 
                 backend = HuggingFaceBackend()

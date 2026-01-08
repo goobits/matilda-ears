@@ -67,15 +67,8 @@ class ConfigLoader:
         import json
 
         default_config = {
-            "transcription": {
-                "backend": "auto"
-            },
-            "whisper": {
-                "model": "base",
-                "device": "auto",
-                "compute_type": "auto",
-                "word_timestamps": True
-            },
+            "transcription": {"backend": "auto"},
+            "whisper": {"model": "base", "device": "auto", "compute_type": "auto", "word_timestamps": True},
             "server": {
                 "websocket": {
                     "port": 8769,
@@ -91,52 +84,41 @@ class ConfigLoader:
                         "key_file": "ssl/server.key",
                         "verify_mode": "none",
                         "auto_generate_certs": True,
-                        "cert_validity_days": 365
-                    }
+                        "cert_validity_days": 365,
+                    },
                 }
             },
             "audio": {
                 "sample_rate": 16000,
                 "channels": 1,
-                "streaming": {
-                    "enabled": False,
-                    "opus_bitrate": 24000,
-                    "frame_size": 960,
-                    "buffer_ms": 100
-                }
+                "streaming": {"enabled": False, "opus_bitrate": 24000, "frame_size": 960, "buffer_ms": 100},
             },
-            "tools": {
-                "audio": {
-                    "linux": "arecord",
-                    "darwin": "arecord",
-                    "windows": "ffmpeg"
-                }
-            },
+            "tools": {"audio": {"linux": "arecord", "darwin": "arecord", "windows": "ffmpeg"}},
             "paths": {
                 "venv": {
                     "linux": "venv/bin/python",
                     "darwin": "venv/bin/python",
-                    "windows": "venv\\Scripts\\python.exe"
+                    "windows": "venv\\Scripts\\python.exe",
                 },
                 "temp_dir": {
                     "linux": "/tmp/goobits-matilda-ears",
                     "darwin": "/tmp/goobits-matilda-ears",
-                    "windows": "%TEMP%\\goobits-matilda-ears"
-                }
+                    "windows": "%TEMP%\\goobits-matilda-ears",
+                },
             },
             "modes": {
                 "conversation": {
                     "vad_threshold": 0.5,
                     "min_speech_duration_s": 0.5,
                     "max_silence_duration_s": 1.0,
-                    "speech_pad_duration_s": 0.3
+                    "speech_pad_duration_s": 0.3,
                 },
                 "listen_once": {
                     "vad_threshold": 0.5,
                     "min_speech_duration_s": 0.3,
                     "max_silence_duration_s": 0.8,
-                    "max_recording_duration_s": 30.0
-                }
+                    "max_recording_duration_s": 30.0,
+                },
             },
             "text_formatting": {
                 "filename_formats": {
@@ -153,13 +135,10 @@ class ConfigLoader:
                     "scss": "kebab-case",
                     "sass": "kebab-case",
                     "less": "kebab-case",
-                    "*": "lower_snake"
+                    "*": "lower_snake",
                 }
             },
-            "timing": {
-                "server_startup_delay": 1.0,
-                "server_stop_delay": 1.0
-            }
+            "timing": {"server_startup_delay": 1.0, "server_stop_delay": 1.0},
         }
 
         # Create temporary config file
@@ -184,7 +163,7 @@ class ConfigLoader:
                 # Expand Windows environment variables
                 temp_dir_template = os.path.expandvars(temp_dir_template)
             self.temp_dir = temp_dir_template
-            
+
         os.makedirs(self.temp_dir, mode=0o700, exist_ok=True)
 
     def get(self, key_path: str, default: Any = None) -> Any:
@@ -223,7 +202,7 @@ class ConfigLoader:
     @property
     def jwt_secret_key(self) -> str:
         """Get JWT secret key with security-first approach.
-        
+
         Priority order:
         1. Environment variable STT_JWT_SECRET (production)
         2. Config file value (development)
@@ -259,7 +238,6 @@ class ConfigLoader:
         if len(set(key)) < 8:  # At least 8 unique characters
             return False
         return True
-
 
     @property
     def whisper_model(self) -> str:
@@ -353,6 +331,7 @@ class ConfigLoader:
         if backend == "auto":
             # Import here to avoid circular imports
             from matilda_ears.transcription.backends import get_recommended_backend
+
             return get_recommended_backend()
 
         return backend
@@ -638,16 +617,18 @@ class ConfigLoader:
     @property
     def filename_formats(self) -> dict[str, str]:
         """Get filename formatting rules per extension"""
-        return dict(self.get(
-            "text_formatting.filename_formats",
-            {
-                "md": "UPPER_SNAKE",
-                "json": "lower_snake",
-                "jsonl": "lower_snake",
-                "py": "lower_snake",
-                "*": "lower_snake",  # Default fallback
-            },
-        ))
+        return dict(
+            self.get(
+                "text_formatting.filename_formats",
+                {
+                    "md": "UPPER_SNAKE",
+                    "json": "lower_snake",
+                    "jsonl": "lower_snake",
+                    "py": "lower_snake",
+                    "*": "lower_snake",  # Default fallback
+                },
+            )
+        )
 
     def get_filename_format(self, extension: str) -> str:
         """Get formatting rule for a specific file extension"""

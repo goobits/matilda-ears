@@ -34,15 +34,17 @@ class ListenOnceMode(BaseMode):
             min_speech_duration_s=mode_config.get("min_speech_duration_s", 0.3),
             max_silence_duration_s=mode_config.get("max_silence_duration_s", 0.8),
         )
-        
+
         self.max_recording_duration = mode_config.get("max_recording_duration_s", 30.0)
         self.recording_start_time = None
         self.speech_started = False
 
-        self.logger.info(f"VAD config: threshold={self.vad_processor.threshold}, "
-                        f"min_speech={self.vad_processor.min_speech_duration_s}s, "
-                        f"max_silence={self.vad_processor.max_silence_duration_s}s, "
-                        f"max_recording={self.max_recording_duration}s")
+        self.logger.info(
+            f"VAD config: threshold={self.vad_processor.threshold}, "
+            f"min_speech={self.vad_processor.min_speech_duration_s}s, "
+            f"max_silence={self.vad_processor.max_silence_duration_s}s, "
+            f"max_recording={self.max_recording_duration}s"
+        )
 
     async def run(self):
         """Main listen-once mode execution."""
@@ -86,7 +88,6 @@ class ListenOnceMode(BaseMode):
         finally:
             await self._cleanup()
 
-
     async def _initialize_vad(self):
         """Initialize VAD Processor."""
         try:
@@ -115,13 +116,16 @@ class ListenOnceMode(BaseMode):
     async def _capture_utterance(self):
         """Capture a single utterance using VAD."""
         utterance_complete = False
-        
+
         self.vad_processor.reset()
 
         while not utterance_complete:
             try:
                 # Check for timeout
-                if self.recording_start_time is not None and time.time() - self.recording_start_time > self.max_recording_duration:
+                if (
+                    self.recording_start_time is not None
+                    and time.time() - self.recording_start_time > self.max_recording_duration
+                ):
                     self.logger.warning("Maximum recording duration reached")
                     break
 
@@ -137,7 +141,7 @@ class ListenOnceMode(BaseMode):
                     self.speech_started = True
                     self.logger.debug(f"Speech detected (prob: {speech_prob:.3f})")
                     await self._send_status("recording", "Speech detected, recording...")
-                
+
                 elif event == VADEvent.END:
                     self.logger.debug("Speech ended")
                     utterance_complete = True
@@ -160,22 +164,22 @@ class ListenOnceMode(BaseMode):
             return
 
         await self._send_status("processing", "Processing speech...")
-        
+
         # Pass the full audio array to the base helper
         # We wrap it in a list to mimic chunks if needed, or modify base helper
         # BaseMode._process_and_transcribe_collected_audio expects self.audio_data list
         # But here we have the numpy array directly.
         # Let's use _transcribe_audio directly which takes numpy array
-        
+
         try:
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(None, self._transcribe_audio_with_vad_stats, audio_data)
-            
+
             if result["success"]:
                 await self._send_transcription(result)
             else:
                 await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
-                
+
         except Exception as e:
             self.logger.exception(f"Error processing utterance: {e}")
             await self._send_error(f"Processing error: {e}")
