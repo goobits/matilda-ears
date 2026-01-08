@@ -56,7 +56,11 @@ FAILURE ANALYSIS:
   ./test.py --detailed                             # Parse and show expected vs actual
   ./test.py --full-diff                            # Show full assertion diffs
   ./test.py --summary                              # Show YAML summary of failures on screen
-  
+
+COVERAGE:
+  ./test.py --coverage                             # Run tests with coverage report
+  ./test.py -c tests/text_formatting/             # Coverage for specific directory
+
 COMMON WORKFLOWS:
   ./test.py tests/text_formatting/ --sequential --detailed
                                                    # Debug text formatting issues
@@ -101,7 +105,9 @@ def main():
                        help="Install the project with all dependencies")
     parser.add_argument("--summary", action="store_true",
                        help="Show YAML summary of test failures")
-    
+    parser.add_argument("--coverage", "-c", action="store_true",
+                       help="Generate coverage report")
+
     # Parse known args, keep the rest for pytest
     known_args, pytest_args = parser.parse_known_args()
     
@@ -277,7 +283,12 @@ def main():
     # Add full diff if requested
     if known_args.full_diff and "--full-diff" not in pytest_args:
         cmd.append("--full-diff")
-    
+
+    # Add coverage if requested
+    if known_args.coverage:
+        cmd.extend(["--cov=matilda_ears", "--cov-report=term-missing", "--cov-report=html:.temp/htmlcov"])
+        print("📊 Coverage report will be generated in .temp/htmlcov/")
+
     # Handle summary mode specially
     if known_args.summary:
         # Run pytest with summary but capture all output
