@@ -4,7 +4,7 @@ Provides StreamingConfig with sensible defaults and stabilization presets.
 """
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 from ...core.config import get_config
 
@@ -51,7 +51,7 @@ class StreamingConfig:
     max_confirmed_words: int = 500
 
     # Stabilization preset (overrides individual settings if set)
-    stabilization: Optional[Literal["low", "medium", "high"]] = None
+    stabilization: Literal["low", "medium", "high"] | None = None
 
     # Strategy selection
     strategy: Literal["local_agreement", "chunked", "native"] = "local_agreement"

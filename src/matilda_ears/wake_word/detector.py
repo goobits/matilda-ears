@@ -7,7 +7,6 @@ Supports custom models, pre-trained wake words, and multiple aliases per agent.
 
 import logging
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple
 
 try:
     import numpy as np
@@ -81,10 +80,10 @@ class WakeWordDetector:
 
     def __init__(
         self,
-        agents: Optional[List[str]] = None,
-        agent_aliases: Optional[Dict[str, List[str]]] = None,
+        agents: list[str] | None = None,
+        agent_aliases: dict[str, list[str]] | None = None,
         threshold: float = 0.5,
-        models_dir: Optional[Path] = None,
+        models_dir: Path | None = None,
         noise_suppression: bool = True,
     ):
         """Initialize wake word detector.
@@ -106,7 +105,7 @@ class WakeWordDetector:
         Model = _get_openwakeword_model()
 
         self.threshold = threshold
-        self._phrase_to_agent: Dict[str, str] = {}  # Reverse mapping
+        self._phrase_to_agent: dict[str, str] = {}  # Reverse mapping
         self._models_dir = models_dir or Path(__file__).parent / "models"
 
         # Build agent aliases mapping
@@ -167,7 +166,7 @@ class WakeWordDetector:
         except Exception as e:
             raise RuntimeError(f"Failed to load wake word models: {e}") from e
 
-    def detect(self, audio: "np.ndarray") -> Optional[Tuple[str, str, float]]:
+    def detect(self, audio: "np.ndarray") -> tuple[str, str, float] | None:
         """Detect wake word in audio chunk.
 
         Args:
@@ -197,7 +196,7 @@ class WakeWordDetector:
 
         return None
 
-    def detect_agent(self, audio: "np.ndarray") -> Optional[str]:
+    def detect_agent(self, audio: "np.ndarray") -> str | None:
         """Detect wake word and return just the agent name.
 
         Convenience method for backward compatibility.
@@ -218,20 +217,20 @@ class WakeWordDetector:
             self.model.reset()
 
     @property
-    def loaded_agents(self) -> List[str]:
+    def loaded_agents(self) -> list[str]:
         """List of agents with registered wake words."""
         return list(self._agent_aliases.keys())
 
     @property
-    def agent_aliases(self) -> Dict[str, List[str]]:
+    def agent_aliases(self) -> dict[str, list[str]]:
         """Get the agent to wake phrases mapping."""
         return self._agent_aliases.copy()
 
     @classmethod
     def from_config(
         cls,
-        config: Dict,
-        models_dir: Optional[Path] = None,
+        config: dict,
+        models_dir: Path | None = None,
     ) -> "WakeWordDetector":
         """Create detector from configuration dict.
 
@@ -282,7 +281,7 @@ class WakeWordDetector:
         )
 
     @classmethod
-    def parse_cli_aliases(cls, aliases_str: str) -> Dict[str, List[str]]:
+    def parse_cli_aliases(cls, aliases_str: str) -> dict[str, list[str]]:
         """Parse agent aliases from CLI string format.
 
         Args:

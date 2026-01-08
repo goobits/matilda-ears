@@ -11,7 +11,7 @@ for stable partial results:
 
 import time
 import logging
-from typing import Callable, Awaitable, List
+from collections.abc import Callable, Awaitable
 
 import numpy as np
 
@@ -198,7 +198,7 @@ class LocalAgreementStrategy:
         self.buffer.reset()
         self.hypothesis.clear()
 
-    def _extract_words(self, text: str, info: dict) -> List[TimestampedWord]:
+    def _extract_words(self, text: str, info: dict) -> list[TimestampedWord]:
         """Extract word timestamps from transcription result.
 
         Falls back to simple splitting if word timestamps not available.

@@ -5,7 +5,7 @@ Provides accurate voice activity detection using the Silero VAD model.
 Significantly more accurate than simple amplitude-based detection.
 """
 
-from typing import List, Tuple, Any, Optional
+from typing import Any
 import asyncio
 import logging
 
@@ -82,7 +82,7 @@ class SileroVAD:
 
         # VAD state
         self.speech_timestamps: list[dict[str, Any]] = []
-        self.current_speech_start: Optional[int] = None
+        self.current_speech_start: int | None = None
         self.temp_end = 0
         self.triggered = False
 
@@ -173,7 +173,7 @@ class SileroVAD:
             return 0.0
 
     def process_chunk_with_state(self, audio_chunk: np.ndarray,
-                                chunk_length_ms: int = 100) -> Tuple[float, str]:
+                                chunk_length_ms: int = 100) -> tuple[float, str]:
         """Process chunk with state machine for robust speech detection.
 
         Args:
@@ -237,7 +237,7 @@ class SileroVAD:
         self.temp_end = 0
         self.triggered = False
 
-    def process_audio_buffer(self, audio_buffer: np.ndarray) -> List[dict]:
+    def process_audio_buffer(self, audio_buffer: np.ndarray) -> list[dict]:
         """Process entire audio buffer and return speech segments.
 
         Args:
@@ -308,7 +308,7 @@ class VADProcessor:
         self.prob_buffer: list[float] = []
         self.logger = logging.getLogger(__name__)
 
-    def process_with_smoothing(self, audio_chunk: np.ndarray) -> Tuple[float, float]:
+    def process_with_smoothing(self, audio_chunk: np.ndarray) -> tuple[float, float]:
         """Process chunk with probability smoothing.
 
         Returns:

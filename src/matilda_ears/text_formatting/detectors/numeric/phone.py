@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Phone number detection for numeric entity detection."""
 
-from typing import List, Optional
 from ...common import Entity, EntityType
 from ...utils import is_inside_entity
 from ....core.config import setup_logging
@@ -25,7 +24,7 @@ class PhoneDetector:
         self.resources = resources or {}
 
     def detect_phone_numbers(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect phone numbers spoken as individual digits."""
         # Use centralized phone pattern

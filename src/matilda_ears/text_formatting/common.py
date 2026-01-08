@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Common data structures and classes shared across text formatting modules."""
 
-from typing import Optional, Dict, Any
+from typing import Any
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -78,7 +78,7 @@ class Entity:
     end: int
     text: str
     type: EntityType
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -145,7 +145,7 @@ class NumberParser:
         # Combine all number words for easy checking
         self.all_number_words = set(self.ones.keys()) | set(self.tens.keys()) | set(self.scales.keys())
 
-    def parse(self, text: str) -> Optional[str]:
+    def parse(self, text: str) -> str | None:
         """Parse number words to digits algorithmically, handling compound numbers."""
         if not text:
             return None
@@ -217,7 +217,7 @@ class NumberParser:
         total_val += current_val
         return str(total_val) if total_val > 0 or text == "zero" else None
 
-    def parse_as_sequence(self, words: list) -> Optional[str]:
+    def parse_as_sequence(self, words: list) -> str | None:
         """Tries to parse a list of words as a sequence of numbers."""
         try:
             # Special case for year patterns like "twenty twenty four" -> "2024"
@@ -258,7 +258,7 @@ class NumberParser:
         except RecursionError:
             return None
 
-    def _parse_simple_number(self, text: str) -> Optional[int]:
+    def _parse_simple_number(self, text: str) -> int | None:
         """A non-recursive helper to parse numbers up to 999."""
         words = text.split()
         current_val = 0
@@ -280,7 +280,7 @@ class NumberParser:
         total_val += current_val
         return total_val if total_val > 0 or text == "zero" else None
 
-    def parse_ordinal(self, text: str) -> Optional[str]:
+    def parse_ordinal(self, text: str) -> str | None:
         """Parse ordinal words to digits (e.g., 'first' -> '1', 'twenty third' -> '23')"""
         if not text:
             return None
@@ -348,7 +348,7 @@ class NumberParser:
 
         return None
 
-    def parse_as_digits(self, text: str) -> Optional[str]:
+    def parse_as_digits(self, text: str) -> str | None:
         """Parse text as a sequence of spoken digits, returning concatenated string.
 
         For example: "one two three" -> "123", "ocho cero ocho cero" -> "8080"
@@ -379,7 +379,7 @@ class NumberParser:
 
         return None
 
-    def parse_with_validation(self, text: str) -> Optional[str]:
+    def parse_with_validation(self, text: str) -> str | None:
         """Parse numbers with additional validation for context"""
         if not text:
             return None

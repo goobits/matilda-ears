@@ -9,7 +9,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional, Any, Set
+from typing import Any
 import uuid
 
 import jwt
@@ -32,7 +32,7 @@ def get_default_data_dir() -> Path:
 class TokenManager:
     """Manages JWT tokens for client authentication"""
 
-    def __init__(self, secret_key: Optional[str] = None, data_dir: Path = None):
+    def __init__(self, secret_key: str | None = None, data_dir: Path = None):
         self.data_dir = data_dir or get_default_data_dir()
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -41,8 +41,8 @@ class TokenManager:
         self.used_tokens_file = self.data_dir / "used_tokens.json"
 
         # In-memory token storage
-        self.active_tokens: Dict[str, Dict[str, Any]] = {}
-        self.used_tokens: Set[str] = set()
+        self.active_tokens: dict[str, dict[str, Any]] = {}
+        self.used_tokens: set[str] = set()
 
         # Load existing tokens
         self._load_tokens()
@@ -126,7 +126,7 @@ class TokenManager:
         if expired_tokens:
             self._save_tokens()
 
-    def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> Dict[str, Any]:
+    def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> dict[str, Any]:
         """Generate a new JWT token for a client
 
         Args:
@@ -184,7 +184,7 @@ class TokenManager:
             logger.error(f"Failed to generate token: {e}")
             raise ValueError(f"Token generation failed: {e}")
 
-    def validate_token(self, token: str, mark_as_used: bool = False) -> Optional[Dict[str, Any]]:
+    def validate_token(self, token: str, mark_as_used: bool = False) -> dict[str, Any] | None:
         """Validate a JWT token
 
         Args:
@@ -302,7 +302,7 @@ class TokenManager:
 
         return clients
 
-    def get_server_stats(self) -> Dict[str, Any]:
+    def get_server_stats(self) -> dict[str, Any]:
         """Get token manager statistics"""
         self._cleanup_expired_tokens()
 

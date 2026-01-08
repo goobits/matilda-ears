@@ -2,7 +2,6 @@
 """Fraction, version, and temperature detection for numeric entity detection."""
 
 import re
-from typing import List, Optional
 from ...common import Entity, EntityType, NumberParser
 from ...utils import is_inside_entity
 from ....core.config import setup_logging
@@ -28,7 +27,7 @@ class FractionalDetector:
         self.resources = resources or {}
 
     def detect_fractions(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect fraction expressions (one half, two thirds, etc.)."""
         # First, detect mixed fractions ("one and one half")
@@ -72,7 +71,7 @@ class FractionalDetector:
             )
 
     def detect_version_numbers(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect version numbers in spoken form (e.g., 'version two point five')."""
         if not self.number_parser:
@@ -173,7 +172,7 @@ class FractionalDetector:
                     )
 
     def detect_temperatures(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect temperature expressions.
 

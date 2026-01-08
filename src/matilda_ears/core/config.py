@@ -5,13 +5,13 @@ import logging
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 
 class ConfigLoader:
     """Load configuration from config files."""
 
-    def __init__(self, config_path: Optional[Union[str, Path]] = None) -> None:
+    def __init__(self, config_path: str | Path | None = None) -> None:
         if config_path is None:
             config_path = self._find_config_file()
 
@@ -357,7 +357,7 @@ class ConfigLoader:
 
         return backend
 
-    def get_hotkey_config(self, key_name: str) -> Dict[str, Any]:
+    def get_hotkey_config(self, key_name: str) -> dict[str, Any]:
         """Get configuration for a specific hotkey from array"""
         hotkeys = self.get("hotkeys", [])
         platform_key = self._get_platform_key()
@@ -375,11 +375,11 @@ class ConfigLoader:
 
         return {}
 
-    def get_all_hotkeys(self) -> List[Dict[str, Any]]:
+    def get_all_hotkeys(self) -> list[dict[str, Any]]:
         """Get all hotkey configurations"""
         return list(self.get("hotkeys", []))
 
-    def get_hotkeys_for_platform(self, platform: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_hotkeys_for_platform(self, platform: str | None = None) -> list[dict[str, Any]]:
         """Get all hotkeys for a specific platform"""
         if platform is None:
             platform = self._get_platform_key()
@@ -442,11 +442,11 @@ class ConfigLoader:
 
         return str(os.path.join(self.temp_dir, filename))
 
-    def get_filter_phrases(self) -> List[str]:
+    def get_filter_phrases(self) -> list[str]:
         """Get text filter phrases"""
         return list(self.get("text_filtering.filter_phrases", []))
 
-    def get_exact_filter_phrases(self) -> List[str]:
+    def get_exact_filter_phrases(self) -> list[str]:
         """Get exact match filter phrases"""
         return list(self.get("text_filtering.exact_filter_phrases", []))
 
@@ -458,7 +458,7 @@ class ConfigLoader:
         """Get current typing speed setting"""
         return str(self.get("text_insertion.typing_speed", "fast"))
 
-    def get_available_typing_speeds(self) -> List[str]:
+    def get_available_typing_speeds(self) -> list[str]:
         """Get list of available typing speed presets"""
         presets = self.get("typing_speed_presets", {})
         return ["custom"] + list(presets.keys())
@@ -537,7 +537,7 @@ class ConfigLoader:
         return bool(self.get("modes.wake_word.enabled", False))
 
     @property
-    def wake_word_agents(self) -> List[str]:
+    def wake_word_agents(self) -> list[str]:
         """Get list of wake word agents"""
         return list(self.get("modes.wake_word.agents", ["Matilda"]))
 
@@ -558,7 +558,7 @@ class ConfigLoader:
 
     # Embedded server configuration
     @property
-    def embedded_server_enabled(self) -> Union[bool, str]:
+    def embedded_server_enabled(self) -> bool | str:
         """Get embedded server enabled setting"""
         value = self.get("server.embedded_server.enabled", "auto")
         if isinstance(value, bool):
@@ -588,11 +588,11 @@ class ConfigLoader:
 
     # Additional properties needed for daemon functionality
     @property
-    def filter_phrases(self) -> List[str]:
+    def filter_phrases(self) -> list[str]:
         return self.get_filter_phrases()
 
     @property
-    def exact_filter_phrases(self) -> List[str]:
+    def exact_filter_phrases(self) -> list[str]:
         return self.get_exact_filter_phrases()
 
     # Timing properties needed for daemon functionality
@@ -627,7 +627,7 @@ class ConfigLoader:
     def get_audio_file(self, key_name: str = "f8") -> str:
         return self.get_file_path("audio", key_name)
 
-    def get_visualizer_command(self, key_name: str, pid_file: str) -> List[str]:
+    def get_visualizer_command(self, key_name: str, pid_file: str) -> list[str]:
         """Get complete visualizer command with arguments"""
         script_path = os.path.join(self.project_dir, "src", "visualizers", "visualizer.py")
         hotkey_config = self.get_hotkey_config(key_name.lower())
@@ -636,7 +636,7 @@ class ConfigLoader:
         return [self.venv_python, script_path, display_type, pid_file, "--key", key_name.lower()]
 
     @property
-    def filename_formats(self) -> Dict[str, str]:
+    def filename_formats(self) -> dict[str, str]:
         """Get filename formatting rules per extension"""
         return dict(self.get(
             "text_formatting.filename_formats",
@@ -657,7 +657,7 @@ class ConfigLoader:
 
 
 # Create a global instance for backward compatibility
-_config_loader: Optional[ConfigLoader] = None
+_config_loader: ConfigLoader | None = None
 
 
 def get_config() -> ConfigLoader:

@@ -6,7 +6,8 @@ interface for all client-side transcription operations.
 """
 
 import threading
-from typing import Optional, Any, Callable, Dict, Tuple
+from typing import Any
+from collections.abc import Callable
 
 from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from .streaming import StreamingAudioClient, PartialResultCallback
@@ -25,7 +26,7 @@ class TranscriptionClient:
     - Batch mode: Traditional transcription (record-then-transcribe)
     """
 
-    def __init__(self, websocket_host: Optional[str] = None, debug_callback: Optional[Callable[[str], None]] = None):
+    def __init__(self, websocket_host: str | None = None, debug_callback: Callable[[str], None] | None = None):
         """Initialize transcription client.
 
         Args:
@@ -81,8 +82,8 @@ class TranscriptionClient:
         return self._batch_transcriber.get_ssl_context()
 
     async def send_batch_transcription(
-        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, use_opus_compression: bool = True
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        self, audio_file_path: str, cancel_event: threading.Event | None = None, use_opus_compression: bool = True
+    ) -> tuple[bool, str | None, str | None]:
         """Send batch transcription request.
 
         Args:
@@ -99,8 +100,8 @@ class TranscriptionClient:
         )
 
     async def transcribe_batch_mode(
-        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, **batch_options
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        self, audio_file_path: str, cancel_event: threading.Event | None = None, **batch_options
+    ) -> tuple[bool, str | None, str | None]:
         """Traditional batch transcription (record-then-transcribe).
 
         This mode waits for recording to complete, then transcribes the entire
@@ -120,11 +121,11 @@ class TranscriptionClient:
     async def transcribe_with_mode(
         self,
         audio_file_path: str,
-        mode: Optional[str] = None,
-        session_id: Optional[str] = None,
-        cancel_event: Optional[threading.Event] = None,
+        mode: str | None = None,
+        session_id: str | None = None,
+        cancel_event: threading.Event | None = None,
         **mode_options,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    ) -> tuple[bool, str | None, str | None]:
         """Transcribe using specified mode or default configuration.
 
         Args:
@@ -156,9 +157,9 @@ class TranscriptionClient:
 
     async def create_streaming_session(
         self,
-        session_id: Optional[str] = None,
-        debug_save_audio: Optional[bool] = None,
-        on_partial_result: Optional[PartialResultCallback] = None,
+        session_id: str | None = None,
+        debug_save_audio: bool | None = None,
+        on_partial_result: PartialResultCallback | None = None,
     ) -> StreamingAudioClient:
         """Create and start a new streaming session.
 
@@ -217,7 +218,7 @@ class TranscriptionClient:
         except Exception as e:
             self.debug_callback(f"Error disconnecting streaming client: {e}")
 
-    def get_supported_modes(self) -> Dict[str, Any]:
+    def get_supported_modes(self) -> dict[str, Any]:
         """Get supported transcription modes and their configurations.
 
         Returns:

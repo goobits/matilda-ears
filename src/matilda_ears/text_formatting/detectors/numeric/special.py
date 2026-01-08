@@ -2,7 +2,6 @@
 """Special entity detection: ordinals, music notation, emojis, and cardinal fallback."""
 
 import re
-from typing import List, Optional
 from ...common import Entity, EntityType, NumberParser
 from ...utils import is_inside_entity
 from ....core.config import setup_logging
@@ -30,7 +29,7 @@ class SpecialDetector:
         self.language = language
 
     def detect_ordinals(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect ordinal numbers (first, second, third, etc.)."""
         # First, run the SpaCy analysis once if available.
@@ -93,7 +92,7 @@ class SpecialDetector:
                 )
 
     def detect_music_notation(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect music notation expressions.
 
@@ -123,7 +122,7 @@ class SpecialDetector:
                 )
 
     def detect_spoken_emojis(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect spoken emoji expressions using a tiered system.
 
@@ -188,7 +187,7 @@ class SpecialDetector:
                     )
 
     def detect_cardinal_numbers_fallback(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Fallback detection for cardinal numbers when SpaCy is not available or for non-English languages."""
         if not self.number_parser:

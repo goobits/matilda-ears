@@ -9,7 +9,7 @@ import time
 import threading
 import subprocess
 import asyncio
-from typing import Optional, Dict, Any, List
+from typing import Any
 from dataclasses import dataclass
 
 try:
@@ -43,9 +43,9 @@ class StreamingStats:
     samples_sent: int = 0
     bytes_sent: int = 0
     total_duration: float = 0.0
-    start_time: Optional[float] = None
+    start_time: float | None = None
 
-    def update_chunk(self, chunk_size: int, timestamp: Optional[float] = None) -> None:
+    def update_chunk(self, chunk_size: int, timestamp: float | None = None) -> None:
         """Update statistics with new chunk information."""
         if timestamp is None:
             timestamp = time.time()
@@ -72,7 +72,7 @@ class PipeBasedAudioStreamer:
         queue: asyncio.Queue,
         chunk_duration_ms: int = 32,
         sample_rate: int = 16000,
-        audio_device: Optional[str] = None,
+        audio_device: str | None = None,
     ):
         """Initialize pipe-based audio streamer.
 
@@ -103,8 +103,8 @@ class PipeBasedAudioStreamer:
         self.target_bytes_per_chunk = self.target_chunk_size * 2  # 16-bit samples
 
         # Process management
-        self.arecord_process: Optional[subprocess.Popen] = None
-        self.reader_thread: Optional[threading.Thread] = None
+        self.arecord_process: subprocess.Popen | None = None
+        self.reader_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
         # Statistics
@@ -118,7 +118,7 @@ class PipeBasedAudioStreamer:
             f"{self.target_chunk_size} samples/chunk"
         )
 
-    def _build_audio_command(self) -> List[str]:
+    def _build_audio_command(self) -> list[str]:
         """Build platform-specific audio capture command."""
         import platform
 
@@ -224,7 +224,7 @@ class PipeBasedAudioStreamer:
             logger.info(f"[PIPE-STREAM] Failed to start recording: {e}")
             return False
 
-    def stop_recording(self) -> Dict[str, Any]:
+    def stop_recording(self) -> dict[str, Any]:
         """Stop recording and return final statistics."""
         logger.info("[PIPE-STREAM] Stopping recording...")
 

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Tuple
 
 from ..base import TranscriptionBackend
 from ....core.config import get_config
@@ -43,7 +42,7 @@ class FasterWhisperBackend(TranscriptionBackend):
             logger.exception(f"Failed to load Faster Whisper model: {e}")
             raise
 
-    def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
         if self.model is None:
             raise RuntimeError("Model not loaded")
 

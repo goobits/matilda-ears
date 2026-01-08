@@ -18,7 +18,6 @@ The pipeline processes text in this order:
 """
 
 import re
-from typing import List, Optional
 
 from intervaltree import IntervalTree
 
@@ -68,7 +67,7 @@ class TextFormatter:
         self.resources = get_resources(language)
 
     def format_transcription(
-        self, text: str, key_name: str = "", enter_pressed: bool = False, language: Optional[str] = None
+        self, text: str, key_name: str = "", enter_pressed: bool = False, language: str | None = None
     ) -> str:
         """Main formatting pipeline.
 
@@ -198,7 +197,7 @@ class TextFormatter:
         logger.debug(f"Final formatted: '{text[:50]}...'")
         return text
 
-    def _deduplicate_entities(self, entities: List[Entity]) -> List[Entity]:
+    def _deduplicate_entities(self, entities: list[Entity]) -> list[Entity]:
         """Deduplicate entities using interval tree for O(n log n) performance."""
         logger.debug(f"Starting deduplication with {len(entities)} entities:")
         for i, entity in enumerate(entities):
@@ -258,7 +257,7 @@ class TextFormatter:
 
         return filtered_entities
 
-    def _convert_and_assemble(self, text: str, entities: List[Entity]) -> tuple[str, List[Entity]]:
+    def _convert_and_assemble(self, text: str, entities: list[Entity]) -> tuple[str, list[Entity]]:
         """Convert entities and assemble the final string, tracking positions."""
         result_parts = []
         converted_entities = []
@@ -299,7 +298,7 @@ class TextFormatter:
 
         return processed_text, converted_entities
 
-    def _is_standalone_technical(self, text: str, entities: List[Entity]) -> bool:
+    def _is_standalone_technical(self, text: str, entities: list[Entity]) -> bool:
         """Check if the text consists entirely of technical entities with no natural language."""
         if not entities:
             return False
@@ -416,7 +415,7 @@ class TextFormatter:
         return False
 
     def _apply_capitalization_with_entity_protection(
-        self, text: str, entities: List[Entity], doc=None
+        self, text: str, entities: list[Entity], doc=None
     ) -> str:
         """Apply capitalization while protecting entities."""
         logger.debug(f"Capitalization protection called with text: '{text}' and {len(entities)} entities")

@@ -9,7 +9,7 @@ This mode provides a simple toggle-based recording mechanism:
 
 import asyncio
 import threading
-from typing import Dict, Any
+from typing import Any
 
 from ._imports import keyboard, PYNPUT_AVAILABLE
 from .base_mode import BaseMode
@@ -143,7 +143,7 @@ class TapToTalkMode(BaseMode):
         """Send status message with hotkey info."""
         await super()._send_status(status, message, {"hotkey": self.hotkey})
 
-    async def _send_transcription(self, result: Dict[str, Any]):
+    async def _send_transcription(self, result: dict[str, Any]):
         """Send transcription result with hotkey info."""
         await super()._send_transcription(result, {"hotkey": self.hotkey})
 

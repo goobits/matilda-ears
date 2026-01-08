@@ -9,7 +9,7 @@ StreamingSession coordinates the streaming pipeline:
 
 import time
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -72,8 +72,8 @@ class StreamingSession:
 
         # State tracking
         self._state = StreamingState.IDLE
-        self._start_time: Optional[float] = None
-        self._last_activity: Optional[float] = None
+        self._start_time: float | None = None
+        self._last_activity: float | None = None
 
         # Metrics
         self._metrics = StreamingMetrics(session_id=session_id)

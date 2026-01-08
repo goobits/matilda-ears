@@ -7,7 +7,6 @@ Provides AudioBuffer that maintains a fixed-size audio window with:
 """
 
 import numpy as np
-from typing import Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -101,7 +100,7 @@ class AudioBuffer:
 
         return trimmed
 
-    def get_audio(self) -> Tuple[np.ndarray, float]:
+    def get_audio(self) -> tuple[np.ndarray, float]:
         """Get current buffer audio and offset.
 
         Returns:

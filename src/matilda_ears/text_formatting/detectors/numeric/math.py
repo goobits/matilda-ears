@@ -2,7 +2,7 @@
 """Math expression detection and parsing for numeric entity detection."""
 
 import re
-from typing import List, Optional, Dict, Any
+from typing import Any
 from ...common import Entity, EntityType, NumberParser
 from ...utils import is_inside_entity
 from ....core.config import setup_logging
@@ -129,7 +129,7 @@ class MathExpressionParser:
             logger.error(f"Failed to initialize pyparsing math parser: {e}")
             raise
 
-    def parse_expression(self, text: str) -> Optional[Dict[str, Any]]:
+    def parse_expression(self, text: str) -> dict[str, Any] | None:
         """Parse math expression and return structured result"""
         try:
             # Clean the text but don't convert to lower
@@ -167,7 +167,7 @@ class MathDetector:
         self.math_parser = MathExpressionParser()
 
     def detect_math_expressions(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect and parse math expressions using SpaCy context analysis."""
         # Look for patterns that might be math expressions to avoid parsing every word
@@ -384,7 +384,7 @@ class MathDetector:
         return False
 
     def detect_math_constants(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect mathematical constants.
 
@@ -412,7 +412,7 @@ class MathDetector:
                 )
 
     def detect_root_expressions(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect square root and cube root expressions.
 
@@ -441,7 +441,7 @@ class MathDetector:
                 )
 
     def detect_scientific_notation(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect scientific notation expressions.
 

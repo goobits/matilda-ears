@@ -6,7 +6,6 @@ This module provides standardized logging configuration for all STT modules.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 
 def setup_logging(
@@ -14,7 +13,7 @@ def setup_logging(
     log_level: str = "INFO",
     include_console: bool = True,
     include_file: bool = True,
-    log_filename: Optional[str] = None,
+    log_filename: str | None = None,
 ) -> logging.Logger:
     """Setup standardized logging for STT modules.
 

@@ -4,7 +4,6 @@ import io
 import wave
 import numpy as np
 import opuslib
-from typing import Tuple
 
 # Setup standardized logging
 try:
@@ -30,7 +29,7 @@ class OpusBatchEncoder:
         self.frame_size = 960  # 60ms at 16kHz
         logger.info(f"OpusBatchEncoder initialized with bitrate: {bitrate}bps")
 
-    def encode_wav_to_opus(self, wav_data: bytes) -> Tuple[bytes, dict]:
+    def encode_wav_to_opus(self, wav_data: bytes) -> tuple[bytes, dict]:
         """Encode WAV file data to Opus format.
 
         Args:

@@ -2,7 +2,7 @@
 
 import ssl
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal
 from ..core.config import get_config, setup_logging
 
 # Get config and logger
@@ -13,7 +13,7 @@ logger = setup_logging(__name__, log_filename="security.txt")
 SSLMode = Literal["client", "server"]
 
 
-def create_ssl_context(mode: SSLMode = "client", auto_generate: bool = True) -> Optional[ssl.SSLContext]:
+def create_ssl_context(mode: SSLMode = "client", auto_generate: bool = True) -> ssl.SSLContext | None:
     """Create SSL context for secure connections.
 
     This centralizes SSL context creation for both client and server,

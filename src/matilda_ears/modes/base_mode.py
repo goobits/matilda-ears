@@ -17,7 +17,7 @@ import wave
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 import sys
 
 # Shared imports and fallbacks
@@ -66,7 +66,7 @@ class BaseMode(ABC):
 
         self.logger.info(f"{self.__class__.__name__} initialized")
 
-    def _get_mode_config(self) -> Dict[str, Any]:
+    def _get_mode_config(self) -> dict[str, Any]:
         """Get mode-specific configuration from config.json."""
         mode_name = self._get_mode_name()
         return self.config.get("modes", {}).get(mode_name, {})
@@ -116,7 +116,7 @@ class BaseMode(ABC):
             self.logger.error(f"Failed to setup audio streaming: {e}")
             raise
 
-    def _transcribe_audio(self, audio_data: np.ndarray) -> Dict[str, Any]:
+    def _transcribe_audio(self, audio_data: np.ndarray) -> dict[str, Any]:
         """Transcribe audio data using the loaded backend."""
         tmp_file_path = None
         try:
@@ -161,7 +161,7 @@ class BaseMode(ABC):
                 except Exception as e:
                     self.logger.warning(f"Failed to delete temp file {tmp_file_path}: {e}")
 
-    async def _send_status(self, status: str, message: str, extra: Optional[Dict] = None):
+    async def _send_status(self, status: str, message: str, extra: dict | None = None):
         """Send status message."""
         result = {
             "type": "status",
@@ -182,7 +182,7 @@ class BaseMode(ABC):
             # Only show status messages in text mode when debug is enabled
             print(f"[{status.upper()}] {message}", file=sys.stderr)
 
-    async def _send_transcription(self, result: Dict[str, Any], extra: Optional[Dict] = None):
+    async def _send_transcription(self, result: dict[str, Any], extra: dict | None = None):
         """Send transcription result."""
         output = {
             "type": "transcription",
@@ -204,7 +204,7 @@ class BaseMode(ABC):
             # Text mode - just print the transcribed text
             print(result["text"])
 
-    async def _send_error(self, error_message: str, extra: Optional[Dict] = None):
+    async def _send_error(self, error_message: str, extra: dict | None = None):
         """Send error message."""
         result = {
             "type": "error",
@@ -227,14 +227,13 @@ class BaseMode(ABC):
     def _get_mode_name(self) -> str:
         """Get the mode name from the class name."""
         class_name = self.__class__.__name__
-        if class_name.endswith("Mode"):
-            class_name = class_name[:-4]  # Remove "Mode" suffix
+        class_name = class_name.removesuffix("Mode")  # Remove "Mode" suffix
 
         # Convert CamelCase to snake_case
         import re
         return re.sub("([A-Z]+)", r"_\1", class_name).lower().strip("_")
 
-    async def _process_and_transcribe_collected_audio(self, audio_chunks: Optional[list] = None):
+    async def _process_and_transcribe_collected_audio(self, audio_chunks: list | None = None):
         """A helper to process a list of audio chunks, transcribe it,
         and send the results. Uses self.audio_data by default.
         """
@@ -276,7 +275,7 @@ class BaseMode(ABC):
                     break
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
                 self.audio_data.append(audio_chunk)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # No audio data available - continue if still recording
                 continue
             except Exception as e:

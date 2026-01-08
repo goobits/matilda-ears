@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Time expression detection for numeric entity detection."""
 
-from typing import List, Optional
 from ...common import Entity, EntityType
 from ...utils import is_inside_entity
 from ....core.config import setup_logging
@@ -25,7 +24,7 @@ class TimeDetector:
         self.resources = resources or {}
 
     def detect_time_expressions(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect time expressions in spoken form."""
         # Use centralized time expression patterns
@@ -95,7 +94,7 @@ class TimeDetector:
                     )
 
     def detect_time_relative(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect relative time expressions (quarter past three, half past two, etc.)."""
         for match in regex_patterns.SPOKEN_TIME_RELATIVE_PATTERN.finditer(text):

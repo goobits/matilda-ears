@@ -10,8 +10,7 @@ This mode enables continuous, hands-free listening with:
 
 import asyncio
 import threading
-import time
-from typing import Dict, Any
+from typing import Any
 
 from ._imports import np
 from .base_mode import BaseMode
@@ -119,7 +118,7 @@ class ConversationMode(BaseMode):
                     await self._process_utterance()
                     self.vad_processor.reset()
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # No audio data - continue loop
                 continue
             except Exception as e:
@@ -154,7 +153,7 @@ class ConversationMode(BaseMode):
             self.is_processing = False
             await self._send_status("listening", "Ready for next utterance")
 
-    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
+    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> dict[str, Any]:
         """Transcribe audio data using Whisper."""
         # We don't have separate VAD stats object from VADProcessor yet, but we could add it
         result = super()._transcribe_audio(audio_data)

@@ -8,7 +8,6 @@ transcribe_stream() method directly.
 import logging
 import os
 import time
-from typing import Tuple
 
 from ..base import TranscriptionBackend
 from ....core.config import get_config
@@ -66,7 +65,7 @@ class ParakeetBackend(TranscriptionBackend):
             logger.exception(f"Failed to load Parakeet model: {e}")
             raise
 
-    def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
         """Transcribe audio using Parakeet with MPS-safe parameters."""
         if self.model is None:
             raise RuntimeError("Parakeet Model not loaded")

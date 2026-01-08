@@ -27,7 +27,7 @@ Usage in config.json:
 import asyncio
 import logging
 import time
-from typing import Tuple, Optional, Any, Dict
+from typing import Any
 
 from ..base import TranscriptionBackend
 from ....core.config import get_config
@@ -64,7 +64,7 @@ def _detect_device() -> str:
     return "cpu"
 
 
-def _resolve_torch_dtype(device: str, dtype_config: str) -> Optional[Any]:
+def _resolve_torch_dtype(device: str, dtype_config: str) -> Any | None:
     """Resolve torch dtype based on config and device."""
     if not TORCH_AVAILABLE:
         return None
@@ -175,7 +175,7 @@ class HuggingFaceBackend(TranscriptionBackend):
 
         return pipe
 
-    def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
         """Transcribe audio using the HuggingFace ASR model.
 
         Args:
@@ -311,7 +311,7 @@ class HuggingFaceBackend(TranscriptionBackend):
         return " ".join(words)
 
     @classmethod
-    def list_popular_models(cls) -> Dict[str, str]:
+    def list_popular_models(cls) -> dict[str, str]:
         """Return a dict of popular ASR models for user reference.
 
         These are suggestions - any HuggingFace ASR model ID will work.

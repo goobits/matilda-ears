@@ -2,7 +2,6 @@
 """Unit and measurement detection for numeric entity detection."""
 
 import re
-from typing import List, Optional, Tuple
 from ...common import Entity, EntityType, NumberParser
 from ...utils import is_inside_entity
 from ....core.config import setup_logging
@@ -27,7 +26,7 @@ class UnitsDetector:
         self.number_parser = number_parser
         self.resources = resources or {}
 
-    def _find_unit_match(self, text: str, type_name: str, units_list: List[str]) -> Optional[Tuple[str, str, int]]:
+    def _find_unit_match(self, text: str, type_name: str, units_list: list[str]) -> tuple[str, str, int] | None:
         """Helper to find a matching unit at the start of text.
 
         Args:
@@ -50,7 +49,7 @@ class UnitsDetector:
         return None
 
     def detect_numerical_entities(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect numerical entities with units using SpaCy's grammar analysis."""
         # First, handle patterns that don't need SpaCy
@@ -170,7 +169,7 @@ class UnitsDetector:
             i += 1
 
     def detect_numeric_ranges_simple(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect numeric range expressions (ten to twenty, etc.)."""
         for match in regex_patterns.SPOKEN_NUMERIC_RANGE_PATTERN.finditer(text):
@@ -264,7 +263,7 @@ class UnitsDetector:
             )
 
     def detect_number_unit_patterns(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect number + unit patterns using regex for cases where SpaCy might fail."""
         if not self.number_parser:
@@ -348,7 +347,7 @@ class UnitsDetector:
                     )
 
     def detect_measurements(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect measurement patterns that SpaCy might miss or misclassify.
 
@@ -371,7 +370,7 @@ class UnitsDetector:
                     entities.append(Entity(start=match.start(), end=match.end(), text=match.group(), type=entity_type))
 
     def detect_metric_units(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detect metric unit expressions.
 

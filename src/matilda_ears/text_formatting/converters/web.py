@@ -2,7 +2,6 @@
 """Web pattern converters for URLs, emails, and related entities."""
 
 import re
-from typing import Optional
 
 from ..common import Entity, EntityType
 from ...core.config import setup_logging
@@ -281,7 +280,7 @@ class WebConverterMixin:
         # For clean SpaCy-detected emails, just return the text as-is
         return text + trailing_punct
 
-    def convert_spoken_email(self, entity: Entity, full_text: Optional[str] = None) -> str:
+    def convert_spoken_email(self, entity: Entity, full_text: str | None = None) -> str:
         """Convert 'user at example dot com' to 'user@example.com'.
 
         Note: The entity text should contain only the email part, not action phrases.

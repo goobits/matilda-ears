@@ -11,7 +11,7 @@ a native streaming API (currently Parakeet MLX).
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Optional, Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -53,7 +53,7 @@ class NativeStrategy:
         self.config = config
 
         # Streaming context (created on first audio)
-        self._context: Optional[Any] = None
+        self._context: Any | None = None
         self._context_entered = False
 
         # Current state
@@ -201,7 +201,7 @@ class NativeStrategy:
             self._context_entered = True
             logger.info("Native streaming context started")
 
-    def _process_in_context(self, audio_chunk: np.ndarray) -> Optional[dict]:
+    def _process_in_context(self, audio_chunk: np.ndarray) -> dict | None:
         """Process audio in the native context (runs in executor).
 
         Args:
@@ -226,7 +226,7 @@ class NativeStrategy:
 
         return None
 
-    def _finalize_context(self) -> Optional[dict]:
+    def _finalize_context(self) -> dict | None:
         """Finalize the native context (runs in executor).
 
         Returns:

@@ -294,7 +294,7 @@ class MatildaWebSocketServer:
             
             await websocket.send(json.dumps({
                 "type": "reload_response",
-                "status": "ok", 
+                "status": "ok",
                 "message": "Configuration reloaded"
             }))
             logger.info("Configuration reloaded successfully")

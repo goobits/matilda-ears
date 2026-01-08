@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Entity detection using SpaCy and custom patterns."""
 
-from typing import List
 
 from ...common import Entity, EntityType, NumberParser
 from ...constants import get_resources
@@ -31,7 +30,7 @@ class EntityDetector:
         self.language = language
         self.resources = get_resources(language)
 
-    def detect_entities(self, text: str, existing_entities: List[Entity], doc=None) -> List[Entity]:
+    def detect_entities(self, text: str, existing_entities: list[Entity], doc=None) -> list[Entity]:
         """Single pass entity detection"""
         entities: list[Entity] = []
 
@@ -42,7 +41,7 @@ class EntityDetector:
         # Sorting is no longer needed here as the main formatter will sort the final list.
         return entities
 
-    def _process_spacy_entities(self, text: str, entities: List[Entity], existing_entities: List[Entity], doc=None) -> None:
+    def _process_spacy_entities(self, text: str, entities: list[Entity], existing_entities: list[Entity], doc=None) -> None:
         """Process SpaCy-detected entities."""
         if not self.nlp:
             return

@@ -12,7 +12,6 @@ This module provides a centralized VADProcessor class that handles:
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Tuple
 
 
 class VADState(Enum):
@@ -95,7 +94,7 @@ class VADProcessor:
     state: VADState = field(default=VADState.WAITING, init=False)
     consecutive_speech: int = field(default=0, init=False)
     consecutive_silence: int = field(default=0, init=False)
-    speech_start_time: Optional[float] = field(default=None, init=False)
+    speech_start_time: float | None = field(default=None, init=False)
 
     def reset(self) -> None:
         """Reset the processor to initial state."""
@@ -164,7 +163,7 @@ class VADProcessor:
         self,
         is_above_threshold: bool,
         is_below_hysteresis: bool
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """Process chunk while in SPEECH state.
 
         Returns:
@@ -200,7 +199,7 @@ class VADProcessor:
         self,
         is_above_threshold: bool,
         is_below_hysteresis: bool
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """Process chunk while in TRAILING state (brief silence during speech).
 
         Returns:

@@ -8,7 +8,6 @@ Provides:
 """
 
 from dataclasses import dataclass
-from typing import Optional
 from enum import Enum
 
 
@@ -122,8 +121,8 @@ class StreamingMetrics:
     words_in_buffer: int = 0
 
     # Timing
-    session_start_time: Optional[float] = None
-    last_activity_time: Optional[float] = None
+    session_start_time: float | None = None
+    last_activity_time: float | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -177,6 +176,6 @@ class SessionTimeoutError(StreamingError):
 class TranscriptionError(StreamingError):
     """Raised when transcription fails."""
 
-    def __init__(self, message: str, cause: Optional[Exception] = None):
+    def __init__(self, message: str, cause: Exception | None = None):
         self.cause = cause
         super().__init__(message)

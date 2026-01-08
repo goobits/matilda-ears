@@ -6,7 +6,6 @@ Implements the core streaming stability algorithm:
 - Provides prompt suffix for continuity
 """
 
-from typing import List
 import logging
 
 from .types import TimestampedWord
@@ -52,17 +51,17 @@ class HypothesisBuffer:
         self.max_confirmed_words = max_confirmed_words
 
         # Confirmed words (full history, bounded)
-        self.confirmed: List[TimestampedWord] = []
+        self.confirmed: list[TimestampedWord] = []
 
         # Confirmed words still in current audio buffer
         # Used for prompt continuity and overlap deduplication
-        self.confirmed_in_buffer: List[TimestampedWord] = []
+        self.confirmed_in_buffer: list[TimestampedWord] = []
 
         # Hypothesis tracking for LocalAgreement
-        self.previous_hypotheses: List[List[TimestampedWord]] = []
-        self.current_hypothesis: List[TimestampedWord] = []
+        self.previous_hypotheses: list[list[TimestampedWord]] = []
+        self.current_hypothesis: list[TimestampedWord] = []
 
-    def insert(self, words: List[TimestampedWord], offset_seconds: float = 0.0) -> None:
+    def insert(self, words: list[TimestampedWord], offset_seconds: float = 0.0) -> None:
         """Insert a new transcription hypothesis.
 
         Words are shifted by offset_seconds to maintain absolute timestamps.
@@ -84,7 +83,7 @@ class HypothesisBuffer:
             f"{len(self.current_hypothesis)} after dedup"
         )
 
-    def flush(self) -> List[TimestampedWord]:
+    def flush(self) -> list[TimestampedWord]:
         """Apply LocalAgreement and confirm stable words.
 
         Compares current hypothesis with previous hypotheses to find words
@@ -132,7 +131,7 @@ class HypothesisBuffer:
 
         return newly_confirmed
 
-    def _local_agreement(self) -> List[TimestampedWord]:
+    def _local_agreement(self) -> list[TimestampedWord]:
         """Apply LocalAgreement-N algorithm.
 
         Words are confirmed when they appear in the same position (relative to
@@ -180,7 +179,7 @@ class HypothesisBuffer:
 
         return newly_confirmed
 
-    def _dedupe_overlap(self, words: List[TimestampedWord]) -> List[TimestampedWord]:
+    def _dedupe_overlap(self, words: list[TimestampedWord]) -> list[TimestampedWord]:
         """Remove words that overlap with confirmed_in_buffer.
 
         Uses timing to detect overlap: if a word's start time is before

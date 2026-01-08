@@ -2,7 +2,6 @@
 """Code pattern converters for programming constructs."""
 
 import re
-from typing import Optional
 
 from ..common import Entity
 from ..constants import get_resources
@@ -30,7 +29,7 @@ class CodeConverterMixin:
         """Preserve the original text of a programming keyword."""
         return entity.text
 
-    def convert_filename(self, entity: Entity, full_text: Optional[str] = None) -> str:
+    def convert_filename(self, entity: Entity, full_text: str | None = None) -> str:
         """Convert spoken filenames to proper format based on extension"""
         text = entity.text.strip()
         logger.debug(f"Converting filename: '{text}'")

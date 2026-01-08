@@ -52,7 +52,8 @@ try:
     from base_loader import I18nLoader, get_monorepo_locales_path
 except ImportError:
     # Fallback: define minimal loader inline if base not available
-    from typing import Callable, Dict
+    from typing import Dict
+    from collections.abc import Callable
     import json
     import threading
     import os
@@ -72,7 +73,7 @@ except ImportError:
         def __init__(self, locales_path=None, default_domain="common", default_language="en"):
             self.locales_path = locales_path or get_monorepo_locales_path()
             self.default_domain = default_domain
-            self._cache: Dict[str, dict] = {}
+            self._cache: dict[str, dict] = {}
             self._lock = threading.Lock()
             self._lang = default_language
 

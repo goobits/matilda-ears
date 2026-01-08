@@ -7,7 +7,6 @@ compilation.
 """
 
 import re
-from typing import List
 
 
 # ==============================================================================
@@ -89,7 +88,7 @@ FILE_EXTENSIONS = {
 }
 
 # Flatten all extensions for use in patterns
-ALL_FILE_EXTENSIONS: List[str] = []
+ALL_FILE_EXTENSIONS: list[str] = []
 for category in FILE_EXTENSIONS.values():
     ALL_FILE_EXTENSIONS.extend(category)
 
@@ -304,17 +303,17 @@ SPOKEN_EMOJI_EXPLICIT_MAP = {
 # ==============================================================================
 
 
-def get_file_extensions_by_category(category: str) -> List[str]:
+def get_file_extensions_by_category(category: str) -> list[str]:
     """Get file extensions for a specific category."""
     return FILE_EXTENSIONS.get(category, [])
 
 
-def get_all_file_extensions() -> List[str]:
+def get_all_file_extensions() -> list[str]:
     """Get all file extensions as a flat list."""
     return ALL_FILE_EXTENSIONS.copy()
 
 
-def create_alternation_pattern(items: List[str], word_boundaries: bool = True) -> str:
+def create_alternation_pattern(items: list[str], word_boundaries: bool = True) -> str:
     """Create a regex alternation pattern from a list of items."""
     escaped_items = [re.escape(item) for item in items]
     pattern = "|".join(escaped_items)

@@ -2,7 +2,6 @@
 """Text post-processing: cleanup, domain rescue, and final formatting."""
 
 import re
-from typing import List
 
 from ...common import Entity, EntityType
 from ...constants import get_resources
@@ -137,7 +136,7 @@ class TextPostprocessor:
 
         return "".join(new_chars)
 
-    def clean_standalone_entity_punctuation(self, text: str, entities: List[Entity]) -> str:
+    def clean_standalone_entity_punctuation(self, text: str, entities: list[Entity]) -> str:
         """Remove trailing punctuation from standalone entities.
 
         If the formatted text is essentially just a single entity with trailing punctuation,

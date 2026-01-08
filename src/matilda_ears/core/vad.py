@@ -5,7 +5,6 @@ Encapsulates the state machine for detecting speech start/end using Silero VAD.
 
 import logging
 from enum import Enum
-from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -45,11 +44,11 @@ class VADProcessor:
         self.chunks_per_second = chunks_per_second
 
         # State
-        self.vad_model: Optional[SileroVAD] = None
+        self.vad_model: SileroVAD | None = None
         self.state = VADState.SILENCE
         self.consecutive_speech = 0
         self.consecutive_silence = 0
-        self.utterance_chunks: List[np.ndarray] = []
+        self.utterance_chunks: list[np.ndarray] = []
         self.speech_start_time = 0.0  # relative to stream start or chunk count
 
     def initialize(self) -> None:
@@ -74,11 +73,12 @@ class VADProcessor:
             self.logger.error(f"Failed to initialize VAD: {e}")
             raise
 
-    def process(self, chunk: np.ndarray) -> Tuple[VADEvent, float]:
+    def process(self, chunk: np.ndarray) -> tuple[VADEvent, float]:
         """Process a single audio chunk.
 
         Returns:
             Tuple of (VADEvent, speech_probability)
+
         """
         if self.vad_model is None:
             return VADEvent.NONE, 0.0
@@ -94,7 +94,7 @@ class VADProcessor:
                     self.consecutive_silence = 0
                     self.utterance_chunks = []
                     # Backfill the trigger chunks
-                    self.utterance_chunks.append(chunk) 
+                    self.utterance_chunks.append(chunk)
                     event = VADEvent.START
             else:
                 self.consecutive_speech = 0

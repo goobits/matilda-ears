@@ -15,25 +15,25 @@ if TYPE_CHECKING:
     from .hold_to_talk import HoldToTalkMode as HoldToTalkModeType
 
 # Import modes conditionally to avoid dependency issues
-ConversationMode: Optional[Type] = None
+ConversationMode: type | None = None
 try:
     from .conversation import ConversationMode
 except ImportError:
     pass
 
-TapToTalkMode: Optional[Type] = None
+TapToTalkMode: type | None = None
 try:
     from .tap_to_talk import TapToTalkMode
 except ImportError:
     pass
 
-HoldToTalkMode: Optional[Type] = None
+HoldToTalkMode: type | None = None
 try:
     from .hold_to_talk import HoldToTalkMode
 except ImportError:
     pass
 
-WakeWordMode: Optional[Type] = None
+WakeWordMode: type | None = None
 try:
     from ..wake_word.mode import WakeWordMode
 except ImportError:

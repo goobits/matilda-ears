@@ -2,7 +2,6 @@
 
 import numpy as np
 import opuslib
-from typing import Optional
 
 # Setup standardized logging
 try:
@@ -41,7 +40,7 @@ class OpusEncoder:
 
         logger.info(f"Opus encoder initialized: {sample_rate}Hz, {channels} channel(s), {bitrate}bps")
 
-    def encode_chunk(self, audio_data: np.ndarray) -> Optional[bytes]:
+    def encode_chunk(self, audio_data: np.ndarray) -> bytes | None:
         """Encode audio chunk to Opus format.
 
         Args:
@@ -79,7 +78,7 @@ class OpusEncoder:
 
         return None
 
-    def flush(self) -> Optional[bytes]:
+    def flush(self) -> bytes | None:
         """Encode any remaining samples in buffer with padding."""
         if self.buffer_size == 0:
             return None

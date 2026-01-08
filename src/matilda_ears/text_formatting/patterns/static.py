@@ -6,7 +6,7 @@ dynamic building from i18n resources. Patterns are organized by category.
 """
 
 import re
-from typing import List, Pattern, Optional
+from re import Pattern
 
 from .components import ALL_FILE_EXTENSIONS, COMMON_TLDS
 
@@ -560,7 +560,7 @@ ENTITY_BOUNDARY_PATTERN = re.compile(r"\b(?=\w)")
 # ==============================================================================
 
 
-def create_profanity_pattern(profanity_words: List[str]) -> Pattern:
+def create_profanity_pattern(profanity_words: list[str]) -> Pattern:
     """Create a pattern to filter profanity words.
 
     Only matches lowercase profanity to avoid filtering proper nouns
@@ -597,12 +597,12 @@ def create_abbreviation_restoration_pattern(abbr: str) -> Pattern:
     )
 
 
-def create_artifact_patterns(artifacts: List[str]) -> List[Pattern]:
+def create_artifact_patterns(artifacts: list[str]) -> list[Pattern]:
     """Create and cache compiled patterns for transcription artifacts."""
     return [re.compile(r"\b" + re.escape(artifact) + r"\b", re.IGNORECASE) for artifact in artifacts]
 
 
-def get_compiled_pattern(pattern_name: str) -> Optional[Pattern]:
+def get_compiled_pattern(pattern_name: str) -> Pattern | None:
     """Get a pre-compiled pattern by name."""
     # Import builders here to avoid circular imports
     # These patterns are built dynamically and need the builder functions

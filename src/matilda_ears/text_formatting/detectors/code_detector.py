@@ -2,7 +2,6 @@
 """Code-related entity detection and conversion for Matilda transcriptions."""
 
 import re
-from typing import List, Optional
 from ..common import Entity, EntityType
 from ..utils import is_inside_entity, overlaps_with_entity
 from ...core.config import setup_logging
@@ -40,7 +39,7 @@ class CodeEntityDetector:
         self.short_flag_pattern = regex_patterns.get_short_flag_pattern(language)
         self.assignment_pattern = regex_patterns.get_assignment_pattern(language)
 
-    def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
+    def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
         """Detects all code-related entities."""
         code_entities: list[Entity] = []
 
@@ -85,7 +84,7 @@ class CodeEntityDetector:
 
         return code_entities
 
-    def _detect_filenames(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_filenames(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect filenames using a simple regex anchor and robust spaCy context analysis."""
         if all_entities is None:
             all_entities = entities
@@ -207,7 +206,7 @@ class CodeEntityDetector:
             logger.debug("SpaCy filename detection found no new entities, trying regex fallback")
             self._detect_filenames_regex_fallback(text, entities, all_entities)
 
-    def _detect_spoken_operators(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_spoken_operators(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect spoken operators using SpaCy token context analysis.
 
         This method detects patterns like "variable plus plus" or "count minus minus"
@@ -325,7 +324,7 @@ class CodeEntityDetector:
                                     )
 
     def _detect_spoken_operators_regex(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Regex-based fallback for operator detection when spaCy is not available."""
         # Get operator keywords for the current language
@@ -386,7 +385,7 @@ class CodeEntityDetector:
                         logger.debug(f"Regex detected {symbol} comparison: '{match.group(0)}' at {start_pos}-{end_pos}")
 
     def _detect_assignment_operators(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detects assignment operators like 'x equals 5' -> 'x=5' or 'let x equals 5' -> 'let x=5'.
 
@@ -426,7 +425,7 @@ class CodeEntityDetector:
                     )
                 )
 
-    def _detect_abbreviations(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_abbreviations(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detect Latin abbreviations that should remain lowercase."""
         abbrev_pattern = regex_patterns.ABBREVIATION_PATTERN
         for match in abbrev_pattern.finditer(text):
@@ -436,7 +435,7 @@ class CodeEntityDetector:
                     Entity(start=match.start(), end=match.end(), text=match.group(1), type=EntityType.ABBREVIATION)
                 )
 
-    def _detect_command_flags(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_command_flags(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detects spoken command-line flags like 'dash dash verbose' or 'dash f'."""
         # Pattern for long flags: --flag
         for match in self.long_flag_pattern.finditer(text):
@@ -475,7 +474,7 @@ class CodeEntityDetector:
                         )
                     )
 
-    def _detect_preformatted_flags(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_preformatted_flags(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detects already-formatted command flags (like --MESSAGE) and normalizes them to lowercase."""
         if all_entities is None:
             all_entities = entities
@@ -501,7 +500,7 @@ class CodeEntityDetector:
                 # Update all_entities to include newly found entity for subsequent overlap checks
                 all_entities.append(entities[-1])
 
-    def _detect_slash_commands(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_slash_commands(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detects spoken slash commands like 'slash commit' -> '/commit'."""
         slash_command_pattern = self.slash_command_pattern
         matches = list(slash_command_pattern.finditer(text))
@@ -570,7 +569,7 @@ class CodeEntityDetector:
                 )
 
     def _detect_underscore_delimiters(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detects spoken underscore delimiters like 'underscore underscore blah underscore underscore' -> '__blah__'."""
         underscore_delimiter_pattern = self.underscore_delimiter_pattern
@@ -607,7 +606,7 @@ class CodeEntityDetector:
                 )
 
     def _detect_simple_underscore_variables(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detects simple underscore variables like 'user underscore id' -> 'user_id'."""
         simple_underscore_pattern = self.simple_underscore_pattern
@@ -653,7 +652,7 @@ class CodeEntityDetector:
                     )
                 )
 
-    def _detect_cli_commands(self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None) -> None:
+    def _detect_cli_commands(self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None) -> None:
         """Detects standalone CLI commands and keywords."""
         if all_entities is None:
             all_entities = entities
@@ -708,7 +707,7 @@ class CodeEntityDetector:
                     all_entities.append(new_entity)
 
     def _detect_filenames_regex_fallback(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Regex-based fallback for filename detection when spaCy is not available."""
         if all_entities is None:
@@ -785,7 +784,7 @@ class CodeEntityDetector:
             )
 
     def _detect_programming_keywords(
-        self, text: str, entities: List[Entity], all_entities: Optional[List[Entity]] = None
+        self, text: str, entities: list[Entity], all_entities: list[Entity] | None = None
     ) -> None:
         """Detects standalone programming keywords like 'let', 'const', 'if'."""
         if all_entities is None:

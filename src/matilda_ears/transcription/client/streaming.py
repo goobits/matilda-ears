@@ -13,7 +13,7 @@ import ssl
 import wave
 import tempfile
 from dataclasses import dataclass
-from typing import Callable, Optional
+from collections.abc import Callable
 import numpy as np
 import websockets
 
@@ -82,7 +82,7 @@ class StreamingAudioClient:
         token: str,
         debug_save_audio: bool = False,
         max_debug_chunks: int = 1000,
-        on_partial_result: Optional[PartialResultCallback] = None,
+        on_partial_result: PartialResultCallback | None = None,
     ):
         """Initialize streaming client.
 
@@ -102,12 +102,12 @@ class StreamingAudioClient:
 
         # Partial result callback for real-time updates
         self.on_partial_result = on_partial_result
-        self._listener_task: Optional[asyncio.Task] = None
+        self._listener_task: asyncio.Task | None = None
         self._stop_listener = asyncio.Event()
         self._pending_messages: asyncio.Queue = asyncio.Queue()
 
         # Track latest partial result for callers that don't use callback
-        self._latest_partial: Optional[PartialResult] = None
+        self._latest_partial: PartialResult | None = None
 
         # Debug features with bounded collections
         self.debug_save_audio = debug_save_audio
@@ -188,7 +188,7 @@ class StreamingAudioClient:
                         await self._pending_messages.put(data)
                         logger.debug(f"Queued message type: {msg_type}")
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Normal timeout, continue loop
                     continue
                 except websockets.exceptions.ConnectionClosed:
@@ -214,7 +214,7 @@ class StreamingAudioClient:
         if self._listener_task:
             try:
                 await asyncio.wait_for(self._listener_task, timeout=2.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self._listener_task.cancel()
                 try:
                     await self._listener_task
@@ -223,7 +223,7 @@ class StreamingAudioClient:
             self._listener_task = None
 
     @property
-    def latest_partial_result(self) -> Optional[PartialResult]:
+    def latest_partial_result(self) -> PartialResult | None:
         """Get the most recent partial result received during streaming."""
         return self._latest_partial
 

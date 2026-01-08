@@ -11,7 +11,7 @@ This mode provides automatic speech detection and transcription of a single utte
 import asyncio
 import sys
 import time
-from typing import Any, Dict
+from typing import Any
 
 from ._imports import np
 from .base_mode import BaseMode
@@ -142,7 +142,7 @@ class ListenOnceMode(BaseMode):
                     self.logger.debug("Speech ended")
                     utterance_complete = True
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # No audio data - continue waiting
                 continue
             except Exception as e:
@@ -180,7 +180,7 @@ class ListenOnceMode(BaseMode):
             self.logger.exception(f"Error processing utterance: {e}")
             await self._send_error(f"Processing error: {e}")
 
-    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> Dict[str, Any]:
+    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> dict[str, Any]:
         """Transcribe audio data using Whisper and include VAD stats."""
         result = super()._transcribe_audio(audio_data)
         if result["success"]:

@@ -14,9 +14,9 @@ from .internal.faster_whisper import FasterWhisperBackend
 
 logger = logging.getLogger(__name__)
 
-PARAKEET_AVAILABLE: Optional[bool] = None
-HUGGINGFACE_AVAILABLE: Optional[bool] = None
-IS_APPLE_SILICON: Optional[bool] = None
+PARAKEET_AVAILABLE: bool | None = None
+HUGGINGFACE_AVAILABLE: bool | None = None
+IS_APPLE_SILICON: bool | None = None
 
 
 def _is_apple_silicon() -> bool:
@@ -97,7 +97,7 @@ def _check_huggingface_available() -> bool:
     return HUGGINGFACE_AVAILABLE
 
 
-def get_available_backends() -> List[str]:
+def get_available_backends() -> list[str]:
     """Return list of available backend names.
 
     Returns:
@@ -112,7 +112,7 @@ def get_available_backends() -> List[str]:
     return backends
 
 
-def get_backend_info() -> Dict[str, Dict]:
+def get_backend_info() -> dict[str, dict]:
     """Return detailed info about all backends.
 
     Returns:
@@ -141,7 +141,7 @@ def get_backend_info() -> Dict[str, Dict]:
     }
 
 
-def get_backend_class(backend_name: str) -> Type[TranscriptionBackend]:
+def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
     """Factory function to get the backend class based on name.
 
     Args:

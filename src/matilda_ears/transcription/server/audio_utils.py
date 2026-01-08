@@ -6,7 +6,6 @@ This module provides audio processing utilities for the WebSocket server:
 """
 
 import numpy as np
-from typing import Tuple, Optional
 
 from ...core.config import setup_logging
 
@@ -17,7 +16,7 @@ SUPPORTED_SAMPLE_RATES = {8000, 16000, 48000}
 TARGET_SAMPLE_RATE = 16000
 
 
-def validate_sample_rate(sample_rate: int) -> Tuple[bool, Optional[str]]:
+def validate_sample_rate(sample_rate: int) -> tuple[bool, str | None]:
     """Validate that the sample rate is supported.
 
     Args:

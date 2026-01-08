@@ -8,7 +8,8 @@ Provides create_streaming_session() that:
 
 import asyncio
 import logging
-from typing import Callable, Awaitable, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
+from collections.abc import Callable, Awaitable
 
 
 from .config import StreamingConfig
@@ -27,7 +28,7 @@ BatchTranscribeFn = Callable[[bytes, str], Awaitable[tuple]]
 def create_streaming_session(
     session_id: str,
     backend: "TranscriptionBackend",
-    config: Optional[StreamingConfig] = None,
+    config: StreamingConfig | None = None,
     transcription_semaphore: Optional["asyncio.Semaphore"] = None,
 ) -> StreamingSession:
     """Create a streaming session with appropriate strategy.

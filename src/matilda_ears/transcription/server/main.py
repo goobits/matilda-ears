@@ -7,9 +7,8 @@ This module provides:
 
 import argparse
 import asyncio
-import sys
 import traceback
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import websockets
 
@@ -25,8 +24,8 @@ logger = setup_logging(__name__, log_filename="transcription.txt")
 
 async def start_server(
     server: "MatildaWebSocketServer",
-    host: Optional[str] = None,
-    port: Optional[int] = None,
+    host: str | None = None,
+    port: int | None = None,
 ) -> None:
     """Start the WebSocket server.
 

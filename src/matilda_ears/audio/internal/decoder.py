@@ -4,7 +4,6 @@ import io
 import wave
 import numpy as np
 import opuslib
-from typing import Optional
 
 # Setup standardized logging
 try:
@@ -166,11 +165,11 @@ class OpusStreamDecoder:
         logger.info(f"Created decoding session: {session_id}")
         return decoder
 
-    def get_session(self, session_id: str) -> Optional[OpusDecoder]:
+    def get_session(self, session_id: str) -> OpusDecoder | None:
         """Get an existing session decoder."""
         return self.sessions.get(session_id)
 
-    def remove_session(self, session_id: str) -> Optional[OpusDecoder]:
+    def remove_session(self, session_id: str) -> OpusDecoder | None:
         """Remove and return a session decoder."""
         decoder = self.sessions.pop(session_id, None)
         if decoder:

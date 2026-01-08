@@ -5,7 +5,6 @@ This module serves as the orchestrator for numeric entity detection, delegating 
 specialized sub-detectors for different entity types.
 """
 
-from typing import List
 from ..common import Entity, NumberParser
 from ..constants import get_resources
 from ...core.config import setup_logging
@@ -92,7 +91,7 @@ class NumericalEntityDetector:
         # Keep MathExpressionParser accessible for backward compatibility
         self.math_parser = self.math_detector.math_parser
 
-    def detect(self, text: str, entities: List[Entity]) -> List[Entity]:
+    def detect(self, text: str, entities: list[Entity]) -> list[Entity]:
         """Detects all numerical-related entities.
 
         Args:

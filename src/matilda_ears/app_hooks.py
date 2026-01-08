@@ -11,10 +11,10 @@ Example:
 
 # Import any modules you need here
 import json as json_module
-from typing import Any, Dict, Optional
+from typing import Any
 
 
-def on_status(json: bool = False, **kwargs) -> Dict[str, Any]:
+def on_status(json: bool = False, **kwargs) -> dict[str, Any]:
     """Handle status command - show system status and capabilities.
 
     Args:
@@ -22,6 +22,7 @@ def on_status(json: bool = False, **kwargs) -> Dict[str, Any]:
 
     Returns:
         Dictionary with status and optional results
+
     """
     from .core.config import get_config
     from .utils.model_downloader import is_model_cached
@@ -52,7 +53,7 @@ def on_status(json: bool = False, **kwargs) -> Dict[str, Any]:
     return {"status": "success", "data": status}
 
 
-def on_models(json: bool = False, **kwargs) -> Dict[str, Any]:
+def on_models(json: bool = False, **kwargs) -> dict[str, Any]:
     """Handle models command - list available Whisper models.
 
     Args:
@@ -60,6 +61,7 @@ def on_models(json: bool = False, **kwargs) -> Dict[str, Any]:
 
     Returns:
         Dictionary with status and optional results
+
     """
     from .utils.model_downloader import list_available_models
 
@@ -80,7 +82,7 @@ def on_models(json: bool = False, **kwargs) -> Dict[str, Any]:
     return {"status": "success", "data": models}
 
 
-def on_download(model: Optional[str] = None, progress: bool = False, **kwargs) -> Dict[str, Any]:
+def on_download(model: str | None = None, progress: bool = False, **kwargs) -> dict[str, Any]:
     """Handle download command - download Whisper model for offline use.
 
     Args:
@@ -89,6 +91,7 @@ def on_download(model: Optional[str] = None, progress: bool = False, **kwargs) -
 
     Returns:
         Dictionary with status and optional results
+
     """
     from .utils.model_downloader import download_model, download_with_json_output, is_model_cached
 
@@ -127,12 +130,12 @@ def on_download(model: Optional[str] = None, progress: bool = False, **kwargs) -
 
 
 def on_train_wake_word(
-    phrase: Optional[str] = None,
-    output: Optional[str] = None,
-    samples: Optional[str] = "3000",
-    epochs: Optional[str] = "10",
+    phrase: str | None = None,
+    output: str | None = None,
+    samples: str | None = "3000",
+    epochs: str | None = "10",
     **kwargs
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Train a custom wake word model using Modal.com cloud GPU.
 
     Args:
@@ -143,6 +146,7 @@ def on_train_wake_word(
 
     Returns:
         Dictionary with status and optional results
+
     """
     from .wake_word.training import train_wake_word
 

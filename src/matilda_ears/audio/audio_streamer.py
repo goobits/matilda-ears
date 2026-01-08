@@ -2,7 +2,6 @@
 
 import asyncio
 import numpy as np
-from typing import Optional
 import weakref
 from aiohttp import web
 
@@ -91,7 +90,7 @@ class AudioStreamer:
 
 
 # Global instance
-_streamer: Optional[AudioStreamer] = None
+_streamer: AudioStreamer | None = None
 
 
 def get_audio_streamer() -> AudioStreamer:

@@ -11,7 +11,7 @@ import io
 import os
 import tempfile
 import wave
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 import websockets
@@ -29,7 +29,7 @@ async def transcribe_audio_from_wav(
     server: "MatildaWebSocketServer",
     wav_data: bytes,
     client_id: str,
-) -> Tuple[bool, str, dict]:
+) -> tuple[bool, str, dict]:
     """Common transcription logic for both batch and streaming.
 
     Args:

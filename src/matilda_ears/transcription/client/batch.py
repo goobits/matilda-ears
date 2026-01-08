@@ -12,7 +12,6 @@ import base64
 import ssl
 import threading
 import websockets
-from typing import Optional, Tuple
 
 from .circuit_breaker import CircuitBreaker
 from ...utils.ssl import create_ssl_context
@@ -57,7 +56,7 @@ class BatchTranscriber:
         self.mode_configs = mode_configs
         self.debug_callback = debug_callback if debug_callback is not None else (lambda msg: None)
 
-    def get_ssl_context(self) -> Optional[ssl.SSLContext]:
+    def get_ssl_context(self) -> ssl.SSLContext | None:
         """Get SSL context for client connections.
 
         Returns:
@@ -77,8 +76,8 @@ class BatchTranscriber:
         return ssl_context
 
     async def send_batch_transcription(
-        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, use_opus_compression: bool = True
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        self, audio_file_path: str, cancel_event: threading.Event | None = None, use_opus_compression: bool = True
+    ) -> tuple[bool, str | None, str | None]:
         """Send batch transcription request.
 
         Args:
@@ -172,7 +171,7 @@ class BatchTranscriber:
                 self.circuit_breaker.record_failure()
                 return False, None, f"Unexpected response: {response_data}"
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.circuit_breaker.record_failure()
             return False, None, "Transcription request timed out"
         except websockets.exceptions.ConnectionClosed as e:
@@ -183,8 +182,8 @@ class BatchTranscriber:
             return False, None, f"Transcription failed: {e}"
 
     async def transcribe_batch_mode(
-        self, audio_file_path: str, cancel_event: Optional[threading.Event] = None, **batch_options
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        self, audio_file_path: str, cancel_event: threading.Event | None = None, **batch_options
+    ) -> tuple[bool, str | None, str | None]:
         """Traditional batch transcription (record-then-transcribe).
 
         This mode waits for recording to complete, then transcribes the entire

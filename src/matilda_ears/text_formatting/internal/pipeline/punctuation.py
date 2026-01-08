@@ -3,7 +3,6 @@
 
 import os
 import re
-from typing import List, Optional
 
 from ...common import Entity, EntityType
 from ...constants import get_resources
@@ -32,7 +31,7 @@ class PunctuationProcessor:
         text: str,
         original_had_punctuation: bool = False,
         is_standalone_technical: bool = False,
-        entities: Optional[List[Entity]] = None,
+        entities: list[Entity] | None = None,
     ) -> str:
         """Add punctuation - treat all text as sentences unless single standalone technical entity."""
         if entities is None:

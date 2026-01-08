@@ -8,7 +8,7 @@ Supports multiple aliases per agent (e.g., "Hey Matilda", "computer", "assistant
 
 import asyncio
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Any
 
 try:
     import numpy as np
@@ -75,11 +75,11 @@ class WakeWordMode(BaseMode):
         self.noise_suppression = mode_config.get("noise_suppression", True)
 
         # Components (initialized in run)
-        self.detector: Optional[WakeWordDetector] = None
+        self.detector: WakeWordDetector | None = None
         self.vad = None
         self._running = False
 
-    def _parse_agent_aliases(self, args, mode_config: Dict) -> Optional[Dict[str, List[str]]]:
+    def _parse_agent_aliases(self, args, mode_config: dict) -> dict[str, list[str]] | None:
         """Parse agent aliases from CLI or config.
 
         Priority:
@@ -203,7 +203,7 @@ class WakeWordMode(BaseMode):
             self.logger.warning(f"VAD not available, using simple silence detection: {e}")
             self.vad = None
 
-    async def _detection_loop(self) -> Optional[Dict[str, Any]]:
+    async def _detection_loop(self) -> dict[str, Any] | None:
         """Listen for wake word and capture utterance.
 
         Returns:
@@ -256,7 +256,7 @@ class WakeWordMode(BaseMode):
                     else:
                         await self._send_status("timeout", "No speech detected after wake word")
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except Exception as e:
                 self.logger.error(f"Detection loop error: {e}")
@@ -264,7 +264,7 @@ class WakeWordMode(BaseMode):
 
         return None
 
-    async def _capture_utterance(self) -> List["np.ndarray"]:
+    async def _capture_utterance(self) -> list["np.ndarray"]:
         """Capture audio until silence detected by VAD.
 
         Returns:
@@ -302,7 +302,7 @@ class WakeWordMode(BaseMode):
                     self.logger.debug(f"Silence detected, captured {len(chunks)} chunks")
                     break
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self.logger.warning("Timeout waiting for audio during utterance capture")
                 break
 

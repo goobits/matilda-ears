@@ -1,5 +1,4 @@
-"""
-Modal.com training script for custom wake word models.
+"""Modal.com training script for custom wake word models.
 
 This runs OpenWakeWord training on Modal's cloud GPUs.
 Usage: modal run src/matilda_ears/wake_word/internal/modal_train.py --phrase "hey matilda"
@@ -50,15 +49,14 @@ def train_wake_word(
     epochs: int = 10,
 ) -> bytes:
     """Train a wake word model and return the ONNX bytes."""
-    import os
     import tempfile
     import subprocess
     from pathlib import Path
 
-    print(f"=" * 60)
+    print("=" * 60)
     print(f"Training wake word model for: {phrase}")
     print(f"Samples: {num_samples}, Epochs: {epochs}")
-    print(f"=" * 60)
+    print("=" * 60)
 
     # Normalize the phrase to a model name
     model_name = phrase.lower().replace(" ", "_").replace("-", "_")
@@ -72,7 +70,7 @@ def train_wake_word(
     print("\n[1/5] Setting up OpenWakeWord...")
     subprocess.run(
         ["git", "clone", "--depth=1", "https://github.com/dscripka/openWakeWord.git"],
-        cwd=work_dir,
+        check=False, cwd=work_dir,
         capture_output=True,
     )
 
@@ -108,7 +106,7 @@ def train_wake_word(
         # Install piper voices
         subprocess.run(
             ["pip", "install", "piper-tts"],
-            capture_output=True,
+            check=False, capture_output=True,
         )
 
         # Generate samples with different voices
@@ -126,7 +124,7 @@ def train_wake_word(
                 wav_path = positive_dir / f"sample_{sample_idx:05d}.wav"
                 subprocess.run(
                     ["piper", "--model", voice, "--output_file", str(wav_path)],
-                    input=phrase.encode(),
+                    check=False, input=phrase.encode(),
                     capture_output=True,
                 )
                 sample_idx += 1
@@ -158,7 +156,7 @@ def train_wake_word(
             wav_path = negative_dir / f"neg_{neg_idx:05d}.wav"
             subprocess.run(
                 ["piper", "--model", "en_US-lessac-medium", "--output_file", str(wav_path)],
-                input=neg_phrase.encode(),
+                check=False, input=neg_phrase.encode(),
                 capture_output=True,
             )
             neg_idx += 1
@@ -192,7 +190,7 @@ train_model(
 )
 """
         ],
-        capture_output=True,
+        check=False, capture_output=True,
         text=True,
     )
 
@@ -214,7 +212,7 @@ train_model(
                 "--output_dir", str(output_dir),
                 "--epochs", str(epochs),
             ],
-            capture_output=True,
+            check=False, capture_output=True,
             text=True,
         )
         if alt_result.stdout:
@@ -261,6 +259,7 @@ def main(
         output: Output path for the ONNX file (default: {phrase}.onnx)
         samples: Number of training samples to generate
         epochs: Number of training epochs
+
     """
     from pathlib import Path
 
@@ -286,6 +285,6 @@ def main(
     output_path.write_bytes(model_bytes)
 
     print(f"\n✓ Model saved to: {output_path}")
-    print(f"\nTo use it:")
+    print("\nTo use it:")
     print(f"  1. Move to: matilda-ears/src/matilda_ears/wake_word/models/{model_name}.onnx")
-    print(f"  2. Run: ears --wake-word --agent-aliases=\"Matilda:{model_name}\"")
+    print(f'  2. Run: ears --wake-word --agent-aliases="Matilda:{model_name}"')

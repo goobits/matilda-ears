@@ -2,7 +2,6 @@
 """Smart capitalization module for Matilda transcriptions."""
 
 import re
-from typing import List, Optional
 from ..core.config import setup_logging
 
 # Import common data structures
@@ -78,7 +77,7 @@ class SmartCapitalizer:
         # Load common abbreviations from resources
         self.common_abbreviations = tuple(self.resources.get("technical", {}).get("common_abbreviations", []))
 
-    def capitalize(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
+    def capitalize(self, text: str, entities: list[Entity] | None = None, doc=None) -> str:
         """Apply intelligent capitalization with entity protection"""
         if not text:
             return text
@@ -347,7 +346,7 @@ class SmartCapitalizer:
 
         return text
 
-    def _capitalize_proper_nouns(self, text: str, entities: Optional[List[Entity]] = None, doc=None) -> str:
+    def _capitalize_proper_nouns(self, text: str, entities: list[Entity] | None = None, doc=None) -> str:
         """Capitalize proper nouns using spaCy NER and known patterns"""
         if not self.nlp:
             # No spaCy available, return text unchanged

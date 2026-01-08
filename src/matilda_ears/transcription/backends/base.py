@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
 
 
 class TranscriptionBackend(ABC):
@@ -15,7 +14,7 @@ class TranscriptionBackend(ABC):
         """Load the model asynchronously."""
 
     @abstractmethod
-    def transcribe(self, audio_path: str, language: str = "en") -> Tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
         """Transcribe an audio file.
 
         Args:

@@ -5,9 +5,8 @@ Designed for integration with Tauri frontend for visual progress display.
 """
 
 import json
-import sys
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 # Model configurations matching faster-whisper
 WHISPER_MODELS = {
@@ -75,7 +74,7 @@ def is_model_cached(model_name: str) -> bool:
 
 def download_model(
     model_name: str = "base",
-    progress_callback: Optional[Callable[[dict], None]] = None,
+    progress_callback: Callable[[dict], None] | None = None,
     force: bool = False,
 ) -> bool:
     """Download a Whisper model with progress tracking.
@@ -88,6 +87,7 @@ def download_model(
 
     Returns:
         True if download successful, False otherwise
+
     """
     if model_name not in WHISPER_MODELS:
         if progress_callback:

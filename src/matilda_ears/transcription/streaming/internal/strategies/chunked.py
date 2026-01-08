@@ -11,7 +11,7 @@ lack of word timestamp support.
 
 import time
 import logging
-from typing import Callable, Awaitable
+from collections.abc import Callable, Awaitable
 
 import numpy as np
 

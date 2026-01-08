@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Shared utility functions for text formatting modules."""
 
-from typing import List
 from .common import Entity
 
 
-def is_inside_entity(start: int, end: int, entities: List[Entity]) -> bool:
+def is_inside_entity(start: int, end: int, entities: list[Entity]) -> bool:
     """Check if a span is inside any existing entity.
 
     Args:
@@ -23,7 +22,7 @@ def is_inside_entity(start: int, end: int, entities: List[Entity]) -> bool:
     return False
 
 
-def overlaps_with_entity(start: int, end: int, entities: List[Entity]) -> bool:
+def overlaps_with_entity(start: int, end: int, entities: list[Entity]) -> bool:
     """Check if a span overlaps with any existing entity.
 
     Args:

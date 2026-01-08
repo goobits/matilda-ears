@@ -10,7 +10,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 # Import shared path setup (also adds project root to sys.path)
 from ._imports import *  # noqa: F403
@@ -89,7 +89,7 @@ class FileTranscribeMode:
         except Exception as e:
             raise RuntimeError(f"Failed to load backend: {e}")
 
-    async def _transcribe_file(self, file_path: str) -> Dict[str, Any]:
+    async def _transcribe_file(self, file_path: str) -> dict[str, Any]:
         """Transcribe audio file using backend."""
         try:
             if self.backend is None or not self.backend.is_ready:
@@ -154,7 +154,7 @@ class FileTranscribeMode:
             }
             print(json.dumps(result), flush=True)
 
-    async def _send_result(self, result: Dict[str, Any]):
+    async def _send_result(self, result: dict[str, Any]):
         """Send transcription result."""
         if self.args.format == "json":
             output = {

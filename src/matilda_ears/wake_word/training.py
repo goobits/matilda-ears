@@ -1,14 +1,14 @@
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .internal.model import WakeWordTrainingRequest, WakeWordTrainingResult
 from .internal.trainer import normalize_model_name, validate_phrase
 from .internal.storage import ensure_output_path, get_models_dir
 
 
-def _parse_int(value: Optional[object], default: int, label: str) -> int:
+def _parse_int(value: object | None, default: int, label: str) -> int:
     if value is None:
         return default
     if isinstance(value, int):
@@ -19,16 +19,16 @@ def _parse_int(value: Optional[object], default: int, label: str) -> int:
 
 
 def train_wake_word(
-    phrase: Optional[str],
-    output: Optional[str],
-    samples: Optional[object],
-    epochs: Optional[object],
-) -> Dict[str, Any]:
+    phrase: str | None,
+    output: str | None,
+    samples: object | None,
+    epochs: object | None,
+) -> dict[str, Any]:
     try:
         phrase_value = validate_phrase(phrase)
     except ValueError:
         print("ERROR: Please provide a phrase to train.")
-        print("Usage: ears train-wake-word \"hey matilda\"")
+        print('Usage: ears train-wake-word "hey matilda"')
         return {"status": "error", "error": "No phrase provided"}
 
     model_name = normalize_model_name(phrase_value)
@@ -100,7 +100,7 @@ def train_wake_word(
             "--epochs",
             str(request.epochs),
         ],
-        capture_output=False,
+        check=False, capture_output=False,
     )
 
     if result.returncode == 0 and request.output_path.exists():
@@ -110,7 +110,7 @@ def train_wake_word(
         print("=" * 60)
         print()
         print("To use your new wake word:")
-        print(f"  ears --wake-word --agent-aliases=\"Matilda:{model_name}\"")
+        print(f'  ears --wake-word --agent-aliases="Matilda:{model_name}"')
         print()
         result_obj = WakeWordTrainingResult(status="success", model_path=request.output_path)
         return {"status": result_obj.status, "model_path": str(result_obj.model_path)}

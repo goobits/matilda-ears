@@ -8,7 +8,8 @@ WebSocket connections with automatic recovery.
 import time
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, Any, Tuple, Callable
+from typing import Any
+from collections.abc import Callable
 
 
 class CircuitState(Enum):
@@ -31,7 +32,7 @@ class CircuitBreakerConfig:
 class CircuitBreaker:
     """Lightweight circuit breaker for WebSocket connections."""
 
-    def __init__(self, config_obj: Optional[CircuitBreakerConfig] = None):
+    def __init__(self, config_obj: CircuitBreakerConfig | None = None):
         """Initialize circuit breaker.
 
         Args:
@@ -89,7 +90,7 @@ class CircuitBreaker:
             self.state = CircuitState.OPEN
             self.success_count = 0
 
-    def execute(self, func: Callable[[], Any]) -> Tuple[bool, Any, Optional[str]]:
+    def execute(self, func: Callable[[], Any]) -> tuple[bool, Any, str | None]:
         """Execute function with circuit breaker protection.
 
         Args:
