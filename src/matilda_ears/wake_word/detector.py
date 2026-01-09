@@ -153,6 +153,8 @@ class WakeWordDetector:
         if not model_specs:
             raise RuntimeError(f"No wake word models to load. " f"Configured aliases: {self._agent_aliases}")
 
+        self._ensure_pretrained_models(model_specs)
+
         # Load single model with ALL wake phrases for efficiency
         try:
             self.model = Model(
@@ -178,16 +180,8 @@ class WakeWordDetector:
             Example: ("Matilda", "computer", 0.87)
 
         """
-        predictions = self.model.predict(audio)
-
-        # Find highest confidence above threshold
-        best_phrase = None
-        best_confidence = self.threshold
-
-        for phrase, confidence in predictions.items():
-            if confidence > best_confidence:
-                best_phrase = phrase
-                best_confidence = confidence
+        predictions = self._predict(audio)
+        best_phrase, best_confidence = self._best_prediction(predictions, self.threshold)
 
         if best_phrase and best_phrase in self._phrase_to_agent:
             agent = self._phrase_to_agent[best_phrase]
@@ -197,13 +191,19 @@ class WakeWordDetector:
         return None
 
     def detect_chunk(self, audio: "np.ndarray") -> tuple[str, str, float] | None:
+        """Detect wake word in audio chunk (convenience wrapper for int16 audio)."""
         if audio.size == 0:
             return None
-        if audio.dtype == np.int16:
-            normalized = audio.astype(np.float32) / 32768.0
-        else:
-            normalized = audio.astype(np.float32)
-        return self.detect(normalized)
+        # OpenWakeWord expects int16 audio directly - do NOT normalize to float32
+        return self.detect(audio)
+
+    def best_score(self, audio: "np.ndarray") -> tuple[str | None, float]:
+        """Get best prediction score without threshold filtering."""
+        if audio.size == 0:
+            return (None, 0.0)
+        # OpenWakeWord expects int16 audio directly - do NOT normalize to float32
+        predictions = self._predict(audio)
+        return self._best_prediction(predictions, 0.0)
 
     def detect_agent(self, audio: "np.ndarray") -> str | None:
         """Detect wake word and return just the agent name.
@@ -224,6 +224,39 @@ class WakeWordDetector:
         """Reset model states (call between utterances)."""
         if hasattr(self.model, "reset"):
             self.model.reset()
+
+    def _ensure_pretrained_models(self, model_specs: list[str]) -> None:
+        try:
+            import openwakeword
+            from openwakeword import utils as oww_utils
+        except Exception as e:
+            logger.debug(f"Skipping wake word model download: {e}")
+            return
+
+        missing = []
+        for spec in model_specs:
+            if spec in getattr(openwakeword, "MODELS", {}):
+                model_path = Path(openwakeword.MODELS[spec]["model_path"])
+                if not model_path.exists():
+                    missing.append(spec)
+
+        if missing:
+            logger.info(f"Downloading wake word models: {', '.join(missing)}")
+            oww_utils.download_models(missing)
+
+    def _predict(self, audio: "np.ndarray") -> dict[str, float]:
+        return self.model.predict(audio)
+
+    def _best_prediction(self, predictions: dict[str, float], min_threshold: float) -> tuple[str | None, float]:
+        best_phrase = None
+        best_confidence = min_threshold
+
+        for phrase, confidence in predictions.items():
+            if confidence > best_confidence:
+                best_phrase = phrase
+                best_confidence = confidence
+
+        return (best_phrase, best_confidence)
 
     @property
     def loaded_agents(self) -> list[str]:
