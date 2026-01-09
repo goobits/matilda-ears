@@ -112,7 +112,7 @@ class TokenManager:
             try:
                 expires_str = token_info.get("expires")
                 if expires_str:
-                    expires = datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
+                    expires = datetime.fromisoformat(expires_str)
                     if now > expires:
                         expired_tokens.append(token_id)
             except Exception as e:

@@ -196,7 +196,7 @@ def assert_format(input_text: str, expected: str, actual: str, test_name: str = 
         # Show character-by-character diff if needed
         if len(expected) < 50 and len(actual) < 50:
             diff_text = ""
-            for i, (e, a) in enumerate(zip(expected, actual)):
+            for i, (e, a) in enumerate(zip(expected, actual, strict=False)):
                 if e != a:
                     diff_text += f"[red]{a}[/red]"
                 else:

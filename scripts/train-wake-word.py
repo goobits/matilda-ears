@@ -61,12 +61,9 @@ run("pip install -q piper-tts")  # For synthetic speech generation
 # Step 2: Import libraries
 print("\n[2/6] Loading libraries...")
 try:
-    import numpy as np
     import torch
     from pathlib import Path
-    import json
     import yaml
-    import tempfile
     import shutil
 except ImportError as e:
     print(f"Import error: {e}")

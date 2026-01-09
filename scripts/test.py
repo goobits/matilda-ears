@@ -19,7 +19,7 @@ def check_and_use_test_env():
     if os.path.exists(test_env_python) and sys.executable != os.path.abspath(test_env_python):
         print("🔄 Switching to test environment...")
         # Re-execute this script with the test environment Python
-        os.execv(test_env_python, [test_env_python] + sys.argv)
+        os.execv(test_env_python, [test_env_python] + sys.argv)  # noqa: S606
 
 
 # Check for test environment at startup

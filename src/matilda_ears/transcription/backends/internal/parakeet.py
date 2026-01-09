@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 # Enforce dependencies at module level so import fails if missing
 try:
-    import mlx.core
-    import parakeet_mlx
+    import mlx.core  # noqa: F401
+    import parakeet_mlx  # noqa: F401
 except ImportError:
     raise ImportError("parakeet-mlx or mlx is not installed")
 

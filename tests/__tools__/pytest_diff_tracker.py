@@ -65,8 +65,9 @@ class DiffTracker:
         self.history_file = None
         HISTORY_DIR.mkdir(exist_ok=True)
 
+    @staticmethod
     @lru_cache(maxsize=32)
-    def _normalize_test_path(self, test_args: tuple) -> str:
+    def _normalize_test_path(test_args: tuple) -> str:
         """Convert test arguments to normalized path string."""
         args_str = " ".join(test_args).strip()
 
@@ -102,7 +103,7 @@ class DiffTracker:
 
         normalized = path_map.get(test_path)
         if not normalized:
-            normalized = hashlib.md5(test_path.encode()).hexdigest()[:8]
+            normalized = hashlib.md5(test_path.encode(), usedforsecurity=False).hexdigest()[:8]
 
         return HISTORY_DIR / f"test_history_{normalized}.json"
 

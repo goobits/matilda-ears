@@ -125,6 +125,7 @@ class MatildaWebSocketServer:
         self.message_handlers = {
             "ping": self._wrap_handler(handlers.handle_ping),
             "auth": self._wrap_handler(handlers.handle_auth),
+            "generate_token": self._wrap_handler(handlers.handle_generate_token),
             "transcribe": self._wrap_handler(handlers.handle_transcription),
             "start_stream": self._wrap_handler(handlers.handle_start_stream),
             "audio_chunk": self._wrap_handler(handlers.handle_audio_chunk),

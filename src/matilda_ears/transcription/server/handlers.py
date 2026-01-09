@@ -1,6 +1,7 @@
 from .request_handlers import (
     handle_auth,
     handle_binary_audio,
+    handle_generate_token,
     handle_ping,
     handle_transcription,
 )
@@ -15,6 +16,7 @@ from .stream_handlers import (
 __all__ = [
     "handle_auth",
     "handle_binary_audio",
+    "handle_generate_token",
     "handle_ping",
     "handle_transcription",
     "handle_audio_chunk",

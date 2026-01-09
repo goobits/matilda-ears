@@ -214,9 +214,9 @@ def download_with_json_output(model_name: str = "base", force: bool = False) -> 
 def list_available_models() -> dict:
     """List all available models with their cache status."""
     models = {}
-    for name in WHISPER_MODELS:
+    for name, repo_id in WHISPER_MODELS.items():
         models[name] = {
-            "repo_id": WHISPER_MODELS[name],
+            "repo_id": repo_id,
             "size_mb": MODEL_SIZES_MB.get(name, 0),
             "cached": is_model_cached(name),
         }

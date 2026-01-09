@@ -1,4 +1,5 @@
 import base64
+import ipaddress
 import json
 import time
 from typing import TYPE_CHECKING
@@ -14,7 +15,13 @@ logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
 def is_local_client(client_ip: str) -> bool:
-    return client_ip in {"127.0.0.1", "::1", "localhost"}
+    if client_ip in {"127.0.0.1", "::1", "localhost"}:
+        return True
+    try:
+        address = ipaddress.ip_address(client_ip)
+    except ValueError:
+        return False
+    return address.is_private or address.is_loopback
 
 
 async def handle_binary_audio(
@@ -98,6 +105,39 @@ async def handle_auth(
     else:
         await send_error(websocket, "Authentication failed")
         logger.warning(f"Client {client_id} authentication failed")
+
+
+async def handle_generate_token(
+    server: "MatildaWebSocketServer",
+    websocket,
+    data: dict,
+    client_ip: str,
+    client_id: str,
+) -> None:
+    """Generate a new JWT token for local debug clients."""
+    if not is_local_client(client_ip):
+        await send_error(websocket, "Authentication required")
+        return
+
+    client_name = data.get("client_name") or "debug-client"
+    try:
+        token_info = server.token_manager.generate_token(client_name)
+    except Exception as e:
+        logger.exception(f"Client {client_id}: Token generation failed: {e}")
+        await send_error(websocket, f"Token generation failed: {e}")
+        return
+
+    await websocket.send(
+        json.dumps(
+            {
+                "type": "token_generated",
+                "token": token_info.get("token"),
+                "token_id": token_info.get("token_id"),
+                "expires": token_info.get("expires"),
+                "client_name": client_name,
+            }
+        )
+    )
 
 
 async def handle_transcription(

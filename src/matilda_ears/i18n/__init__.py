@@ -53,7 +53,6 @@ try:
     from base_loader import I18nLoader, get_monorepo_locales_path
 except ImportError:
     # Fallback: define minimal loader inline if base not available
-    from typing import Dict
     from collections.abc import Callable
     import json
     import threading

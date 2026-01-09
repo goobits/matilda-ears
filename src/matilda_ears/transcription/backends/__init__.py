@@ -9,7 +9,6 @@ Supported backends:
 import logging
 import platform
 import subprocess
-from typing import Optional, Type, List, Dict
 from .base import TranscriptionBackend
 from .internal.faster_whisper import FasterWhisperBackend
 

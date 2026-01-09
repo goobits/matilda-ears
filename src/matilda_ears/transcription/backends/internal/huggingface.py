@@ -44,7 +44,7 @@ except ImportError:
     torch = None
 
 try:
-    from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
+    from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor  # noqa: F401
 
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
