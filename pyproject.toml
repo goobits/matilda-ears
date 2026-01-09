@@ -113,6 +113,7 @@ directory = ".artifacts/cache/htmlcov"
 "src/matilda_ears/transcription/backends/parakeet_backend.py" = [ "F401",]
 "scripts/*.py" = [ "E402",]
 "tests/**/conftest.py" = [ "E402",]
+"tests/**/*.py" = [ "S101",]
 
 [tool.setuptools.packages.find]
 where = [ "src", ".",]
