@@ -16,7 +16,7 @@ dist/
 *.egg
 
 # Virtual environments
-.venv/
+.venv*/
 venv/
 env/
 .venv-e2e/
