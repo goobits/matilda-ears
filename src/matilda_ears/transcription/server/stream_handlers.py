@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import time
 import uuid
 from typing import TYPE_CHECKING
 
@@ -97,6 +98,10 @@ async def _process_wake_word_chunk(
     if detector is None:
         return
 
+    debug_state = server.wake_word_debug_sessions.get(session_id)
+    max_phrase = None
+    max_confidence = 0.0
+
     buffer = server.wake_word_buffers.get(session_id)
     if buffer is None or buffer.size == 0:
         combined = pcm_samples
@@ -109,6 +114,10 @@ async def _process_wake_word_chunk(
 
     while offset + chunk_size <= combined.size:
         frame = combined[offset : offset + chunk_size]
+        phrase, confidence = detector.best_score(frame)
+        if confidence > max_confidence:
+            max_confidence = confidence
+            max_phrase = phrase
         detected = detector.detect_chunk(frame)
         if detected:
             break
@@ -132,6 +141,30 @@ async def _process_wake_word_chunk(
         return
 
     server.wake_word_buffers[session_id] = combined[offset:]
+
+    if debug_state is not None:
+        now = time.time()
+        if now - debug_state["last_sent"] >= 0.5:
+            debug_state["last_sent"] = now
+            if pcm_samples.size:
+                samples = pcm_samples.astype(np.float32) / 32768.0
+                rms = float(np.sqrt(np.mean(samples * samples)))
+                peak = float(np.max(np.abs(samples)))
+            else:
+                rms = 0.0
+                peak = 0.0
+            await websocket.send(
+                json.dumps(
+                    {
+                        "type": "wake_word_score",
+                        "session_id": session_id,
+                        "phrase": str(max_phrase or ""),
+                        "confidence": float(max_confidence),
+                        "rms": rms,
+                        "peak": peak,
+                    }
+                )
+            )
 
 
 async def handle_start_stream(
@@ -200,9 +233,12 @@ async def handle_start_stream(
         server.binary_stream_sessions[client_id] = session_id
 
     wake_word_enabled = bool(data.get("wake_word_enabled", False))
+    wake_word_debug = bool(data.get("wake_word_debug", False))
     if wake_word_enabled:
         server.wake_word_sessions[session_id] = True
         server.wake_word_buffers[session_id] = np.array([], dtype=np.int16)
+        if wake_word_debug:
+            server.wake_word_debug_sessions[session_id] = {"last_sent": 0.0}
         _get_wake_word_detector(server)
 
     # Try to create streaming session with new framework
@@ -727,3 +763,4 @@ async def handle_end_stream(
             server.binary_stream_sessions.pop(client_id, None)
         server.wake_word_sessions.pop(session_id, None)
         server.wake_word_buffers.pop(session_id, None)
+        server.wake_word_debug_sessions.pop(session_id, None)

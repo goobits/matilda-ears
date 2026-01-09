@@ -1,6 +1,7 @@
 import base64
 import ipaddress
 import json
+import os
 import time
 from typing import TYPE_CHECKING
 
@@ -22,6 +23,13 @@ def is_local_client(client_ip: str) -> bool:
     except ValueError:
         return False
     return address.is_private or address.is_loopback
+
+
+def allow_token_generation(client_ip: str) -> bool:
+    env_value = os.getenv("STT_ALLOW_TOKEN_GENERATION")
+    if env_value is not None:
+        return env_value.strip().lower() in {"1", "true", "yes", "on"}
+    return is_local_client(client_ip)
 
 
 async def handle_binary_audio(
@@ -115,7 +123,7 @@ async def handle_generate_token(
     client_id: str,
 ) -> None:
     """Generate a new JWT token for local debug clients."""
-    if not is_local_client(client_ip):
+    if not allow_token_generation(client_ip):
         await send_error(websocket, "Authentication required")
         return
 

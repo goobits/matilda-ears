@@ -1,9 +1,12 @@
 {
   "transcription": {
-    "backend": "parakeet"
+    "backend": "faster_whisper"
   },
-  "parakeet": {
-    "model": "mlx-community/parakeet-tdt-0.6b-v3"
+  "modes": {
+    "wake_word": {
+      "noise_suppression": false,
+      "threshold": 0.2
+    }
   },
   "paths": {
     "venv": {

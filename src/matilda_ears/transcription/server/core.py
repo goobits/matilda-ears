@@ -116,6 +116,7 @@ class MatildaWebSocketServer:
         # Wake word streaming sessions
         self.wake_word_sessions = {}  # session_id -> bool
         self.wake_word_buffers = {}  # session_id -> np.ndarray
+        self.wake_word_debug_sessions = {}  # session_id -> {"last_sent": float}
         self.wake_word_detector = None
 
         # Health server runner (set during start_server)
