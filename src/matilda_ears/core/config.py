@@ -629,6 +629,16 @@ class ConfigLoader:
                     "json": "lower_snake",
                     "jsonl": "lower_snake",
                     "py": "lower_snake",
+                    "js": "camelCase",
+                    "jsx": "camelCase",
+                    "ts": "PascalCase",
+                    "tsx": "PascalCase",
+                    "java": "PascalCase",
+                    "cs": "PascalCase",
+                    "css": "kebab-case",
+                    "scss": "kebab-case",
+                    "sass": "kebab-case",
+                    "less": "kebab-case",
                     "*": "lower_snake",  # Default fallback
                 },
             )

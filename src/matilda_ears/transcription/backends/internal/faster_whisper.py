@@ -51,11 +51,28 @@ class FasterWhisperBackend(TranscriptionBackend):
             language=language,
             word_timestamps=self.word_timestamps,
         )
-        text = "".join([segment.text for segment in segments]).strip()
+
+        # Collect segments and extract word timestamps
+        all_segments = list(segments)
+        text = "".join([segment.text for segment in all_segments]).strip()
+
+        # Extract word-level timestamps for LocalAgreement streaming
+        words = []
+        if self.word_timestamps:
+            for segment in all_segments:
+                if hasattr(segment, "words") and segment.words:
+                    for word in segment.words:
+                        words.append({
+                            "word": word.word,
+                            "start": word.start,
+                            "end": word.end,
+                            "probability": word.probability,
+                        })
 
         return text, {
             "duration": info.duration,
             "language": info.language,
+            "words": words,
         }
 
     @property

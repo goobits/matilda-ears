@@ -230,12 +230,14 @@ class SmartCapitalizer:
                     for token in doc_to_use:
                         # Find standalone 'i' tokens that are pronouns
                         if token.text == "i" and token.pos_ == "PRON":
-                            # NEW: Add context check for variable 'i'
+                            # Check context for variable 'i' - look at preceding tokens
                             is_variable_context = False
-                            if token.i > 0:
-                                prev_token = doc_to_use[token.i - 1]
+                            # Check previous 3 tokens for variable-related words
+                            for prev_idx in range(max(0, token.i - 3), token.i):
+                                prev_token = doc_to_use[prev_idx]
                                 if prev_token.lemma_ in ["variable", "letter", "iterator", "counter", "character"]:
                                     is_variable_context = True
+                                    break
 
                             # Check if this 'i' is inside a protected entity (like a filename)
                             is_protected = False
