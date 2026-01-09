@@ -72,6 +72,8 @@ class WakeWordMode(BaseMode):
         else:
             self.threshold = mode_config.get("threshold", 0.5)
         self.silence_duration = mode_config.get("silence_duration", 0.8)
+        self.vad_hysteresis = mode_config.get("hysteresis", 0.2)
+        self.max_speech_duration_s = mode_config.get("max_speech_duration_s", 10.0)
         self.noise_suppression = mode_config.get("noise_suppression", True)
 
         # Components (initialized in run)
@@ -274,7 +276,7 @@ class WakeWordMode(BaseMode):
         chunks = []
         silence_count = 0
         max_silence_chunks = int(self.silence_duration * 1000 / WakeWordDetector.CHUNK_DURATION_MS)
-        max_duration_chunks = int(30.0 * 1000 / WakeWordDetector.CHUNK_DURATION_MS)  # 30s max
+        max_duration_chunks = int(self.max_speech_duration_s * 1000 / WakeWordDetector.CHUNK_DURATION_MS)
 
         self.logger.debug(f"Capturing utterance (max silence: {max_silence_chunks} chunks)")
 
@@ -286,7 +288,7 @@ class WakeWordMode(BaseMode):
                 # Check VAD for speech/silence
                 if self.vad is not None:
                     prob = self.vad.process_chunk(chunk)
-                    if prob < self.vad.threshold:
+                    if prob < (self.vad.threshold - self.vad_hysteresis):
                         silence_count += 1
                     else:
                         silence_count = 0

@@ -113,6 +113,11 @@ class MatildaWebSocketServer:
         # Track binary streaming sessions per client (Opus chunks over binary frames)
         self.binary_stream_sessions = {}  # client_id -> session_id
 
+        # Wake word streaming sessions
+        self.wake_word_sessions = {}  # session_id -> bool
+        self.wake_word_buffers = {}  # session_id -> np.ndarray
+        self.wake_word_detector = None
+
         # Health server runner (set during start_server)
         self._health_runner = None
 

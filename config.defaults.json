@@ -69,14 +69,18 @@
   "modes": {
     "conversation": {
       "vad_threshold": 0.5,
+      "hysteresis": 0.15,
       "min_speech_duration_s": 0.5,
       "max_silence_duration_s": 1.0,
+      "max_speech_duration_s": 30.0,
       "speech_pad_duration_s": 0.3
     },
     "listen_once": {
       "vad_threshold": 0.5,
+      "hysteresis": 0.15,
       "min_speech_duration_s": 0.3,
       "max_silence_duration_s": 0.8,
+      "max_speech_duration_s": 30.0,
       "max_recording_duration_s": 30.0
     },
     "wake_word": {
@@ -90,6 +94,8 @@
       "agents": ["Matilda"],
       "threshold": 0.5,
       "vad_threshold": 0.5,
+      "hysteresis": 0.2,
+      "max_speech_duration_s": 10.0,
       "min_speech_duration": 0.25,
       "silence_duration": 0.8,
       "noise_suppression": true

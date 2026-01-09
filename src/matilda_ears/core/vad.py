@@ -32,15 +32,19 @@ class VADProcessor:
         self,
         sample_rate: int = 16000,
         threshold: float = 0.5,
+        hysteresis: float = 0.15,
         min_speech_duration_s: float = 0.3,
         max_silence_duration_s: float = 0.8,
+        max_speech_duration_s: float | None = None,
         chunks_per_second: int = 10,
     ):
         self.logger = logging.getLogger(__name__)
         self.sample_rate = sample_rate
         self.threshold = threshold
+        self.hysteresis = hysteresis
         self.min_speech_duration_s = min_speech_duration_s
         self.max_silence_duration_s = max_silence_duration_s
+        self.max_speech_duration_s = max_speech_duration_s
         self.chunks_per_second = chunks_per_second
 
         # State
@@ -101,8 +105,15 @@ class VADProcessor:
 
         elif self.state == VADState.SPEECH:
             self.utterance_chunks.append(chunk)
+            duration_s = len(self.utterance_chunks) / self.chunks_per_second
+            if self.max_speech_duration_s is not None and duration_s >= self.max_speech_duration_s:
+                event = VADEvent.END
+                self.state = VADState.SILENCE
+                self.consecutive_silence = 0
+                self.consecutive_speech = 0
+                return event, speech_prob
 
-            if speech_prob < (self.threshold - 0.15):  # Hysteresis
+            if speech_prob < (self.threshold - self.hysteresis):
                 self.consecutive_silence += 1
                 self.consecutive_speech = 0
 
@@ -111,7 +122,6 @@ class VADProcessor:
 
                 if self.consecutive_silence >= required_silence_chunks:
                     # Validate duration
-                    duration_s = len(self.utterance_chunks) / self.chunks_per_second
                     if duration_s >= self.min_speech_duration_s:
                         event = VADEvent.END
                         self.state = VADState.SILENCE

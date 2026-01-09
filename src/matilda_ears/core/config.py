@@ -109,14 +109,18 @@ class ConfigLoader:
             "modes": {
                 "conversation": {
                     "vad_threshold": 0.5,
+                    "hysteresis": 0.15,
                     "min_speech_duration_s": 0.5,
                     "max_silence_duration_s": 1.0,
+                    "max_speech_duration_s": 30.0,
                     "speech_pad_duration_s": 0.3,
                 },
                 "listen_once": {
                     "vad_threshold": 0.5,
+                    "hysteresis": 0.15,
                     "min_speech_duration_s": 0.3,
                     "max_silence_duration_s": 0.8,
+                    "max_speech_duration_s": 30.0,
                     "max_recording_duration_s": 30.0,
                 },
             },

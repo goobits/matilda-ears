@@ -31,8 +31,10 @@ class ListenOnceMode(BaseMode):
         self.vad_processor = VADProcessor(
             sample_rate=self.args.sample_rate,
             threshold=mode_config.get("vad_threshold", 0.5),
+            hysteresis=mode_config.get("hysteresis", 0.15),
             min_speech_duration_s=mode_config.get("min_speech_duration_s", 0.3),
             max_silence_duration_s=mode_config.get("max_silence_duration_s", 0.8),
+            max_speech_duration_s=mode_config.get("max_speech_duration_s", 30.0),
         )
 
         self.max_recording_duration = mode_config.get("max_recording_duration_s", 30.0)

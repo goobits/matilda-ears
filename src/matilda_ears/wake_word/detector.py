@@ -196,6 +196,15 @@ class WakeWordDetector:
 
         return None
 
+    def detect_chunk(self, audio: "np.ndarray") -> tuple[str, str, float] | None:
+        if audio.size == 0:
+            return None
+        if audio.dtype == np.int16:
+            normalized = audio.astype(np.float32) / 32768.0
+        else:
+            normalized = audio.astype(np.float32)
+        return self.detect(normalized)
+
     def detect_agent(self, audio: "np.ndarray") -> str | None:
         """Detect wake word and return just the agent name.
 
