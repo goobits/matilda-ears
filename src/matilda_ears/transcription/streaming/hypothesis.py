@@ -1,9 +1,9 @@
-"""Hypothesis buffer with LocalAgreement-2 algorithm.
+"""Hypothesis buffer with LocalAgreement algorithm.
 
-Implements the core streaming stability algorithm:
-- Maintains confirmed words (agreed upon in N consecutive hypotheses)
-- Tracks words still in the audio buffer for overlap handling
-- Provides prompt suffix for continuity
+Based on whisper_streaming's approach:
+- Compare consecutive hypotheses to find stable words
+- Use n-gram matching for deduplication
+- Track committed vs uncommitted words with timestamps
 """
 
 import logging
@@ -14,58 +14,47 @@ logger = logging.getLogger(__name__)
 
 
 class HypothesisBuffer:
-    """Buffer for managing hypotheses with LocalAgreement-2 confirmation.
+    """Buffer for managing hypotheses with LocalAgreement confirmation.
 
-    The LocalAgreement-N algorithm confirms words only when they appear in
-    the same position across N consecutive transcription hypotheses. This
+    The LocalAgreement algorithm confirms words only when they appear in
+    the same position across consecutive transcription hypotheses. This
     provides stability while maintaining low latency.
 
-    Key concepts:
-    - confirmed: All confirmed words (capped by max_confirmed_words)
-    - confirmed_in_buffer: Subset of confirmed words still in audio window
-    - previous_hypothesis: Last transcription for comparison
-    - current_hypothesis: Current transcription being processed
+    Based on whisper_streaming implementation:
+    - commited_in_buffer: All confirmed words
+    - buffer: Previous hypothesis (unconfirmed words from last iteration)
+    - new: Current hypothesis (unconfirmed words from this iteration)
 
-    Example:
-        buffer = HypothesisBuffer(agreement_n=2, max_confirmed_words=500)
-
-        # Process each transcription result
-        buffer.insert(words, offset_seconds=5.0)
-        newly_confirmed = buffer.flush()
-
-        # Get text for display
-        confirmed_text = buffer.get_confirmed_text()
-        tentative_text = buffer.get_tentative_text()
-
+    Words are confirmed when they match between buffer and new.
     """
 
     def __init__(self, agreement_n: int = 2, max_confirmed_words: int = 500):
         """Initialize hypothesis buffer.
 
         Args:
-            agreement_n: Number of consecutive agreements required to confirm
-            max_confirmed_words: Maximum confirmed words to retain (bounded history)
+            agreement_n: Number of consecutive agreements required (default 2)
+            max_confirmed_words: Maximum confirmed words to retain
 
         """
         self.agreement_n = agreement_n
         self.max_confirmed_words = max_confirmed_words
 
-        # Confirmed words (full history, bounded)
-        self.confirmed: list[TimestampedWord] = []
+        # Confirmed words (permanently committed)
+        self.commited_in_buffer: list[TimestampedWord] = []
 
-        # Confirmed words still in current audio buffer
-        # Used for prompt continuity and overlap deduplication
-        self.confirmed_in_buffer: list[TimestampedWord] = []
+        # Previous iteration's unconfirmed words
+        self.buffer: list[TimestampedWord] = []
 
-        # Hypothesis tracking for LocalAgreement
-        self.previous_hypotheses: list[list[TimestampedWord]] = []
-        self.current_hypothesis: list[TimestampedWord] = []
+        # Current iteration's unconfirmed words
+        self.new: list[TimestampedWord] = []
+
+        # Timestamp of last confirmed word (for filtering)
+        self.last_commited_time: float = 0.0
 
     def insert(self, words: list[TimestampedWord], offset_seconds: float = 0.0) -> None:
         """Insert a new transcription hypothesis.
 
-        Words are shifted by offset_seconds to maintain absolute timestamps.
-        Overlap with confirmed_in_buffer is detected and handled.
+        Filters words by timestamp and deduplicates against committed words.
 
         Args:
             words: Timestamped words from transcription
@@ -75,152 +64,112 @@ class HypothesisBuffer:
         # Shift timestamps to absolute time
         shifted = [w.shift(offset_seconds) for w in words]
 
-        # Remove overlap with already-confirmed words in buffer
-        self.current_hypothesis = self._dedupe_overlap(shifted)
+        # Filter to only words after last committed time (with 100ms tolerance)
+        cutoff_time = self.last_commited_time - 0.1
+        self.new = [w for w in shifted if w.end > cutoff_time]
 
-        logger.debug(f"Inserted hypothesis: {len(words)} words, " f"{len(self.current_hypothesis)} after dedup")
+        # Deduplicate: remove n-grams that match the tail of committed words
+        self._dedupe_ngrams()
+
+        logger.debug(
+            f"Inserted hypothesis: {len(words)} words -> {len(self.new)} after filter/dedup"
+        )
+
+    @staticmethod
+    def _normalize_word(text: str) -> str:
+        """Normalize word for comparison (lowercase, strip, remove punctuation)."""
+        import re
+        # Lowercase, strip whitespace, remove punctuation
+        return re.sub(r'[^\w\s]', '', text.lower().strip())
+
+    def _dedupe_ngrams(self) -> None:
+        """Remove matching n-grams between committed tail and new head.
+
+        Searches for matching sequences of 1-5 words and removes them from new.
+        """
+        if not self.commited_in_buffer or not self.new:
+            return
+
+        # Get normalized text for comparison (no punctuation)
+        committed_texts = [self._normalize_word(w.text) for w in self.commited_in_buffer]
+        new_texts = [self._normalize_word(w.text) for w in self.new]
+
+        # Try n-grams from 5 down to 1
+        for n in range(min(5, len(committed_texts), len(new_texts)), 0, -1):
+            # Get last n words of committed
+            committed_ngram = committed_texts[-n:]
+            # Get first n words of new
+            new_ngram = new_texts[:n]
+
+            if committed_ngram == new_ngram:
+                # Found match - remove these words from new
+                logger.debug(f"Dedup: removing {n} matching words from start of new")
+                self.new = self.new[n:]
+                return
 
     def flush(self) -> list[TimestampedWord]:
         """Apply LocalAgreement and confirm stable words.
 
-        Compares current hypothesis with previous hypotheses to find words
-        that appear in the same position across agreement_n hypotheses.
+        Compares current hypothesis (new) with previous hypothesis (buffer).
+        Words that match in both get confirmed.
 
         Returns:
             List of newly confirmed words
 
         """
-        if not self.current_hypothesis:
+        if not self.new:
+            self.buffer = []
             return []
 
-        # Add current to hypothesis history
-        self.previous_hypotheses.append(self.current_hypothesis)
+        # Find words that match between buffer and new (LocalAgreement)
+        newly_confirmed = []
 
-        # Keep only the last agreement_n hypotheses
-        if len(self.previous_hypotheses) > self.agreement_n:
-            self.previous_hypotheses = self.previous_hypotheses[-self.agreement_n :]
+        buffer_idx = 0
+        new_idx = 0
 
-        # Need at least agreement_n hypotheses to confirm
-        if len(self.previous_hypotheses) < self.agreement_n:
-            logger.debug(f"Not enough hypotheses yet: {len(self.previous_hypotheses)}/{self.agreement_n}")
-            return []
+        while buffer_idx < len(self.buffer) and new_idx < len(self.new):
+            buffer_word = self.buffer[buffer_idx]
+            new_word = self.new[new_idx]
 
-        # Find agreed-upon words
-        newly_confirmed = self._local_agreement()
-
-        if newly_confirmed:
-            # Add to confirmed lists
-            self.confirmed.extend(newly_confirmed)
-            self.confirmed_in_buffer.extend(newly_confirmed)
-
-            # Enforce bounded history
-            if len(self.confirmed) > self.max_confirmed_words:
-                overflow = len(self.confirmed) - self.max_confirmed_words
-                self.confirmed = self.confirmed[-self.max_confirmed_words :]
-                logger.debug(f"Trimmed confirmed history: removed {overflow} oldest words")
-
-            logger.info(f"Confirmed {len(newly_confirmed)} words, " f"total confirmed: {len(self.confirmed)}")
-
-        return newly_confirmed
-
-    def _local_agreement(self) -> list[TimestampedWord]:
-        """Apply LocalAgreement-N algorithm.
-
-        Words are confirmed when they appear in the same position (relative to
-        confirmed_in_buffer) across all recent hypotheses.
-
-        Returns:
-            List of newly confirmed words
-
-        """
-        if len(self.previous_hypotheses) < self.agreement_n:
-            return []
-
-        # Get the relevant hypotheses
-        hypotheses = self.previous_hypotheses[-self.agreement_n :]
-
-        # Find minimum length
-        min_len = min(len(h) for h in hypotheses)
-        if min_len == 0:
-            return []
-
-        # Find agreed words from the start
-        agreed_count = 0
-        for i in range(min_len):
-            # Check if all hypotheses agree on word at position i
-            reference_word = hypotheses[0][i]
-            all_agree = all(h[i].text.lower() == reference_word.text.lower() for h in hypotheses[1:])
-
-            if all_agree:
-                agreed_count += 1
+            # Compare word text (normalized - no punctuation)
+            if self._normalize_word(buffer_word.text) == self._normalize_word(new_word.text):
+                # Match! This word is confirmed
+                newly_confirmed.append(new_word)
+                buffer_idx += 1
+                new_idx += 1
             else:
-                # Stop at first disagreement
+                # Mismatch - stop confirming
                 break
 
-        if agreed_count == 0:
-            return []
+        # Add confirmed words to committed buffer
+        if newly_confirmed:
+            self.commited_in_buffer.extend(newly_confirmed)
+            self.last_commited_time = newly_confirmed[-1].end
 
-        # Get newly confirmed words (from the oldest hypothesis for best timestamps)
-        newly_confirmed = hypotheses[0][:agreed_count]
+            # Enforce bounded history
+            if len(self.commited_in_buffer) > self.max_confirmed_words:
+                overflow = len(self.commited_in_buffer) - self.max_confirmed_words
+                self.commited_in_buffer = self.commited_in_buffer[-self.max_confirmed_words:]
+                logger.debug(f"Trimmed committed history: removed {overflow} oldest words")
 
-        # Remove confirmed words from all hypothesis histories
-        self.previous_hypotheses = [h[agreed_count:] for h in self.previous_hypotheses]
+            logger.info(
+                f"Confirmed {len(newly_confirmed)} words, "
+                f"total committed: {len(self.commited_in_buffer)}"
+            )
+
+        # Move remaining new words to buffer for next comparison
+        self.buffer = self.new[new_idx:] if new_idx < len(self.new) else []
+        self.new = []
 
         return newly_confirmed
-
-    def _dedupe_overlap(self, words: list[TimestampedWord]) -> list[TimestampedWord]:
-        """Remove words that overlap with confirmed_in_buffer.
-
-        Uses timing to detect overlap: if a word's start time is before
-        the end of the last confirmed word, it's likely a duplicate.
-
-        Args:
-            words: Words to deduplicate
-
-        Returns:
-            Words with overlap removed
-
-        """
-        if not self.confirmed_in_buffer or not words:
-            return words
-
-        # Find where new words start (after confirmed words)
-        last_confirmed_end = self.confirmed_in_buffer[-1].end
-
-        # Skip words that overlap with confirmed
-        result = []
-        for word in words:
-            # Word starts after last confirmed ends
-            if word.start >= last_confirmed_end - 0.1:  # 100ms tolerance
-                result.append(word)
-            elif word.end > last_confirmed_end:
-                # Partial overlap - check if it's a new word
-                # by comparing text with recent confirmed
-                recent_texts = {w.text.lower() for w in self.confirmed_in_buffer[-5:]}
-                if word.text.lower() not in recent_texts:
-                    result.append(word)
-
-        return result
-
-    def trim_to_time(self, absolute_time: float) -> None:
-        """Remove words from confirmed_in_buffer before given time.
-
-        Called when the audio buffer is trimmed to keep confirmed_in_buffer
-        in sync with the audio window.
-
-        Args:
-            absolute_time: Absolute time in seconds
-
-        """
-        self.confirmed_in_buffer = [w for w in self.confirmed_in_buffer if w.end >= absolute_time]
 
     def get_confirmed_text(self) -> str:
         """Get confirmed text as a string."""
-        return " ".join(w.text for w in self.confirmed)
+        return " ".join(w.text for w in self.commited_in_buffer)
 
     def get_tentative_text(self) -> str:
         """Get current tentative (unconfirmed) text."""
-        return " ".join(w.text for w in self.current_hypothesis)
+        return " ".join(w.text for w in self.buffer)
 
     def get_prompt_suffix(self, max_chars: int = 200) -> str:
         """Get suffix of confirmed text for prompt continuity.
@@ -235,11 +184,11 @@ class HypothesisBuffer:
             Suffix string for prompt
 
         """
-        if not self.confirmed_in_buffer:
+        if not self.commited_in_buffer:
             return ""
 
         # Build from recent confirmed words
-        words = [w.text for w in self.confirmed_in_buffer]
+        words = [w.text for w in self.commited_in_buffer]
         text = " ".join(words)
 
         if len(text) <= max_chars:
@@ -249,23 +198,81 @@ class HypothesisBuffer:
         truncated = text[-max_chars:]
         first_space = truncated.find(" ")
         if first_space > 0:
-            truncated = truncated[first_space + 1 :]
+            truncated = truncated[first_space + 1:]
 
         return truncated
 
+    def trim_to_time(self, absolute_time: float) -> None:
+        """Remove words from buffer before given time.
+
+        Called when the audio buffer is trimmed.
+
+        Args:
+            absolute_time: Absolute time in seconds
+
+        """
+        # Keep committed words (they're permanent)
+        # Only trim from current buffer if needed
+        self.buffer = [w for w in self.buffer if w.end >= absolute_time]
+
     def clear(self) -> None:
         """Clear all hypothesis state."""
-        self.confirmed.clear()
-        self.confirmed_in_buffer.clear()
-        self.previous_hypotheses.clear()
-        self.current_hypothesis.clear()
+        self.commited_in_buffer.clear()
+        self.buffer.clear()
+        self.new.clear()
+        self.last_commited_time = 0.0
 
     @property
     def confirmed_word_count(self) -> int:
         """Number of confirmed words."""
-        return len(self.confirmed)
+        return len(self.commited_in_buffer)
 
     @property
     def tentative_word_count(self) -> int:
         """Number of tentative (unconfirmed) words."""
-        return len(self.current_hypothesis)
+        return len(self.buffer)
+
+    # Aliases for compatibility with existing code
+    @property
+    def confirmed(self) -> list[TimestampedWord]:
+        """Alias for commited_in_buffer."""
+        return self.commited_in_buffer
+
+    @property
+    def confirmed_in_buffer(self) -> list[TimestampedWord]:
+        """Alias for commited_in_buffer (compatibility)."""
+        return self.commited_in_buffer
+
+    @property
+    def current_hypothesis(self) -> list[TimestampedWord]:
+        """Alias for buffer (compatibility)."""
+        return self.buffer
+
+    @current_hypothesis.setter
+    def current_hypothesis(self, value: list[TimestampedWord]) -> None:
+        """Setter for buffer (compatibility)."""
+        self.buffer = value
+
+    @property
+    def previous_hypotheses(self) -> list[list[TimestampedWord]]:
+        """Compatibility property - returns buffer wrapped in list."""
+        return [self.buffer] if self.buffer else []
+
+    @previous_hypotheses.setter
+    def previous_hypotheses(self, value: list[list[TimestampedWord]]) -> None:
+        """Compatibility setter - sets buffer from last item."""
+        if value:
+            self.buffer = value[-1] if value else []
+
+    def force_confirm_all(self) -> None:
+        """Force-confirm all tentative words (for finalize)."""
+        if self.buffer:
+            self.commited_in_buffer.extend(self.buffer)
+            if self.buffer:
+                self.last_commited_time = self.buffer[-1].end
+            self.buffer = []
+        if self.new:
+            self.commited_in_buffer.extend(self.new)
+            if self.new:
+                self.last_commited_time = self.new[-1].end
+            self.new = []

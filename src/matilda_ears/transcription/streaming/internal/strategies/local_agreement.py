@@ -44,25 +44,34 @@ class LocalAgreementStrategy:
         self,
         batch_transcribe: BatchTranscribeFn,
         config: StreamingConfig,
+        *,
+        audio_buffer_factory: type[AudioBuffer] | None = None,
+        hypothesis_buffer_factory: type[HypothesisBuffer] | None = None,
     ):
         """Initialize LocalAgreement strategy.
 
         Args:
             batch_transcribe: Async function (wav_bytes, prompt) -> (text, info)
             config: Streaming configuration
+            audio_buffer_factory: Optional factory for AudioBuffer (for testing)
+            hypothesis_buffer_factory: Optional factory for HypothesisBuffer (for testing)
 
         """
         self.transcribe = batch_transcribe
         self.config = config
 
+        # Use provided factories or defaults
+        audio_buffer_cls = audio_buffer_factory or AudioBuffer
+        hypothesis_buffer_cls = hypothesis_buffer_factory or HypothesisBuffer
+
         # Audio buffer with sliding window
-        self.buffer = AudioBuffer(
+        self.buffer = audio_buffer_cls(
             max_seconds=config.max_buffer_seconds,
             sample_rate=config.sample_rate,
         )
 
         # Hypothesis tracking with LocalAgreement
-        self.hypothesis = HypothesisBuffer(
+        self.hypothesis = hypothesis_buffer_cls(
             agreement_n=config.local_agreement_n,
             max_confirmed_words=config.max_confirmed_words,
         )
@@ -163,23 +172,14 @@ class LocalAgreementStrategy:
                 words = self._extract_words(text, info)
                 if words:
                     self.hypothesis.insert(words, self.buffer.offset_seconds)
-
-                    # Force-confirm all remaining words on finalize
-                    self.hypothesis.previous_hypotheses.append(self.hypothesis.current_hypothesis)
-                    # Add same hypothesis again to force agreement
-                    if self.hypothesis.agreement_n > len(self.hypothesis.previous_hypotheses):
-                        for _ in range(self.hypothesis.agreement_n - len(self.hypothesis.previous_hypotheses)):
-                            self.hypothesis.previous_hypotheses.append(self.hypothesis.current_hypothesis)
-
+                    # Do one more flush to confirm any matching words
                     self.hypothesis.flush()
 
             except Exception as e:
                 logger.error(f"Final transcription failed: {e}")
 
-        # Confirm any remaining tentative words
-        if self.hypothesis.current_hypothesis:
-            self.hypothesis.confirmed.extend(self.hypothesis.current_hypothesis)
-            self.hypothesis.current_hypothesis = []
+        # Force-confirm all remaining tentative words
+        self.hypothesis.force_confirm_all()
 
         return StreamingResult(
             confirmed_text=self.hypothesis.get_confirmed_text(),

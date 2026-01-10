@@ -95,6 +95,11 @@ class StreamingSession:
         """Whether session is currently active."""
         return self._state == StreamingState.ACTIVE
 
+    def _update_state(self, new_state: StreamingState) -> None:
+        """Update session state and sync with metrics."""
+        self._state = new_state
+        self._metrics.state = new_state
+
     async def start(self) -> None:
         """Start the streaming session.
 
@@ -103,10 +108,9 @@ class StreamingSession:
         if self._state != StreamingState.IDLE:
             raise StreamingError(f"Session {self.session_id} already started")
 
-        self._state = StreamingState.ACTIVE
+        self._update_state(StreamingState.ACTIVE)
         self._start_time = time.time()
         self._last_activity = self._start_time
-        self._metrics.state = StreamingState.ACTIVE
         self._metrics.session_start_time = self._start_time
 
         logger.info(f"StreamingSession started: {self.session_id}")
@@ -137,7 +141,7 @@ class StreamingSession:
         if self._last_activity:
             idle_time = now - self._last_activity
             if idle_time > self.config.session_timeout_seconds:
-                self._state = StreamingState.ERROR
+                self._update_state(StreamingState.ERROR)
                 raise SessionTimeoutError(self.session_id, self.config.session_timeout_seconds)
 
         self._last_activity = now
@@ -178,8 +182,7 @@ class StreamingSession:
         if self._state == StreamingState.COMPLETED:
             raise StreamingError(f"Session {self.session_id} already finalized")
 
-        self._state = StreamingState.FINALIZING
-        self._metrics.state = StreamingState.FINALIZING
+        self._update_state(StreamingState.FINALIZING)
 
         logger.info(f"Finalizing session {self.session_id}")
 
@@ -189,8 +192,7 @@ class StreamingSession:
             result.is_final = True
             result.audio_duration_seconds = self._metrics.total_audio_seconds
 
-            self._state = StreamingState.COMPLETED
-            self._metrics.state = StreamingState.COMPLETED
+            self._update_state(StreamingState.COMPLETED)
 
             logger.info(
                 f"Session {self.session_id} finalized: "
@@ -201,8 +203,7 @@ class StreamingSession:
             return result
 
         except Exception as e:
-            self._state = StreamingState.ERROR
-            self._metrics.state = StreamingState.ERROR
+            self._update_state(StreamingState.ERROR)
             logger.exception(f"Error finalizing session {self.session_id}: {e}")
             raise StreamingError(f"Finalization failed: {e}") from e
 
@@ -215,8 +216,7 @@ class StreamingSession:
             return
 
         logger.warning(f"Aborting session {self.session_id}")
-        self._state = StreamingState.ERROR
-        self._metrics.state = StreamingState.ERROR
+        self._update_state(StreamingState.ERROR)
 
         # Clean up strategy resources
         try:

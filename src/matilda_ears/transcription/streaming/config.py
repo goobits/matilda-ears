@@ -8,21 +8,22 @@ from typing import Literal
 
 from ...core.config import get_config
 
-# Stabilization presets
+# Stabilization presets (based on whisper_streaming research)
+# MinChunkSize of 1 second is optimal for quality/latency tradeoff
 STABILIZATION_PRESETS = {
     "low": {
-        "local_agreement_n": 1,
-        "transcribe_interval_seconds": 1.0,
+        "local_agreement_n": 2,
+        "transcribe_interval_seconds": 0.5,
         "prompt_suffix_chars": 120,
     },
     "medium": {
         "local_agreement_n": 2,
-        "transcribe_interval_seconds": 2.0,
+        "transcribe_interval_seconds": 1.0,  # Recommended default
         "prompt_suffix_chars": 200,
     },
     "high": {
-        "local_agreement_n": 3,
-        "transcribe_interval_seconds": 3.0,
+        "local_agreement_n": 2,
+        "transcribe_interval_seconds": 2.0,
         "prompt_suffix_chars": 300,
     },
 }
@@ -39,8 +40,8 @@ class StreamingConfig:
     max_buffer_seconds: float = 30.0
     sample_rate: int = 16000
 
-    # Transcription timing
-    transcribe_interval_seconds: float = 2.0
+    # Transcription timing (1.0s is optimal per whisper_streaming research)
+    transcribe_interval_seconds: float = 1.0
     session_timeout_seconds: float = 300.0
 
     # LocalAgreement settings
@@ -69,7 +70,7 @@ class StreamingConfig:
         instance = cls(
             max_buffer_seconds=streaming_cfg.get("max_buffer_seconds", 30.0),
             sample_rate=streaming_cfg.get("sample_rate", 16000),
-            transcribe_interval_seconds=streaming_cfg.get("transcribe_interval_seconds", 2.0),
+            transcribe_interval_seconds=streaming_cfg.get("transcribe_interval_seconds", 1.0),
             session_timeout_seconds=streaming_cfg.get("session_timeout_seconds", 300.0),
             local_agreement_n=streaming_cfg.get("local_agreement_n", 2),
             prompt_suffix_chars=streaming_cfg.get("prompt_suffix_chars", 200),

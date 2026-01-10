@@ -8,6 +8,8 @@ Provides create_streaming_session() that:
 
 import asyncio
 import logging
+import os
+import tempfile
 from typing import Optional, TYPE_CHECKING
 from collections.abc import Callable, Awaitable
 
@@ -23,6 +25,46 @@ logger = logging.getLogger(__name__)
 
 # Type alias for batch transcribe function
 BatchTranscribeFn = Callable[[bytes, str], Awaitable[tuple]]
+
+
+def _make_batch_transcribe_fn(
+    backend: "TranscriptionBackend",
+    semaphore: Optional["asyncio.Semaphore"] = None,
+) -> BatchTranscribeFn:
+    """Create async batch transcribe function for a backend.
+
+    Handles temp file creation, executor offloading, and optional semaphore.
+
+    Args:
+        backend: Transcription backend instance
+        semaphore: Optional semaphore for GPU serialization
+
+    Returns:
+        Async function that transcribes WAV bytes
+    """
+
+    async def batch_transcribe(wav_bytes: bytes, prompt: str = "") -> tuple:
+        """Async wrapper for backend.transcribe()."""
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(wav_bytes)
+            temp_path = f.name
+
+        try:
+            loop = asyncio.get_event_loop()
+            transcribe_fn = lambda: backend.transcribe(temp_path, language="en")
+
+            if semaphore:
+                async with semaphore:
+                    return await loop.run_in_executor(None, transcribe_fn)
+            else:
+                return await loop.run_in_executor(None, transcribe_fn)
+        finally:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+
+    return batch_transcribe
 
 
 def create_streaming_session(
@@ -111,43 +153,10 @@ def _create_strategy(
         Strategy instance
 
     """
-    import asyncio
-
     if strategy_name == "local_agreement":
         from .strategies.local_agreement import LocalAgreementStrategy
 
-        # Create batch transcribe function
-        async def batch_transcribe(wav_bytes: bytes, prompt: str = "") -> tuple:
-            """Async wrapper for backend.transcribe()."""
-            import tempfile
-            import os
-
-            # Write WAV to temp file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                f.write(wav_bytes)
-                temp_path = f.name
-
-            try:
-                loop = asyncio.get_event_loop()
-
-                # Acquire semaphore if provided (serialize GPU work)
-                if transcription_semaphore:
-                    async with transcription_semaphore:
-                        return await loop.run_in_executor(
-                            None,
-                            lambda: backend.transcribe(temp_path, language="en"),
-                        )
-                else:
-                    return await loop.run_in_executor(
-                        None,
-                        lambda: backend.transcribe(temp_path, language="en"),
-                    )
-            finally:
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
-
+        batch_transcribe = _make_batch_transcribe_fn(backend, transcription_semaphore)
         return LocalAgreementStrategy(
             batch_transcribe=batch_transcribe,
             config=config,
@@ -156,34 +165,7 @@ def _create_strategy(
     if strategy_name == "chunked":
         from .strategies.chunked import ChunkedStrategy
 
-        # Create batch transcribe function (same as above)
-        async def batch_transcribe(wav_bytes: bytes, prompt: str = "") -> tuple:
-            import tempfile
-            import os
-
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                f.write(wav_bytes)
-                temp_path = f.name
-
-            try:
-                loop = asyncio.get_event_loop()
-                if transcription_semaphore:
-                    async with transcription_semaphore:
-                        return await loop.run_in_executor(
-                            None,
-                            lambda: backend.transcribe(temp_path, language="en"),
-                        )
-                else:
-                    return await loop.run_in_executor(
-                        None,
-                        lambda: backend.transcribe(temp_path, language="en"),
-                    )
-            finally:
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
-
+        batch_transcribe = _make_batch_transcribe_fn(backend, transcription_semaphore)
         return ChunkedStrategy(
             batch_transcribe=batch_transcribe,
             config=config,
