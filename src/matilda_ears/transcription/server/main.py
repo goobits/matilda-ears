@@ -78,8 +78,8 @@ async def start_server(
 
     max_size = None if max_message_mb <= 0 else int(max_message_mb * 1024 * 1024)
     server_kwargs = {
-        "ping_interval": 30,  # Send ping every 30 seconds
-        "ping_timeout": 10,  # Wait 10 seconds for pong
+        "ping_interval": 60,  # Send ping every 60 seconds
+        "ping_timeout": 120,  # Wait 120 seconds for pong (transcription can block event loop)
         "max_size": max_size,
     }
 
