@@ -1,11 +1,13 @@
 """Audio buffer with sliding window and offset tracking.
 
 Provides AudioBuffer that maintains a fixed-size audio window with:
+- O(1) append using chunk-based storage
 - Automatic trimming when max size exceeded
 - Offset tracking for absolute timestamps
-- Efficient numpy-based operations
+- Concatenation deferred to get_audio() call
 """
 
+from collections import deque
 import numpy as np
 import logging
 
@@ -18,6 +20,9 @@ class AudioBuffer:
     Maintains a bounded audio buffer that automatically trims older audio
     when the maximum size is exceeded. Tracks the cumulative offset so that
     absolute timestamps can be maintained.
+
+    Uses chunk-based storage for O(1) append operations, deferring
+    concatenation to when audio is actually needed.
 
     Example:
         buffer = AudioBuffer(max_seconds=30.0, sample_rate=16000)
@@ -43,10 +48,14 @@ class AudioBuffer:
         self.sample_rate = sample_rate
         self.max_samples = int(max_seconds * sample_rate)
 
-        # Buffer state
-        self._buffer: np.ndarray = np.array([], dtype=np.float32)
+        # Chunk-based storage for O(1) append
+        self._chunks: deque[np.ndarray] = deque()
+        self._samples_in_buffer: int = 0
         self._offset_samples: int = 0  # Samples trimmed from start
         self._total_samples: int = 0  # Total samples ever received
+
+        # Cache for concatenated audio (invalidated on append/trim)
+        self._cached_audio: np.ndarray | None = None
 
     @property
     def offset_seconds(self) -> float:
@@ -56,7 +65,7 @@ class AudioBuffer:
     @property
     def duration_seconds(self) -> float:
         """Current buffer duration in seconds."""
-        return len(self._buffer) / self.sample_rate
+        return self._samples_in_buffer / self.sample_rate
 
     @property
     def total_duration_seconds(self) -> float:
@@ -66,12 +75,13 @@ class AudioBuffer:
     @property
     def samples_in_buffer(self) -> int:
         """Number of samples currently in buffer."""
-        return len(self._buffer)
+        return self._samples_in_buffer
 
     def append(self, audio_chunk: np.ndarray) -> int:
         """Append audio chunk to buffer.
 
         Automatically trims oldest audio if buffer exceeds max size.
+        O(1) operation - concatenation deferred to get_audio().
 
         Args:
             audio_chunk: Audio samples (float32 or int16)
@@ -86,16 +96,44 @@ class AudioBuffer:
         elif audio_chunk.dtype != np.float32:
             audio_chunk = audio_chunk.astype(np.float32)
 
-        # Append to buffer
-        self._buffer = np.concatenate([self._buffer, audio_chunk])
+        # Append chunk (O(1))
+        self._chunks.append(audio_chunk)
+        self._samples_in_buffer += len(audio_chunk)
         self._total_samples += len(audio_chunk)
+        self._cached_audio = None  # Invalidate cache
 
         # Trim if exceeded max size
+        trimmed = self._trim_to_max()
+
+        return trimmed
+
+    def _trim_to_max(self) -> int:
+        """Trim oldest chunks to stay within max_samples."""
+        if self._samples_in_buffer <= self.max_samples:
+            return 0
+
         trimmed = 0
-        if len(self._buffer) > self.max_samples:
-            trimmed = len(self._buffer) - self.max_samples
-            self._buffer = self._buffer[-self.max_samples :]
-            self._offset_samples += trimmed
+        while self._samples_in_buffer > self.max_samples and self._chunks:
+            oldest = self._chunks[0]
+            samples_to_remove = self._samples_in_buffer - self.max_samples
+
+            if len(oldest) <= samples_to_remove:
+                # Remove entire chunk
+                self._chunks.popleft()
+                self._samples_in_buffer -= len(oldest)
+                self._offset_samples += len(oldest)
+                trimmed += len(oldest)
+            else:
+                # Partial trim of first chunk
+                keep_samples = len(oldest) - samples_to_remove
+                self._chunks[0] = oldest[-keep_samples:]
+                self._samples_in_buffer -= samples_to_remove
+                self._offset_samples += samples_to_remove
+                trimmed += samples_to_remove
+                break
+
+        if trimmed > 0:
+            self._cached_audio = None  # Invalidate cache
             logger.debug(f"Buffer trimmed: {trimmed} samples, offset now {self.offset_seconds:.2f}s")
 
         return trimmed
@@ -103,11 +141,21 @@ class AudioBuffer:
     def get_audio(self) -> tuple[np.ndarray, float]:
         """Get current buffer audio and offset.
 
+        Concatenates chunks if needed (cached for repeated calls).
+
         Returns:
             (audio_array, offset_seconds) tuple
 
         """
-        return self._buffer.copy(), self.offset_seconds
+        if self._cached_audio is None:
+            if not self._chunks:
+                self._cached_audio = np.array([], dtype=np.float32)
+            elif len(self._chunks) == 1:
+                self._cached_audio = self._chunks[0].copy()
+            else:
+                self._cached_audio = np.concatenate(list(self._chunks))
+
+        return self._cached_audio.copy(), self.offset_seconds
 
     def trim_to_seconds(self, keep_seconds: float) -> int:
         """Trim buffer to keep only the last N seconds.
@@ -120,14 +168,34 @@ class AudioBuffer:
 
         """
         keep_samples = int(keep_seconds * self.sample_rate)
-        if len(self._buffer) <= keep_samples:
+        if self._samples_in_buffer <= keep_samples:
             return 0
 
-        trimmed = len(self._buffer) - keep_samples
-        self._buffer = self._buffer[-keep_samples:]
-        self._offset_samples += trimmed
+        target_trim = self._samples_in_buffer - keep_samples
+        trimmed = 0
 
-        logger.debug(f"Manually trimmed: {trimmed} samples, offset now {self.offset_seconds:.2f}s")
+        while trimmed < target_trim and self._chunks:
+            oldest = self._chunks[0]
+            remaining_to_trim = target_trim - trimmed
+
+            if len(oldest) <= remaining_to_trim:
+                # Remove entire chunk
+                self._chunks.popleft()
+                self._samples_in_buffer -= len(oldest)
+                self._offset_samples += len(oldest)
+                trimmed += len(oldest)
+            else:
+                # Partial trim
+                self._chunks[0] = oldest[remaining_to_trim:]
+                self._samples_in_buffer -= remaining_to_trim
+                self._offset_samples += remaining_to_trim
+                trimmed += remaining_to_trim
+                break
+
+        if trimmed > 0:
+            self._cached_audio = None
+            logger.debug(f"Manually trimmed: {trimmed} samples, offset now {self.offset_seconds:.2f}s")
+
         return trimmed
 
     def trim_to_time(self, absolute_time: float) -> int:
@@ -153,27 +221,51 @@ class AudioBuffer:
 
         if trim_samples <= 0:
             return 0
-        if trim_samples >= len(self._buffer):
+        if trim_samples >= self._samples_in_buffer:
             # Would trim everything - keep at least a small amount
-            trim_samples = max(0, len(self._buffer) - self.sample_rate)  # Keep 1s minimum
+            trim_samples = max(0, self._samples_in_buffer - self.sample_rate)  # Keep 1s minimum
 
-        if trim_samples > 0:
-            self._buffer = self._buffer[trim_samples:]
-            self._offset_samples += trim_samples
-            logger.debug(f"Trimmed to time {absolute_time:.2f}s: {trim_samples} samples")
+        if trim_samples <= 0:
+            return 0
 
-        return trim_samples
+        # Trim the calculated amount
+        trimmed = 0
+        while trimmed < trim_samples and self._chunks:
+            oldest = self._chunks[0]
+            remaining = trim_samples - trimmed
+
+            if len(oldest) <= remaining:
+                self._chunks.popleft()
+                self._samples_in_buffer -= len(oldest)
+                self._offset_samples += len(oldest)
+                trimmed += len(oldest)
+            else:
+                self._chunks[0] = oldest[remaining:]
+                self._samples_in_buffer -= remaining
+                self._offset_samples += remaining
+                trimmed += remaining
+                break
+
+        if trimmed > 0:
+            self._cached_audio = None
+            logger.debug(f"Trimmed to time {absolute_time:.2f}s: {trimmed} samples")
+
+        return trimmed
 
     def clear(self) -> None:
         """Clear all buffered audio (keeps offset for continuity)."""
-        self._offset_samples += len(self._buffer)
-        self._buffer = np.array([], dtype=np.float32)
+        self._offset_samples += self._samples_in_buffer
+        self._chunks.clear()
+        self._samples_in_buffer = 0
+        self._cached_audio = None
 
     def reset(self) -> None:
         """Fully reset buffer including offset tracking."""
-        self._buffer = np.array([], dtype=np.float32)
+        self._chunks.clear()
+        self._samples_in_buffer = 0
         self._offset_samples = 0
         self._total_samples = 0
+        self._cached_audio = None
 
     def to_wav_bytes(self) -> bytes:
         """Convert current buffer to WAV format bytes.
@@ -187,8 +279,10 @@ class AudioBuffer:
         import io
         import wave
 
+        audio, _ = self.get_audio()
+
         # Convert to int16 for WAV
-        samples_int16 = (self._buffer * 32768).astype(np.int16)
+        samples_int16 = (audio * 32768).astype(np.int16)
 
         buffer = io.BytesIO()
         with wave.open(buffer, "wb") as wav_file:

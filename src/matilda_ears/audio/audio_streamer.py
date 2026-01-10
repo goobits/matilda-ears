@@ -88,15 +88,3 @@ class AudioStreamer:
             "frame_size": self.encoder.frame_size,
             "buffer_size": self.encoder.buffer_size,
         }
-
-
-# Global instance
-_streamer: AudioStreamer | None = None
-
-
-def get_audio_streamer() -> AudioStreamer:
-    """Get or create the global audio streamer."""
-    global _streamer
-    if _streamer is None:
-        _streamer = AudioStreamer()
-    return _streamer
