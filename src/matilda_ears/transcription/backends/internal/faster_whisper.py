@@ -22,6 +22,19 @@ class FasterWhisperBackend(TranscriptionBackend):
         self.device = config.whisper_device_auto
         self.compute_type = config.whisper_compute_type_auto
         self.word_timestamps = config.get("whisper.word_timestamps", True)
+
+        # VAD configuration (critical for preventing hallucinations on silence)
+        self.vad_filter = config.get("whisper.vad_filter", True)
+        self.vad_parameters = config.get("whisper.vad_parameters", {
+            "threshold": 0.5,
+            "min_speech_duration_ms": 250,
+            "max_speech_duration_s": 30,
+            "min_silence_duration_ms": 200,
+        })
+
+        # Hallucination suppression
+        self.no_speech_threshold = config.get("whisper.no_speech_threshold", 0.6)
+
         self.model = None
 
     async def load(self):
@@ -50,6 +63,9 @@ class FasterWhisperBackend(TranscriptionBackend):
             beam_size=5,
             language=language,
             word_timestamps=self.word_timestamps,
+            vad_filter=self.vad_filter,
+            vad_parameters=self.vad_parameters,
+            no_speech_threshold=self.no_speech_threshold,
         )
 
         # Collect segments and extract word timestamps

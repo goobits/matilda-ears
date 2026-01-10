@@ -19,5 +19,24 @@
       "darwin": "/tmp/goobits-matilda-ears",
       "windows": "%TEMP%\\goobits-matilda-ears"
     }
+  },
+  "streaming": {
+    "enabled": true,
+    "max_buffer_seconds": 15.0,
+    "transcribe_interval_seconds": 1.5,
+    "local_agreement_n": 2,
+    "prompt_suffix_chars": 120,
+    "strategy": "local_agreement",
+    "enable_word_timestamps": true
+  },
+  "whisper": {
+    "vad_filter": true,
+    "vad_parameters": {
+      "threshold": 0.5,
+      "min_speech_duration_ms": 250,
+      "max_speech_duration_s": 30,
+      "min_silence_duration_ms": 200
+    },
+    "no_speech_threshold": 0.6
   }
 }

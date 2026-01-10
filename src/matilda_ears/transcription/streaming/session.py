@@ -77,6 +77,7 @@ class StreamingSession:
 
         # Metrics
         self._metrics = StreamingMetrics(session_id=session_id)
+        self._last_result = StreamingResult()
 
         logger.info(f"StreamingSession created: {session_id}")
 
@@ -151,6 +152,13 @@ class StreamingSession:
         chunk_duration = len(audio_chunk) / self.config.sample_rate
         self._metrics.total_audio_seconds += chunk_duration
 
+        if self.config.min_rms > 0 and audio_chunk.size:
+            rms = float(np.sqrt(np.mean(audio_chunk.astype(np.float32) ** 2)))
+            if rms < self.config.min_rms:
+                self._last_result.audio_duration_seconds = self._metrics.total_audio_seconds
+                self._last_result.processing_time_ms = 0.0
+                return self._last_result
+
         # Delegate to strategy
         start_time = time.time()
         try:
@@ -163,6 +171,12 @@ class StreamingSession:
         processing_time = (time.time() - start_time) * 1000
         result.processing_time_ms = processing_time
         result.audio_duration_seconds = self._metrics.total_audio_seconds
+        self._last_result = result
+        if processing_time > 1000:
+            logger.info(
+                f"StreamingSession {self.session_id}: process_chunk {processing_time:.0f}ms "
+                f"(audio={self._metrics.total_audio_seconds:.2f}s)"
+            )
 
         self._metrics.last_activity_time = now
         self._metrics.confirmed_words = result.confirmed_word_count

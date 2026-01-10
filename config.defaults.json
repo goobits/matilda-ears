@@ -18,6 +18,17 @@
   "parakeet": {
     "model": "mlx-community/parakeet-tdt-0.6b-v3"
   },
+  "streaming": {
+    "enabled": true,
+    "backend": "whisper_streaming",
+    "whisper_streaming": {
+      "language": "en",
+      "model_size": "small",
+      "backend": "faster-whisper",
+      "use_vad": false,
+      "min_chunk_seconds": 1.0
+    }
+  },
   "server": {
     "websocket": {
       "port": 3211,

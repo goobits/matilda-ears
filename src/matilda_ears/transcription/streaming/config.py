@@ -48,6 +48,9 @@ class StreamingConfig:
     local_agreement_n: int = 2
     prompt_suffix_chars: int = 200
 
+    # Simple energy gate to skip low-RMS chunks
+    min_rms: float = 0.0
+
     # Bounded history
     max_confirmed_words: int = 500
 
@@ -75,6 +78,7 @@ class StreamingConfig:
             local_agreement_n=streaming_cfg.get("local_agreement_n", 2),
             prompt_suffix_chars=streaming_cfg.get("prompt_suffix_chars", 200),
             max_confirmed_words=streaming_cfg.get("max_confirmed_words", 500),
+            min_rms=streaming_cfg.get("min_rms", 0.0),
             stabilization=streaming_cfg.get("stabilization"),
             strategy=streaming_cfg.get("strategy", "local_agreement"),
             enable_word_timestamps=streaming_cfg.get("enable_word_timestamps", True),
