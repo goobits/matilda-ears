@@ -22,12 +22,21 @@ class StreamingResult:
     audio_duration_seconds: float = 0.0
 
 
+def _get_model_cache_dir() -> str:
+    """Get XDG-compliant cache directory for whisper models."""
+    import os
+
+    xdg_cache = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+    return os.path.join(xdg_cache, "matilda-ears", "whisper")
+
+
 @dataclass
 class StreamingConfig:
     """Configuration for streaming adapter."""
 
     language: str = "en"
     model_size: str = "tiny"  # tiny (fast), small, medium, large-v3
+    model_cache_dir: str = ""  # Cache dir for models (default: ~/.cache/matilda-ears/whisper)
     frame_threshold: int = 25  # AlignAtt threshold (frames from end)
     audio_max_len: float = 30.0  # Max buffer length in seconds
     audio_min_len: float = 0.0  # Min buffer before processing
@@ -37,6 +46,10 @@ class StreamingConfig:
     never_fire: bool = True  # Always show omega (unstable last word)
     vad_enabled: bool = True  # Skip silence with VAD gating
     vad_threshold: float = 0.5  # Speech probability threshold
+
+    def __post_init__(self):
+        if not self.model_cache_dir:
+            self.model_cache_dir = _get_model_cache_dir()
 
 
 class AlphaOmegaWrapper:
@@ -134,16 +147,22 @@ class StreamingAdapter:
         if self._initialized:
             return
 
+        import os
+
         from .vendor import SimulWhisperASR, SimulWhisperOnline
+
+        # Build full model path: cache_dir/model_size (e.g. ~/.cache/matilda-ears/whisper/tiny)
+        model_path = os.path.join(self.config.model_cache_dir, self.config.model_size)
+        os.makedirs(self.config.model_cache_dir, exist_ok=True)
 
         logger.info(
             f"Initializing SimulStreaming with model={self.config.model_size}, "
-            f"lang={self.config.language}, threshold={self.config.frame_threshold}"
+            f"lang={self.config.language}, cache={self.config.model_cache_dir}"
         )
 
         asr = SimulWhisperASR(
             language=self.config.language,
-            model_path=self.config.model_size,
+            model_path=model_path,
             cif_ckpt_path=None,  # No CIF model needed with never_fire=True
             frame_threshold=self.config.frame_threshold,
             audio_max_len=self.config.audio_max_len,
