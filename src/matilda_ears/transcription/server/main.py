@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import websockets
 
 from ...core.config import get_config, setup_logging
-from .health import start_health_server
+from .internal.health import start_health_server
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer

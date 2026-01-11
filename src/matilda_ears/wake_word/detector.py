@@ -29,7 +29,7 @@ PRETRAINED_MODELS = [
 ]
 
 # Default wake phrase uses a pre-trained model that works out of the box
-# Users can train custom "hey_matilda" model via Colab (see models/README.md)
+# Users can train custom "hey_matilda" model via Colab (see internal/models/README.md)
 DEFAULT_AGENT_ALIASES = {"Matilda": ["hey_jarvis"]}
 
 
@@ -95,7 +95,7 @@ class WakeWordDetector:
                    Example: {"Matilda": ["hey_matilda", "computer", "hey_jarvis"]}
                    Takes precedence over `agents` if both provided.
             threshold: Detection confidence threshold (0.0-1.0).
-            models_dir: Custom models directory. Defaults to wake_word/models/.
+            models_dir: Custom models directory. Defaults to wake_word/internal/models/.
             noise_suppression: Enable Speex noise suppression (Linux only).
 
         """
@@ -106,7 +106,7 @@ class WakeWordDetector:
 
         self.threshold = threshold
         self._phrase_to_agent: dict[str, str] = {}  # Reverse mapping
-        self._models_dir = models_dir or Path(__file__).parent / "models"
+        self._models_dir = models_dir or Path(__file__).parent / "internal" / "models"
 
         # Build agent aliases mapping
         if agent_aliases:

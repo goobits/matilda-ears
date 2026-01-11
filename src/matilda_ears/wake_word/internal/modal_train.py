@@ -302,5 +302,5 @@ def main(
 
     print(f"\n✓ Model saved to: {output_path}")
     print("\nTo use it:")
-    print(f"  1. Move to: matilda-ears/src/matilda_ears/wake_word/models/{model_name}.onnx")
+    print(f"  1. Move to: matilda-ears/src/matilda_ears/wake_word/internal/models/{model_name}.onnx")
     print(f'  2. Run: ears --wake-word --agent-aliases="Matilda:{model_name}"')

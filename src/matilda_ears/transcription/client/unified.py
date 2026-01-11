@@ -9,8 +9,8 @@ import threading
 from typing import Any
 from collections.abc import Callable
 
-from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
-from .streaming import StreamingAudioClient, PartialResultCallback
+from .internal.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+from .internal.streaming import StreamingAudioClient, PartialResultCallback
 from .batch import BatchTranscriber
 from ...core.config import get_config, setup_logging
 

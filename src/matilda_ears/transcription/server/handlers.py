@@ -1,4 +1,4 @@
-from .request_handlers import (
+from .internal.request_handlers import (
     handle_auth,
     handle_binary_audio,
     handle_generate_token,

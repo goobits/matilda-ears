@@ -21,7 +21,7 @@ from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
 from .main import start_server as _start_server
-from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
+from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 # Get config instance and setup logging
 config = get_config()

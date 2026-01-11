@@ -23,7 +23,7 @@ def get_mode():
 
 def train_wake_word(*args, **kwargs):
     """Train a custom wake word model."""
-    from .training import train_wake_word as _train_wake_word
+    from .internal.training import train_wake_word as _train_wake_word
 
     return _train_wake_word(*args, **kwargs)
 

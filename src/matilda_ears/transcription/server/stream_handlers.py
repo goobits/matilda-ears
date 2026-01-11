@@ -10,8 +10,8 @@ import numpy as np
 from ...core.config import get_config, setup_logging
 from ...wake_word.detector import WakeWordDetector
 from ...audio.conversion import int16_to_float32
-from .audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
-from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
+from .internal.audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
+from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore):
     """Create a streaming session using SimulStreaming."""

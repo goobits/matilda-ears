@@ -273,7 +273,7 @@ def download(ctx, model, progress):
 
 @cli.command("train-wake-word")
 @click.option("--phrase", default=None, help="The wake word phrase to train (e.g., 'hey matilda')")
-@click.option("--output", default=None, help="Output path for ONNX file (default: models/{phrase}.onnx)")
+@click.option("--output", default=None, help="Output path for ONNX file (default: internal/models/{phrase}.onnx)")
 @click.option("--samples", default="3000", help="Number of training samples to generate")
 @click.option("--epochs", default="10", help="Number of training epochs")
 @click.pass_obj

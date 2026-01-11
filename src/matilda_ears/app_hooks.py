@@ -140,7 +140,7 @@ def on_train_wake_word(
 
     Args:
         phrase: The wake word phrase to train (e.g., 'hey matilda')
-        output: Output path for ONNX file (default: models/{phrase}.onnx)
+        output: Output path for ONNX file (default: internal/models/{phrase}.onnx)
         samples: Number of training samples to generate
         epochs: Number of training epochs
 
@@ -148,6 +148,6 @@ def on_train_wake_word(
         Dictionary with status and optional results
 
     """
-    from .wake_word.training import train_wake_word
+    from .wake_word.internal.training import train_wake_word
 
     return train_wake_word(phrase=phrase, output=output, samples=samples, epochs=epochs)

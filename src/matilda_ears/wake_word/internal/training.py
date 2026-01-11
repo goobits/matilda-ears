@@ -3,9 +3,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .internal.model import WakeWordTrainingRequest, WakeWordTrainingResult
-from .internal.trainer import normalize_model_name, validate_phrase
-from .internal.storage import ensure_output_path, get_models_dir
+from .model import WakeWordTrainingRequest, WakeWordTrainingResult
+from .trainer import normalize_model_name, validate_phrase
+from .storage import ensure_output_path, get_models_dir
 
 
 def _parse_int(value: object | None, default: int, label: str) -> int:

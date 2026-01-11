@@ -372,7 +372,7 @@ def preloaded_opus_codecs():
     print("🚀 Preloading Opus codecs...")
     try:
         from matilda_ears.audio.decoder import OpusDecoder, OpusStreamDecoder
-        from matilda_ears.transcription.client import OpusEncoder
+        from matilda_ears.audio.encoder import OpusEncoder
 
         sample_rate = 16000
         channels = 1

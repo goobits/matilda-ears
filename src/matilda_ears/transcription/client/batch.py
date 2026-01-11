@@ -13,7 +13,7 @@ import ssl
 import threading
 import websockets
 
-from .circuit_breaker import CircuitBreaker
+from .internal.circuit_breaker import CircuitBreaker
 from ...utils.ssl import create_ssl_context
 from ...audio.opus_batch import OpusBatchEncoder
 from ...core.config import get_config, setup_logging
@@ -65,7 +65,7 @@ class BatchTranscriber:
         """
         ssl_context = create_ssl_context(mode="client", auto_generate=False)
         if ssl_context is None:
-            from .exceptions import TranscriptionConnectionError
+            from .internal.exceptions import TranscriptionConnectionError
 
             raise TranscriptionConnectionError("SSL context creation failed")
 
