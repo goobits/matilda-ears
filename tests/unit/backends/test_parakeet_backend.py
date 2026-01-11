@@ -46,7 +46,7 @@ class TestParakeetBackend:
 
     def test_backend_initialization(self, mock_config):
         """Verify backend initializes correctly."""
-        from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+        from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
         backend = ParakeetBackend()
 
@@ -58,7 +58,7 @@ class TestParakeetBackend:
     def test_backend_is_ready_before_load(self, mock_config):
         """Verify is_ready returns False before model is loaded."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
-            from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+            from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
             backend = ParakeetBackend()
             assert backend.is_ready is False
@@ -67,7 +67,7 @@ class TestParakeetBackend:
         """Verify async model loading works correctly."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
             with patch("parakeet_mlx.from_pretrained", return_value=mock_parakeet_model):
-                from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+                from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
                 backend = ParakeetBackend()
 
@@ -83,7 +83,7 @@ class TestParakeetBackend:
         """Verify load() raises exception on model loading failure."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
             with patch("parakeet_mlx.from_pretrained", side_effect=RuntimeError("MLX model load failed")):
-                from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+                from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
                 backend = ParakeetBackend()
 
@@ -95,7 +95,7 @@ class TestParakeetBackend:
     def test_backend_transcribe_success(self, mock_config, mock_parakeet_model):
         """Verify transcription works and returns correct format."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
-            from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+            from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
             backend = ParakeetBackend()
             backend.model = mock_parakeet_model
@@ -119,7 +119,7 @@ class TestParakeetBackend:
     def test_backend_transcribe_not_loaded(self, mock_config):
         """Verify transcribe() raises RuntimeError if model not loaded."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
-            from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+            from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
             backend = ParakeetBackend()
 
@@ -129,7 +129,7 @@ class TestParakeetBackend:
     def test_backend_transcribe_no_sentences(self, mock_config):
         """Verify transcription works when result has no sentences (duration fallback)."""
         with patch("matilda_ears.core.config.get_config", return_value=mock_config):
-            from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+            from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
             # Mock model with empty sentences
             model = Mock()

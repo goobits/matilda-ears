@@ -20,7 +20,7 @@ class TestBackendFactory:
     def test_factory_creates_faster_whisper_backend(self):
         """Verify factory returns FasterWhisperBackend class for 'faster_whisper'."""
         from matilda_ears.transcription.backends import get_backend_class
-        from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
+        from matilda_ears.transcription.backends.internal.faster_whisper import FasterWhisperBackend
 
         backend_class = get_backend_class("faster_whisper")
         assert backend_class == FasterWhisperBackend
@@ -28,7 +28,7 @@ class TestBackendFactory:
     def test_factory_creates_parakeet_backend_when_available(self):
         """Verify factory returns ParakeetBackend when dependencies are available."""
         try:
-            from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+            from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
         except ImportError as exc:
             pytest.skip(f"Parakeet backend unavailable: {exc}")
 
@@ -73,7 +73,7 @@ class TestBackendFactory:
     def test_get_available_backends_includes_parakeet_when_available(self):
         """Verify get_available_backends includes parakeet when available."""
         try:
-            import matilda_ears.transcription.backends.parakeet_backend  # noqa: F401
+            import matilda_ears.transcription.backends.internal.parakeet  # noqa: F401
         except ImportError as exc:
             pytest.skip(f"Parakeet backend unavailable: {exc}")
 
@@ -247,8 +247,8 @@ class TestBackendOutputCompatibility:
         mock_config.whisper_device_auto = "cpu"
         mock_config.whisper_compute_type_auto = "int8"
 
-        with patch("matilda_ears.transcription.backends.faster_whisper_backend.get_config", return_value=mock_config):
-            from matilda_ears.transcription.backends.faster_whisper_backend import FasterWhisperBackend
+        with patch("matilda_ears.transcription.backends.internal.faster_whisper.get_config", return_value=mock_config):
+            from matilda_ears.transcription.backends.internal.faster_whisper import FasterWhisperBackend
 
             backend = FasterWhisperBackend()
 
@@ -284,8 +284,8 @@ class TestBackendOutputCompatibility:
             mock_config = Mock()
             mock_config.get = Mock(return_value="mlx-community/parakeet-tdt-0.6b-v3")
 
-            with patch("matilda_ears.transcription.backends.parakeet_backend.get_config", return_value=mock_config):
-                from matilda_ears.transcription.backends.parakeet_backend import ParakeetBackend
+            with patch("matilda_ears.transcription.backends.internal.parakeet.get_config", return_value=mock_config):
+                from matilda_ears.transcription.backends.internal.parakeet import ParakeetBackend
 
                 backend = ParakeetBackend()
 

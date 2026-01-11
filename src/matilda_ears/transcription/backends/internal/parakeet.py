@@ -30,9 +30,7 @@ class ParakeetBackend(TranscriptionBackend):
     """
 
     def __init__(self):
-        from .. import parakeet_backend as wrapper
-
-        config = wrapper.get_config() if hasattr(wrapper, "get_config") else get_config()
+        config = get_config()
         self.model_name = config.get("parakeet.model", "mlx-community/parakeet-tdt-0.6b-v3")
         self.model = None
         self.processor = None

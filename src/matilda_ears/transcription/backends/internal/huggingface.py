@@ -110,9 +110,7 @@ class HuggingFaceBackend(TranscriptionBackend):
                 "Or: pip install goobits-matilda-ears[huggingface]"
             )
 
-        from .. import huggingface_backend as wrapper
-
-        config = wrapper.config if hasattr(wrapper, "config") else get_config()
+        config = get_config()
         # Load config with defaults
         hf_config = config.get("huggingface", {}) if hasattr(config, "get") else {}
         if hf_config is None:
@@ -159,8 +157,6 @@ class HuggingFaceBackend(TranscriptionBackend):
 
     def _load_pipeline(self):
         """Load the transformers pipeline (blocking call)."""
-        from .. import huggingface_backend as wrapper
-
         # Build pipeline kwargs
         pipe_kwargs = {
             "task": "automatic-speech-recognition",
@@ -173,7 +169,7 @@ class HuggingFaceBackend(TranscriptionBackend):
             pipe_kwargs["torch_dtype"] = self.torch_dtype
 
         # Create pipeline
-        pipe = wrapper.pipeline(**pipe_kwargs)
+        pipe = pipeline(**pipe_kwargs)
 
         return pipe
 

@@ -15,9 +15,7 @@ class FasterWhisperBackend(TranscriptionBackend):
     """
 
     def __init__(self):
-        from .. import faster_whisper_backend as wrapper
-
-        config = wrapper.config if hasattr(wrapper, "config") else get_config()
+        config = get_config()
         self.model_size = config.whisper_model
         self.device = config.whisper_device_auto
         self.compute_type = config.whisper_compute_type_auto
