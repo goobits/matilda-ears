@@ -63,3 +63,4 @@ config.json.backup
 # Docker
 Dockerfile.local
 .venv-streaming/
+*.pt
