@@ -34,6 +34,7 @@ def _get_model_cache_dir() -> str:
 class StreamingConfig:
     """Configuration for streaming adapter."""
 
+    backend: str = "whisper"  # whisper or parakeet
     language: str = "en"
     model_size: str = "tiny"  # tiny (fast), small, medium, large-v3
     model_cache_dir: str = ""  # Cache dir for models (default: ~/.cache/matilda-ears/whisper)
@@ -46,6 +47,8 @@ class StreamingConfig:
     never_fire: bool = True  # Always show omega (unstable last word)
     vad_enabled: bool = True  # Skip silence with VAD gating
     vad_threshold: float = 0.5  # Speech probability threshold
+    parakeet_context_size: tuple[int, int] = (128, 128)
+    parakeet_depth: int = 1
 
     def __post_init__(self):
         if not self.model_cache_dir:

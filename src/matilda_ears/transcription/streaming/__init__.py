@@ -11,6 +11,7 @@ from .adapter import (
     AlphaOmegaWrapper,
     get_shared_adapter,
 )
+from .parakeet_adapter import ParakeetStreamingAdapter
 from .session import StreamingSession, SessionResult
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "SessionResult",
     "AlphaOmegaWrapper",
     "get_shared_adapter",
+    "ParakeetStreamingAdapter",
 ]

@@ -12,7 +12,7 @@ from ...wake_word.detector import WakeWordDetector
 from .audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
 from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
-def _create_streaming_session(session_id: str, backend, config, transcription_semaphore):
+def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore):
     """Create a streaming session using SimulStreaming."""
     from ..streaming import StreamingSession, StreamingConfig
 
@@ -20,17 +20,27 @@ def _create_streaming_session(session_id: str, backend, config, transcription_se
     app_config = get_config()
     streaming_config = app_config.get("streaming", {})
     simul_config = streaming_config.get("simul_streaming", {})
+    parakeet_config = streaming_config.get("parakeet", {})
+
+    context_size = parakeet_config.get("context_size", (128, 128))
+    if isinstance(context_size, list) and len(context_size) == 2:
+        context_size = (int(context_size[0]), int(context_size[1]))
+    if not isinstance(context_size, tuple) or len(context_size) != 2:
+        context_size = (128, 128)
 
     config = StreamingConfig(
+        backend=str(streaming_config.get("backend", backend_name)).lower(),
         language=simul_config.get("language", "en"),
         model_size=simul_config.get("model_size", "tiny"),  # tiny for CPU streaming
         frame_threshold=simul_config.get("frame_threshold", 25),
         audio_max_len=simul_config.get("audio_max_len", 30.0),
         segment_length=simul_config.get("segment_length", 1.0),
         never_fire=simul_config.get("never_fire", True),
+        parakeet_context_size=context_size,
+        parakeet_depth=int(parakeet_config.get("depth", 1)),
     )
 
-    return StreamingSession(session_id=session_id, config=config)
+    return StreamingSession(session_id=session_id, config=config, backend=backend, backend_name=backend_name)
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -270,6 +280,7 @@ async def handle_start_stream(
             streaming_session = _create_streaming_session(
                 session_id=session_id,
                 backend=server.backend,
+                backend_name=server.backend_name,
                 config=None,  # Config loaded internally
                 transcription_semaphore=server.transcription_semaphore,
             )
