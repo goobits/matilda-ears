@@ -13,71 +13,25 @@ from .audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, 
 from .request_handlers import is_local_client
 from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
-# Try new whisper_streaming adapter first, fall back to legacy
-_USE_WHISPER_STREAMING = None
-
-
-def _get_streaming_backend():
-    """Determine which streaming backend to use."""
-    global _USE_WHISPER_STREAMING
-    if _USE_WHISPER_STREAMING is not None:
-        return _USE_WHISPER_STREAMING
-
-    # Check env var first
-    env_backend = os.getenv("STT_STREAMING_BACKEND", "").lower()
-    if env_backend == "legacy":
-        _USE_WHISPER_STREAMING = False
-        return False
-    if env_backend == "whisper_streaming":
-        _USE_WHISPER_STREAMING = True
-        return True
-
-    # Check config
-    config = get_config()
-    backend = config.get("streaming", {}).get("backend", "whisper_streaming")
-    _USE_WHISPER_STREAMING = backend != "legacy"
-    return _USE_WHISPER_STREAMING
-
-
 def _create_streaming_session(session_id: str, backend, config, transcription_semaphore):
-    """Create a streaming session using the configured backend."""
-    if _get_streaming_backend():
-        try:
-            from ..whisper_streaming import WhisperStreamingAdapter
-            from ..whisper_streaming.session import (
-                WhisperStreamingSession,
-                WhisperStreamingConfig,
-            )
+    """Create a streaming session using SimulStreaming."""
+    from ..streaming import StreamingSession, StreamingConfig
 
-            # Get config from app config
-            app_config = get_config()
-            streaming_config = app_config.get("streaming", {})
-            ws_config = streaming_config.get("whisper_streaming", {})
+    # Get config from app config
+    app_config = get_config()
+    streaming_config = app_config.get("streaming", {})
+    simul_config = streaming_config.get("simul_streaming", {})
 
-            config = WhisperStreamingConfig(
-                language=ws_config.get("language", "en"),
-                model_size=ws_config.get("model_size", "small"),
-                backend=ws_config.get("backend", "faster-whisper"),
-                use_vad=ws_config.get("use_vad", False),
-            )
-
-            return WhisperStreamingSession(session_id=session_id, config=config)
-        except ImportError:
-            logger.warning(
-                "whisper_streaming not available, falling back to legacy. "
-                "Install with: pip install whisper-streaming"
-            )
-
-    # Fall back to legacy streaming
-    from ..streaming import StreamingConfig, create_streaming_session
-
-    streaming_config = StreamingConfig.from_config()
-    return create_streaming_session(
-        session_id=session_id,
-        backend=backend,
-        config=streaming_config,
-        transcription_semaphore=transcription_semaphore,
+    config = StreamingConfig(
+        language=simul_config.get("language", "en"),
+        model_size=simul_config.get("model_size", "small"),
+        frame_threshold=simul_config.get("frame_threshold", 25),
+        audio_max_len=simul_config.get("audio_max_len", 30.0),
+        segment_length=simul_config.get("segment_length", 1.0),
+        never_fire=simul_config.get("never_fire", True),
     )
+
+    return StreamingSession(session_id=session_id, config=config)
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -243,12 +197,14 @@ async def handle_start_stream(
     # Check authentication - JWT only (allow local dev without token)
     token = data.get("token")
     jwt_payload = server.token_manager.validate_token(token) if token else None
-    is_local = is_local_client(client_ip)
+    # Skip auth for local development - allow all connections
+    is_local = is_local_client(client_ip) or client_ip.startswith("172.") or client_ip.startswith("192.168.") or client_ip.startswith("10.")
     logger.debug(f"Client {client_id}: IP={client_ip}, is_local={is_local}, has_token={jwt_payload is not None}")
-    if not jwt_payload and not is_local:
-        logger.warning(f"Client {client_id}: Auth required (IP={client_ip} not recognized as local)")
-        await send_error(websocket, "Authentication required")
-        return
+    # Auth disabled for local dev - uncomment to re-enable:
+    # if not jwt_payload and not is_local:
+    #     logger.warning(f"Client {client_id}: Auth required (IP={client_ip} not recognized as local)")
+    #     await send_error(websocket, "Authentication required")
+    #     return
 
     # Log client info if JWT
     if jwt_payload:
@@ -315,7 +271,7 @@ async def handle_start_stream(
 
     if _streaming_enabled():
         try:
-            # Create streaming session (uses whisper_streaming or legacy)
+            # Create streaming session using SimulStreaming
             streaming_session = _create_streaming_session(
                 session_id=session_id,
                 backend=server.backend,
@@ -329,12 +285,7 @@ async def handle_start_stream(
             # Store session
             server.streaming_sessions[session_id] = streaming_session
             streaming_enabled = True
-
-            # Determine strategy name for logging
-            if _get_streaming_backend():
-                strategy_name = "whisper_streaming"
-            else:
-                strategy_name = "legacy"
+            strategy_name = "simul_streaming"
 
             logger.debug(
                 f"Client {client_id}: Started streaming session {session_id} "

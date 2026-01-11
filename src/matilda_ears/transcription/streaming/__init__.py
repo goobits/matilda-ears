@@ -1,36 +1,24 @@
-"""Streaming transcription framework.
+"""Streaming transcription using SimulStreaming.
 
-This package provides a centralized streaming framework for real-time speech-to-text,
-replacing backend-embedded streaming logic with a strategy-based approach.
-
-Public API:
-- StreamingSession: Main orchestrator for streaming sessions
-- create_streaming_session(): Factory function to create sessions
-- StreamingConfig: Configuration from config.json
-- StreamingResult: Result type with confirmed/tentative text
-- StreamingStrategy: Protocol for pluggable strategies
+Provides real-time streaming transcription with alpha (stable) and
+omega (unstable) text separation using AlignAtt attention-guided decoding.
 """
 
-from .config import StreamingConfig
-from .types import StreamingResult, StreamingMetrics, StreamingError, StreamingState, TimestampedWord
-from .buffer import AudioBuffer
-from .hypothesis import HypothesisBuffer
-from .session import StreamingSession
-from .factory import create_streaming_session
+from .adapter import (
+    StreamingAdapter,
+    StreamingConfig,
+    StreamingResult,
+    AlphaOmegaWrapper,
+    get_shared_adapter,
+)
+from .session import StreamingSession, SessionResult
 
 __all__ = [
-    # Main API
-    "StreamingSession",
-    "create_streaming_session",
-    # Configuration
+    "StreamingAdapter",
     "StreamingConfig",
-    # Types
     "StreamingResult",
-    "StreamingMetrics",
-    "StreamingError",
-    "StreamingState",
-    "TimestampedWord",
-    # Internal (for testing/extension)
-    "AudioBuffer",
-    "HypothesisBuffer",
+    "StreamingSession",
+    "SessionResult",
+    "AlphaOmegaWrapper",
+    "get_shared_adapter",
 ]
