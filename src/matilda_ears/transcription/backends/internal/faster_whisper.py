@@ -74,14 +74,19 @@ class FasterWhisperBackend(TranscriptionBackend):
         words = []
         if self.word_timestamps:
             for segment in all_segments:
-                if hasattr(segment, "words") and segment.words:
-                    for word in segment.words:
+                word_items = getattr(segment, "words", None)
+                if not word_items:
+                    continue
+                try:
+                    for word in word_items:
                         words.append({
                             "word": word.word,
                             "start": word.start,
                             "end": word.end,
                             "probability": word.probability,
                         })
+                except TypeError:
+                    logger.debug("Skipping non-iterable word timestamps")
 
         return text, {
             "duration": info.duration,
