@@ -25,7 +25,19 @@ class TestFasterWhisperBackend:
         config.whisper_model = "base"
         config.whisper_device_auto = "cpu"
         config.whisper_compute_type_auto = "int8"
-        config.get = Mock(return_value=True)
+        config.get = Mock(
+            side_effect=lambda key, default=None: {
+                "whisper.word_timestamps": True,
+                "whisper.vad_filter": True,
+                "whisper.vad_parameters": {
+                    "threshold": 0.5,
+                    "min_speech_duration_ms": 250,
+                    "max_speech_duration_s": 30,
+                    "min_silence_duration_ms": 200,
+                },
+                "whisper.no_speech_threshold": 0.6,
+            }.get(key, default)
+        )
         return config
 
     @pytest.fixture
@@ -36,6 +48,7 @@ class TestFasterWhisperBackend:
         # Mock transcription output
         segment = Mock()
         segment.text = " Test transcription"
+        segment.words = []
 
         info = Mock()
         info.duration = 2.5
@@ -120,6 +133,14 @@ class TestFasterWhisperBackend:
                 beam_size=5,
                 language="en",
                 word_timestamps=True,
+                vad_filter=True,
+                vad_parameters={
+                    "threshold": 0.5,
+                    "min_speech_duration_ms": 250,
+                    "max_speech_duration_s": 30,
+                    "min_silence_duration_ms": 200,
+                },
+                no_speech_threshold=0.6,
             )
 
     def test_backend_transcribe_not_loaded(self, mock_config):
@@ -141,10 +162,13 @@ class TestFasterWhisperBackend:
             model = Mock()
             seg1 = Mock()
             seg1.text = " Hello"
+            seg1.words = []
             seg2 = Mock()
             seg2.text = " world"
+            seg2.words = []
             seg3 = Mock()
             seg3.text = "!"
+            seg3.words = []
 
             info = Mock()
             info.duration = 1.5
