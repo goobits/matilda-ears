@@ -54,8 +54,8 @@ def setup_logging(
         from .config import get_config
 
         # Ensure logs directory exists
-        logs_dir = Path(get_config().project_dir) / "logs"
-        logs_dir.mkdir(exist_ok=True)
+        logs_dir = Path(get_config().project_dir) / ".artifacts" / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate log filename
         if log_filename is None:
