@@ -3,7 +3,7 @@
 
 import re
 
-from ..common import Entity, EntityType
+from ...common import Entity, EntityType
 
 
 class TimeConverterMixin:

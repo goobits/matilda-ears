@@ -5,9 +5,9 @@ This module serves as the orchestrator for numeric entity detection, delegating 
 specialized sub-detectors for different entity types.
 """
 
-from ..common import Entity, NumberParser
-from ..constants import get_resources
-from ...core.config import setup_logging
+from ...common import Entity, NumberParser
+from ...constants import get_resources
+from ....core.config import setup_logging
 
 # Import sub-detectors
 from .numeric import (

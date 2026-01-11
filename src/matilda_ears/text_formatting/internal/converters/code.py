@@ -3,9 +3,9 @@
 
 import re
 
-from ..common import Entity
-from ..constants import get_resources
-from ...core.config import setup_logging
+from ...common import Entity
+from ...constants import get_resources
+from ....core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 

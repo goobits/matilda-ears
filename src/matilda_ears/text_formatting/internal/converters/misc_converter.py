@@ -3,8 +3,8 @@
 
 import re
 
-from ..common import Entity
-from .. import regex_patterns
+from ...common import Entity
+from ... import regex_patterns
 
 
 class MiscConverterMixin:

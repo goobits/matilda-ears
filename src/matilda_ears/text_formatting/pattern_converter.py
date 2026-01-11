@@ -12,10 +12,10 @@ The implementation has been split into:
 """
 
 # Re-export PatternConverter for backward compatibility
-from .converters import PatternConverter
+from .internal.converters import PatternConverter
 
 # Also export mixins for extensibility
-from .converters import WebConverterMixin, CodeConverterMixin, NumericConverterMixin
+from .internal.converters import WebConverterMixin, CodeConverterMixin, NumericConverterMixin
 
 __all__ = [
     "CodeConverterMixin",

@@ -23,9 +23,9 @@ from intervaltree import IntervalTree
 
 from ...common import Entity, EntityType
 from ...constants import get_resources
-from ...detectors.code_detector import CodeEntityDetector
-from ...detectors.numeric_detector import NumericalEntityDetector
-from ...detectors.web_detector import WebEntityDetector
+from ..detectors.code_detector import CodeEntityDetector
+from ..detectors.numeric_detector import NumericalEntityDetector
+from ..detectors.web_detector import WebEntityDetector
 from ..nlp_provider import get_nlp
 from ...capitalizer import SmartCapitalizer
 from ....core.config import setup_logging

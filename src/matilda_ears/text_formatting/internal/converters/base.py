@@ -8,9 +8,9 @@ This module provides the unified PatternConverter class by combining:
 """
 
 
-from ..common import EntityType, NumberParser
-from ..constants import get_resources
-from ...core.config import get_config, setup_logging
+from ...common import EntityType, NumberParser
+from ...constants import get_resources
+from ....core.config import get_config, setup_logging
 from .web import WebConverterMixin
 from .code import CodeConverterMixin
 from .numeric import NumericConverterMixin

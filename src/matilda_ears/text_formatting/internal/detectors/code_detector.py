@@ -2,11 +2,11 @@
 """Code-related entity detection and conversion for Matilda transcriptions."""
 
 import re
-from ..common import Entity, EntityType
-from ..utils import is_inside_entity, overlaps_with_entity
-from ...core.config import setup_logging
-from .. import regex_patterns
-from ..constants import get_resources
+from ...common import Entity, EntityType
+from ...utils import is_inside_entity, overlaps_with_entity
+from ....core.config import setup_logging
+from ... import regex_patterns
+from ...constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
@@ -539,7 +539,7 @@ class CodeEntityDetector:
                         if words:
                             last_word = words[-1].lower()
                             # Check if it's a number word
-                            from ..common import NumberParser
+                            from ...common import NumberParser
 
                             parser = NumberParser(language=self.language)
                             if last_word in parser.all_number_words or last_word.isdigit():

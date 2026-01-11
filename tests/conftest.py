@@ -20,15 +20,15 @@ pytest_plugins = ["tests.__tools__.pytest_diff_tracker", "tests.__tools__.pytest
 # Disable excessive logging during tests for performance
 logging.getLogger("matilda_ears.text_formatting").setLevel(logging.CRITICAL)
 logging.getLogger("matilda_ears.text_formatting.formatter").setLevel(logging.CRITICAL)
-logging.getLogger("matilda_ears.text_formatting.detectors").setLevel(logging.CRITICAL)
-logging.getLogger("matilda_ears.text_formatting.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
+logging.getLogger("matilda_ears.text_formatting.internal.detectors").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears.text_formatting.internal.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
 logging.getLogger("matilda_ears.core").setLevel(logging.CRITICAL)
 logging.getLogger("matilda_ears.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
 
 # Also disable the root logger for these modules to catch all sub-loggers
 for logger_name in [
     "matilda_ears.text_formatting.formatter",
-    "matilda_ears.text_formatting.detectors",
+    "matilda_ears.text_formatting.internal.detectors",
     "matilda_ears.text_formatting.pattern_converter",
 ]:
     logging.getLogger(logger_name).disabled = True

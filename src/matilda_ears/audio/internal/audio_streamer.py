@@ -7,7 +7,7 @@ from aiohttp import web
 
 # Setup standardized logging
 try:
-    from ..config import get_logger
+    from ...core.logging import get_logger
     from .encoder import OpusEncoder
 
     logger = get_logger(__name__)

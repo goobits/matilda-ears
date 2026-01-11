@@ -3,7 +3,7 @@
 
 import re
 
-from ..common import Entity
+from ...common import Entity
 
 
 class NumberConverterMixin:

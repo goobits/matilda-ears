@@ -3,10 +3,10 @@
 
 import re
 from typing import Any
-from ...common import Entity, EntityType, NumberParser
-from ...utils import is_inside_entity
-from ....core.config import setup_logging
-from ... import regex_patterns
+from ....common import Entity, EntityType, NumberParser
+from ....utils import is_inside_entity
+from .....core.config import setup_logging
+from .... import regex_patterns
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 

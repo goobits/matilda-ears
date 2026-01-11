@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Audio package initialization."""
 
-from .vad_processor import VADConfig, VADProcessor, VADResult, VADState
+from .conversion import float32_to_int16, int16_to_float32
+from .vad import SileroVAD
 
-__all__ = ["VADConfig", "VADProcessor", "VADResult", "VADState"]
+__all__ = ["SileroVAD", "float32_to_int16", "int16_to_float32"]

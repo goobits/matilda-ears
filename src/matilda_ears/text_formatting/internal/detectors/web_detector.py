@@ -2,11 +2,11 @@
 """Web-related entity detection and conversion for Matilda transcriptions."""
 
 import re
-from ..common import Entity, EntityType
-from ..utils import is_inside_entity, overlaps_with_entity
-from ...core.config import setup_logging
-from .. import regex_patterns
-from ..constants import get_resources
+from ...common import Entity, EntityType
+from ...utils import is_inside_entity, overlaps_with_entity
+from ....core.config import setup_logging
+from ... import regex_patterns
+from ...constants import get_resources
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 

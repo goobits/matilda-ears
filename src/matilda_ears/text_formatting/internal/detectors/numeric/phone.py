@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Phone number detection for numeric entity detection."""
 
-from ...common import Entity, EntityType
-from ...utils import is_inside_entity
-from ....core.config import setup_logging
-from ... import regex_patterns
+from ....common import Entity, EntityType
+from ....utils import is_inside_entity
+from .....core.config import setup_logging
+from .... import regex_patterns
 
 logger = setup_logging(__name__, log_filename="text_formatting.txt")
 
