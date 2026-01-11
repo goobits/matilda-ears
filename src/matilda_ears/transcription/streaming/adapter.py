@@ -27,7 +27,7 @@ class StreamingConfig:
     """Configuration for streaming adapter."""
 
     language: str = "en"
-    model_size: str = "small"  # small, medium, large-v3
+    model_size: str = "tiny"  # tiny (fast), small, medium, large-v3
     frame_threshold: int = 25  # AlignAtt threshold (frames from end)
     audio_max_len: float = 30.0  # Max buffer length in seconds
     audio_min_len: float = 0.0  # Min buffer before processing
@@ -35,6 +35,8 @@ class StreamingConfig:
     beams: int = 1  # Beam search (1 = greedy)
     task: str = "transcribe"  # transcribe or translate
     never_fire: bool = True  # Always show omega (unstable last word)
+    vad_enabled: bool = True  # Skip silence with VAD gating
+    vad_threshold: float = 0.5  # Speech probability threshold
 
 
 class AlphaOmegaWrapper:
@@ -120,6 +122,12 @@ class StreamingAdapter:
         self._total_samples = 0
         self._initialized = False
         self._lock = asyncio.Lock()
+        # VAD and coalescing state
+        self._vad = None
+        self._dirty = False
+        self._inference_running = False
+        self._pending_audio: list[np.ndarray] = []
+        self._last_result = StreamingResult()
 
     async def start(self) -> None:
         """Initialize the ASR and processor."""
@@ -154,11 +162,21 @@ class StreamingAdapter:
         online = SimulWhisperOnline(asr)
         self._wrapper = AlphaOmegaWrapper(online)
 
+        # Initialize VAD if enabled
+        if self.config.vad_enabled:
+            from ...audio.vad import SileroVAD
+
+            self._vad = SileroVAD(threshold=self.config.vad_threshold)
+            logger.info(f"SileroVAD enabled with threshold={self.config.vad_threshold}")
+
         self._initialized = True
         logger.info("SimulStreaming initialized successfully")
 
     async def process_chunk(self, pcm_int16: np.ndarray) -> StreamingResult:
         """Process an audio chunk and return partial results.
+
+        Uses VAD gating to skip silence and coalescing to avoid blocking
+        when inference is running.
 
         Args:
             pcm_int16: Audio samples as int16 numpy array (16kHz, mono)
@@ -170,33 +188,65 @@ class StreamingAdapter:
         if not self._initialized:
             raise RuntimeError("Adapter not started. Call start() first.")
 
-        async with self._lock:
-            # Convert int16 to float32 [-1.0, 1.0]
-            audio_float32 = pcm_int16.astype(np.float32) / 32768.0
-            self._total_samples += len(pcm_int16)
+        self._total_samples += len(pcm_int16)
 
-            # Feed audio to processor
-            self._wrapper.insert_audio_chunk(audio_float32)
+        # 1. VAD gate - skip silence
+        if self._vad:
+            speech_prob = self._vad.process_chunk(pcm_int16)
+            if speech_prob < self._vad.threshold:
+                return self._last_result
 
-            # Get result - runs in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._wrapper.process_iter)
+        # 2. Buffer audio
+        self._pending_audio.append(pcm_int16)
 
-            alpha = result.get("alpha", "")
-            omega = result.get("omega", "")
+        # 3. Coalesce - skip if inference is running
+        if self._inference_running:
+            self._dirty = True
+            return self._last_result
 
-            # Accumulate alpha text
-            if alpha:
-                if self._alpha_text:
-                    self._alpha_text += " " + alpha
-                else:
-                    self._alpha_text = alpha
+        # 4. Run inference loop
+        return await self._run_inference_loop()
 
-            return StreamingResult(
-                alpha_text=self._alpha_text,
-                omega_text=omega,
-                audio_duration_seconds=self._total_samples / self.SAMPLE_RATE,
-            )
+    async def _run_inference_loop(self) -> StreamingResult:
+        """Run inference, re-running if new audio arrived (dirty flag pattern)."""
+        while True:
+            self._dirty = False
+            self._inference_running = True
+
+            try:
+                async with self._lock:
+                    # Flush pending audio to model
+                    for chunk in self._pending_audio:
+                        audio_f32 = chunk.astype(np.float32) / 32768.0
+                        self._wrapper.insert_audio_chunk(audio_f32)
+                    self._pending_audio.clear()
+
+                    # Get result - runs in thread pool to avoid blocking
+                    loop = asyncio.get_event_loop()
+                    result = await loop.run_in_executor(None, self._wrapper.process_iter)
+
+                alpha = result.get("alpha", "")
+                omega = result.get("omega", "")
+
+                # Accumulate alpha text
+                if alpha:
+                    if self._alpha_text:
+                        self._alpha_text += " " + alpha
+                    else:
+                        self._alpha_text = alpha
+
+                self._last_result = StreamingResult(
+                    alpha_text=self._alpha_text,
+                    omega_text=omega,
+                    audio_duration_seconds=self._total_samples / self.SAMPLE_RATE,
+                )
+            finally:
+                self._inference_running = False
+
+            # If no new audio arrived during inference, we're done
+            if not self._dirty:
+                return self._last_result
+            # Otherwise loop to process newly arrived audio
 
     async def finalize(self) -> StreamingResult:
         """Finalize transcription and get remaining text.
@@ -235,8 +285,14 @@ class StreamingAdapter:
         """Reset the processor for a new transcription session."""
         if self._wrapper:
             self._wrapper.init()
+        if self._vad:
+            self._vad.reset_states()
         self._alpha_text = ""
         self._total_samples = 0
+        self._dirty = False
+        self._inference_running = False
+        self._pending_audio.clear()
+        self._last_result = StreamingResult()
 
     @property
     def is_initialized(self) -> bool:

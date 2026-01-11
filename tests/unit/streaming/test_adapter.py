@@ -17,11 +17,13 @@ class TestStreamingConfig:
     def test_default_config(self):
         config = StreamingConfig()
         assert config.language == "en"
-        assert config.model_size == "small"
+        assert config.model_size == "tiny"  # Optimized for CPU streaming
         assert config.frame_threshold == 25
         assert config.audio_max_len == 30.0
         assert config.segment_length == 1.0
         assert config.never_fire is True
+        assert config.vad_enabled is True
+        assert config.vad_threshold == 0.5
 
     def test_custom_config(self):
         config = StreamingConfig(
@@ -77,7 +79,12 @@ class TestStreamingAdapter:
         adapter = StreamingAdapter()
         assert adapter.is_initialized is False
         assert adapter.config.language == "en"
-        assert adapter.config.model_size == "small"
+        assert adapter.config.model_size == "tiny"
+        # Check coalescing state initialized
+        assert adapter._vad is None  # Not loaded until start()
+        assert adapter._dirty is False
+        assert adapter._inference_running is False
+        assert adapter._pending_audio == []
 
     def test_adapter_with_custom_config(self):
         config = StreamingConfig(language="fr", model_size="medium")
