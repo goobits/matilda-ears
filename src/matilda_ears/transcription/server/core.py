@@ -51,6 +51,11 @@ class MatildaWebSocketServer:
 
         self.token_manager = _TokenManager(_config.jwt_secret_key)
 
+        # Initialize centralized auth policy
+        from ...core.auth import AuthPolicy
+
+        self.auth = AuthPolicy(self.token_manager)
+
         # Initialize Backend
         self.backend_name = _config.transcription_backend
         self.backend = None

@@ -10,7 +10,6 @@ import numpy as np
 from ...core.config import get_config, setup_logging
 from ...wake_word.detector import WakeWordDetector
 from .audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
-from .request_handlers import is_local_client
 from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 def _create_streaming_session(session_id: str, backend, config, transcription_semaphore):
@@ -194,22 +193,18 @@ async def handle_start_stream(
     client_id: str,
 ) -> None:
     """Handle start of audio streaming session."""
-    # Check authentication - JWT only (allow local dev without token)
-    token = data.get("token")
-    jwt_payload = server.token_manager.validate_token(token) if token else None
-    # Skip auth for local development - allow all connections
-    is_local = is_local_client(client_ip) or client_ip.startswith("172.") or client_ip.startswith("192.168.") or client_ip.startswith("10.")
-    logger.debug(f"Client {client_id}: IP={client_ip}, is_local={is_local}, has_token={jwt_payload is not None}")
-    # Auth disabled for local dev - uncomment to re-enable:
-    # if not jwt_payload and not is_local:
-    #     logger.warning(f"Client {client_id}: Auth required (IP={client_ip} not recognized as local)")
-    #     await send_error(websocket, "Authentication required")
-    #     return
+    # Check authentication using centralized policy
+    origin = websocket.request_headers.get("Origin") if hasattr(websocket, "request_headers") else None
+    auth_result = server.auth.check(data.get("token"), client_ip, origin)
+    logger.debug(f"Client {client_id}: IP={client_ip}, auth={auth_result.authorized}, method={auth_result.method}")
 
-    # Log client info if JWT
-    if jwt_payload:
-        client_name = jwt_payload.get("client_id", "unknown")
-        logger.debug(f"Stream session started by JWT client: {client_name}")
+    if not auth_result.authorized:
+        logger.warning(f"Client {client_id}: Auth required (IP={client_ip})")
+        await send_error(websocket, "Authentication required")
+        return
+
+    if auth_result.client_id:
+        logger.debug(f"Stream session started by {auth_result.client_id} via {auth_result.method}")
 
     # Check if model is loaded
     if not server.backend.is_ready:

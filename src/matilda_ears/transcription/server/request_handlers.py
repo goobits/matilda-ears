@@ -123,8 +123,8 @@ async def handle_generate_token(
     client_id: str,
 ) -> None:
     """Generate a new JWT token for local debug clients."""
-    if not allow_token_generation(client_ip):
-        await send_error(websocket, "Authentication required")
+    if not server.auth.can_generate_tokens(client_ip):
+        await send_error(websocket, "Token generation not allowed from this IP")
         return
 
     client_name = data.get("client_name") or "debug-client"
@@ -156,19 +156,16 @@ async def handle_transcription(
     client_id: str,
 ) -> None:
     """Handle transcription requests."""
-    # Check authentication - JWT only (allow local dev without token)
-    token = data.get("token")
-    jwt_payload = server.token_manager.validate_token(token) if token else None
-    if not jwt_payload:
-        logger.warning(f"Client {client_id}: Auth failed (token_present={bool(token)})")
-        if not is_local_client(client_ip):
-            await send_error(websocket, "Authentication required")
-            return
+    # Check authentication using centralized policy
+    origin = websocket.request_headers.get("Origin") if hasattr(websocket, "request_headers") else None
+    auth_result = server.auth.check(data.get("token"), client_ip, origin)
+    if not auth_result.authorized:
+        logger.warning(f"Client {client_id}: Auth failed (ip={client_ip})")
+        await send_error(websocket, "Authentication required")
+        return
 
-    # Log client info if JWT
-    if jwt_payload:
-        client_name = jwt_payload.get("client_id", "unknown")
-        logger.info(f"Transcription request from JWT client: {client_name}")
+    if auth_result.client_id:
+        logger.debug(f"Transcription request from {auth_result.client_id} via {auth_result.method}")
 
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
