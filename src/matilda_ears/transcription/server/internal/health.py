@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from aiohttp import web
 
-from ...core.config import setup_logging
+from ....core.config import setup_logging
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer

@@ -312,7 +312,7 @@ class SileroVAD:
         }
 
 
-class VADProcessor:
+class VADProbSmoother:
     """High-level VAD processor with buffering and smoothing."""
 
     def __init__(self, vad: SileroVAD, buffer_size: int = 3):

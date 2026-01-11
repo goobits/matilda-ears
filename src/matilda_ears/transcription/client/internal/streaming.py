@@ -18,8 +18,8 @@ import numpy as np
 import websockets
 
 from .exceptions import TranscriptionConnectionError, StreamingError
-from ...audio.encoder import OpusEncoder
-from ...core.config import setup_logging
+from ....audio.encoder import OpusEncoder
+from ....core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 

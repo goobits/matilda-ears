@@ -25,7 +25,7 @@ class VADEvent(Enum):
     END = "end"
 
 
-class VADProcessor:
+class VADStateMachine:
     """State machine for processing audio chunks and detecting utterances."""
 
     def __init__(

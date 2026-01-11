@@ -7,8 +7,8 @@ This module provides audio processing utilities for the WebSocket server:
 
 import numpy as np
 
-from ...core.config import setup_logging
-from ...audio.conversion import float32_to_int16, int16_to_float32
+from ....core.config import setup_logging
+from ....audio.conversion import float32_to_int16, int16_to_float32
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 

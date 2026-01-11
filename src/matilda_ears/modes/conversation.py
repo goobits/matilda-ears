@@ -14,7 +14,7 @@ from typing import Any
 
 from ._imports import np
 from .base_mode import BaseMode
-from matilda_ears.core.vad import VADProcessor, VADEvent
+from matilda_ears.core.vad_state import VADStateMachine, VADEvent
 
 
 class ConversationMode(BaseMode):
@@ -27,7 +27,7 @@ class ConversationMode(BaseMode):
         mode_config = self._get_mode_config()
 
         # Initialize VAD Processor
-        self.vad_processor = VADProcessor(
+        self.vad_processor = VADStateMachine(
             sample_rate=self.args.sample_rate,
             threshold=mode_config.get("vad_threshold", 0.5),
             hysteresis=mode_config.get("hysteresis", 0.15),

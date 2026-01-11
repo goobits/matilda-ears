@@ -5,9 +5,9 @@ import os
 import time
 from typing import TYPE_CHECKING
 
-from ...audio.opus_batch import OpusBatchDecoder
-from ...core.config import setup_logging
-from .internal.transcription import send_error, transcribe_audio_from_wav
+from ....audio.opus_batch import OpusBatchDecoder
+from ....core.config import setup_logging
+from .transcription import send_error, transcribe_audio_from_wav
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer

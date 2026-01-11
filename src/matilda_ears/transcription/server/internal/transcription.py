@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import websockets
 
-from ...core.config import setup_logging
-from ...text_formatting.formatter import format_transcription
+from ....core.config import setup_logging
+from ....text_formatting.formatter import format_transcription
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
