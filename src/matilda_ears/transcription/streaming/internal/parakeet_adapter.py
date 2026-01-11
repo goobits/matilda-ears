@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from .adapter import StreamingConfig, StreamingResult
+from .whisper_adapter import StreamingConfig, StreamingResult
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class ParakeetStreamingAdapter:
 
         if self.config.vad_enabled:
             try:
-                from ...audio.vad import SileroVAD
+                from ....audio.vad import SileroVAD
 
                 self._vad = SileroVAD(threshold=self.config.vad_threshold)
                 logger.info(f"SileroVAD enabled with threshold={self.config.vad_threshold}")

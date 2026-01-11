@@ -3,12 +3,11 @@
 import numpy as np
 import pytest
 
-from matilda_ears.transcription.streaming import (
+from matilda_ears.transcription.streaming import StreamingConfig, StreamingResult
+from matilda_ears.transcription.streaming.internal.whisper_adapter import (
     StreamingAdapter,
-    StreamingConfig,
-    StreamingResult,
+    AlphaOmegaWrapper,
 )
-from matilda_ears.transcription.streaming.adapter import AlphaOmegaWrapper
 
 
 class TestStreamingConfig:

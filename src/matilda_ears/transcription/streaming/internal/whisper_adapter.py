@@ -9,7 +9,7 @@ import numpy as np
 from dataclasses import dataclass
 import logging
 
-from ...audio.conversion import int16_to_float32
+from ....audio.conversion import int16_to_float32
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,7 @@ class StreamingAdapter:
 
         import os
 
-        from .vendor import SimulWhisperASR, SimulWhisperOnline
+        from ..vendor import SimulWhisperASR, SimulWhisperOnline
 
         # Build full model path: cache_dir/model_size (e.g. ~/.cache/matilda-ears/whisper/tiny)
         model_path = os.path.join(self.config.model_cache_dir, self.config.model_size)
@@ -189,7 +189,7 @@ class StreamingAdapter:
         # Initialize VAD if enabled (gracefully skip if onnxruntime unavailable)
         if self.config.vad_enabled:
             try:
-                from ...audio.vad import SileroVAD
+                from ....audio.vad import SileroVAD
 
                 self._vad = SileroVAD(threshold=self.config.vad_threshold)
                 logger.info(f"SileroVAD enabled with threshold={self.config.vad_threshold}")

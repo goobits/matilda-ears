@@ -7,7 +7,7 @@ stream_handlers.py.
 import numpy as np
 from dataclasses import dataclass
 
-from .adapter import StreamingAdapter, StreamingConfig
+from .internal.whisper_adapter import StreamingAdapter, StreamingConfig
 
 
 @dataclass
@@ -47,7 +47,7 @@ class StreamingSession:
         if backend_name == "parakeet":
             if not self.backend:
                 raise RuntimeError("Parakeet streaming requires a backend instance")
-            from .parakeet_adapter import ParakeetStreamingAdapter
+            from .internal.parakeet_adapter import ParakeetStreamingAdapter
 
             return ParakeetStreamingAdapter(self.backend, self.config)
         return StreamingAdapter(self.config)
