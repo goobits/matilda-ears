@@ -147,6 +147,10 @@ class SileroVAD:
         Returns:
             Speech probability (0.0-1.0)
 
+        Note:
+            Silero VAD requires specific chunk sizes (512 samples for 16kHz).
+            Larger chunks are automatically split and the max probability returned.
+
         """
         try:
             # Convert to float32 if needed
@@ -157,6 +161,22 @@ class SileroVAD:
 
             # Ensure 1D array
             audio_float = audio_float.squeeze()
+
+            # Silero VAD requires specific chunk sizes: 512 for 16kHz, 256 for 8kHz
+            required_size = 512 if self.sample_rate == 16000 else 256
+
+            # If chunk is larger than required, split and take max probability
+            if len(audio_float) > required_size:
+                max_prob = 0.0
+                for i in range(0, len(audio_float) - required_size + 1, required_size):
+                    sub_chunk = audio_float[i : i + required_size]
+                    audio_tensor = torch.from_numpy(sub_chunk)
+                    if self.model is None:
+                        raise RuntimeError("Model not loaded")
+                    with torch.no_grad():
+                        prob = self.model(audio_tensor, self.sample_rate).item()
+                    max_prob = max(max_prob, prob)
+                return float(max_prob)
 
             # Convert to torch tensor
             audio_tensor = torch.from_numpy(audio_float)

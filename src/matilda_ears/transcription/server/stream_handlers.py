@@ -23,7 +23,7 @@ def _create_streaming_session(session_id: str, backend, config, transcription_se
 
     config = StreamingConfig(
         language=simul_config.get("language", "en"),
-        model_size=simul_config.get("model_size", "small"),
+        model_size=simul_config.get("model_size", "tiny"),  # tiny for CPU streaming
         frame_threshold=simul_config.get("frame_threshold", 25),
         audio_max_len=simul_config.get("audio_max_len", 30.0),
         segment_length=simul_config.get("segment_length", 1.0),

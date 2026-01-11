@@ -162,12 +162,15 @@ class StreamingAdapter:
         online = SimulWhisperOnline(asr)
         self._wrapper = AlphaOmegaWrapper(online)
 
-        # Initialize VAD if enabled
+        # Initialize VAD if enabled (gracefully skip if onnxruntime unavailable)
         if self.config.vad_enabled:
-            from ...audio.vad import SileroVAD
+            try:
+                from ...audio.vad import SileroVAD
 
-            self._vad = SileroVAD(threshold=self.config.vad_threshold)
-            logger.info(f"SileroVAD enabled with threshold={self.config.vad_threshold}")
+                self._vad = SileroVAD(threshold=self.config.vad_threshold)
+                logger.info(f"SileroVAD enabled with threshold={self.config.vad_threshold}")
+            except Exception as e:
+                logger.warning(f"SileroVAD unavailable ({e}), continuing without VAD gating")
 
         self._initialized = True
         logger.info("SimulStreaming initialized successfully")
@@ -202,9 +205,11 @@ class StreamingAdapter:
         # 3. Coalesce - skip if inference is running
         if self._inference_running:
             self._dirty = True
+            logger.debug(f"Coalescing: inference busy, buffered {len(self._pending_audio)} chunks")
             return self._last_result
 
         # 4. Run inference loop
+        logger.debug(f"Starting inference with {len(self._pending_audio)} pending chunks")
         return await self._run_inference_loop()
 
     async def _run_inference_loop(self) -> StreamingResult:
