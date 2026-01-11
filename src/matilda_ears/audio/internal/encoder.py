@@ -3,6 +3,8 @@
 import numpy as np
 import opuslib
 
+from ..conversion import float32_to_int16
+
 # Setup standardized logging
 try:
     from ...core.config import setup_logging
@@ -53,7 +55,7 @@ class OpusEncoder:
         """
         # Convert to int16 if needed
         if audio_data.dtype == np.float32:
-            audio_data = (audio_data * 32767).astype(np.int16)
+            audio_data = float32_to_int16(audio_data)
 
         # Add to buffer
         self.audio_buffer.extend(audio_data)

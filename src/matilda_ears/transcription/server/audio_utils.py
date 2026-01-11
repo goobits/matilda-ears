@@ -8,6 +8,7 @@ This module provides audio processing utilities for the WebSocket server:
 import numpy as np
 
 from ...core.config import setup_logging
+from ...audio.conversion import float32_to_int16, int16_to_float32
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
@@ -75,7 +76,7 @@ def resample_audio(pcm_samples: np.ndarray, source_rate: int, target_rate: int =
 
     # Convert to float for interpolation
     if pcm_samples.dtype == np.int16:
-        samples_float = pcm_samples.astype(np.float32) / 32768.0
+        samples_float = int16_to_float32(pcm_samples)
     else:
         samples_float = pcm_samples.astype(np.float32)
 
@@ -88,7 +89,7 @@ def resample_audio(pcm_samples: np.ndarray, source_rate: int, target_rate: int =
     # Convert back to original dtype
     if original_dtype == np.int16:
         # Clip to prevent overflow and convert back to int16
-        resampled = np.clip(resampled * 32768.0, -32768, 32767).astype(np.int16)
+        resampled = float32_to_int16(resampled)
     else:
         resampled = resampled.astype(original_dtype)
 

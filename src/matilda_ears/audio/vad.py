@@ -30,6 +30,8 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
+from .conversion import int16_to_float32
+
 
 class SileroVAD:
     """Voice Activity Detection using Silero VAD model.
@@ -154,10 +156,7 @@ class SileroVAD:
         """
         try:
             # Convert to float32 if needed
-            if audio_chunk.dtype == np.int16:
-                audio_float = audio_chunk.astype(np.float32) / 32768.0
-            else:
-                audio_float = audio_chunk.astype(np.float32)
+            audio_float = int16_to_float32(audio_chunk)
 
             # Ensure 1D array
             audio_float = audio_float.squeeze()
@@ -274,10 +273,7 @@ class SileroVAD:
         """
         try:
             # Convert to float32 if needed
-            if audio_buffer.dtype == np.int16:
-                audio_float = audio_buffer.astype(np.float32) / 32768.0
-            else:
-                audio_float = audio_buffer.astype(np.float32)
+            audio_float = int16_to_float32(audio_buffer)
 
             # Convert to torch tensor
             audio_tensor = torch.from_numpy(audio_float)
@@ -398,10 +394,7 @@ class SimpleFallbackVAD:
         """
         try:
             # Convert to float32 if needed
-            if audio_chunk.dtype == np.int16:
-                audio_float = audio_chunk.astype(np.float32) / 32768.0
-            else:
-                audio_float = audio_chunk.astype(np.float32)
+            audio_float = int16_to_float32(audio_chunk)
 
             # Calculate RMS
             rms = np.sqrt(np.mean(audio_float**2))

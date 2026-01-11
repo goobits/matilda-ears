@@ -9,6 +9,7 @@ import numpy as np
 
 from ...core.config import get_config, setup_logging
 from ...wake_word.detector import WakeWordDetector
+from ...audio.conversion import int16_to_float32
 from .audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
 from .transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
@@ -93,6 +94,15 @@ def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -
     )
 
 
+def _decode_and_normalize_opus(client_id: str, session_id: str, decoder, opus_data: bytes) -> np.ndarray:
+    pcm_samples = decoder.decode_chunk(opus_data)
+    pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
+    _log_audio_stats(client_id, session_id, pcm_samples)
+    if decoder.sample_rate != TARGET_SAMPLE_RATE:
+        pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
+    return pcm_samples
+
+
 def _get_wake_word_detector(server: "MatildaWebSocketServer") -> WakeWordDetector | None:
     detector = getattr(server, "wake_word_detector", None)
     if detector is False:
@@ -175,7 +185,7 @@ async def _process_wake_word_chunk(
         if now - debug_state["last_sent"] >= 0.5:
             debug_state["last_sent"] = now
             if pcm_samples.size:
-                samples = pcm_samples.astype(np.float32) / 32768.0
+                samples = int16_to_float32(pcm_samples)
                 rms = float(np.sqrt(np.mean(samples * samples)))
                 peak = float(np.max(np.abs(samples)))
             else:
@@ -381,11 +391,7 @@ async def handle_audio_chunk(
 
         # Decode Opus chunk and append to PCM buffer
         # This returns the decoded PCM samples as numpy array
-        pcm_samples = decoder.decode_chunk(opus_data)
-        pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
-        _log_audio_stats(client_id, session_id, pcm_samples)
-        if decoder.sample_rate != TARGET_SAMPLE_RATE:
-            pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
+        pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
 
         await _process_wake_word_chunk(server, websocket, session_id, pcm_samples)
 
@@ -469,11 +475,7 @@ async def handle_binary_stream_chunk(
             {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}
         )
 
-        pcm_samples = decoder.decode_chunk(opus_data)
-        pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
-        _log_audio_stats(client_id, session_id, pcm_samples)
-        if decoder.sample_rate != TARGET_SAMPLE_RATE:
-            pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
+        pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
 
         await _process_wake_word_chunk(server, websocket, session_id, pcm_samples)
 

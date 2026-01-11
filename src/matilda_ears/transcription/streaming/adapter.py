@@ -9,6 +9,8 @@ import numpy as np
 from dataclasses import dataclass
 import logging
 
+from ...audio.conversion import int16_to_float32
+
 logger = logging.getLogger(__name__)
 
 
@@ -244,7 +246,7 @@ class StreamingAdapter:
                 async with self._lock:
                     # Flush pending audio to model
                     for chunk in self._pending_audio:
-                        audio_f32 = chunk.astype(np.float32) / 32768.0
+                        audio_f32 = int16_to_float32(chunk)
                         self._wrapper.insert_audio_chunk(audio_f32)
                     self._pending_audio.clear()
 
