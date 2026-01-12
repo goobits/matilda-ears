@@ -1,7 +1,6 @@
 import os
-from functools import lru_cache
+from functools import cache
 from subprocess import CalledProcessError, run
-from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -23,8 +22,7 @@ TOKENS_PER_SECOND = exact_div(SAMPLE_RATE, N_SAMPLES_PER_TOKEN)  # 20ms per audi
 
 
 def load_audio(file: str, sr: int = SAMPLE_RATE):
-    """
-    Open an audio file and read as mono waveform, resampling as necessary
+    """Open an audio file and read as mono waveform, resampling as necessary
 
     Parameters
     ----------
@@ -37,8 +35,8 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     Returns
     -------
     A NumPy array containing the audio waveform, in float32 dtype.
-    """
 
+    """
     # This launches a subprocess to decode audio while down-mixing
     # and resampling as necessary.  Requires the ffmpeg CLI in PATH.
     # fmt: off
@@ -63,14 +61,10 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
 
 
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
-    """
-    Pad or trim the audio array to N_SAMPLES, as expected by the encoder.
-    """
+    """Pad or trim the audio array to N_SAMPLES, as expected by the encoder."""
     if torch.is_tensor(array):
         if array.shape[axis] > length:
-            array = array.index_select(
-                dim=axis, index=torch.arange(length, device=array.device)
-            )
+            array = array.index_select(dim=axis, index=torch.arange(length, device=array.device))
 
         if array.shape[axis] < length:
             pad_widths = [(0, 0)] * array.ndim
@@ -88,10 +82,9 @@ def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
     return array
 
 
-@lru_cache(maxsize=None)
+@cache
 def mel_filters(device, n_mels: int) -> torch.Tensor:
-    """
-    load the mel filterbank matrix for projecting STFT into a Mel spectrogram.
+    """Load the mel filterbank matrix for projecting STFT into a Mel spectrogram.
     Allows decoupling librosa dependency; saved using:
 
         np.savez_compressed(
@@ -108,13 +101,12 @@ def mel_filters(device, n_mels: int) -> torch.Tensor:
 
 
 def log_mel_spectrogram(
-    audio: Union[str, np.ndarray, torch.Tensor],
+    audio: str | np.ndarray | torch.Tensor,
     n_mels: int = 80,
     padding: int = 0,
-    device: Optional[Union[str, torch.device]] = None,
+    device: str | torch.device | None = None,
 ):
-    """
-    Compute the log-Mel spectrogram of
+    """Compute the log-Mel spectrogram of
 
     Parameters
     ----------
@@ -134,6 +126,7 @@ def log_mel_spectrogram(
     -------
     torch.Tensor, shape = (n_mels, n_frames)
         A Tensor that contains the Mel spectrogram
+
     """
     if not torch.is_tensor(audio):
         if isinstance(audio, str):

@@ -13,6 +13,7 @@ from ...audio.conversion import int16_to_float32
 from .internal.audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
+
 def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore):
     """Create a streaming session using SimulStreaming."""
     from ..streaming import StreamingSession, StreamingConfig
@@ -42,6 +43,7 @@ def _create_streaming_session(session_id: str, backend, backend_name: str, confi
     )
 
     return StreamingSession(session_id=session_id, config=config, backend=backend, backend_name=backend_name)
+
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer

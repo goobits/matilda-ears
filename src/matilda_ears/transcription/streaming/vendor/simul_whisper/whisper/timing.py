@@ -2,7 +2,7 @@ import itertools
 import subprocess
 import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
@@ -27,9 +27,7 @@ def median_filter(x: torch.Tensor, filter_width: int):
         # `F.pad` does not support 1D or 2D inputs for reflect padding but supports 3D and 4D
         x = x[None, None, :]
 
-    assert (
-        filter_width > 0 and filter_width % 2 == 1
-    ), "`filter_width` should be an odd number"
+    assert filter_width > 0 and filter_width % 2 == 1, "`filter_width` should be an odd number"
 
     result = None
     x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode="reflect")
@@ -56,8 +54,8 @@ def median_filter(x: torch.Tensor, filter_width: int):
 
 @numba.jit(nopython=True)
 def backtrace(trace: np.ndarray):
-    i = trace.shape[0] - 1 # trace: (N+1, M+1), i=N
-    j = trace.shape[1] - 1 # j=M
+    i = trace.shape[0] - 1  # trace: (N+1, M+1), i=N
+    j = trace.shape[1] - 1  # j=M
     # 边界点其实无意义？
     trace[0, :] = 2
     trace[:, 0] = 1
@@ -83,8 +81,8 @@ def backtrace(trace: np.ndarray):
 @numba.jit(nopython=True, parallel=True)
 def dtw_cpu(x: np.ndarray):
     N, M = x.shape
-    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf # cost: x[0, 0]到x[i-1, j-1]的最小代价
-    trace = -np.ones((N + 1, M + 1), dtype=np.float32) # trace: 
+    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf  # cost: x[0, 0]到x[i-1, j-1]的最小代价
+    trace = -np.ones((N + 1, M + 1), dtype=np.float32)  # trace:
 
     cost[0, 0] = 0
     for j in range(1, M + 1):
@@ -112,9 +110,7 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
     M, N = x.shape
     assert M < BLOCK_SIZE, f"M should be smaller than {BLOCK_SIZE=}"
 
-    x_skew = (
-        F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)
-    )
+    x_skew = F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)
     x_skew = x_skew.T.contiguous()
     cost = torch.ones(N + M + 2, M + 2) * np.inf
     cost[0, 0] = 0
@@ -133,9 +129,7 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
         BLOCK_SIZE=BLOCK_SIZE,
     )
 
-    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[
-        :, : N + 1
-    ]
+    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[:, : N + 1]
     return backtrace(trace.cpu().numpy())
 
 
@@ -155,7 +149,7 @@ def dtw(x: torch.Tensor) -> np.ndarray:
 @dataclass
 class WordTiming:
     word: str
-    tokens: List[int]
+    tokens: list[int]
     start: float
     end: float
     probability: float
@@ -164,13 +158,13 @@ class WordTiming:
 def find_alignment(
     model: "Whisper",
     tokenizer: Tokenizer,
-    text_tokens: List[int],
+    text_tokens: list[int],
     mel: torch.Tensor,
     num_frames: int,
     *,
     medfilt_width: int = 7,
     qk_scale: float = 1.0,
-) -> List[WordTiming]:
+) -> list[WordTiming]:
     if len(text_tokens) == 0:
         return []
 
@@ -186,9 +180,7 @@ def find_alignment(
     # install hooks on the cross attention layers to retrieve the attention weights
     QKs = [None] * model.dims.n_text_layer
     hooks = [
-        block.cross_attn.register_forward_hook(
-            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0])
-        )
+        block.cross_attn.register_forward_hook(lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0]))
         for i, block in enumerate(model.decoder.blocks)
     ]
 
@@ -243,20 +235,15 @@ def find_alignment(
     # print("jump_times", jump_times)
     start_times = jump_times[word_boundaries[:-1]]
     end_times = jump_times[word_boundaries[1:]]
-    word_probabilities = [
-        np.mean(text_token_probs[i:j])
-        for i, j in zip(word_boundaries[:-1], word_boundaries[1:])
-    ]
+    word_probabilities = [np.mean(text_token_probs[i:j]) for i, j in zip(word_boundaries[:-1], word_boundaries[1:])]
 
     return [
         WordTiming(word, tokens, start, end, probability)
-        for word, tokens, start, end, probability in zip(
-            words, word_tokens, start_times, end_times, word_probabilities
-        )
+        for word, tokens, start, end, probability in zip(words, word_tokens, start_times, end_times, word_probabilities)
     ]
 
 
-def merge_punctuations(alignment: List[WordTiming], prepended: str, appended: str):
+def merge_punctuations(alignment: list[WordTiming], prepended: str, appended: str):
     # merge prepended punctuations
     i = len(alignment) - 2
     j = len(alignment) - 1
@@ -292,7 +279,7 @@ def merge_punctuations(alignment: List[WordTiming], prepended: str, appended: st
 
 def add_word_timestamps(
     *,
-    segments: List[dict],
+    segments: list[dict],
     model: "Whisper",
     tokenizer: Tokenizer,
     mel: torch.Tensor,
@@ -305,10 +292,7 @@ def add_word_timestamps(
     if len(segments) == 0:
         return
 
-    text_tokens_per_segment = [
-        [token for token in segment["tokens"] if token < tokenizer.eot]
-        for segment in segments
-    ]
+    text_tokens_per_segment = [[token for token in segment["tokens"] if token < tokenizer.eot] for segment in segments]
 
     text_tokens = list(itertools.chain.from_iterable(text_tokens_per_segment))
     alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **kwargs)
@@ -361,38 +345,22 @@ def add_word_timestamps(
             # twice the median word duration.
             if words[0]["end"] - last_speech_timestamp > median_duration * 4 and (
                 words[0]["end"] - words[0]["start"] > max_duration
-                or (
-                    len(words) > 1
-                    and words[1]["end"] - words[0]["start"] > max_duration * 2
-                )
+                or (len(words) > 1 and words[1]["end"] - words[0]["start"] > max_duration * 2)
             ):
-                if (
-                    len(words) > 1
-                    and words[1]["end"] - words[1]["start"] > max_duration
-                ):
+                if len(words) > 1 and words[1]["end"] - words[1]["start"] > max_duration:
                     boundary = max(words[1]["end"] / 2, words[1]["end"] - max_duration)
                     words[0]["end"] = words[1]["start"] = boundary
                 words[0]["start"] = max(0, words[0]["end"] - max_duration)
 
             # prefer the segment-level start timestamp if the first word is too long.
-            if (
-                segment["start"] < words[0]["end"]
-                and segment["start"] - 0.5 > words[0]["start"]
-            ):
-                words[0]["start"] = max(
-                    0, min(words[0]["end"] - median_duration, segment["start"])
-                )
+            if segment["start"] < words[0]["end"] and segment["start"] - 0.5 > words[0]["start"]:
+                words[0]["start"] = max(0, min(words[0]["end"] - median_duration, segment["start"]))
             else:
                 segment["start"] = words[0]["start"]
 
             # prefer the segment-level end timestamp if the last word is too long.
-            if (
-                segment["end"] > words[-1]["start"]
-                and segment["end"] + 0.5 < words[-1]["end"]
-            ):
-                words[-1]["end"] = max(
-                    words[-1]["start"] + median_duration, segment["end"]
-                )
+            if segment["end"] > words[-1]["start"] and segment["end"] + 0.5 < words[-1]["end"]:
+                words[-1]["end"] = max(words[-1]["start"] + median_duration, segment["end"])
             else:
                 segment["end"] = words[-1]["end"]
 

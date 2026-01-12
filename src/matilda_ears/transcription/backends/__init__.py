@@ -194,5 +194,5 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
         f"  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support\n"
         f"  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)\n"
         f"  - 'huggingface': Universal HuggingFace ASR (requires [huggingface] extras)\n"
-                f'Check your matilda config: [ears.transcription] backend = "{available[0]}"'
+        f'Check your matilda config: [ears.transcription] backend = "{available[0]}"'
     )

@@ -23,12 +23,15 @@ class FasterWhisperBackend(TranscriptionBackend):
 
         # VAD configuration (critical for preventing hallucinations on silence)
         self.vad_filter = config.get("whisper.vad_filter", True)
-        self.vad_parameters = config.get("whisper.vad_parameters", {
-            "threshold": 0.5,
-            "min_speech_duration_ms": 250,
-            "max_speech_duration_s": 30,
-            "min_silence_duration_ms": 200,
-        })
+        self.vad_parameters = config.get(
+            "whisper.vad_parameters",
+            {
+                "threshold": 0.5,
+                "min_speech_duration_ms": 250,
+                "max_speech_duration_s": 30,
+                "min_silence_duration_ms": 200,
+            },
+        )
 
         # Hallucination suppression
         self.no_speech_threshold = config.get("whisper.no_speech_threshold", 0.6)
@@ -79,12 +82,14 @@ class FasterWhisperBackend(TranscriptionBackend):
                     continue
                 try:
                     for word in word_items:
-                        words.append({
-                            "word": word.word,
-                            "start": word.start,
-                            "end": word.end,
-                            "probability": word.probability,
-                        })
+                        words.append(
+                            {
+                                "word": word.word,
+                                "start": word.start,
+                                "end": word.end,
+                                "probability": word.probability,
+                            }
+                        )
                 except TypeError:
                     logger.debug("Skipping non-iterable word timestamps")
 

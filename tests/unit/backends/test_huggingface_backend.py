@@ -89,7 +89,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_initialization(self, mock_config):
         """Verify backend initializes with correct config values."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
@@ -103,7 +103,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_is_ready_before_load(self, mock_config):
         """Verify is_ready returns False before model is loaded."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
@@ -111,7 +111,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_load_model_success(self, mock_config, mock_pipeline):
         """Verify async model loading works correctly."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             with patch("matilda_ears.transcription.backends.internal.huggingface.pipeline", return_value=mock_pipeline):
                 from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
@@ -127,7 +127,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_load_model_failure(self, mock_config):
         """Verify load() raises exception on model loading failure."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             with patch(
                 "matilda_ears.transcription.backends.internal.huggingface.pipeline",
                 side_effect=RuntimeError("Model load failed"),
@@ -143,7 +143,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_transcribe_success(self, mock_config, mock_pipeline):
         """Verify transcription works and returns correct format."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
@@ -167,7 +167,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_transcribe_not_loaded(self, mock_config):
         """Verify transcribe() raises RuntimeError if model not loaded."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
@@ -177,7 +177,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_transcribe_whisper_language_param(self, mock_config, mock_pipeline):
         """Verify Whisper models get language parameter in generate_kwargs."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
@@ -197,7 +197,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_transcribe_non_whisper_no_language(self, mock_config, mock_pipeline):
         """Verify non-Whisper models don't get language parameter."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             backend = HuggingFaceBackend()
@@ -215,7 +215,7 @@ class TestHuggingFaceBackend:
 
     def test_backend_list_popular_models(self, mock_config):
         """Verify list_popular_models returns dict of models."""
-        with patch("matilda_ears.core.config.get_config", return_value=mock_config):
+        with patch("matilda_ears.transcription.backends.internal.huggingface.get_config", return_value=mock_config):
             from matilda_ears.transcription.backends.internal.huggingface import HuggingFaceBackend
 
             models = HuggingFaceBackend.list_popular_models()

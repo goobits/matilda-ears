@@ -1,15 +1,15 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
 class ModeConfig:
     debug: bool = False
     format: str = "text"
-    sample_rate: Optional[int] = None
-    device: Optional[str] = None
-    language: Optional[str] = None
-    model: Optional[str] = None
+    sample_rate: int | None = None
+    device: str | None = None
+    language: str | None = None
+    model: str | None = None
 
     @classmethod
     def from_args(cls, args: Any) -> "ModeConfig":

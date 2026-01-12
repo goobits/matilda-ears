@@ -843,7 +843,8 @@ Quick start:
   ears --conversation         # Always listening
   ears --tap-to-talk=f8       # Tap F8 to start/stop
   ears --hold-to-talk=space   # Hold spacebar to record
-  ears --server --port=8769   # WebSocket server
+  ears --server --port=3211   # WebSocket server
+  # Config: ~/.matilda/config.toml ([ears])
 "
     echo
 }

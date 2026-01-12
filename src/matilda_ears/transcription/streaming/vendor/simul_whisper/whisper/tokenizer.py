@@ -2,8 +2,7 @@ import base64
 import os
 import string
 from dataclasses import dataclass, field
-from functools import cached_property, lru_cache
-from typing import Dict, List, Optional, Tuple
+from functools import cached_property, cache
 
 import tiktoken
 
@@ -134,10 +133,10 @@ class Tokenizer:
 
     encoding: tiktoken.Encoding
     num_languages: int
-    language: Optional[str] = None
-    task: Optional[str] = None
-    sot_sequence: Tuple[int] = ()
-    special_tokens: Dict[str, int] = field(default_factory=dict)
+    language: str | None = None
+    task: str | None = None
+    sot_sequence: tuple[int] = ()
+    special_tokens: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self):
         for special in self.encoding.special_tokens_set:
@@ -161,13 +160,12 @@ class Tokenizer:
     def encode(self, text, **kwargs):
         return self.encoding.encode(text, **kwargs)
 
-    def decode(self, token_ids: List[int], **kwargs) -> str:
+    def decode(self, token_ids: list[int], **kwargs) -> str:
         token_ids = [t for t in token_ids if t < self.timestamp_begin]
         return self.encoding.decode(token_ids, **kwargs)
 
-    def decode_with_timestamps(self, token_ids: List[int], **kwargs) -> str:
-        """
-        Timestamp tokens are above other special tokens' id range and are ignored by `decode()`.
+    def decode_with_timestamps(self, token_ids: list[int], **kwargs) -> str:
+        """Timestamp tokens are above other special tokens' id range and are ignored by `decode()`.
         This method decodes given tokens with timestamps tokens annotated, e.g. "<|1.08|>".
         """
         return self.encoding.decode(token_ids, **kwargs)
@@ -223,7 +221,7 @@ class Tokenizer:
         raise KeyError(f"Language {language} not found in tokenizer.")
 
     @cached_property
-    def all_language_tokens(self) -> Tuple[int]:
+    def all_language_tokens(self) -> tuple[int]:
         result = []
         for token, token_id in self.special_tokens.items():
             if token.strip("<|>") in LANGUAGES:
@@ -231,17 +229,16 @@ class Tokenizer:
         return tuple(result)[: self.num_languages]
 
     @cached_property
-    def all_language_codes(self) -> Tuple[str]:
+    def all_language_codes(self) -> tuple[str]:
         return tuple(self.decode([_l]).strip("<|>") for _l in self.all_language_tokens)
 
     @cached_property
-    def sot_sequence_including_notimestamps(self) -> Tuple[int]:
+    def sot_sequence_including_notimestamps(self) -> tuple[int]:
         return tuple(list(self.sot_sequence) + [self.no_timestamps])
 
     @cached_property
-    def non_speech_tokens(self) -> Tuple[int]:
-        """
-        Returns the list of tokens to suppress in order to avoid any speaker tags or non-speech
+    def non_speech_tokens(self) -> tuple[int]:
+        """Returns the list of tokens to suppress in order to avoid any speaker tags or non-speech
         annotations, to prevent sampling texts that are not actually spoken in the audio, e.g.
 
         - ♪♪♪
@@ -251,9 +248,28 @@ class Tokenizer:
         keeping basic punctuations like commas, periods, question marks, exclamation points, etc.
         """
         symbols = list('"#()*+/:;<=>@[\\]^_`{|}~「」『』')
-        symbols += (
-            "<< >> <<< >>> -- --- -( -[ (' (\" (( )) ((( ))) [[ ]] {{ }} ♪♪ ♪♪♪".split()
-        )
+        symbols += [
+            "<<",
+            ">>",
+            "<<<",
+            ">>>",
+            "--",
+            "---",
+            "-(",
+            "-[",
+            "('",
+            '("',
+            "((",
+            "))",
+            "(((",
+            ")))",
+            "[[",
+            "]]",
+            "{{",
+            "}}",
+            "♪♪",
+            "♪♪♪",
+        ]
 
         # symbols that may be a single token or multiple tokens depending on the tokenizer.
         # In case they're multiple tokens, suppress the first token, which is safe because:
@@ -274,7 +290,7 @@ class Tokenizer:
 
         return tuple(sorted(result))
 
-    def split_to_word_tokens(self, tokens: List[int]):
+    def split_to_word_tokens(self, tokens: list[int]):
         if self.language in {"zh", "ja", "th", "lo", "my", "yue"}:
             # These languages don't typically use spaces, so it is difficult to split words
             # without morpheme analysis. Here, we instead split words at any
@@ -283,7 +299,7 @@ class Tokenizer:
 
         return self.split_tokens_on_spaces(tokens)
 
-    def split_tokens_on_unicode(self, tokens: List[int]):
+    def split_tokens_on_unicode(self, tokens: list[int]):
         decoded_full = self.decode_with_timestamps(tokens)
         replacement_char = "\ufffd"
 
@@ -298,8 +314,7 @@ class Tokenizer:
 
             if (
                 replacement_char not in decoded
-                or decoded_full[unicode_offset + decoded.index(replacement_char)]
-                == replacement_char
+                or decoded_full[unicode_offset + decoded.index(replacement_char)] == replacement_char
             ):
                 words.append(decoded)
                 word_tokens.append(current_tokens)
@@ -308,7 +323,7 @@ class Tokenizer:
 
         return words, word_tokens
 
-    def split_tokens_on_spaces(self, tokens: List[int]):
+    def split_tokens_on_spaces(self, tokens: list[int]):
         subwords, subword_tokens_list = self.split_tokens_on_unicode(tokens)
         words = []
         word_tokens = []
@@ -327,13 +342,10 @@ class Tokenizer:
         return words, word_tokens
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_encoding(name: str = "gpt2", num_languages: int = 99):
     vocab_path = os.path.join(os.path.dirname(__file__), "assets", f"{name}.tiktoken")
-    ranks = {
-        base64.b64decode(token): int(rank)
-        for token, rank in (line.split() for line in open(vocab_path) if line)
-    }
+    ranks = {base64.b64decode(token): int(rank) for token, rank in (line.split() for line in open(vocab_path) if line)}
     n_vocab = len(ranks)
     special_tokens = {}
 
@@ -363,13 +375,13 @@ def get_encoding(name: str = "gpt2", num_languages: int = 99):
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_tokenizer(
     multilingual: bool,
     *,
     num_languages: int = 99,
-    language: Optional[str] = None,
-    task: Optional[str] = None,  # Literal["transcribe", "translate", None]
+    language: str | None = None,
+    task: str | None = None,  # Literal["transcribe", "translate", None]
 ) -> Tokenizer:
     if language is not None:
         language = language.lower()
@@ -390,6 +402,4 @@ def get_tokenizer(
 
     encoding = get_encoding(name=encoding_name, num_languages=num_languages)
 
-    return Tokenizer(
-        encoding=encoding, num_languages=num_languages, language=language, task=task
-    )
+    return Tokenizer(encoding=encoding, num_languages=num_languages, language=language, task=task)

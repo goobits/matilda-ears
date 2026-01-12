@@ -1,4 +1,4 @@
-from functools import lru_cache
+from functools import cache
 
 import numpy as np
 import torch
@@ -11,9 +11,7 @@ except ImportError:
 
 
 @triton.jit
-def dtw_kernel(
-    cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_SIZE: tl.constexpr
-):
+def dtw_kernel(cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_SIZE: tl.constexpr):
     offsets = tl.arange(0, BLOCK_SIZE)
     mask = offsets < M
 
@@ -40,17 +38,15 @@ def dtw_kernel(
         tl.store(trace_ptr + offsets, 0, mask=mask & (c0 <= c1) & (c0 <= c2))
 
 
-@lru_cache(maxsize=None)
+@cache
 def median_kernel(filter_width: int):
     @triton.jit
-    def kernel(
-        y, x, x_stride, y_stride, BLOCK_SIZE: tl.constexpr
-    ):  # x.shape[-1] == filter_width
+    def kernel(y, x, x_stride, y_stride, BLOCK_SIZE: tl.constexpr):  # x.shape[-1] == filter_width
         row_idx = tl.program_id(0)
         offsets = tl.arange(0, BLOCK_SIZE)
         mask = offsets < y_stride
 
-        x_ptr = x + row_idx * x_stride  # noqa: F841
+        x_ptr = x + row_idx * x_stride
         y_ptr = y + row_idx * y_stride
 
         LOAD_ALL_ROWS_HERE  # noqa: F821
@@ -62,12 +58,7 @@ def median_kernel(filter_width: int):
     kernel = triton.JITFunction(kernel.fn)
     kernel.src = kernel.src.replace(
         "    LOAD_ALL_ROWS_HERE",
-        "\n".join(
-            [
-                f"    row{i} = tl.load(x_ptr + offsets + {i}, mask=mask)"
-                for i in range(filter_width)
-            ]
-        ),
+        "\n".join([f"    row{i} = tl.load(x_ptr + offsets + {i}, mask=mask)" for i in range(filter_width)]),
     )
     kernel.src = kernel.src.replace(
         "    BUBBLESORT_HERE",

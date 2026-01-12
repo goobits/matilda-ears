@@ -129,11 +129,18 @@ class FileTranscribeMode:
 
     async def _format_text(self, text: str) -> str:
         """Apply text formatting pipeline."""
-        try:
-            from matilda_ears.text_formatting.formatter import TextFormatter
+        if not text.strip():
+            return text
 
-            formatter = TextFormatter()
-            return formatter.format_transcription(text)
+        if not self.config.get("text_formatting.enabled", False):
+            return text
+
+        formatter_name = self.config.get("text_formatting.formatter", "noop")
+        try:
+            from matilda_text_formatting import FormatterRequest, get_formatter
+
+            formatter = get_formatter(formatter_name)
+            return formatter.format(FormatterRequest(text=text, language=self.mode_config.language)).text
         except ImportError:
             self.logger.warning("Text formatting not available")
             return text

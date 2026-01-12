@@ -16,8 +16,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import websockets
 
-from ....core.config import setup_logging
-from ....text_formatting.formatter import format_transcription
+from ....core.config import get_config, setup_logging
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -82,19 +81,24 @@ async def transcribe_audio_from_wav(
             text = ""  # Return empty to avoid slow formatting pipeline
 
         # Apply server-side text formatting
-        if text.strip():
+        if text.strip() and get_config().get("text_formatting.enabled", False):
+            formatter_name = get_config().get("text_formatting.formatter", "noop")
             try:
-                formatted_text = format_transcription(text)
+                from matilda_text_formatting import FormatterRequest, get_formatter
+
+                formatter = get_formatter(formatter_name)
+                formatted_text = formatter.format(FormatterRequest(text=text, language=info.get("language", "en"))).text
                 if formatted_text != text:
                     logger.debug(
                         f"Client {client_id}: Formatted text: '{formatted_text[:50]}...' ({len(formatted_text)} chars)"
                     )
                 else:
                     logger.debug(f"Client {client_id}: Text processed (no changes): '{formatted_text[:50]}...'")
-                text = formatted_text  # Always use formatted version
+                text = formatted_text
+            except ImportError as e:
+                logger.warning(f"Client {client_id}: Text formatting unavailable: {e}")
             except Exception as e:
                 logger.warning(f"Client {client_id}: Text formatting failed: {e}")
-                # Continue with original text
 
         return (
             True,
