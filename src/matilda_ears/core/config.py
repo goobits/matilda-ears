@@ -132,15 +132,12 @@ class ConfigLoader:
 
         self.config_file = str(config_path)
         config_path = Path(config_path)
-        if not config_path.exists():
-            raise FileNotFoundError(f"Matilda config not found: {config_path}")
-
-        with open(config_path, "rb") as f:
-            full_config = tomllib.load(f)
-
-        ears_config = full_config.get("ears")
-        if ears_config is None:
-            raise KeyError("Missing [ears] section in matilda config")
+        if config_path.exists():
+            with open(config_path, "rb") as f:
+                full_config = tomllib.load(f)
+            ears_config = full_config.get("ears", {})
+        else:
+            ears_config = {}
 
         self._config = self._merge_dicts(DEFAULT_CONFIG, ears_config)
 
