@@ -14,14 +14,15 @@ from typing import Any
 
 from ._imports import Key, Listener, PYNPUT_AVAILABLE
 from .base_mode import BaseMode
+from matilda_ears.core.mode_config import HoldToTalkConfig
 
 
 class HoldToTalkMode(BaseMode):
     """Hold-to-talk mode with global hotkey support."""
 
-    def __init__(self, args):
-        super().__init__(args)
-        self.hotkey = args.hold_to_talk
+    def __init__(self, mode_config: HoldToTalkConfig):
+        super().__init__(mode_config)
+        self.hotkey = mode_config.hotkey
 
         # Keyboard listener
         self.keyboard_listener = None

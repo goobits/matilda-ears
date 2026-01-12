@@ -136,10 +136,16 @@ class TestBaseModeLogic:
     def test_base_mode_can_be_created(self):
         """Can we create a BaseMode subclass without crashing?"""
         from matilda_ears.modes.base_mode import BaseMode
-        from types import SimpleNamespace
+        from matilda_ears.core.mode_config import ModeConfig
 
-        # Create mock args
-        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, device=None, model="base", language=None)
+        mode_config = ModeConfig(
+            debug=False,
+            format="json",
+            sample_rate=16000,
+            device=None,
+            model="base",
+            language="en",
+        )
 
         # Create a concrete implementation for testing
         class TestMode(BaseMode):
@@ -147,24 +153,31 @@ class TestBaseModeLogic:
                 pass
 
         # Should be able to create without crashing
-        mode = TestMode(args)
+        mode = TestMode(mode_config)
         assert mode is not None
-        assert mode.args == args
+        assert mode.mode_config == mode_config
         assert mode.config is not None
         assert mode.logger is not None
 
     def test_mode_name_generation(self):
         """Test that mode name generation works correctly."""
         from matilda_ears.modes.base_mode import BaseMode
-        from types import SimpleNamespace
+        from matilda_ears.core.mode_config import ModeConfig
 
-        args = SimpleNamespace(debug=False, format="json", sample_rate=16000, device=None, model="base", language=None)
+        mode_config = ModeConfig(
+            debug=False,
+            format="json",
+            sample_rate=16000,
+            device=None,
+            model="base",
+            language="en",
+        )
 
         class TestSampleMode(BaseMode):
             async def run(self):
                 pass
 
-        mode = TestSampleMode(args)
+        mode = TestSampleMode(mode_config)
         # Should convert TestSampleMode -> test_sample
         assert mode._get_mode_name() == "test_sample"
 

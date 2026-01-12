@@ -27,6 +27,7 @@ from ._imports import np, NUMPY_AVAILABLE
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
 
 from matilda_ears.core.config import get_config, setup_logging
+from matilda_ears.core.mode_config import ModeConfig
 from matilda_ears.audio.capture import PipeBasedAudioStreamer
 from matilda_ears.transcription.backends import get_backend_class
 
@@ -34,14 +35,22 @@ from matilda_ears.transcription.backends import get_backend_class
 class BaseMode(ABC):
     """Abstract base class for all STT operation modes."""
 
-    def __init__(self, args):
+    def __init__(self, mode_config: ModeConfig):
         """Initialize common mode components."""
-        self.args = args
+        self.mode_config = mode_config
         self.config = get_config()
+        if self.mode_config.sample_rate is None:
+            self.mode_config.sample_rate = self.config.audio_sample_rate
+        if self.mode_config.language is None:
+            self.mode_config.language = "en"
+        if self.mode_config.model is None:
+            self.mode_config.model = self.config.whisper_model
+        if not self.mode_config.format:
+            self.mode_config.format = "text"
         self.logger = setup_logging(
             self.__class__.__name__,
-            log_level="DEBUG" if args.debug else "WARNING",
-            include_console=args.debug,  # Only show console logs in debug mode
+            log_level="DEBUG" if self.mode_config.debug else "WARNING",
+            include_console=self.mode_config.debug,  # Only show console logs in debug mode
             include_file=True,
         )
 
@@ -103,8 +112,8 @@ class BaseMode(ABC):
                 loop=self.loop,
                 queue=self.audio_queue,
                 chunk_duration_ms=chunk_duration_ms,
-                sample_rate=self.args.sample_rate,
-                audio_device=self.args.device,
+                sample_rate=self.mode_config.sample_rate,
+                audio_device=self.mode_config.device,
             )
 
             self.logger.info("Audio streamer setup completed")
@@ -126,11 +135,11 @@ class BaseMode(ABC):
                 with wave.open(tmp_file.name, "wb") as wav_file:
                     wav_file.setnchannels(1)  # Mono
                     wav_file.setsampwidth(2)  # 16-bit
-                    wav_file.setframerate(self.args.sample_rate)
+                    wav_file.setframerate(self.mode_config.sample_rate)
                     wav_file.writeframes(audio_data.astype(np.int16).tobytes())
 
             # Transcribe using backend
-            text, info = self.backend.transcribe(tmp_file_path, language=self.args.language)
+            text, info = self.backend.transcribe(tmp_file_path, language=self.mode_config.language)
 
             self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
 
@@ -167,10 +176,10 @@ class BaseMode(ABC):
         if extra:
             result.update(extra)
 
-        if self.args.format == "json":
+        if self.mode_config.format == "json":
             # Send status messages to stderr to avoid interfering with pipeline output
             print(json.dumps(result), file=sys.stderr)
-        elif self.args.debug:
+        elif self.mode_config.debug:
             # Only show status messages in text mode when debug is enabled
             print(f"[{status.upper()}] {message}", file=sys.stderr)
 
@@ -190,7 +199,7 @@ class BaseMode(ABC):
         if extra:
             output.update(extra)
 
-        if self.args.format == "json":
+        if self.mode_config.format == "json":
             print(json.dumps(output))
         else:
             # Text mode - just print the transcribed text
@@ -204,10 +213,10 @@ class BaseMode(ABC):
         if extra:
             result.update(extra)
 
-        if self.args.format == "json":
+        if self.mode_config.format == "json":
             # Send errors to stderr to avoid interfering with pipeline output
             print(json.dumps(result), file=sys.stderr)
-        elif self.args.debug:
+        elif self.mode_config.debug:
             # Only show errors in text mode when debug is enabled
             print(f"Error: {error_message}", file=sys.stderr)
 
@@ -235,7 +244,7 @@ class BaseMode(ABC):
         try:
             # Combine all audio chunks
             audio_array = np.concatenate(chunks_to_process)
-            duration = len(audio_array) / self.args.sample_rate
+            duration = len(audio_array) / self.mode_config.sample_rate
             self.logger.info(f"Transcribing {duration:.2f}s of audio ({len(audio_array)} samples)")
 
             # Transcribe in executor to avoid blocking

@@ -14,21 +14,22 @@ from typing import Any
 
 from ._imports import np
 from .base_mode import BaseMode
+from matilda_ears.core.mode_config import ConversationConfig
 from matilda_ears.core.vad_state import VADStateMachine, VADEvent
 
 
 class ConversationMode(BaseMode):
     """Continuous conversation mode with VAD-based utterance detection."""
 
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, mode_config: ConversationConfig):
+        super().__init__(mode_config)
 
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
 
         # Initialize VAD Processor
         self.vad_processor = VADStateMachine(
-            sample_rate=self.args.sample_rate,
+            sample_rate=self.mode_config.sample_rate,
             threshold=mode_config.get("vad_threshold", 0.5),
             hysteresis=mode_config.get("hysteresis", 0.15),
             min_speech_duration_s=mode_config.get("min_speech_duration_s", 0.5),

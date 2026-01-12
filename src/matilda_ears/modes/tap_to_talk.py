@@ -13,14 +13,15 @@ from typing import Any
 
 from ._imports import keyboard, PYNPUT_AVAILABLE
 from .base_mode import BaseMode
+from matilda_ears.core.mode_config import TapToTalkConfig
 
 
 class TapToTalkMode(BaseMode):
     """Tap-to-talk mode with global hotkey support."""
 
-    def __init__(self, args):
-        super().__init__(args)
-        self.hotkey = args.tap_to_talk
+    def __init__(self, mode_config: TapToTalkConfig):
+        super().__init__(mode_config)
+        self.hotkey = mode_config.hotkey
 
         # Hotkey listener
         self.hotkey_listener = None

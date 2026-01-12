@@ -16,20 +16,27 @@ from typing import Any
 from ._imports import *  # noqa: F403
 
 from matilda_ears.core.config import get_config, setup_logging
+from matilda_ears.core.mode_config import FileTranscribeConfig
 from matilda_ears.transcription.backends import get_backend_class
 
 
 class FileTranscribeMode:
     """Transcribe audio from a file."""
 
-    def __init__(self, args):
+    def __init__(self, mode_config: FileTranscribeConfig):
         """Initialize file transcription mode."""
-        self.args = args
+        self.mode_config = mode_config
         self.config = get_config()
+        if self.mode_config.language is None:
+            self.mode_config.language = "en"
+        if self.mode_config.model is None:
+            self.mode_config.model = self.config.whisper_model
+        if not self.mode_config.format:
+            self.mode_config.format = "text"
         self.logger = setup_logging(
             "FileTranscribeMode",
-            log_level="DEBUG" if args.debug else "WARNING",
-            include_console=args.debug,
+            log_level="DEBUG" if self.mode_config.debug else "WARNING",
+            include_console=self.mode_config.debug,
             include_file=True,
         )
         self.backend = None
@@ -37,7 +44,7 @@ class FileTranscribeMode:
 
     async def run(self):
         """Main entry point - transcribe the file."""
-        file_path = Path(self.args.file)
+        file_path = Path(self.mode_config.file)
 
         # Validate file exists
         if not file_path.exists():
@@ -98,12 +105,12 @@ class FileTranscribeMode:
             loop = asyncio.get_event_loop()
 
             def do_transcribe():
-                return self.backend.transcribe(file_path, language=self.args.language)
+                return self.backend.transcribe(file_path, language=self.mode_config.language)
 
             text, info = await loop.run_in_executor(None, do_transcribe)
 
             # Apply text formatting if enabled
-            if not self.args.no_formatting:
+            if not self.mode_config.no_formatting:
                 text = await self._format_text(text)
 
             self.logger.info(f"Transcribed: '{text[:50]}...' ({len(text)} chars)")
@@ -136,13 +143,13 @@ class FileTranscribeMode:
 
     async def _send_status(self, status: str, message: str):
         """Send status message."""
-        if self.args.format == "json":
+        if self.mode_config.format == "json":
             result = {"type": "status", "mode": "file", "status": status, "message": message, "timestamp": time.time()}
             print(json.dumps(result), flush=True)
 
     async def _send_result(self, result: dict[str, Any]):
         """Send transcription result."""
-        if self.args.format == "json":
+        if self.mode_config.format == "json":
             output = {"type": "transcription", "mode": "file", **result, "timestamp": time.time()}
             print(json.dumps(output), flush=True)
         # Plain text mode - just print the text
@@ -153,7 +160,7 @@ class FileTranscribeMode:
 
     async def _send_error(self, message: str):
         """Send error message."""
-        if self.args.format == "json":
+        if self.mode_config.format == "json":
             result = {"type": "error", "mode": "file", "error": message, "timestamp": time.time()}
             print(json.dumps(result), flush=True)
         else:

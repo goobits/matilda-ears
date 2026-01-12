@@ -15,21 +15,22 @@ from typing import Any
 
 from ._imports import np
 from .base_mode import BaseMode
+from matilda_ears.core.mode_config import ListenOnceConfig
 from matilda_ears.core.vad_state import VADStateMachine, VADEvent
 
 
 class ListenOnceMode(BaseMode):
     """Single utterance capture mode with VAD-based detection."""
 
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, mode_config: ListenOnceConfig):
+        super().__init__(mode_config)
 
         # Load VAD parameters from config
         mode_config = self._get_mode_config()
 
         # Initialize VAD Processor
         self.vad_processor = VADStateMachine(
-            sample_rate=self.args.sample_rate,
+            sample_rate=self.mode_config.sample_rate,
             threshold=mode_config.get("vad_threshold", 0.5),
             hysteresis=mode_config.get("hysteresis", 0.15),
             min_speech_duration_s=mode_config.get("min_speech_duration_s", 0.3),
@@ -52,7 +53,7 @@ class ListenOnceMode(BaseMode):
         """Main listen-once mode execution."""
         try:
             # Send initial status for JSON mode
-            if self.args.format == "json":
+            if self.mode_config.format == "json":
                 await self._send_status("initializing", "Loading models...")
 
             # Initialize Whisper model
@@ -190,5 +191,5 @@ class ListenOnceMode(BaseMode):
         """Transcribe audio data using Whisper and include VAD stats."""
         result = super()._transcribe_audio(audio_data)
         if result["success"]:
-            result["model"] = self.args.model
+            result["model"] = self.mode_config.model
         return result

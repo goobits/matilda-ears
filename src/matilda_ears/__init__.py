@@ -10,6 +10,14 @@ from .modes import (
 )
 from .core.vad_state import VADEvent, VADState, VADStateMachine
 from .core.config import ConfigLoader, get_config
+from .core.mode_config import (
+    ConversationConfig,
+    FileTranscribeConfig,
+    HoldToTalkConfig,
+    ListenOnceConfig,
+    ModeConfig,
+    TapToTalkConfig,
+)
 from .transcription.backends import (
     get_backend_class,
     get_available_backends,
@@ -26,6 +34,12 @@ __all__ = [
     "VADStateMachine",
     "ConfigLoader",
     "get_config",
+    "ModeConfig",
+    "ConversationConfig",
+    "ListenOnceConfig",
+    "TapToTalkConfig",
+    "HoldToTalkConfig",
+    "FileTranscribeConfig",
     "get_backend_class",
     "get_available_backends",
     "get_recommended_backend",
