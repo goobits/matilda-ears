@@ -40,7 +40,7 @@ ears train-wake-word "hey matilda"
 
 ## Configuration
 
-Defaults live in `config.defaults.json` (overrides via `config.json` or `config.jsonc`).
+Configuration lives in `~/.matilda/config.toml` under the `[ears]` section.
 
 ```bash
 ears status --json

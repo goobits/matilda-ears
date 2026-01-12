@@ -73,7 +73,7 @@ class BaseMode(ABC):
         self.logger.info(f"{self.__class__.__name__} initialized")
 
     def _get_mode_config(self) -> dict[str, Any]:
-        """Get mode-specific configuration from config.json."""
+        """Get mode-specific configuration from matilda config."""
         mode_name = self._get_mode_name()
         return self.config.get("modes", {}).get(mode_name, {})
 

@@ -10,7 +10,6 @@ import sys
 import asyncio
 from unittest.mock import Mock, patch, MagicMock
 import tempfile
-import json
 import os
 
 
@@ -128,22 +127,36 @@ class TestConfigIntegration:
     def test_config_custom_backend_selection(self):
         """Verify config can specify custom backend."""
         # Create a temporary config file with parakeet backend
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            config_data = {
-                "transcription": {"backend": "parakeet"},
-                "whisper": {"model": "base", "device": "cpu", "compute_type": "int8"},
-                "parakeet": {"model": "mlx-community/parakeet-tdt-0.6b-v3"},
-                "paths": {
-                    "venv": {
-                        "linux": "venv/bin/python",
-                        "darwin": "venv/bin/python",
-                        "windows": "venv\\Scripts\\python.exe",
-                    },
-                    "temp_dir": {"linux": "/tmp/test-stt", "darwin": "/tmp/test-stt", "windows": "%TEMP%\\test-stt"},
-                },
-                "tools": {"audio": {"linux": "arecord", "darwin": "arecord", "windows": "ffmpeg"}},
-            }
-            json.dump(config_data, f)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(
+                """
+[ears.transcription]
+backend = "parakeet"
+
+[ears.whisper]
+model = "base"
+device = "cpu"
+compute_type = "int8"
+
+[ears.parakeet]
+model = "mlx-community/parakeet-tdt-0.6b-v3"
+
+[ears.paths.venv]
+linux = "venv/bin/python"
+darwin = "venv/bin/python"
+windows = "venv\\\\Scripts\\\\python.exe"
+
+[ears.paths.temp_dir]
+linux = "/tmp/test-stt"
+darwin = "/tmp/test-stt"
+windows = "%TEMP%\\\\test-stt"
+
+[ears.tools.audio]
+linux = "arecord"
+darwin = "ffmpeg"
+windows = "ffmpeg"
+"""
+            )
             temp_config_path = f.name
 
         try:

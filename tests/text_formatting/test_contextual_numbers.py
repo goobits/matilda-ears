@@ -130,7 +130,7 @@ class TestStandaloneEntityPunctuation:
             ("slash help.", "/help"),
             ("slash status.", "/status"),
             # Filenames
-            ("config dot json.", "config.json"),
+            ("config dot toml.", "config.toml"),
             ("readme dot md.", "README.md"),
             ("app dot py.", "app.py"),
             # URLs (if detected as single entity)
@@ -155,7 +155,7 @@ class TestStandaloneEntityPunctuation:
         test_cases = [
             # Sentences - no periods expected since punctuation is disabled in test environment
             ("please run slash compact", "Please run /compact"),
-            ("the file is config dot json", "The file is config.json"),
+            ("the file is config dot toml", "The file is config.toml"),
             ("visit github dot com for more info", "Visit github.com for more info"),
             ("run git status to check", "Run git status to check"),
             ("we're using version two point one", "We're using version 2.1"),

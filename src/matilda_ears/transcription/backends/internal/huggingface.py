@@ -9,19 +9,16 @@ This backend supports any ASR model from HuggingFace Hub, including:
 Real-time streaming is handled by the streaming framework in
 src/transcription/streaming/, which wraps batch transcription.
 
-Usage in config.json:
-    {
-        "transcription": {
-            "backend": "huggingface"
-        },
-        "huggingface": {
-            "model": "openai/whisper-large-v3",
-            "device": "auto",
-            "torch_dtype": "auto",
-            "chunk_length_s": 30,
-            "batch_size": 8
-        }
-    }
+Usage in config.toml:
+    [ears.transcription]
+    backend = "huggingface"
+
+    [ears.huggingface]
+    model = "openai/whisper-large-v3"
+    device = "auto"
+    torch_dtype = "auto"
+    chunk_length_s = 30
+    batch_size = 8
 """
 
 import asyncio

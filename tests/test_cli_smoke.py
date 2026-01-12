@@ -47,7 +47,7 @@ class TestConfigSystem:
     """Test that configuration system works without crashing."""
 
     def test_default_config_loads(self, preloaded_config):
-        """Can we load the actual config.json without crashing?"""
+        """Can we load the actual config.toml without crashing?"""
         if preloaded_config is None:
             pytest.skip("Config not available")
 

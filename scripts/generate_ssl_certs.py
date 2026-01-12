@@ -262,7 +262,7 @@ def main() -> None:
 
         print("\n🎉 SSL certificates generated successfully!")
         print("\n📋 Next steps:")
-        print("   1. Update config.jsonc to enable SSL: 'server.websocket.ssl.enabled: true'")
+        print("   1. Update config.toml to enable SSL: '[ears.server.websocket.ssl] enabled = true'")
         print("   2. Restart the WebSocket server: ./server.py restart-ws")
         print("   3. Clients will connect using wss:// instead of ws://")
         print("\n⚠️  Note: These are self-signed certificates for development only.")

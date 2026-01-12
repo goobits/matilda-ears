@@ -19,7 +19,7 @@ def ensure_project_root_in_path():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     while current_dir != os.path.dirname(current_dir):  # Stop at filesystem root
         if os.path.exists(os.path.join(current_dir, "pyproject.toml")) or os.path.exists(
-            os.path.join(current_dir, "config.jsonc")
+            os.path.join(current_dir, "config.toml")
         ):
             if current_dir not in sys.path:
                 sys.path.insert(0, current_dir)

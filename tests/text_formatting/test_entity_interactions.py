@@ -319,8 +319,8 @@ class TestComplexEntityInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             (
-                "save config dot json with encoding utf eight and permissions six four four",
-                "Save config.json with encoding UTF-8 and permissions 644.",
+                "save config dot toml with encoding utf eight and permissions six four four",
+                "Save config.toml with encoding UTF-8 and permissions 644.",
             ),
             (
                 "the server dot py file runs on port three thousand and uses fifty percent cpu",
@@ -449,7 +449,7 @@ class TestEdgeCaseInteractions:
         format_transcription = preloaded_formatter
         test_cases = [
             # Files in a list
-            ("open main dot py, config dot json, and readme dot md", "Open main.py, config.json and README.md"),
+            ("open main dot py, config dot toml, and readme dot md", "Open main.py, config.toml and README.md"),
             ("check a dot txt, b dot py, and c dot js", "Check a.txt, b.py, and c.js"),
             # Mixed entities in lists
             ("i use vim, vscode, and sublime", "I use vim, Vscode and sublime"),

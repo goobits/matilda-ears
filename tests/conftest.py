@@ -4,6 +4,7 @@ import pytest
 import sys
 import os
 import logging
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -34,6 +35,14 @@ for logger_name in [
     logging.getLogger(logger_name).disabled = True
 
 console = Console()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def shared_config_env():
+    """Point tests at the shared TOML config."""
+    config_path = Path(__file__).resolve().parents[2] / "matilda" / "config.toml"
+    os.environ.setdefault("MATILDA_CONFIG", str(config_path))
+    return config_path
 
 
 def _spacy_available() -> bool:

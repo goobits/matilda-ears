@@ -1,11 +1,124 @@
 #!/usr/bin/env python3
 """Configuration loader that reads from config files."""
-import json
 import logging
 import os
 import platform
 from pathlib import Path
 from typing import Any
+
+import tomllib
+
+DEFAULT_CONFIG: dict[str, Any] = {
+    "transcription": {"backend": "auto"},
+    "whisper": {"model": "base", "device": "auto", "compute_type": "auto", "word_timestamps": True},
+    "huggingface": {
+        "model": "openai/whisper-tiny",
+        "device": "cpu",
+        "torch_dtype": "float32",
+        "chunk_length_s": 30,
+        "batch_size": 1,
+    },
+    "parakeet": {"model": "mlx-community/parakeet-tdt-0.6b-v3"},
+    "streaming": {
+        "enabled": True,
+        "backend": "whisper",
+        "simul_streaming": {
+            "language": "en",
+            "model_size": "tiny",
+            "frame_threshold": 25,
+            "audio_max_len": 30.0,
+            "segment_length": 1.0,
+            "never_fire": True,
+        },
+        "parakeet": {"context_size": (128, 128), "depth": 1},
+    },
+    "server": {
+        "websocket": {
+            "port": 3211,
+            "host": "localhost",
+            "bind_host": "0.0.0.0",
+            "connect_host": "localhost",
+            "max_message_mb": 50,
+            "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
+            "jwt_token": "",
+            "ssl": {
+                "enabled": False,
+                "cert_file": "ssl/server.crt",
+                "key_file": "ssl/server.key",
+                "verify_mode": "none",
+                "auto_generate_certs": True,
+                "cert_validity_days": 365,
+            },
+        }
+    },
+    "audio": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "streaming": {"enabled": False, "opus_bitrate": 24000, "frame_size": 960, "buffer_ms": 100},
+    },
+    "tools": {"audio": {"linux": "arecord", "darwin": "ffmpeg", "windows": "ffmpeg"}},
+    "paths": {
+        "venv": {
+            "linux": "venv/bin/python",
+            "darwin": "venv/bin/python",
+            "windows": "venv\\Scripts\\python.exe",
+        },
+        "temp_dir": {
+            "linux": "/tmp/goobits-matilda-ears",
+            "darwin": "/tmp/goobits-matilda-ears",
+            "windows": "%TEMP%\\goobits-matilda-ears",
+        },
+    },
+    "modes": {
+        "conversation": {
+            "vad_threshold": 0.5,
+            "hysteresis": 0.15,
+            "min_speech_duration_s": 0.5,
+            "max_silence_duration_s": 1.0,
+            "max_speech_duration_s": 30.0,
+            "speech_pad_duration_s": 0.3,
+        },
+        "listen_once": {
+            "vad_threshold": 0.5,
+            "hysteresis": 0.15,
+            "min_speech_duration_s": 0.3,
+            "max_silence_duration_s": 0.8,
+            "max_speech_duration_s": 30.0,
+            "max_recording_duration_s": 30.0,
+        },
+        "wake_word": {
+            "enabled": False,
+            "agent_aliases": [{"agent": "Matilda", "aliases": ["hey_matilda", "computer", "hey_jarvis"]}],
+            "agents": ["Matilda"],
+            "threshold": 0.5,
+            "vad_threshold": 0.5,
+            "hysteresis": 0.2,
+            "max_speech_duration_s": 10.0,
+            "min_speech_duration": 0.25,
+            "silence_duration": 0.8,
+            "noise_suppression": True,
+        },
+    },
+    "text_formatting": {
+        "filename_formats": {
+            "md": "UPPER_SNAKE",
+            "json": "lower_snake",
+            "py": "lower_snake",
+            "js": "camelCase",
+            "jsx": "camelCase",
+            "ts": "PascalCase",
+            "tsx": "PascalCase",
+            "java": "PascalCase",
+            "cs": "PascalCase",
+            "css": "kebab-case",
+            "scss": "kebab-case",
+            "sass": "kebab-case",
+            "less": "kebab-case",
+            "*": "lower_snake",
+        }
+    },
+    "timing": {"server_startup_delay": 1.0, "server_stop_delay": 1.0},
+}
 
 
 class ConfigLoader:
@@ -13,162 +126,61 @@ class ConfigLoader:
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         if config_path is None:
-            config_path = self._find_config_file()
+            config_path = self._default_config_path()
 
-        # Store config file path for later use
         self.config_file = str(config_path)
+        config_path = Path(config_path)
+        if not config_path.exists():
+            raise FileNotFoundError(f"Matilda config not found: {config_path}")
 
-        # Read and strip comments for JSONC support
-        with open(config_path) as f:
-            content = f.read()
+        with open(config_path, "rb") as f:
+            full_config = tomllib.load(f)
 
-        # Remove single-line comments (// ...)
-        import re
+        ears_config = full_config.get("ears")
+        if ears_config is None:
+            raise KeyError("Missing [ears] section in matilda config")
 
-        content = re.sub(r"//.*$", "", content, flags=re.MULTILINE)
-
-        # Parse the cleaned JSON
-        self._config = json.loads(content)
+        self._config = self._merge_dicts(DEFAULT_CONFIG, ears_config)
 
         self._platform = platform.system().lower()
         if self._platform == "darwin":
             self._platform = "darwin"  # Keep as darwin for config lookup
 
-        # Cache commonly used values
-        self.project_dir = str(Path(config_path).parent)
+        self.project_dir = str(Path(__file__).resolve().parents[2])
         self._setup_paths()
 
-    def _find_config_file(self) -> Path:
-        """Find config file in multiple locations"""
-        # Method 1: Try relative to source code (development mode)
-        current = Path(__file__).parent.parent.parent  # Go up 3 levels: core -> src -> project root
-        for filename in ["config.jsonc", "config.json"]:
-            config_path = current / filename
-            if config_path.exists():
-                return config_path
-
-        # Method 2: Try current working directory
-        for filename in ["config.jsonc", "config.json"]:
-            config_path = Path.cwd() / filename
-            if config_path.exists():
-                return config_path
-
-        # Method 3: Use repo defaults if present
-        defaults_path = current / "config.defaults.json"
-        if defaults_path.exists():
-            return defaults_path
-
-        # Method 4: Create a default config
-        return self._create_default_config()
-
-    def _create_default_config(self) -> Path:
-        """Create a default config file in temp directory"""
-        import tempfile
-        import json
-
-        default_config = {
-            "transcription": {"backend": "auto"},
-            "whisper": {"model": "base", "device": "auto", "compute_type": "auto", "word_timestamps": True},
-            "server": {
-                "websocket": {
-                    "port": 8769,
-                    "host": "localhost",
-                    "bind_host": "0.0.0.0",
-                    "connect_host": "localhost",
-                    "max_message_mb": 50,
-                    "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
-                    "jwt_token": "",
-                    "ssl": {
-                        "enabled": False,
-                        "cert_file": "ssl/server.crt",
-                        "key_file": "ssl/server.key",
-                        "verify_mode": "none",
-                        "auto_generate_certs": True,
-                        "cert_validity_days": 365,
-                    },
-                }
-            },
-            "audio": {
-                "sample_rate": 16000,
-                "channels": 1,
-                "streaming": {"enabled": False, "opus_bitrate": 24000, "frame_size": 960, "buffer_ms": 100},
-            },
-            "tools": {"audio": {"linux": "arecord", "darwin": "arecord", "windows": "ffmpeg"}},
-            "paths": {
-                "venv": {
-                    "linux": "venv/bin/python",
-                    "darwin": "venv/bin/python",
-                    "windows": "venv\\Scripts\\python.exe",
-                },
-                "temp_dir": {
-                    "linux": "/tmp/goobits-matilda-ears",
-                    "darwin": "/tmp/goobits-matilda-ears",
-                    "windows": "%TEMP%\\goobits-matilda-ears",
-                },
-            },
-            "modes": {
-                "conversation": {
-                    "vad_threshold": 0.5,
-                    "hysteresis": 0.15,
-                    "min_speech_duration_s": 0.5,
-                    "max_silence_duration_s": 1.0,
-                    "max_speech_duration_s": 30.0,
-                    "speech_pad_duration_s": 0.3,
-                },
-                "listen_once": {
-                    "vad_threshold": 0.5,
-                    "hysteresis": 0.15,
-                    "min_speech_duration_s": 0.3,
-                    "max_silence_duration_s": 0.8,
-                    "max_speech_duration_s": 30.0,
-                    "max_recording_duration_s": 30.0,
-                },
-            },
-            "text_formatting": {
-                "filename_formats": {
-                    "md": "UPPER_SNAKE",
-                    "json": "lower_snake",
-                    "py": "lower_snake",
-                    "js": "camelCase",
-                    "jsx": "camelCase",
-                    "ts": "PascalCase",
-                    "tsx": "PascalCase",
-                    "java": "PascalCase",
-                    "cs": "PascalCase",
-                    "css": "kebab-case",
-                    "scss": "kebab-case",
-                    "sass": "kebab-case",
-                    "less": "kebab-case",
-                    "*": "lower_snake",
-                }
-            },
-            "timing": {"server_startup_delay": 1.0, "server_stop_delay": 1.0},
-        }
-
-        # Create temporary config file
-        temp_config = Path(tempfile.gettempdir()) / "goobits-matilda-ears-config.json"
-        with open(temp_config, "w") as f:
-            json.dump(default_config, f, indent=2)
-
-        return temp_config
+    def _default_config_path(self) -> Path:
+        env_path = os.environ.get("MATILDA_CONFIG")
+        if env_path:
+            return Path(env_path)
+        return Path.home() / ".matilda" / "config.toml"
 
     def _setup_paths(self) -> None:
         """Setup platform-specific paths"""
         # Virtual environment Python
-        venv_path = self._config["paths"]["venv"][self._platform]
+        venv_path = self.get(f"paths.venv.{self._platform}", "venv/bin/python")
         self.venv_python = os.path.join(self.project_dir, venv_path)
 
         # Temp directory
         if os.environ.get("EARS_TEMP_DIR"):
             self.temp_dir = os.environ["EARS_TEMP_DIR"]
         else:
-            temp_dir_template = self._config["paths"]["temp_dir"][self._platform]
+            temp_dir_template = self.get(f"paths.temp_dir.{self._platform}", "/tmp/goobits-matilda-ears")
             if self._platform == "windows":
                 # Expand Windows environment variables
                 temp_dir_template = os.path.expandvars(temp_dir_template)
             self.temp_dir = temp_dir_template
 
         os.makedirs(self.temp_dir, mode=0o700, exist_ok=True)
+
+    def _merge_dicts(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+        merged = base.copy()
+        for key, value in override.items():
+            if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+                merged[key] = self._merge_dicts(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
 
     def get(self, key_path: str, default: Any = None) -> Any:
         """Get a value using dot notation (e.g., 'server.websocket.port')"""

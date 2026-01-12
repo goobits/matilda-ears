@@ -730,7 +730,7 @@ class TestFilenameEdgeCasesAndRegressions:
             # Should stop at common verbs/prepositions
             ("the file utils dot py is ready", "The file utils.py is ready"),
             ("check main dot js for errors", "Check main.js for errors"),
-            ("open config dot json and edit", "Open config.json and edit"),
+            ("open config dot toml and edit", "Open config.toml and edit"),
             # Should handle 'dot' in non-filename contexts
             ("put a dot here", "Put a dot here"),
             ("the dot com boom", "The .com boom"),
