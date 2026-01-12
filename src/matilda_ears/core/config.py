@@ -650,7 +650,7 @@ class ConfigLoader:
         return formats.get(extension.lower(), formats.get("*", "lower_snake"))
 
 
-# Create a global instance for backward compatibility
+# Global singleton instance
 _config_loader: ConfigLoader | None = None
 
 

@@ -47,7 +47,7 @@ from .server import (  # noqa: E402
     main,
 )
 
-# Re-export get_config for backward compatibility (tests patch this)
+# Re-export get_config (tests patch this)
 from matilda_ears.core.config import get_config  # noqa: E402
 
 __all__ = [

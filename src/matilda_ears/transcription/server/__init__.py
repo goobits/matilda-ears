@@ -9,7 +9,7 @@ Public API:
     - main: Main entry point function
 """
 
-import sys  # Re-exported for backward compatibility (tests patch sys.exit)
+import sys  # Re-exported (tests patch sys.exit)
 
 from .core import (
     EnhancedWebSocketServer,
@@ -18,7 +18,7 @@ from .core import (
 )
 from .main import main
 
-# Re-export for backward compatibility (tests patch these at module level)
+# Re-export (tests patch these at module level)
 from matilda_ears.core.config import get_config
 from matilda_ears.core.token_manager import TokenManager
 

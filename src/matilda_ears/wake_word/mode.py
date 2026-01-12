@@ -46,10 +46,10 @@ class WakeWordMode(BaseMode):
 
         Args:
             args: Namespace with CLI arguments including:
-                - agents: Comma-separated agent names (legacy, default: "Matilda")
-                - agent_aliases: Agent aliases string (new format)
+                - agent_aliases: Agent aliases string
                   Format: "Agent1:phrase1,phrase2;Agent2:phrase3"
-                - ww_threshold: Detection threshold (default: 0.5)
+                - wake_word_threshold: Detection threshold (default: 0.5)
+                - wake_word_backend: Backend to use (openwakeword or porcupine)
                 - sample_rate: Audio sample rate (default: 16000)
 
         """
@@ -58,7 +58,6 @@ class WakeWordMode(BaseMode):
         # Wake word specific config
         mode_config = self._get_mode_config()
 
-        # Parse agent aliases (new) or agents (legacy)
         self.agent_aliases = self._parse_agent_aliases(args, mode_config)
 
         # Threshold from CLI or config (explicit None checks to allow threshold=0.0)

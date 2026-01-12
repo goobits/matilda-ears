@@ -338,7 +338,6 @@ class MatildaWebSocketServer:
         else:
             await send_error(websocket, f"Unknown message type: {message_type}")
 
-    # Expose transcription methods on the server instance for backward compatibility
     async def transcribe_audio_from_wav(self, wav_data: bytes, client_id: str):
         """Transcribe audio from WAV data.
 
