@@ -61,20 +61,21 @@ class WakeWordMode(BaseMode):
         # Parse agent aliases (new) or agents (legacy)
         self.agent_aliases = self._parse_agent_aliases(args, mode_config)
 
-        # Threshold can come from CLI (ww_threshold) or config
-        # Use explicit None checks to allow threshold=0.0
-        ww_threshold = getattr(args, "ww_threshold", None)
-        threshold = getattr(args, "threshold", None)
-        if ww_threshold is not None:
-            self.threshold = ww_threshold
-        elif threshold is not None:
-            self.threshold = threshold
+        # Threshold from CLI or config (explicit None checks to allow threshold=0.0)
+        wake_word_threshold = getattr(args, "wake_word_threshold", None)
+        if wake_word_threshold is not None:
+            self.threshold = wake_word_threshold
         else:
             self.threshold = mode_config.get("threshold", 0.5)
         self.silence_duration = mode_config.get("silence_duration", 0.8)
         self.vad_hysteresis = mode_config.get("hysteresis", 0.2)
         self.max_speech_duration_s = mode_config.get("max_speech_duration_s", 10.0)
         self.noise_suppression = mode_config.get("noise_suppression", True)
+
+        # Backend selection (CLI takes precedence over config)
+        wake_word_backend = getattr(args, "wake_word_backend", None)
+        self.backend = wake_word_backend or mode_config.get("backend", "openwakeword")
+        self.access_key = getattr(args, "wake_word_key", None) or mode_config.get("access_key")
 
         # Components (initialized in run)
         self.detector: WakeWordDetector | None = None
@@ -87,37 +88,23 @@ class WakeWordMode(BaseMode):
         Priority:
         1. CLI --agent-aliases="Matilda:hey_matilda,computer;Bob:hey_bob"
         2. Config agent_aliases: [{agent: "Matilda", aliases: [...]}]
-        3. CLI --agents="Matilda,Bob" (legacy, converts to hey_{name})
-        4. Config agents: ["Matilda"] (legacy)
 
         Returns:
             Dict mapping agent names to list of wake phrases, or None for defaults.
 
         """
-        # 1. CLI agent_aliases (highest priority)
+        # CLI --agent-aliases (highest priority)
         cli_aliases = getattr(args, "agent_aliases", None)
         if cli_aliases:
             return WakeWordDetector.parse_cli_aliases(cli_aliases)
 
-        # 2. Config agent_aliases (new format)
+        # Config agent_aliases
         if "agent_aliases" in mode_config:
             result = {}
             for item in mode_config["agent_aliases"]:
                 result[item["agent"]] = item["aliases"]
             return result
 
-        # 3. CLI --agents (legacy)
-        agents_arg = getattr(args, "agents", None)
-        if agents_arg:
-            agents = [a.strip() for a in agents_arg.split(",")]
-            return {agent: [f"hey_{agent.lower()}"] for agent in agents}
-
-        # 4. Config agents (legacy)
-        if "agents" in mode_config:
-            agents = mode_config["agents"]
-            return {agent: [f"hey_{agent.lower()}"] for agent in agents}
-
-        # Default
         return None
 
     async def run(self):
@@ -133,6 +120,8 @@ class WakeWordMode(BaseMode):
                     agent_aliases=self.agent_aliases,
                     threshold=self.threshold,
                     noise_suppression=self.noise_suppression,
+                    backend=self.backend,
+                    access_key=self.access_key,
                 ),
             )
 
@@ -142,8 +131,8 @@ class WakeWordMode(BaseMode):
             # Load transcription backend
             await self._load_model()
 
-            # Setup audio streaming
-            await self._setup_audio_streamer(maxsize=2000, chunk_duration_ms=WakeWordDetector.CHUNK_DURATION_MS)
+            # Setup audio streaming (chunk size depends on backend)
+            await self._setup_audio_streamer(maxsize=2000, chunk_duration_ms=self.detector.CHUNK_DURATION_MS)
 
             # Start audio capture
             if self.audio_streamer is None:
@@ -275,8 +264,9 @@ class WakeWordMode(BaseMode):
         """
         chunks = []
         silence_count = 0
-        max_silence_chunks = int(self.silence_duration * 1000 / WakeWordDetector.CHUNK_DURATION_MS)
-        max_duration_chunks = int(self.max_speech_duration_s * 1000 / WakeWordDetector.CHUNK_DURATION_MS)
+        chunk_duration_ms = self.detector.CHUNK_DURATION_MS if self.detector else 80
+        max_silence_chunks = int(self.silence_duration * 1000 / chunk_duration_ms)
+        max_duration_chunks = int(self.max_speech_duration_s * 1000 / chunk_duration_ms)
 
         self.logger.debug(f"Capturing utterance (max silence: {max_silence_chunks} chunks)")
 

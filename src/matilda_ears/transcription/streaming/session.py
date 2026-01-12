@@ -87,7 +87,3 @@ class StreamingSession:
     async def reset(self) -> None:
         """Reset for a new session."""
         await self._adapter.reset()
-
-
-# Backwards compatibility aliases
-StreamingSessionConfig = StreamingConfig

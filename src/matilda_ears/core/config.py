@@ -100,6 +100,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         },
     },
     "text_formatting": {
+        "enabled": False,
+        "formatter": "noop",
         "filename_formats": {
             "md": "UPPER_SNAKE",
             "json": "lower_snake",
@@ -115,7 +117,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "sass": "kebab-case",
             "less": "kebab-case",
             "*": "lower_snake",
-        }
+        },
     },
     "timing": {"server_startup_delay": 1.0, "server_stop_delay": 1.0},
 }
@@ -420,11 +422,7 @@ class ConfigLoader:
 
     def get_file_path(self, file_type: str, key_name: str = "f8") -> str:
         """Get file path for a specific file type and key"""
-        # Check for legacy F8 naming
-        if key_name.lower() == "f8" and self.get(f"file_naming.legacy_f8.{file_type}") is not None:
-            template = self.get(f"file_naming.legacy_f8.{file_type}")
-        else:
-            template = self.get(f"file_naming.templates.{file_type}", f"matilda_{key_name}_{file_type}")
+        template = self.get(f"file_naming.templates.{file_type}", f"matilda_{key_name}_{file_type}")
 
         # Replace {key} placeholder
         filename = template.replace("{key}", key_name.lower())
@@ -532,11 +530,6 @@ class ConfigLoader:
         return bool(self.get("modes.wake_word.enabled", False))
 
     @property
-    def wake_word_agents(self) -> list[str]:
-        """Get list of wake word agents"""
-        return list(self.get("modes.wake_word.agents", ["Matilda"]))
-
-    @property
     def wake_word_threshold(self) -> float:
         """Get wake word detection threshold"""
         return float(self.get("modes.wake_word.threshold", 0.5))
@@ -567,14 +560,8 @@ class ConfigLoader:
 
     @property
     def visualizer_engine(self) -> str:
-        """Get the visualizer engine to use (legacy, instant, or web)"""
-        # First check the new unified location
-        engine = self.get("visualizer.engine")
-        if engine is not None:
-            return str(engine)
-
-        # Fallback to old location for backward compatibility
-        return str(self.get("visualizers.engine", "legacy"))
+        """Get the visualizer engine to use (instant or web)"""
+        return str(self.get("visualizer.engine", "instant"))
 
     @property
     def visualizer_enabled(self) -> bool:
@@ -675,10 +662,7 @@ def get_config() -> ConfigLoader:
     return _config_loader
 
 
-# LegacyConfig removed - use get_config() instead
-
-
-# Re-export logging functions for backwards compatibility
+# Re-export logging functions
 from .logging import get_logger, setup_logging  # noqa: E402, F401
 
 

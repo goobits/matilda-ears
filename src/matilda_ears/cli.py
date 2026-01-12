@@ -7,13 +7,19 @@ Generated from: goobits.yaml
 """
 
 import sys
+import os
 import logging
 import traceback
 from pathlib import Path
 from typing import Any
 
 import click
-import yaml
+
+try:
+    import tomllib
+except ImportError:  # pragma: no cover
+    import toml as tomllib
+import toml
 
 # ============================================================================
 # EMBEDDED LOGGER
@@ -70,20 +76,25 @@ class ConfigManager:
 
     def __init__(self, config_file: Path | None = None):
         """Initialize configuration manager."""
+        self.section = "ears"
         if config_file is None:
-            config_dir = Path.home() / ".config" / "ears"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            config_file = config_dir / "config.yaml"
+            env_path = os.environ.get("MATILDA_CONFIG")
+            config_file = Path(env_path) if env_path else Path.home() / ".matilda" / "config.toml"
 
         self.config_file = Path(config_file)
+        self.config_file.parent.mkdir(parents=True, exist_ok=True)
         self.config = self._load_config()
 
     def _load_config(self) -> dict[str, Any]:
         """Load configuration from file."""
         if self.config_file.exists():
             try:
-                with open(self.config_file) as f:
-                    return yaml.safe_load(f) or {}
+                with open(self.config_file, "rb") as f:
+                    full_config = tomllib.load(f)
+                section = full_config.get(self.section)
+                if isinstance(section, dict):
+                    return section
+                return {}
             except Exception as e:
                 logger.warning(f"Failed to load config: {e}")
                 return {}
@@ -92,8 +103,15 @@ class ConfigManager:
     def save_config(self) -> bool:
         """Save configuration to file."""
         try:
-            with open(self.config_file, "w") as f:
-                yaml.safe_dump(self.config, f, default_flow_style=False)
+            if self.config_file.exists():
+                with open(self.config_file, "rb") as f:
+                    full_config = tomllib.load(f)
+            else:
+                full_config = {}
+
+            full_config[self.section] = self.config
+            with open(self.config_file, "w", encoding="utf-8") as f:
+                f.write(toml.dumps(full_config))
             return True
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
@@ -187,16 +205,14 @@ class CLIContext:
 # ============================================================================
 # HOOK SYSTEM
 # ============================================================================
-
-
 def load_hooks():
     """Load user-defined hooks."""
     try:
-        from matilda_ears import app_hooks
+        import matilda_ears.app_hooks as hooks_module
 
-        return app_hooks
+        return hooks_module
     except ImportError:
-        logger.warning("No app_hooks.py found. Please create one with your command implementations.")
+        logger.warning("No hooks module found. Please create one with your command implementations.")
         logger.warning("Example:")
         logger.warning("  def on_build(ctx, **kwargs):")
         logger.warning("      print('Build command implementation')")
@@ -213,7 +229,7 @@ hooks = load_hooks()
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--debug", is_flag=True, help="Enable debug output")
-@click.option("--config", type=click.Path(), help="Path to config file")
+@click.option("--config", type=click.Path(), help="Path to config file (default: ~/.matilda/config.toml)")
 @click.pass_context
 def cli(ctx, verbose, debug, config):
     """Transform speech into text with AI-powered transcription using Whisper models."""
@@ -273,7 +289,7 @@ def download(ctx, model, progress):
 
 @cli.command("train-wake-word")
 @click.option("--phrase", default=None, help="The wake word phrase to train (e.g., 'hey matilda')")
-@click.option("--output", default=None, help="Output path for ONNX file (default: internal/models/{phrase}.onnx)")
+@click.option("--output", default=None, help="Output path for ONNX file (default: models/{phrase}.onnx)")
 @click.option("--samples", default="3000", help="Number of training samples to generate")
 @click.option("--epochs", default="10", help="Number of training epochs")
 @click.pass_obj
@@ -306,7 +322,7 @@ def main():
         handle_error(e, "--verbose" in sys.argv or "--debug" in sys.argv)
 
 
-# Alias for pyproject.toml entry point
+# Alias for compatibility with different entry point names
 cli_entry = main
 
 if __name__ == "__main__":
