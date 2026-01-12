@@ -37,9 +37,25 @@ console = Console()
 
 
 def _spacy_available() -> bool:
-    try:
-        import spacy  # noqa: F401
+    """Check if spacy is available and properly installed (not mocked)."""
+    import sys
 
+    # If spacy was already imported and is a mock, return False
+    if 'spacy' in sys.modules:
+        spacy = sys.modules['spacy']
+        if not hasattr(spacy, '__file__') or spacy.__file__ is None:
+            return False
+        try:
+            _ = spacy.__version__
+            return True
+        except (AttributeError, TypeError):
+            return False
+
+    # Try fresh import
+    try:
+        import spacy
+        # Verify it's not mocked by accessing __version__
+        _ = spacy.__version__
         return True
     except Exception:
         return False
