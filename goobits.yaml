@@ -49,7 +49,8 @@ messages:
       ears --conversation         # Always listening
       ears --tap-to-talk=f8       # Tap F8 to start/stop
       ears --hold-to-talk=space   # Hold spacebar to record
-      ears --server --port=8769   # WebSocket server
+      ears --server --port=3211   # WebSocket server
+      # Config: ~/.matilda/config.toml ([ears])
 
   install_dev_success: |
     Matilda Ears has been installed in development mode!
@@ -168,7 +169,7 @@ cli:
       desc: "Audio sample rate in Hz"
     - name: "config"
       type: "str"
-      desc: "Configuration file path"
+      desc: "Configuration file path (default: ~/.matilda/config.toml)"
 
   commands:
     status:
