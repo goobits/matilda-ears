@@ -1,6 +1,6 @@
 # Matilda Ears
 
-Speech-to-text engine with multiple operation modes, real-time transcription, and text formatting.
+Speech-to-text engine with multiple operation modes, real-time transcription, and Ears Tuner formatting.
 
 ## Quick Start
 

@@ -35,7 +35,7 @@ def main():
         # Core testing
         ("pytest", "Testing framework", False),
         ("xdist", "Parallel test execution", False),
-        # STT dependencies (required for text formatting tests)
+        # STT dependencies (required for Ears Tuner tests)
         ("spacy", "SpaCy NLP library", False),
         ("pyparsing", "Text parsing library", False),
         ("faster_whisper", "Whisper transcription", False),

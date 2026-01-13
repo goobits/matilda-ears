@@ -66,8 +66,8 @@ COVERAGE:
 
 COMMON WORKFLOWS:
   ./test.py tests/text_formatting/ --sequential --detailed
-                                                   # Debug text formatting issues
-  ./test.py --parallel 8 tests/text_formatting/   # Fast parallel text formatting tests
+                                                   # Debug Ears Tuner issues
+  ./test.py --parallel 8 tests/text_formatting/   # Fast parallel Ears Tuner tests
   ./test.py --diff=-3                              # Check changes since 3 runs ago
   ./test.py tests/text_formatting/ --history      # Run tests then show history
 
@@ -193,7 +193,7 @@ def main():
                     print("✅ SpaCy model installed via fallback method!")
                 else:
                     print("❌ SpaCy model installation failed!")
-                    print("   Text formatting may not work properly.")
+                    print("   Ears Tuner may not work properly.")
 
             print("\n🧪 Verifying installation...")
             verify_cmd = [sys.executable if in_venv else python_exe, "tests/__tools__/verify_test_setup.py"]

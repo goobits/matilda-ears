@@ -19,18 +19,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 pytest_plugins = ["tests.__tools__.pytest_diff_tracker", "tests.__tools__.pytest_summary_plugin"]
 
 # Disable excessive logging during tests for performance
-logging.getLogger("matilda_ears.text_formatting").setLevel(logging.CRITICAL)
-logging.getLogger("matilda_ears.text_formatting.formatter").setLevel(logging.CRITICAL)
-logging.getLogger("matilda_ears.text_formatting.internal.detectors").setLevel(logging.CRITICAL)
-logging.getLogger("matilda_ears.text_formatting.internal.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
+logging.getLogger("matilda_ears_tuner").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears_tuner.internal.pipeline").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears_tuner.internal.detectors").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears_tuner.internal.nlp_provider").setLevel(logging.WARNING)  # Keep model loading messages
 logging.getLogger("matilda_ears.core").setLevel(logging.CRITICAL)
-logging.getLogger("matilda_ears.text_formatting.pattern_converter").setLevel(logging.CRITICAL)
+logging.getLogger("matilda_ears_tuner.pattern_converter").setLevel(logging.CRITICAL)
 
 # Also disable the root logger for these modules to catch all sub-loggers
 for logger_name in [
-    "matilda_ears.text_formatting.formatter",
-    "matilda_ears.text_formatting.internal.detectors",
-    "matilda_ears.text_formatting.pattern_converter",
+    "matilda_ears_tuner.internal.pipeline",
+    "matilda_ears_tuner.internal.detectors",
+    "matilda_ears_tuner.pattern_converter",
 ]:
     logging.getLogger(logger_name).disabled = True
 
@@ -95,7 +95,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 class FormatterTestReporter:
-    """Custom reporter for text formatting tests with beautiful output."""
+    """Custom reporter for Ears Tuner tests with beautiful output."""
 
     def __init__(self):
         self.failures: list[tuple[str, str, str, str]] = []
@@ -123,7 +123,7 @@ class FormatterTestReporter:
             return
 
         # Create a table for failures
-        table = Table(title="Text Formatting Test Failures", show_header=True, header_style="bold magenta")
+        table = Table(title="Ears Tuner Test Failures", show_header=True, header_style="bold magenta")
         table.add_column("Test", style="cyan", no_wrap=False)
         table.add_column("Input", style="yellow")
         table.add_column("Expected", style="green")
@@ -197,7 +197,7 @@ def pytest_sessionfinish(session, exitstatus):
         reporter.print_summary()
 
 
-# Custom assertion helper for text formatting tests
+# Custom assertion helper for Ears Tuner tests
 def assert_format(input_text: str, expected: str, actual: str, test_name: str = "", item=None):
     """Enhanced assertion with beautiful failure output."""
     if expected != actual:
@@ -248,7 +248,7 @@ def preloaded_nlp_models():
 
     print("\n🚀 Preloading NLP models for test session...")
     try:
-        from matilda_ears.text_formatting.nlp_provider import get_nlp, get_punctuator
+        from matilda_ears_tuner.nlp_provider import get_nlp, get_punctuator
 
         # Warm up both models
         nlp = get_nlp()
@@ -269,13 +269,13 @@ def preloaded_formatter(preloaded_nlp_models):
     os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
     # Reset any cached models to ensure the environment variable takes effect
-    from matilda_ears.text_formatting.nlp_provider import reset_models
+    from matilda_ears_tuner.nlp_provider import reset_models
 
     reset_models()
 
     print("🚀 Preloading formatter function with caching (PUNCTUATION DISABLED)...")
     try:
-        from matilda_ears.text_formatting.formatter import format_transcription
+        from matilda_ears_tuner.internal.pipeline import format_transcription
 
         # Cache for formatter results during testing
         cache = {}
@@ -308,7 +308,7 @@ def raw_formatter():
     capitalization disabled for predictable unit testing of entity conversion.
     """
     import os
-    from matilda_ears.text_formatting.formatter import TextFormatter
+    from matilda_ears_tuner.internal.pipeline import TextFormatter
 
     # Set environment variable to disable punctuation
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")
@@ -428,7 +428,7 @@ def spanish_formatter():
     with punctuation disabled for predictable testing.
     """
     import os
-    from matilda_ears.text_formatting.formatter import TextFormatter
+    from matilda_ears_tuner.internal.pipeline import TextFormatter
 
     # Save the current value of the environment variable
     old_env = os.environ.get("STT_DISABLE_PUNCTUATION")

@@ -109,7 +109,7 @@ class FileTranscribeMode:
 
             text, info = await loop.run_in_executor(None, do_transcribe)
 
-            # Apply text formatting if enabled
+            # Apply Ears Tuner formatting if enabled
             if not self.mode_config.no_formatting:
                 text = await self._format_text(text)
 
@@ -128,7 +128,7 @@ class FileTranscribeMode:
             return {"success": False, "error": str(e), "text": "", "is_final": True, "file": file_path}
 
     async def _format_text(self, text: str) -> str:
-        """Apply text formatting pipeline."""
+        """Apply Ears Tuner formatting pipeline."""
         if not text.strip():
             return text
 
@@ -137,15 +137,15 @@ class FileTranscribeMode:
 
         formatter_name = self.config.get("text_formatting.formatter", "noop")
         try:
-            from matilda_text_formatting import FormatterRequest, get_formatter
+            from matilda_ears_tuner import FormatterRequest, get_formatter
 
             formatter = get_formatter(formatter_name)
             return formatter.format(FormatterRequest(text=text, language=self.mode_config.language)).text
         except ImportError:
-            self.logger.warning("Text formatting not available")
+            self.logger.warning("Ears Tuner formatting not available")
             return text
         except Exception as e:
-            self.logger.warning(f"Text formatting failed: {e}")
+            self.logger.warning(f"Ears Tuner formatting failed: {e}")
             return text
 
     async def _send_status(self, status: str, message: str):

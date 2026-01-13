@@ -6,7 +6,7 @@ Guidance for AI coding agents working in this repository.
 
 **Package**: `goobits-matilda-ears` | **Command**: `ears` | **Python**: 3.11+
 
-Matilda Ears is a speech-to-text engine with multiple operation modes and a text-formatting pipeline.
+Matilda Ears is a speech-to-text engine with multiple operation modes and an Ears Tuner pipeline.
 
 ## Core Commands
 
@@ -37,7 +37,7 @@ ears --server --port=8769
 
 - `src/matilda_ears/core/config.py`: configuration and logging
 - `src/matilda_ears/transcription/`: backends + WebSocket server
-- `src/matilda_ears/text_formatting/`: entity detection + formatting
+- `../matilda-ears-tuner/src/matilda_ears_tuner/`: entity detection + formatting
 - `src/matilda_ears/audio/`: capture + streaming
 - `src/matilda_ears/modes/`: run modes
 - `src/matilda_ears/wake_word/`: wake word detection + training

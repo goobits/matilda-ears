@@ -19,7 +19,7 @@ import sys
 
 sys.path.append("/app")
 
-from matilda_ears.text_formatting.formatter import format_transcription
+from matilda_ears_tuner.internal.pipeline import format_transcription
 from docker.src.encryption import EncryptionWebSocketHandler, get_encryption_manager
 from docker.src.api import dashboard_api
 

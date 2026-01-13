@@ -80,11 +80,11 @@ async def transcribe_audio_from_wav(
             logger.warning(f"Client {client_id}: Transcription contains <unk> tokens (corrupted), skipping formatting")
             text = ""  # Return empty to avoid slow formatting pipeline
 
-        # Apply server-side text formatting
+        # Apply server-side Ears Tuner formatting
         if text.strip() and get_config().get("text_formatting.enabled", False):
             formatter_name = get_config().get("text_formatting.formatter", "noop")
             try:
-                from matilda_text_formatting import FormatterRequest, get_formatter
+                from matilda_ears_tuner import FormatterRequest, get_formatter
 
                 formatter = get_formatter(formatter_name)
                 formatted_text = formatter.format(FormatterRequest(text=text, language=info.get("language", "en"))).text
@@ -96,9 +96,9 @@ async def transcribe_audio_from_wav(
                     logger.debug(f"Client {client_id}: Text processed (no changes): '{formatted_text[:50]}...'")
                 text = formatted_text
             except ImportError as e:
-                logger.warning(f"Client {client_id}: Text formatting unavailable: {e}")
+                logger.warning(f"Client {client_id}: Ears Tuner formatting unavailable: {e}")
             except Exception as e:
-                logger.warning(f"Client {client_id}: Text formatting failed: {e}")
+                logger.warning(f"Client {client_id}: Ears Tuner formatting failed: {e}")
 
         return (
             True,

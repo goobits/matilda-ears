@@ -156,7 +156,7 @@ cli:
       desc: "Enable detailed debug logging"
     - name: "no_formatting"
       type: "flag"
-      desc: "Disable advanced text formatting"
+      desc: "Disable Ears Tuner formatting"
     - name: "model"
       type: "str"
       default: "base"

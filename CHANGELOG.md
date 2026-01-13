@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VAD Gating** - Voice activity detection with request coalescing
 
 ### Changed
-- **Text Formatting Extracted** - Moved to standalone matilda-text-formatting package
+- **Ears Tuner Extracted** - Moved to standalone matilda-ears-tuner package
 - **TOML Configuration** - Standardized config format across all Matilda components
 - **Internal Architecture** - Moved streaming adapters, backend wrappers, and helpers to internal package
 - **XDG Cache** - Whisper models now use XDG-compliant cache directory

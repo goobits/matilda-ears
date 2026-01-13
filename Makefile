@@ -19,7 +19,7 @@ test-diff: ## Compare test results vs last run
 test-sequential: ## Run tests sequentially (for debugging)
 	@./scripts/test.py --sequential
 
-test-formatting: ## Run text formatting tests only
+test-formatting: ## Run Ears Tuner tests only
 	@./scripts/test.py tests/unit/text_formatting/ --summary
 
 lint: ## Run linting with ruff
