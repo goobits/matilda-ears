@@ -50,9 +50,9 @@ def _spacy_available() -> bool:
     import sys
 
     # If spacy was already imported and is a mock, return False
-    if 'spacy' in sys.modules:
-        spacy = sys.modules['spacy']
-        if not hasattr(spacy, '__file__') or spacy.__file__ is None:
+    if "spacy" in sys.modules:
+        spacy = sys.modules["spacy"]
+        if not hasattr(spacy, "__file__") or spacy.__file__ is None:
             return False
         try:
             _ = spacy.__version__

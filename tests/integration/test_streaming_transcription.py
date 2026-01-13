@@ -4,7 +4,6 @@
 Tests that streaming transcription produces the same text as batch transcription.
 Uses faster-whisper directly to avoid server dependencies.
 """
-import asyncio
 import sys
 import wave
 import tempfile
@@ -192,7 +191,7 @@ def main(wav_path: str):
     # Normalize for comparison
     import re
     def normalize(text):
-        return re.sub(r'[^\w\s]', '', text.lower()).strip()
+        return re.sub(r"[^\w\s]", "", text.lower()).strip()
 
     batch_norm = normalize(batch_text)
     chunked_norm = normalize(chunked_text)
@@ -217,9 +216,9 @@ def main(wav_path: str):
         # Show differences
         print("\nDifferences:")
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-            if tag != 'equal':
-                batch_part = ' '.join(batch_words[i1:i2])
-                chunked_part = ' '.join(chunked_words[j1:j2])
+            if tag != "equal":
+                batch_part = " ".join(batch_words[i1:i2])
+                chunked_part = " ".join(chunked_words[j1:j2])
                 print(f"  {tag}: batch[{i1}:{i2}]='{batch_part}' vs chunked[{j1}:{j2}]='{chunked_part}'")
 
     return 0
