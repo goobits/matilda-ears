@@ -125,3 +125,7 @@ def main() -> None:
         logger.exception(f"Server error: {e}")
         logger.exception(traceback.format_exc())
         raise RuntimeError("WebSocket server failed") from e
+
+
+if __name__ == "__main__":
+    main()
