@@ -54,7 +54,7 @@ ears models --json
 python -m spacy download en_core_web_sm
 
 ./scripts/test.py --summary
-./scripts/test.py tests/text_formatting/ --summary
+./scripts/test.py tests/ears_tuner/ --summary
 ./scripts/test.py --diff=-1
 
 ruff check src/ tests/

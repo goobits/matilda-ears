@@ -78,7 +78,7 @@ def categorize_failure(test_name: str, input_text: str, expected: str, actual: s
     elif "math" in test_name:
         category = "math_entities"
     else:
-        category = "text_formatting"
+        category = "ears_tuner"
 
     return category, issues or ["other"]
 
@@ -95,7 +95,7 @@ class SummaryReporter:
             self.passed += 1
         elif failure_details:
             test_name = nodeid.split("::")[-1]
-            module = nodeid.split("::")[0].replace("tests/text_formatting/", "")
+            module = nodeid.split("::")[0].replace("tests/ears_tuner/", "")
 
             category, issues = categorize_failure(
                 test_name,

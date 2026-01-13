@@ -37,8 +37,8 @@ INSTALLATION:
 
 BASIC USAGE:
   ./test.py                                         # Run all tests (auto-parallel + tracking)
-  ./test.py tests/text_formatting/                 # Run specific test directory
-  ./test.py tests/text_formatting/test_basic_formatting.py  # Run specific file
+  ./test.py tests/ears_tuner/                 # Run specific test directory
+  ./test.py tests/ears_tuner/test_basic_formatting.py  # Run specific file
 
 EXECUTION MODES:
   ./test.py --sequential                            # Force single-threaded execution
@@ -46,7 +46,7 @@ EXECUTION MODES:
   ./test.py --parallel off                         # Same as --sequential
 
 DIFF TRACKING (automatic by default):
-  ./test.py tests/text_formatting/                 # Auto-tracks changes vs last run
+  ./test.py tests/ears_tuner/                 # Auto-tracks changes vs last run
   ./test.py --no-track                             # Disable automatic tracking
   
 VIEW RESULTS (no tests run):
@@ -62,19 +62,19 @@ FAILURE ANALYSIS:
 
 COVERAGE:
   ./test.py --coverage                             # Run tests with coverage report
-  ./test.py -c tests/text_formatting/             # Coverage for specific directory
+  ./test.py -c tests/ears_tuner/             # Coverage for specific directory
 
 COMMON WORKFLOWS:
-  ./test.py tests/text_formatting/ --sequential --detailed
+  ./test.py tests/ears_tuner/ --sequential --detailed
                                                    # Debug Ears Tuner issues
-  ./test.py --parallel 8 tests/text_formatting/   # Fast parallel Ears Tuner tests
+  ./test.py --parallel 8 tests/ears_tuner/   # Fast parallel Ears Tuner tests
   ./test.py --diff=-3                              # Check changes since 3 runs ago
-  ./test.py tests/text_formatting/ --history      # Run tests then show history
+  ./test.py tests/ears_tuner/ --history      # Run tests then show history
 
 PURE PYTEST (if you prefer direct access):
-  python3 -m pytest tests/text_formatting/ --track-diff --sequential
-  python3 -m pytest tests/text_formatting/ -n 4 --detailed
-  python3 -m pytest tests/text_formatting/ --history
+  python3 -m pytest tests/ears_tuner/ --track-diff --sequential
+  python3 -m pytest tests/ears_tuner/ -n 4 --detailed
+  python3 -m pytest tests/ears_tuner/ --history
 
 For more pytest options: python3 -m pytest --help
 """
@@ -222,8 +222,8 @@ def main():
             # Use existing pytest args first
             cmd.extend(pytest_args)
         else:
-            # Default to text_formatting for history/diff operations
-            cmd.append("tests/text_formatting/")
+            # Default to ears_tuner for history/diff operations
+            cmd.append("tests/ears_tuner/")
 
         # Then add our options
         if known_args.history is not None:

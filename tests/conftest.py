@@ -84,7 +84,7 @@ def pytest_collection_modifyitems(config, items):
     if not _spacy_available():
         skip_spacy = pytest.mark.skip(reason="SpaCy not available on this interpreter")
         for item in items:
-            if "tests/text_formatting" in item.nodeid or "test_entity_detector" in item.nodeid:
+            if "tests/ears_tuner" in item.nodeid or "test_entity_detector" in item.nodeid:
                 item.add_marker(skip_spacy)
 
     if not _parakeet_available():
@@ -156,7 +156,7 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    if report.when == "call" and "text_formatting" in str(item.fspath):
+    if report.when == "call" and "ears_tuner" in str(item.fspath):
         # First check for structured data from user_properties
         for prop_name, prop_value in item.user_properties:
             if prop_name == "formatting_test":

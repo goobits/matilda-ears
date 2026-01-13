@@ -12,7 +12,7 @@ Matilda Ears is a speech-to-text engine with multiple operation modes and an Ear
 
 ### Testing
 ```bash
-./scripts/test.py tests/text_formatting/ --summary
+./scripts/test.py tests/ears_tuner/ --summary
 ./scripts/test.py --diff=-1
 ./scripts/test.py --install
 ```

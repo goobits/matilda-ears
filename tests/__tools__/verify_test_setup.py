@@ -72,7 +72,7 @@ def main():
 
     if failed == 0:
         print("\n🎉 All dependencies verified! You're ready to run tests.")
-        print("   Run: ./test.py tests/text_formatting/ --track-diff")
+        print("   Run: ./test.py tests/ears_tuner/ --track-diff")
         return 0
     print(f"\n⚠️  {failed} dependencies missing. Install with:")
     print('   pip install -e ".[dev]"')

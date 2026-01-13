@@ -20,7 +20,7 @@ test-sequential: ## Run tests sequentially (for debugging)
 	@./scripts/test.py --sequential
 
 test-formatting: ## Run Ears Tuner tests only
-	@./scripts/test.py tests/unit/text_formatting/ --summary
+	@./scripts/test.py tests/ears_tuner/ --summary
 
 lint: ## Run linting with ruff
 	@echo "Running linter..."

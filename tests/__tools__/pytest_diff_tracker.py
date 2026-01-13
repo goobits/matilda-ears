@@ -72,8 +72,8 @@ class DiffTracker:
         args_str = " ".join(test_args).strip()
 
         # Handle common patterns
-        if args_str.startswith("tests/text_formatting"):
-            return "tests/text_formatting"
+        if args_str.startswith("tests/ears_tuner"):
+            return "tests/ears_tuner"
         if args_str.startswith("tests/infrastructure"):
             return "tests/infrastructure"
         if args_str.startswith("tests/pipeline"):
@@ -94,7 +94,7 @@ class DiffTracker:
     def _get_history_file(self, test_path: str) -> Path:
         """Get history file for specific test path."""
         path_map = {
-            "tests/text_formatting": "text_formatting",
+            "tests/ears_tuner": "ears_tuner",
             "tests/infrastructure": "infrastructure",
             "tests/pipeline": "pipeline",
             "tests/networking": "networking",
@@ -164,7 +164,7 @@ class DiffTracker:
 
     def _simplify_nodeid(self, nodeid: str) -> str:
         """Convert pytest nodeid to simplified test name matching old format."""
-        # Example: 'tests/text_formatting/test_capitalization.py::TestCapitalization::test_sentence_case'
+        # Example: 'tests/ears_tuner/test_capitalization.py::TestCapitalization::test_sentence_case'
         # Should become: 'TestCapitalization::test_sentence_case'
 
         parts = nodeid.split("::")
