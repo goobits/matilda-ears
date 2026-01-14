@@ -81,8 +81,8 @@ async def transcribe_audio_from_wav(
             text = ""  # Return empty to avoid slow formatting pipeline
 
         # Apply server-side Ears Tuner formatting
-        if text.strip() and get_config().get("text_formatting.enabled", False):
-            formatter_name = get_config().get("text_formatting.formatter", "noop")
+        if text.strip() and get_config().get("ears_tuner.enabled", False):
+            formatter_name = get_config().get("ears_tuner.formatter", "noop")
             try:
                 from matilda_ears_tuner import FormatterRequest, get_formatter
 

@@ -132,10 +132,10 @@ class FileTranscribeMode:
         if not text.strip():
             return text
 
-        if not self.config.get("text_formatting.enabled", False):
+        if not self.config.get("ears_tuner.enabled", False):
             return text
 
-        formatter_name = self.config.get("text_formatting.formatter", "noop")
+        formatter_name = self.config.get("ears_tuner.formatter", "noop")
         try:
             from matilda_ears_tuner import FormatterRequest, get_formatter
 

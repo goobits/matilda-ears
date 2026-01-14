@@ -112,7 +112,6 @@ directory = ".artifacts/cache/htmlcov"
 "src/matilda_ears/transcription/backends/huggingface_backend.py" = [ "F401",]
 "src/matilda_ears/transcription/backends/parakeet_backend.py" = [ "F401",]
 "src/matilda_ears/audio/*.py" = [ "F403",]
-"src/matilda_ears/text_formatting/nlp_provider.py" = [ "F403",]
 "src/matilda_ears/transcription/streaming/strategies/*.py" = [ "F403",]
 "scripts/*.py" = [ "E402",]
 "tests/**/conftest.py" = [ "E402",]

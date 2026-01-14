@@ -99,7 +99,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "noise_suppression": True,
         },
     },
-    "text_formatting": {
+    "ears_tuner": {
         "enabled": False,
         "formatter": "noop",
         "filename_formats": {
@@ -619,7 +619,7 @@ class ConfigLoader:
         """Get filename formatting rules per extension"""
         return dict(
             self.get(
-                "text_formatting.filename_formats",
+                "ears_tuner.filename_formats",
                 {
                     "md": "UPPER_SNAKE",
                     "json": "lower_snake",
