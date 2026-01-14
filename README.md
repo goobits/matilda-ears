@@ -42,6 +42,21 @@ ears train-wake-word "hey matilda"
 
 Configuration lives in `~/.matilda/config.toml` under the `[ears]` section.
 
+Ears Tuner settings live under `[ears.ears_tuner]`:
+
+```toml
+[ears.ears_tuner]
+enabled = true
+formatter = "pipeline"
+
+[ears.ears_tuner.filename_formats]
+md = "UPPER_SNAKE"
+json = "lower_snake"
+py = "lower_snake"
+js = "camelCase"
+"*" = "lower_snake"
+```
+
 ```bash
 ears status --json
 ears models --json

@@ -20,7 +20,7 @@ ears --wake-word
 ears --tap-to-talk=f8
 ears --hold-to-talk=space
 ears --file recording.wav
-ears --server --port=8769 --host=0.0.0.0
+ears --server --port=3211 --host=0.0.0.0
 ```
 
 ## Common Options
@@ -37,7 +37,7 @@ ears --server --port=8769 --host=0.0.0.0
 ## WebSocket Server
 
 ```text
-ws://localhost:8769
+ws://localhost:3211
 ```
 
 Basic flow:
