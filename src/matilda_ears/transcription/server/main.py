@@ -14,6 +14,7 @@ import websockets
 
 from ...core.config import get_config, setup_logging
 from .internal.health import start_health_server
+from .transport import resolve as resolve_transport
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -38,6 +39,7 @@ async def start_server(
     # Use provided host/port or defaults
     server_host = host or server.host
     server_port = port or server.port
+    transport = resolve_transport("MATILDA_EARS_TRANSPORT", "MATILDA_EARS_ENDPOINT", server_host, server_port)
 
     # Load model first
     await server.load_model()
@@ -86,6 +88,14 @@ async def start_server(
     # Add SSL context if enabled
     if server.ssl_enabled and server.ssl_context:
         server_kwargs["ssl"] = server.ssl_context
+
+    if transport.transport == "unix" and transport.endpoint:
+        server_kwargs["unix"] = True
+        server_kwargs["path"] = transport.endpoint
+        server_host = None
+        server_port = None
+    elif transport.transport == "pipe":
+        raise RuntimeError("pipe transport is not supported for Ears yet")
 
     async with websockets.serve(server.handle_client, server_host, server_port, **server_kwargs):
         logger.info(f"✓ Ears ready ({server.backend_name}) on {protocol}://{server_host}:{server_port}")
