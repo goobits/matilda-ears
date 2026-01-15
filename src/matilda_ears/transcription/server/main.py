@@ -15,7 +15,7 @@ import os
 
 from ...core.config import get_config, setup_logging
 from .internal.health import start_health_server, start_health_server_unix
-from .transport import resolve as resolve_transport
+from matilda_transport import prepare_unix_socket, resolve_transport
 
 if TYPE_CHECKING:
     from .core import MatildaWebSocketServer
@@ -90,9 +90,7 @@ async def start_server(
         server_kwargs["ssl"] = server.ssl_context
 
     if transport.transport == "unix" and transport.endpoint:
-        os.makedirs(os.path.dirname(transport.endpoint), exist_ok=True)
-        if os.path.exists(transport.endpoint):
-            os.unlink(transport.endpoint)
+        prepare_unix_socket(transport.endpoint)
         server_kwargs["unix"] = True
         server_kwargs["path"] = transport.endpoint
         server_host = None
