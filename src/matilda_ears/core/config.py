@@ -34,7 +34,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "server": {
         "websocket": {
-            "port": 3211,
+            "port": 3212,
             "host": "localhost",
             "bind_host": "0.0.0.0",
             "connect_host": "localhost",

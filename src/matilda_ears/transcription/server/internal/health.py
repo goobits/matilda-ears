@@ -5,6 +5,7 @@ This module provides HTTP health endpoints for service monitoring:
 - start_health_server: Start the HTTP health server
 """
 
+import os
 import time
 from typing import TYPE_CHECKING
 
@@ -65,4 +66,20 @@ async def start_health_server(
     site = web.TCPSite(runner, host, port)
     await site.start()
     logger.info(f"HTTP health endpoint available at http://{host}:{port}/health")
+    return runner
+
+
+async def start_health_server_unix(server: "MatildaWebSocketServer", socket_path: str) -> web.AppRunner:
+    app = web.Application()
+    app.router.add_get("/health", lambda req: health_handler(server, req))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    socket_dir = os.path.dirname(socket_path)
+    if socket_dir:
+        os.makedirs(socket_dir, exist_ok=True)
+    if os.path.exists(socket_path):
+        os.unlink(socket_path)
+    site = web.UnixSite(runner, socket_path)
+    await site.start()
+    logger.info("HTTP health endpoint available at unix://%s/health", socket_path)
     return runner

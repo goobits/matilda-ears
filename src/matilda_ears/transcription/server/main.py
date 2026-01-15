@@ -11,9 +11,10 @@ import traceback
 from typing import TYPE_CHECKING
 
 import websockets
+import os
 
 from ...core.config import get_config, setup_logging
-from .internal.health import start_health_server
+from .internal.health import start_health_server, start_health_server_unix
 from .transport import resolve as resolve_transport
 
 if TYPE_CHECKING:
@@ -44,24 +45,23 @@ async def start_server(
     # Load model first
     await server.load_model()
 
-    # Start HTTP health server on port+1 (e.g., 8769 -> 8770 for health)
-    # Actually, let's use the same port concept but offset by 100 to avoid conflicts
-    # The Rust manager expects health on the same port, so use websocket_port for health too
-    # We'll run health server on a separate port (websocket_port - 4) to avoid conflict
-    health_port = server_port  # Health on same port - but we need different approach
-    # Actually aiohttp and websockets can't share a port easily.
-    # Let's use the standard health port pattern: websocket+1000 or a fixed offset
-    health_port = server_port + 1  # e.g., 8769 -> 8770 for health
-    try:
-        server._health_runner = await start_health_server(server, server_host, health_port)
-    except Exception as e:
-        logger.warning(f"Failed to start health server on port {health_port}: {e}")
-        # Try alternative port
+    if transport.transport == "unix":
+        health_socket = os.getenv("MATILDA_EARS_HEALTH_ENDPOINT", "/tmp/matilda/ears-health.sock")
         try:
-            health_port = server_port + 100
+            server._health_runner = await start_health_server_unix(server, health_socket)
+        except Exception as e:
+            logger.warning(f"Health server disabled: {e}")
+    elif server_port is not None and server_host is not None:
+        health_port = server_port + 1
+        try:
             server._health_runner = await start_health_server(server, server_host, health_port)
-        except Exception as e2:
-            logger.warning(f"Health server disabled: {e2}")
+        except Exception as e:
+            logger.warning(f"Failed to start health server on port {health_port}: {e}")
+            try:
+                health_port = server_port + 100
+                server._health_runner = await start_health_server(server, server_host, health_port)
+            except Exception as e2:
+                logger.warning(f"Health server disabled: {e2}")
 
     protocol = "wss" if server.ssl_enabled else "ws"
     logger.debug(f"Starting WebSocket server on {protocol}://{server_host}:{server_port}")
@@ -90,6 +90,9 @@ async def start_server(
         server_kwargs["ssl"] = server.ssl_context
 
     if transport.transport == "unix" and transport.endpoint:
+        os.makedirs(os.path.dirname(transport.endpoint), exist_ok=True)
+        if os.path.exists(transport.endpoint):
+            os.unlink(transport.endpoint)
         server_kwargs["unix"] = True
         server_kwargs["path"] = transport.endpoint
         server_host = None
