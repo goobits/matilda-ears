@@ -15,7 +15,7 @@ import os
 
 from ...core.config import get_config, setup_logging
 from .internal.health import start_health_server, start_health_server_unix
-from matilda_transport import prepare_unix_socket, resolve_transport
+from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
 from aiohttp import web, ClientSession
 
 if TYPE_CHECKING:
@@ -109,8 +109,7 @@ async def start_server(
         server_host = None
         server_port = None
     elif transport.transport == "pipe":
-        if os.name != "nt":
-            raise RuntimeError("pipe transport is only supported on Windows")
+        ensure_pipe_supported(transport)
 
         async def proxy_handler(request: web.Request) -> web.WebSocketResponse:
             ws = web.WebSocketResponse()
