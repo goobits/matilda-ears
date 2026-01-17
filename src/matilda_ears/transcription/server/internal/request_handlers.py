@@ -1,12 +1,12 @@
 import base64
 import ipaddress
-import json
 import os
 import time
 from typing import TYPE_CHECKING
 
 from ....audio.opus_batch import OpusBatchDecoder
 from ....core.config import setup_logging
+from .envelope import send_envelope
 from .transcription import send_error, transcribe_audio_from_wav
 
 if TYPE_CHECKING:
@@ -56,14 +56,12 @@ async def handle_binary_audio(
 
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
-        await websocket.send(
-            json.dumps({"text": "", "is_final": True, "error": "Rate limit exceeded. Max 10 requests per minute."})
-        )
+        await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.", code="rate_limited")
         return
 
     # Check if model is loaded
     if not server.backend.is_ready:
-        await websocket.send(json.dumps({"text": "", "is_final": True, "error": "Server not ready. Model not loaded."}))
+        await send_error(websocket, "Server not ready. Model not loaded.", code="not_ready")
         return
 
     try:
@@ -72,15 +70,17 @@ async def handle_binary_audio(
 
         if success:
             # Send simple response format for binary protocol
-            await websocket.send(json.dumps({"text": text, "is_final": True}))
-        else:
-            await websocket.send(
-                json.dumps({"text": "", "is_final": True, "error": info.get("error", "Transcription failed")})
+            await send_envelope(
+                websocket,
+                "transcription_complete",
+                {"type": "transcription_complete", "text": text, "is_final": True},
             )
+        else:
+            await send_error(websocket, info.get("error", "Transcription failed"), code="transcription_failed")
 
     except Exception as e:
         logger.exception(f"Client {client_id}: Binary audio transcription error: {e}")
-        await websocket.send(json.dumps({"text": "", "is_final": True, "error": str(e)}))
+        await send_error(websocket, str(e), code="internal_error", retryable=True)
 
 
 async def handle_ping(
@@ -91,7 +91,7 @@ async def handle_ping(
     client_id: str,
 ) -> None:
     """Handle ping messages."""
-    await websocket.send(json.dumps({"type": "pong", "timestamp": time.time()}))
+    await send_envelope(websocket, "pong", {"type": "pong", "timestamp": time.time()})
 
 
 async def handle_auth(
@@ -106,12 +106,14 @@ async def handle_auth(
     jwt_payload = server.token_manager.validate_token(token)
     if jwt_payload:
         client_name = jwt_payload.get("client_id", "unknown")
-        await websocket.send(
-            json.dumps({"type": "auth_success", "message": "Authentication successful", "client_id": client_name})
+        await send_envelope(
+            websocket,
+            "auth_success",
+            {"type": "auth_success", "message": "Authentication successful", "client_id": client_name},
         )
         logger.info(f"Client {client_id} authenticated successfully")
     else:
-        await send_error(websocket, "Authentication failed")
+        await send_error(websocket, "Authentication failed", code="unauthorized")
         logger.warning(f"Client {client_id} authentication failed")
 
 
@@ -124,7 +126,7 @@ async def handle_generate_token(
 ) -> None:
     """Generate a new JWT token for local debug clients."""
     if not server.auth.can_generate_tokens(client_ip):
-        await send_error(websocket, "Token generation not allowed from this IP")
+        await send_error(websocket, "Token generation not allowed from this IP", code="forbidden")
         return
 
     client_name = data.get("client_name") or "debug-client"
@@ -132,19 +134,19 @@ async def handle_generate_token(
         token_info = server.token_manager.generate_token(client_name)
     except Exception as e:
         logger.exception(f"Client {client_id}: Token generation failed: {e}")
-        await send_error(websocket, f"Token generation failed: {e}")
+        await send_error(websocket, f"Token generation failed: {e}", code="internal_error", retryable=True)
         return
 
-    await websocket.send(
-        json.dumps(
-            {
-                "type": "token_generated",
-                "token": token_info.get("token"),
-                "token_id": token_info.get("token_id"),
-                "expires": token_info.get("expires"),
-                "client_name": client_name,
-            }
-        )
+    await send_envelope(
+        websocket,
+        "token_generated",
+        {
+            "type": "token_generated",
+            "token": token_info.get("token"),
+            "token_id": token_info.get("token_id"),
+            "expires": token_info.get("expires"),
+            "client_name": client_name,
+        },
     )
 
 
@@ -161,7 +163,7 @@ async def handle_transcription(
     auth_result = server.auth.check(data.get("token"), client_ip, origin)
     if not auth_result.authorized:
         logger.warning(f"Client {client_id}: Auth failed (ip={client_ip})")
-        await send_error(websocket, "Authentication required")
+        await send_error(websocket, "Authentication required", code="unauthorized")
         return
 
     if auth_result.client_id:
@@ -169,12 +171,12 @@ async def handle_transcription(
 
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
-        await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.")
+        await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.", code="rate_limited")
         return
 
     # Check if model is loaded
     if not server.backend.is_ready:
-        await send_error(websocket, "Server not ready. Model not loaded.")
+        await send_error(websocket, "Server not ready. Model not loaded.", code="not_ready")
         return
 
     # Get audio data
@@ -210,20 +212,24 @@ async def handle_transcription(
 
         if success:
             # Send successful response
-            await websocket.send(
-                json.dumps(
-                    {
-                        "type": "transcription_complete",
-                        "text": text,
-                        "success": True,
-                        "audio_duration": info.get("duration", 0),
-                        "language": info.get("language", "en"),
-                    }
-                )
+            await send_envelope(
+                websocket,
+                "transcription_complete",
+                {
+                    "type": "transcription_complete",
+                    "text": text,
+                    "success": True,
+                    "audio_duration": info.get("duration", 0),
+                    "language": info.get("language", "en"),
+                },
             )
         else:
-            await send_error(websocket, f"Transcription failed: {info.get('error', 'Unknown error')}")
+            await send_error(
+                websocket,
+                f"Transcription failed: {info.get('error', 'Unknown error')}",
+                code="transcription_failed",
+            )
 
     except Exception as e:
         logger.exception(f"Client {client_id}: Transcription error: {e}")
-        await send_error(websocket, f"Transcription failed: {e!s}")
+        await send_error(websocket, f"Transcription failed: {e!s}", code="internal_error", retryable=True)

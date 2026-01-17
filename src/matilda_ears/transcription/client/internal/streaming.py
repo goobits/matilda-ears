@@ -24,6 +24,22 @@ from ....core.config import setup_logging
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
+def _unwrap_envelope(data: dict) -> dict:
+    if data.get("service") == "ears" and data.get("task"):
+        if data.get("error"):
+            error = data.get("error", {})
+            return {
+                "type": "error",
+                "message": error.get("message"),
+                "error": error,
+            }
+        payload = data.get("result") or {}
+        if "type" not in payload:
+            payload = {**payload, "type": data.get("task")}
+        return payload
+    return data
+
+
 @dataclass
 class PartialResult:
     """Represents a partial transcription result from streaming.
@@ -165,7 +181,7 @@ class StreamingAudioClient:
                         self.websocket.recv(),
                         timeout=0.5,
                     )
-                    data = json.loads(message)
+                    data = _unwrap_envelope(json.loads(message))
                     msg_type = data.get("type", "")
 
                     if msg_type == "partial_result":
@@ -244,7 +260,7 @@ class StreamingAudioClient:
             if self.websocket is None:
                 raise Exception("WebSocket connection failed")
             welcome = await self.websocket.recv()
-            welcome_data = json.loads(welcome)
+            welcome_data = _unwrap_envelope(json.loads(welcome))
             logger.debug(f"Server welcome: {welcome_data}")
 
         except Exception as e:
@@ -286,7 +302,7 @@ class StreamingAudioClient:
 
         # Wait for acknowledgment
         response = await self.websocket.recv()
-        response_data = json.loads(response)
+        response_data = _unwrap_envelope(json.loads(response))
 
         if response_data.get("type") == "stream_started":
             logger.info(f"Stream started: {session_id}")
@@ -480,7 +496,12 @@ class StreamingAudioClient:
         while not self._pending_messages.empty():
             try:
                 queued = self._pending_messages.get_nowait()
-                if queued.get("type") in ("transcription_result", "stream_ended"):
+                if queued.get("type") in (
+                    "transcription_result",
+                    "stream_ended",
+                    "transcription_complete",
+                    "stream_transcription_complete",
+                ):
                     response_data = queued
                     break
             except asyncio.QueueEmpty:
@@ -490,7 +511,7 @@ class StreamingAudioClient:
         if response_data is None:
             try:
                 response = await self.websocket.recv()
-                response_data = json.loads(response)
+                response_data = _unwrap_envelope(json.loads(response))
             except websockets.exceptions.ConnectionClosed as e:
                 logger.error(f"Connection closed while receiving transcription result: {e}")
                 # Save debug audio on connection failure
@@ -562,6 +583,7 @@ class StreamingAudioClient:
 
         """
         # Extract text from expected schema
+        is_error = response_data.get("type") == "error" or response_data.get("error") is not None
         confirmed = response_data.get("confirmed_text", "")
         tentative = response_data.get("tentative_text", "")
         normalized = {**response_data}
@@ -574,7 +596,7 @@ class StreamingAudioClient:
             "confirmed_text": confirmed,
             "tentative_text": tentative,
             "is_final": response_data.get("is_final", True),
-            "success": response_data.get("success", True),
+            "success": response_data.get("success", not is_error),
         }
 
     def save_debug_audio(self):

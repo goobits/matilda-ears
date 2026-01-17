@@ -443,17 +443,27 @@ class MatildaDashboard {
 
             ws.onmessage = (event) => {
                 const response = JSON.parse(event.data);
+                const payload = response?.service === 'ears' && response?.task
+                    ? response.error
+                        ? { type: 'error', message: response.error?.message, error: response.error }
+                        : response.result ?? { type: response.task }
+                    : response;
+                if (!payload.type && response?.task) {
+                    payload.type = response.task;
+                }
                 const processingTimeMs = Date.now() - startTime;
 
-                if (response.type === 'transcription') {
-                    transcriptionText.textContent = `"${response.text}"`;
-                    confidence.textContent = response.confidence ? `${Math.round(response.confidence * 100)}%` : '95%';
+                if (payload.type === 'transcription' || payload.type === 'transcription_complete') {
+                    transcriptionText.textContent = `"${payload.text}"`;
+                    confidence.textContent = payload.confidence ? `${Math.round(payload.confidence * 100)}%` : '95%';
                     processingTime.textContent = `${(processingTimeMs / 1000).toFixed(1)}s`;
-                } else if (response.type === 'error') {
-                    throw new Error(response.message || 'Transcription failed');
+                } else if (payload.type === 'error') {
+                    throw new Error(payload.message || 'Transcription failed');
                 }
 
-                if (response.type === "transcription" || response.type === "error") { ws.close(); }
+                if (payload.type === 'transcription' || payload.type === 'transcription_complete' || payload.type === 'error') {
+                    ws.close();
+                }
             };
 
             ws.onerror = (error) => {

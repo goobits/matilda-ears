@@ -1,5 +1,4 @@
 import base64
-import json
 import os
 import time
 import uuid
@@ -11,6 +10,7 @@ from ...core.config import get_config, setup_logging
 from ...wake_word.detector import WakeWordDetector
 from ...audio.conversion import int16_to_float32
 from .internal.audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
+from .internal.envelope import send_envelope
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 
@@ -167,16 +167,16 @@ async def _process_wake_word_chunk(
         agent, phrase, confidence = detected
         detector.reset()
         server.wake_word_buffers[session_id] = np.array([], dtype=np.int16)
-        await websocket.send(
-            json.dumps(
-                {
-                    "type": "wake_word_detected",
-                    "session_id": session_id,
-                    "agent": agent,
-                    "phrase": phrase,
-                    "confidence": confidence,
-                }
-            )
+        await send_envelope(
+            websocket,
+            "wake_word_detected",
+            {
+                "type": "wake_word_detected",
+                "session_id": session_id,
+                "agent": agent,
+                "phrase": phrase,
+                "confidence": confidence,
+            },
         )
         return
 
@@ -193,17 +193,17 @@ async def _process_wake_word_chunk(
             else:
                 rms = 0.0
                 peak = 0.0
-            await websocket.send(
-                json.dumps(
-                    {
-                        "type": "wake_word_score",
-                        "session_id": session_id,
-                        "phrase": str(max_phrase or ""),
-                        "confidence": float(max_confidence),
-                        "rms": rms,
-                        "peak": peak,
-                    }
-                )
+            await send_envelope(
+                websocket,
+                "wake_word_score",
+                {
+                    "type": "wake_word_score",
+                    "session_id": session_id,
+                    "phrase": str(max_phrase or ""),
+                    "confidence": float(max_confidence),
+                    "rms": rms,
+                    "peak": peak,
+                },
             )
 
 
@@ -222,7 +222,7 @@ async def handle_start_stream(
 
     if not auth_result.authorized:
         logger.warning(f"Client {client_id}: Auth required (IP={client_ip})")
-        await send_error(websocket, "Authentication required")
+        await send_error(websocket, "Authentication required", code="unauthorized")
         return
 
     if auth_result.client_id:
@@ -230,7 +230,7 @@ async def handle_start_stream(
 
     # Check if model is loaded
     if not server.backend.is_ready:
-        await send_error(websocket, "Server not ready. Model not loaded.")
+        await send_error(websocket, "Server not ready. Model not loaded.", code="not_ready")
         return
 
     # Create session ID for this stream
@@ -323,18 +323,18 @@ async def handle_start_stream(
         logger.debug(f"Client {client_id}: Started streaming session {session_id} (batch mode)")
 
     # Send acknowledgment with streaming capability info
-    await websocket.send(
-        json.dumps(
-            {
-                "type": "stream_started",
-                "session_id": session_id,
-                "success": True,
-                "streaming_enabled": streaming_enabled,  # Real-time partial results available
-                "backend": server.backend_name,
-                "strategy": strategy_name,
-                "wake_word_enabled": wake_word_enabled,
-            }
-        )
+    await send_envelope(
+        websocket,
+        "stream_started",
+        {
+            "type": "stream_started",
+            "session_id": session_id,
+            "success": True,
+            "streaming_enabled": streaming_enabled,  # Real-time partial results available
+            "backend": server.backend_name,
+            "strategy": strategy_name,
+            "wake_word_enabled": wake_word_enabled,
+        },
     )
 
 
@@ -405,16 +405,16 @@ async def handle_audio_chunk(
 
                 # Send partial result with new schema (confirmed + tentative)
                 if result.confirmed_text or result.tentative_text:
-                    await websocket.send(
-                        json.dumps(
-                            {
-                                "type": "partial_result",
-                                "session_id": session_id,
-                                "confirmed_text": result.confirmed_text,
-                                "tentative_text": result.tentative_text,
-                                "is_final": False,
-                            }
-                        )
+                    await send_envelope(
+                        websocket,
+                        "partial_result",
+                        {
+                            "type": "partial_result",
+                            "session_id": session_id,
+                            "confirmed_text": result.confirmed_text,
+                            "tentative_text": result.tentative_text,
+                            "is_final": False,
+                        },
                     )
             except Exception as e:
                 logger.warning(f"Client {client_id}: Error in streaming transcription: {e}")
@@ -422,20 +422,20 @@ async def handle_audio_chunk(
 
         # Send acknowledgment (optional, for debugging)
         if data.get("ack_requested"):
-            await websocket.send(
-                json.dumps(
-                    {
-                        "type": "chunk_received",
-                        "session_id": session_id,
-                        "samples_decoded": len(pcm_samples) if pcm_samples is not None else 0,
-                        "total_duration": decoder.get_duration(),
-                    }
-                )
+            await send_envelope(
+                websocket,
+                "chunk_received",
+                {
+                    "type": "chunk_received",
+                    "session_id": session_id,
+                    "samples_decoded": len(pcm_samples) if pcm_samples is not None else 0,
+                    "total_duration": decoder.get_duration(),
+                },
             )
 
     except Exception as e:
         logger.exception(f"Error decoding audio chunk: {e}")
-        await send_error(websocket, f"Audio chunk processing failed: {e!s}")
+        await send_error(websocket, f"Audio chunk processing failed: {e!s}", code="internal_error", retryable=True)
 
 
 async def handle_binary_stream_chunk(
@@ -487,23 +487,23 @@ async def handle_binary_stream_chunk(
                 result = await streaming_session.process_chunk(pcm_samples)
 
                 if result.confirmed_text or result.tentative_text:
-                    await websocket.send(
-                        json.dumps(
-                            {
-                                "type": "partial_result",
-                                "session_id": session_id,
-                                "confirmed_text": result.confirmed_text,
-                                "tentative_text": result.tentative_text,
-                                "is_final": False,
-                            }
-                        )
+                    await send_envelope(
+                        websocket,
+                        "partial_result",
+                        {
+                            "type": "partial_result",
+                            "session_id": session_id,
+                            "confirmed_text": result.confirmed_text,
+                            "tentative_text": result.tentative_text,
+                            "is_final": False,
+                        },
                     )
             except Exception as e:
                 logger.warning(f"Client {client_id}: Error in streaming transcription: {e}")
 
     except Exception as e:
         logger.exception(f"Error decoding binary audio chunk: {e}")
-        await send_error(websocket, f"Audio chunk processing failed: {e!s}")
+        await send_error(websocket, f"Audio chunk processing failed: {e!s}", code="internal_error", retryable=True)
 
 
 async def handle_pcm_chunk(
@@ -606,16 +606,16 @@ async def handle_pcm_chunk(
 
                 # Send partial result with new schema (confirmed + tentative)
                 if result.confirmed_text or result.tentative_text:
-                    await websocket.send(
-                        json.dumps(
-                            {
-                                "type": "partial_result",
-                                "session_id": session_id,
-                                "confirmed_text": result.confirmed_text,
-                                "tentative_text": result.tentative_text,
-                                "is_final": False,
-                            }
-                        )
+                    await send_envelope(
+                        websocket,
+                        "partial_result",
+                        {
+                            "type": "partial_result",
+                            "session_id": session_id,
+                            "confirmed_text": result.confirmed_text,
+                            "tentative_text": result.tentative_text,
+                            "is_final": False,
+                        },
                     )
             except Exception as e:
                 logger.warning(f"Client {client_id}: Error in PCM streaming transcription: {e}")
@@ -623,7 +623,7 @@ async def handle_pcm_chunk(
 
     except Exception as e:
         logger.exception(f"Error processing PCM chunk: {e}")
-        await send_error(websocket, f"PCM chunk processing failed: {e!s}")
+        await send_error(websocket, f"PCM chunk processing failed: {e!s}", code="internal_error", retryable=True)
 
 
 async def handle_end_stream(
@@ -649,7 +649,7 @@ async def handle_end_stream(
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
         server.ending_sessions.discard(session_id)
-        await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.")
+        await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.", code="rate_limited")
         return
 
     # Log chunk statistics (no waiting needed - WebSocket ensures order)
@@ -697,20 +697,20 @@ async def handle_end_stream(
                     f"Duration: {duration:.2f}s, Text: {len(text)} chars"
                 )
 
-                await websocket.send(
-                    json.dumps(
-                        {
-                            "type": "stream_transcription_complete",
-                            "session_id": session_id,
-                            "confirmed_text": result.confirmed_text,
-                            "tentative_text": "",
-                            "success": True,
-                            "audio_duration": duration,
-                            "language": "en",
-                            "backend": server.backend_name,
-                            "streaming_mode": True,
-                        }
-                    )
+                await send_envelope(
+                    websocket,
+                    "stream_transcription_complete",
+                    {
+                        "type": "stream_transcription_complete",
+                        "session_id": session_id,
+                        "confirmed_text": result.confirmed_text,
+                        "tentative_text": "",
+                        "success": True,
+                        "audio_duration": duration,
+                        "language": "en",
+                        "backend": server.backend_name,
+                        "streaming_mode": True,
+                    },
                 )
                 return
 
@@ -762,27 +762,32 @@ async def handle_end_stream(
 
         if success:
             # Send successful response with streaming-specific fields
-            await websocket.send(
-                json.dumps(
-                    {
-                        "type": "stream_transcription_complete",
-                        "session_id": session_id,
-                        "confirmed_text": text,
-                        "tentative_text": "",
-                        "success": True,
-                        "audio_duration": duration,
-                        "language": info.get("language", "en"),
-                        "backend": server.backend_name,
-                        "streaming_mode": False,
-                    }
-                )
+            await send_envelope(
+                websocket,
+                "stream_transcription_complete",
+                {
+                    "type": "stream_transcription_complete",
+                    "session_id": session_id,
+                    "confirmed_text": text,
+                    "tentative_text": "",
+                    "success": True,
+                    "audio_duration": duration,
+                    "language": info.get("language", "en"),
+                    "backend": server.backend_name,
+                    "streaming_mode": False,
+                },
             )
         else:
-            await send_error(websocket, f"Stream transcription failed: {info.get('error', 'Unknown error')}")
+            await send_error(
+                websocket,
+                f"Stream transcription failed: {info.get('error', 'Unknown error')}",
+                code="internal_error",
+                retryable=True,
+            )
 
     except Exception as e:
         logger.exception(f"Client {client_id}: Stream transcription error: {e}")
-        await send_error(websocket, f"Stream transcription failed: {e!s}")
+        await send_error(websocket, f"Stream transcription failed: {e!s}", code="internal_error", retryable=True)
 
     finally:
         # Remove from ending sessions (cleanup complete)

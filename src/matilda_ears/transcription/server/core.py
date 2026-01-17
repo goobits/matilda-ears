@@ -21,6 +21,7 @@ from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
 from .main import start_server as _start_server
+from .internal.envelope import send_envelope
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 # Get config instance and setup logging
@@ -225,15 +226,15 @@ class MatildaWebSocketServer:
             logger.debug(f"Client {client_id} connected from {client_ip}")
 
             # Send welcome message
-            await websocket.send(
-                json.dumps(
-                    {
-                        "type": "welcome",
-                        "message": "Connected to Matilda WebSocket Server",
-                        "client_id": client_id,
-                        "server_ready": self.backend.is_ready,
-                    }
-                )
+            await send_envelope(
+                websocket,
+                "welcome",
+                {
+                    "type": "welcome",
+                    "message": "Connected to Matilda WebSocket Server",
+                    "client_id": client_id,
+                    "server_ready": self.backend.is_ready,
+                },
             )
 
             async for message in websocket:
@@ -253,7 +254,7 @@ class MatildaWebSocketServer:
                     await send_error(websocket, "Invalid JSON format")
                 except Exception as e:
                     logger.exception(f"Error processing message from {client_id}: {e}")
-                    await send_error(websocket, f"Processing error: {e!s}")
+                    await send_error(websocket, f"Processing error: {e!s}", code="internal_error", retryable=True)
 
         except websockets.exceptions.ConnectionClosed:
             logger.debug(f"Client {client_id} disconnected")
@@ -288,7 +289,7 @@ class MatildaWebSocketServer:
         """Handle configuration reload request."""
         # Verify it's a local request or authorized admin
         if client_ip not in ["127.0.0.1", "::1", "localhost"]:
-            await self.send_error(websocket, "Unauthorized: Reload only allowed from localhost")
+            await self.send_error(websocket, "Unauthorized: Reload only allowed from localhost", code="unauthorized")
             return
 
         try:
@@ -305,14 +306,16 @@ class MatildaWebSocketServer:
             global config
             config = get_config()
 
-            await websocket.send(
-                json.dumps({"type": "reload_response", "status": "ok", "message": "Configuration reloaded"})
+            await send_envelope(
+                websocket,
+                "reload_response",
+                {"type": "reload_response", "status": "ok", "message": "Configuration reloaded"},
             )
             logger.info("Configuration reloaded successfully")
 
         except Exception as e:
             logger.exception("Failed to reload configuration")
-            await self.send_error(websocket, f"Reload failed: {e}")
+            await self.send_error(websocket, f"Reload failed: {e}", code="internal_error", retryable=True)
 
     async def process_message(self, websocket, data: dict, client_ip: str, client_id: str):
         """Process different types of messages from clients.
@@ -365,7 +368,7 @@ class MatildaWebSocketServer:
         """
         return pcm_to_wav(samples, sample_rate, channels)
 
-    async def send_error(self, websocket, message: str):
+    async def send_error(self, websocket, message: str, code: str = "bad_request", retryable: bool = False):
         """Send error message to client.
 
         Args:
@@ -373,7 +376,7 @@ class MatildaWebSocketServer:
             message: Error message
 
         """
-        await send_error(websocket, message)
+        await send_error(websocket, message, code=code, retryable=retryable)
 
     async def start_server(self, host=None, port=None):
         """Start the WebSocket server.

@@ -147,7 +147,12 @@ def pcm_to_wav(samples: np.ndarray, sample_rate: int, channels: int = 1) -> byte
     return buffer.getvalue()
 
 
-async def send_error(websocket, message: str) -> None:
+async def send_error(
+    websocket,
+    message: str,
+    code: str = "bad_request",
+    retryable: bool = False,
+) -> None:
     """Send error message to client.
 
     Args:
@@ -155,10 +160,10 @@ async def send_error(websocket, message: str) -> None:
         message: Error message to send
 
     """
-    import json
-
     try:
-        await websocket.send(json.dumps({"type": "error", "message": message, "success": False}))
+        from .envelope import send_envelope
+
+        await send_envelope(websocket, "error", error={"message": message, "code": code, "retryable": retryable})
     except (websockets.exceptions.ConnectionClosed, websockets.exceptions.ConnectionClosedError) as e:
         logger.warning(f"WebSocket connection closed while sending error: {e}")
     except Exception as e:
