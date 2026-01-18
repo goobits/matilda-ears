@@ -15,7 +15,6 @@ import os
 
 from ...core.config import get_config, setup_logging
 from .internal.health import start_health_server, start_health_server_unix
-from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
 from aiohttp import web, ClientSession
 
 if TYPE_CHECKING:
@@ -41,6 +40,8 @@ async def start_server(
     # Use provided host/port or defaults
     server_host = host or server.host
     server_port = port or server.port
+    from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
+
     transport = resolve_transport("MATILDA_EARS_TRANSPORT", "MATILDA_EARS_ENDPOINT", server_host, server_port)
 
     # Load model first
