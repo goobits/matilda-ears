@@ -8,6 +8,9 @@ def build_envelope(task: str, result: Optional[dict] = None, error: Optional[dic
         "request_id": str(uuid.uuid4()),
         "service": "ears",
         "task": task,
+        "provider": None,
+        "model": None,
+        "usage": None,
     }
     if error is not None:
         payload["error"] = error
