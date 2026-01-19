@@ -107,7 +107,7 @@ def get_available_backends() -> list[str]:
         List of backend names that are currently available.
 
     """
-    backends = ["faster_whisper"]
+    backends = ["faster_whisper", "hub"]
     if _check_parakeet_available():
         backends.append("parakeet")
     if _check_huggingface_available():
@@ -140,6 +140,12 @@ def get_backend_info() -> dict[str, dict]:
             "description": "Universal backend for 17,000+ HuggingFace ASR models",
             "models": "Whisper, Wav2Vec2, Wav2Vec2-BERT, HuBERT, MMS, Canary, etc.",
             "install": "pip install goobits-matilda-ears[huggingface]",
+        },
+        "hub": {
+            "available": True,
+            "description": "Hub-backed transcription via matilda-api gateway",
+            "models": "Configured by hub",
+            "install": "Included by default",
         },
     }
 
@@ -186,6 +192,11 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
 
         return HuggingFaceBackend
 
+    if backend_name == "hub":
+        from .internal.hub import HubBackend
+
+        return HubBackend
+
     # Unknown backend - provide helpful error
     available = get_available_backends()
     raise ValueError(
@@ -194,5 +205,6 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
         f"  - 'faster_whisper' (default): Cross-platform Whisper with CUDA support\n"
         f"  - 'parakeet': Apple Silicon MLX-optimized (requires [mac] extras)\n"
         f"  - 'huggingface': Universal HuggingFace ASR (requires [huggingface] extras)\n"
+        f"  - 'hub': Hub-backed transcription via matilda-api\n"
         f'Check your matilda config: [ears.transcription] backend = "{available[0]}"'
     )
