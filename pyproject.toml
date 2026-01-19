@@ -84,7 +84,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.setuptools.package-data]
-matilda_ears = [ "**/*.json", "setup.sh", "py.typed",]
+matilda_ears = [ "**/*.json", "**/*.tiktoken", "**/*.npz", "setup.sh", "py.typed",]
 goobits_matilda_ears = [ "setup.sh",]
 
 [tool.pytest.ini_options]
