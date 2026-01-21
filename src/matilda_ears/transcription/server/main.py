@@ -118,6 +118,7 @@ async def start_server(
             target_url = f"ws://{server_host}:{server_port}"
             async with ClientSession() as session:
                 async with session.ws_connect(target_url) as upstream:
+
                     async def to_upstream():
                         async for msg in ws:
                             if msg.type == web.WSMsgType.TEXT:
