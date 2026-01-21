@@ -104,6 +104,22 @@ class MatildaWebSocketServer:
         # Opus stream decoder for handling streaming audio
         self.opus_decoder = OpusStreamDecoder()
 
+        self.streaming_vad = None
+        streaming_config = config.get("streaming", {})
+        simul_config = streaming_config.get("simul_streaming", {})
+        streaming_enabled = bool(streaming_config.get("enabled", True))
+        env_streaming_enabled = os.getenv("STT_STREAMING_ENABLED")
+        if env_streaming_enabled is not None:
+            streaming_enabled = env_streaming_enabled.strip().lower() in {"1", "true", "yes", "on"}
+        if streaming_enabled and bool(simul_config.get("vad_enabled", True)):
+            try:
+                from ...audio.vad import SileroVAD
+
+                self.streaming_vad = SileroVAD(threshold=float(simul_config.get("vad_threshold", 0.5)))
+                logger.info("SileroVAD initialized for streaming")
+            except Exception as e:
+                logger.warning(f"SileroVAD unavailable for streaming ({e}); continuing without VAD gating")
+
         # Track chunk counts for proper stream ending
         self.session_chunk_counts = {}  # session_id -> {"received": count, "expected": count}
 

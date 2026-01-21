@@ -35,11 +35,13 @@ class StreamingSession:
         config: StreamingConfig | None = None,
         backend=None,
         backend_name: str | None = None,
+        vad=None,
     ):
         self.session_id = session_id
         self.config = config or StreamingConfig()
         self.backend = backend
         self.backend_name = backend_name or ""
+        self.vad = vad
         self._adapter = self._create_adapter()
 
     def _create_adapter(self):
@@ -49,8 +51,8 @@ class StreamingSession:
                 raise RuntimeError("Parakeet streaming requires a backend instance")
             from .internal.parakeet_adapter import ParakeetStreamingAdapter
 
-            return ParakeetStreamingAdapter(self.backend, self.config)
-        return StreamingAdapter(self.config)
+            return ParakeetStreamingAdapter(self.backend, self.config, vad=self.vad)
+        return StreamingAdapter(self.config, vad=self.vad)
 
     async def start(self) -> None:
         """Initialize the streaming session."""

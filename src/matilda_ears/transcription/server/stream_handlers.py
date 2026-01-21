@@ -14,7 +14,7 @@ from .internal.envelope import send_envelope
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 
-def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore):
+def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore, vad):
     """Create a streaming session using SimulStreaming."""
     from ..streaming import StreamingSession, StreamingConfig
 
@@ -38,11 +38,13 @@ def _create_streaming_session(session_id: str, backend, backend_name: str, confi
         audio_max_len=simul_config.get("audio_max_len", 30.0),
         segment_length=simul_config.get("segment_length", 1.0),
         never_fire=simul_config.get("never_fire", True),
+        vad_enabled=bool(simul_config.get("vad_enabled", True)) and vad is not None,
+        vad_threshold=float(simul_config.get("vad_threshold", 0.5)),
         parakeet_context_size=context_size,
         parakeet_depth=int(parakeet_config.get("depth", 1)),
     )
 
-    return StreamingSession(session_id=session_id, config=config, backend=backend, backend_name=backend_name)
+    return StreamingSession(session_id=session_id, config=config, backend=backend, backend_name=backend_name, vad=vad)
 
 
 if TYPE_CHECKING:
@@ -295,6 +297,7 @@ async def handle_start_stream(
                 backend_name=server.backend_name,
                 config=None,  # Config loaded internally
                 transcription_semaphore=server.transcription_semaphore,
+                vad=server.streaming_vad,
             )
 
             # Start the session

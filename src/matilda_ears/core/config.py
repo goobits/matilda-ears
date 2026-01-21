@@ -29,6 +29,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "audio_max_len": 30.0,
             "segment_length": 1.0,
             "never_fire": True,
+            "vad_enabled": True,
+            "vad_threshold": 0.5,
         },
         "parakeet": {"context_size": (128, 128), "depth": 1},
     },

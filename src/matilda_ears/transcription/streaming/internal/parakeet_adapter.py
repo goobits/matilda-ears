@@ -16,7 +16,7 @@ class ParakeetStreamingAdapter:
 
     SAMPLE_RATE = 16000
 
-    def __init__(self, backend, config: StreamingConfig | None = None):
+    def __init__(self, backend, config: StreamingConfig | None = None, vad=None):
         self.config = config or StreamingConfig(backend="parakeet")
         self._backend = backend
         self._initialized = False
@@ -25,7 +25,8 @@ class ParakeetStreamingAdapter:
         self._lock = asyncio.Lock()
         self._alpha_text = ""
         self._total_samples = 0
-        self._vad = None
+        self._vad = vad if self.config.vad_enabled else None
+        self._shared_vad = self._vad is not None
         self._dirty = False
         self._inference_running = False
         self._pending_audio: list[np.ndarray] = []
@@ -47,7 +48,7 @@ class ParakeetStreamingAdapter:
         )
         self._transcriber = self._transcriber_cm.__enter__()
 
-        if self.config.vad_enabled:
+        if self.config.vad_enabled and self._vad is None:
             try:
                 from ....audio.vad import SileroVAD
 
@@ -190,7 +191,7 @@ class ParakeetStreamingAdapter:
     async def reset(self) -> None:
         if self._transcriber_cm:
             self._transcriber_cm.__exit__(None, None, None)
-        if self._vad:
+        if self._vad and not self._shared_vad:
             self._vad.reset_states()
         self._transcriber_cm = None
         self._transcriber = None

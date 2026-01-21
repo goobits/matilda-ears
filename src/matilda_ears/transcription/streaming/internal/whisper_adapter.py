@@ -133,7 +133,7 @@ class StreamingAdapter:
 
     SAMPLE_RATE = 16000
 
-    def __init__(self, config: StreamingConfig | None = None):
+    def __init__(self, config: StreamingConfig | None = None, vad=None):
         self.config = config or StreamingConfig()
         self._wrapper: AlphaOmegaWrapper | None = None
         self._alpha_text = ""
@@ -141,7 +141,8 @@ class StreamingAdapter:
         self._initialized = False
         self._lock = asyncio.Lock()
         # VAD and coalescing state
-        self._vad = None
+        self._vad = vad if self.config.vad_enabled else None
+        self._shared_vad = self._vad is not None
         self._dirty = False
         self._inference_running = False
         self._pending_audio: list[np.ndarray] = []
@@ -187,7 +188,7 @@ class StreamingAdapter:
         self._wrapper = AlphaOmegaWrapper(online)
 
         # Initialize VAD if enabled (gracefully skip if onnxruntime unavailable)
-        if self.config.vad_enabled:
+        if self.config.vad_enabled and self._vad is None:
             try:
                 from ....audio.vad import SileroVAD
 
@@ -314,7 +315,7 @@ class StreamingAdapter:
         """Reset the processor for a new transcription session."""
         if self._wrapper:
             self._wrapper.init()
-        if self._vad:
+        if self._vad and not self._shared_vad:
             self._vad.reset_states()
         self._alpha_text = ""
         self._total_samples = 0
