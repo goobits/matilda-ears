@@ -18,7 +18,7 @@ name = "GOOBITS Team"
 text = "MIT"
 
 [project.optional-dependencies]
-vad = [ "silero-vad>=5.0.0,<6.0",]
+vad = [ "silero-vad>=5.0.0,<6.0", "onnxruntime>=1.15.0,<2.0",]
 whisper = [ "faster-whisper>=1.0.0,<2.0", "ctranslate2>=4.0.0,<5.0",]
 mac = [ "mlx>=0.0.1,<1.0", "parakeet-mlx>=0.0.1,<1.0",]
 huggingface = [ "transformers>=4.36.0,<5.0", "accelerate>=0.25.0,<1.0",]
