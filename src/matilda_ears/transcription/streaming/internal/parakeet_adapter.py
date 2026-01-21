@@ -15,6 +15,9 @@ class ParakeetStreamingAdapter:
     """Adapter that wraps parakeet-mlx streaming for async transcription."""
 
     SAMPLE_RATE = 16000
+    # Minimum samples to buffer before first inference (0.25 seconds at 16kHz)
+    # This prevents triggering inference on every tiny chunk when VAD is unavailable
+    MIN_BUFFER_SAMPLES = 4000
 
     def __init__(self, backend, config: StreamingConfig | None = None, vad=None):
         self.config = config or StreamingConfig(backend="parakeet")
@@ -25,6 +28,7 @@ class ParakeetStreamingAdapter:
         self._lock = asyncio.Lock()
         self._alpha_text = ""
         self._total_samples = 0
+        self._pending_samples = 0  # Track pending samples for min buffer check
         self._vad = vad if self.config.vad_enabled else None
         self._shared_vad = self._vad is not None
         self._dirty = False
@@ -72,13 +76,22 @@ class ParakeetStreamingAdapter:
                 return self._last_result
 
         self._pending_audio.append(pcm_int16)
+        self._pending_samples += len(pcm_int16)
 
         if self._inference_running:
             self._dirty = True
             logger.debug(f"Coalescing: inference busy, buffered {len(self._pending_audio)} chunks")
             return self._last_result
 
-        logger.debug(f"Starting inference with {len(self._pending_audio)} pending chunks")
+        # Without VAD, wait for minimum buffer before starting inference
+        # This prevents slow per-chunk inference when VAD is unavailable
+        if not self._vad and self._pending_samples < self.MIN_BUFFER_SAMPLES:
+            logger.debug(f"Buffering: {self._pending_samples}/{self.MIN_BUFFER_SAMPLES} samples")
+            return self._last_result
+
+        logger.debug(
+            f"Starting inference with {len(self._pending_audio)} pending chunks ({self._pending_samples} samples)"
+        )
         return await self._run_inference_loop()
 
     async def _run_inference_loop(self) -> StreamingResult:
@@ -90,6 +103,7 @@ class ParakeetStreamingAdapter:
                 async with self._lock:
                     pending = self._pending_audio
                     self._pending_audio = []
+                    self._pending_samples = 0
 
                     loop = asyncio.get_event_loop()
                     result = await loop.run_in_executor(None, self._add_audio_chunks, pending)
@@ -197,6 +211,7 @@ class ParakeetStreamingAdapter:
         self._transcriber = None
         self._alpha_text = ""
         self._total_samples = 0
+        self._pending_samples = 0
         self._dirty = False
         self._inference_running = False
         self._pending_audio.clear()

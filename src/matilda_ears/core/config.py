@@ -20,8 +20,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "parakeet": {"model": "mlx-community/parakeet-tdt-0.6b-v3"},
     "streaming": {
-        "enabled": True,
-        "backend": "whisper",
+        "enabled": False,
+        "backend": "auto",
         "simul_streaming": {
             "language": "en",
             "model_size": "tiny",

@@ -46,6 +46,10 @@ class StreamingSession:
 
     def _create_adapter(self):
         backend_name = (self.config.backend or self.backend_name).lower()
+        if backend_name == "auto":
+            from ..backends import get_recommended_backend
+
+            backend_name = get_recommended_backend()
         if backend_name == "parakeet":
             if not self.backend:
                 raise RuntimeError("Parakeet streaming requires a backend instance")
