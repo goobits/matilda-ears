@@ -68,7 +68,7 @@ class AudioStreamer:
         try:
             # Send to all connections concurrently
             tasks = []
-            for ws in list(self.connections):  # Copy to avoid modification during iteration
+            for ws in self.connections:
                 if not ws.closed:
                     tasks.append(ws.send_bytes(encoded_data))
 
