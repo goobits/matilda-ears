@@ -47,7 +47,8 @@ class FileTranscribeMode:
         file_path = Path(self.mode_config.file)
 
         # Validate file exists
-        if not file_path.exists():
+        file_exists = await asyncio.to_thread(file_path.exists)
+        if not file_exists:
             await self._send_error(f"File not found: {file_path}")
             return
 
