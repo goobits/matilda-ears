@@ -390,9 +390,10 @@ async def handle_audio_chunk(
         logger.debug(f"Client {client_id}: Received chunk #{chunk_num}, size: {len(opus_data)} bytes")
 
         # Store chunk info for analysis
-        server.session_chunk_counts[session_id]["opus_log"].append(
-            {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}  # Store actual data for analysis
-        )
+        if _audio_debug_enabled():
+            server.session_chunk_counts[session_id]["opus_log"].append(
+                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}  # Store actual data for analysis
+            )
 
         # Decode Opus chunk and append to PCM buffer
         # This returns the decoded PCM samples as numpy array
@@ -476,9 +477,10 @@ async def handle_binary_stream_chunk(
         chunk_num = server.session_chunk_counts[session_id]["received"]
         logger.debug(f"Client {client_id}: Received binary chunk #{chunk_num}, size: {len(opus_data)} bytes")
 
-        server.session_chunk_counts[session_id]["opus_log"].append(
-            {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}
-        )
+        if _audio_debug_enabled():
+            server.session_chunk_counts[session_id]["opus_log"].append(
+                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}
+            )
 
         pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
 
