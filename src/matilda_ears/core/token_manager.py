@@ -44,6 +44,9 @@ class TokenManager:
         self.active_tokens: dict[str, dict[str, Any]] = {}
         self.used_tokens: set[str] = set()
 
+        # Throttling state
+        self._last_save_time = datetime.min
+
         # Load existing tokens
         self._load_tokens()
         self._load_used_tokens()
@@ -92,8 +95,15 @@ class TokenManager:
         """Save active tokens to storage"""
         try:
             self.tokens_file.write_text(json.dumps(self.active_tokens, indent=2))
+            self._last_save_time = datetime.utcnow()
         except Exception as e:
             logger.error(f"Failed to save tokens: {e}")
+
+    def _save_tokens_throttled(self):
+        """Save active tokens to storage if enough time has passed"""
+        # Save at most once per minute to avoid I/O thrashing on hot paths
+        if (datetime.utcnow() - self._last_save_time).total_seconds() > 60:
+            self._save_tokens()
 
     def _save_used_tokens(self):
         """Save used tokens to storage"""
@@ -228,7 +238,7 @@ class TokenManager:
             # Update last seen
             self.active_tokens[token_id]["last_seen"] = datetime.utcnow().isoformat()
             self.active_tokens[token_id]["active"] = True
-            self._save_tokens()
+            self._save_tokens_throttled()
 
             return payload
 
