@@ -166,16 +166,31 @@ class SileroVAD:
 
             # If chunk is larger than required, split and take max probability
             if len(audio_float) > required_size:
-                max_prob = 0.0
-                for i in range(0, len(audio_float) - required_size + 1, required_size):
-                    sub_chunk = audio_float[i : i + required_size]
-                    audio_tensor = torch.from_numpy(sub_chunk)
-                    if self.model is None:
-                        raise RuntimeError("Model not loaded")
-                    with torch.no_grad():
-                        prob = self.model(audio_tensor, self.sample_rate).item()
-                    max_prob = max(max_prob, prob)
-                return float(max_prob)
+                # Calculate number of full chunks
+                num_chunks = len(audio_float) // required_size
+
+                # Take only full chunks
+                valid_length = num_chunks * required_size
+                audio_float_truncated = audio_float[:valid_length]
+
+                # Reshape to [num_chunks, required_size]
+                # This enables batch processing on the GPU/CPU (parallel inference)
+                audio_reshaped = audio_float_truncated.reshape(num_chunks, required_size)
+                audio_tensor = torch.from_numpy(audio_reshaped)
+
+                if self.model is None:
+                    raise RuntimeError("Model not loaded")
+
+                with torch.no_grad():
+                    # Model returns tensor of probabilities
+                    probs = self.model(audio_tensor, self.sample_rate)
+
+                # Return maximum probability from the batch
+                if hasattr(probs, "max"):
+                    return float(probs.max().item())
+                else:
+                    # Fallback if output is scalar or list
+                    return float(max(probs)) if isinstance(probs, (list, tuple)) else float(probs)
 
             # Convert to torch tensor
             audio_tensor = torch.from_numpy(audio_float)
