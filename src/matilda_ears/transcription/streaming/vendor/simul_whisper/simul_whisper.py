@@ -633,5 +633,22 @@ class PaddedAlignAttWhisper:
             print("CONTEXT+FORCED:", context, sep="\t", file=f)
             print("HYPOTHESIS:", text, sep="\t", file=f)
 
-        # TODO: generation progress can be also saved in a readable format
-        # logger.debug(f"generation progress: {generation}")
+        # saving generation progress
+        with open(os.path.join(dir, f"iter_{self.logdir_i:05d}_generation.txt"), "w") as f:
+            for key, value in generation.items():
+                if key == "progress":
+                    print("Progress:", file=f)
+                    for i, step in enumerate(value):
+                        print(f"  Step {i}:", file=f)
+                        for k, v in step.items():
+                            print(f"    {k}: {v}", file=f)
+                            if k == "beam_tokens" and isinstance(v, Tokens):
+                                try:
+                                    decoded = [self.tokenizer.decode([t.item()]) for t in v.tokens]
+                                    print(f"      Decoded: {decoded}", file=f)
+                                except Exception as e:
+                                    print(f"      Decoded: <Error decoding: {e}>", file=f)
+                else:
+                    print(f"{key}: {value}", file=f)
+                    if key == "starting_tokens" and hasattr(value, "as_text"):
+                        print(f"  Text: {value.as_text(self.tokenizer)}", file=f)
