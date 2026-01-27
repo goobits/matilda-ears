@@ -39,15 +39,14 @@ def test_throttled_saving(token_manager):
     token_info = token_manager.generate_token("throttled_client")
     token = token_info["token"]
 
-    # Mock _save_tokens to count calls
-    with patch.object(token_manager, '_save_tokens', wraps=token_manager._save_tokens) as mock_save:
+    # Mock _save_tokens_async to count calls (since throttled save uses async)
+    with patch.object(token_manager, '_save_tokens_async', wraps=token_manager._save_tokens_async) as mock_save:
         # First call should NOT save because generate_token just saved and set the timer
         token_manager.validate_token(token)
         mock_save.assert_not_called()
 
         # Manually reset _last_save_time to simulate time passing
-        from datetime import datetime
-        token_manager._last_save_time = datetime.min
+        token_manager._last_save_time = 0.0
 
         token_manager.validate_token(token)
         mock_save.assert_called_once()

@@ -3,12 +3,14 @@ Handles token generation, validation, and one-time use enforcement
 """
 
 import base64
+import concurrent.futures
 import json
 import logging
 import os
 import sys
 import threading
-from datetime import datetime, timedelta
+import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 import uuid
@@ -48,8 +50,11 @@ class TokenManager:
         # Thread safety
         self._file_lock = threading.Lock()
 
+        # Performance: Use ThreadPoolExecutor for async saves to avoid thread creation overhead
+        self._save_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="TokenSaver")
+
         # Throttling state
-        self._last_save_time = datetime.min
+        self._last_save_time = 0.0
 
         # Load existing tokens
         self._load_tokens()
@@ -108,7 +113,7 @@ class TokenManager:
         try:
             data = json.dumps(self.active_tokens, indent=2)
             self._perform_save(data)
-            self._last_save_time = datetime.utcnow()
+            self._last_save_time = time.time()
         except Exception as e:
             logger.error(f"Failed to prepare token save: {e}")
 
@@ -117,15 +122,15 @@ class TokenManager:
         try:
             data = json.dumps(self.active_tokens, indent=2)
             # Update time here to prevent multiple saves
-            self._last_save_time = datetime.utcnow()
-            threading.Thread(target=self._perform_save, args=(data,)).start()
+            self._last_save_time = time.time()
+            self._save_executor.submit(self._perform_save, data)
         except Exception as e:
             logger.error(f"Failed to initiate async token save: {e}")
 
     def _save_tokens_throttled(self):
         """Save active tokens to storage if enough time has passed"""
         # Save at most once per minute to avoid I/O thrashing on hot paths
-        if (datetime.utcnow() - self._last_save_time).total_seconds() > 60:
+        if (time.time() - self._last_save_time) > 60:
             self._save_tokens_async()
 
     def _save_used_tokens(self):
@@ -138,7 +143,7 @@ class TokenManager:
 
     def _cleanup_expired_tokens(self):
         """Remove expired tokens from active tokens"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expired_tokens = []
 
         for token_id, token_info in self.active_tokens.items():
@@ -146,6 +151,10 @@ class TokenManager:
                 expires_str = token_info.get("expires")
                 if expires_str:
                     expires = datetime.fromisoformat(expires_str)
+                    # Handle backward compatibility for naive datetimes (assume UTC)
+                    if expires.tzinfo is None:
+                        expires = expires.replace(tzinfo=timezone.utc)
+
                     if now > expires:
                         expired_tokens.append(token_id)
             except Exception as e:
@@ -173,14 +182,14 @@ class TokenManager:
         """
         try:
             token_id = str(uuid.uuid4())
-            expires = datetime.utcnow() + timedelta(days=expiration_days)
+            expires = datetime.now(timezone.utc) + timedelta(days=expiration_days)
 
             # Create JWT payload
             payload = {
                 "token_id": token_id,
                 "client_name": client_name,
                 "exp": expires,
-                "iat": datetime.utcnow(),
+                "iat": datetime.now(timezone.utc),
                 "one_time_use": one_time_use,
                 "encryption_enabled": True,
             }
@@ -193,7 +202,7 @@ class TokenManager:
                 "token_id": token_id,
                 "client_name": client_name,
                 "expires": expires.isoformat(),
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "one_time_use": one_time_use,
                 "used": False,
                 "last_seen": None,
@@ -259,7 +268,7 @@ class TokenManager:
                     logger.info(f"Marked one-time token {token_id} as used")
 
             # Update last seen
-            self.active_tokens[token_id]["last_seen"] = datetime.utcnow().isoformat()
+            self.active_tokens[token_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
             self.active_tokens[token_id]["active"] = True
             self._save_tokens_throttled()
 
@@ -304,7 +313,7 @@ class TokenManager:
         """Mark a client as active"""
         if token_id in self.active_tokens:
             self.active_tokens[token_id]["active"] = True
-            self.active_tokens[token_id]["last_seen"] = datetime.utcnow().isoformat()
+            self.active_tokens[token_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
 
     def mark_client_inactive(self, token_id: str):
         """Mark a client as inactive"""
