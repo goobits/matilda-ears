@@ -23,6 +23,8 @@ from matilda_ears.transcription.backends import get_backend_class
 class FileTranscribeMode:
     """Transcribe audio from a file."""
 
+    SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
+
     def __init__(self, mode_config: FileTranscribeConfig):
         """Initialize file transcription mode."""
         self.mode_config = mode_config
@@ -47,15 +49,17 @@ class FileTranscribeMode:
         file_path = Path(self.mode_config.file)
 
         # Validate file exists
+        # Use to_thread to prevent blocking the event loop with I/O
         file_exists = await asyncio.to_thread(file_path.exists)
         if not file_exists:
             await self._send_error(f"File not found: {file_path}")
             return
 
         # Check file extension
-        supported = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
-        if file_path.suffix.lower() not in supported:
-            await self._send_error(f"Unsupported format: {file_path.suffix}. Supported: {supported}")
+        if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
+            await self._send_error(
+                f"Unsupported format: {file_path.suffix}. Supported: {self.SUPPORTED_EXTENSIONS}"
+            )
             return
 
         # Send initializing status
