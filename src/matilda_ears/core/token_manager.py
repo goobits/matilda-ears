@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import sys
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,9 @@ class TokenManager:
         # In-memory token storage
         self.active_tokens: dict[str, dict[str, Any]] = {}
         self.used_tokens: set[str] = set()
+
+        # Thread safety
+        self._file_lock = threading.Lock()
 
         # Throttling state
         self._last_save_time = datetime.min
@@ -91,19 +95,38 @@ class TokenManager:
             logger.error(f"Failed to load used tokens: {e}")
             self.used_tokens = set()
 
+    def _perform_save(self, data: str):
+        """Write token data to file with lock"""
+        with self._file_lock:
+            try:
+                self.tokens_file.write_text(data)
+            except Exception as e:
+                logger.error(f"Failed to save tokens: {e}")
+
     def _save_tokens(self):
-        """Save active tokens to storage"""
+        """Save active tokens to storage synchronously"""
         try:
-            self.tokens_file.write_text(json.dumps(self.active_tokens, indent=2))
+            data = json.dumps(self.active_tokens, indent=2)
+            self._perform_save(data)
             self._last_save_time = datetime.utcnow()
         except Exception as e:
-            logger.error(f"Failed to save tokens: {e}")
+            logger.error(f"Failed to prepare token save: {e}")
+
+    def _save_tokens_async(self):
+        """Save active tokens to storage asynchronously"""
+        try:
+            data = json.dumps(self.active_tokens, indent=2)
+            # Update time here to prevent multiple saves
+            self._last_save_time = datetime.utcnow()
+            threading.Thread(target=self._perform_save, args=(data,)).start()
+        except Exception as e:
+            logger.error(f"Failed to initiate async token save: {e}")
 
     def _save_tokens_throttled(self):
         """Save active tokens to storage if enough time has passed"""
         # Save at most once per minute to avoid I/O thrashing on hot paths
         if (datetime.utcnow() - self._last_save_time).total_seconds() > 60:
-            self._save_tokens()
+            self._save_tokens_async()
 
     def _save_used_tokens(self):
         """Save used tokens to storage"""
