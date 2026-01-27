@@ -67,10 +67,7 @@ class AudioStreamer:
         """Send encoded frame data to all connections."""
         try:
             # Send to all connections concurrently
-            tasks = []
-            for ws in self.connections:
-                if not ws.closed:
-                    tasks.append(ws.send_bytes(encoded_data))
+            tasks = [ws.send_bytes(encoded_data) for ws in self.connections if not ws.closed]
 
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
