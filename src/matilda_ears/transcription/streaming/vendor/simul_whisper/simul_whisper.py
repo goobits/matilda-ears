@@ -575,16 +575,15 @@ class PaddedAlignAttWhisper:
 
         ### new hypothesis
         logger.debug(f"new_hypothesis: {new_hypothesis}")
-        new_tokens = (
-            torch.tensor([new_hypothesis], dtype=torch.long)
-            .repeat_interleave(self.cfg.beam_size, dim=0)
-            .to(
-                device=self.model.device,
+        if len(new_hypothesis) > 0:
+            new_tokens = (
+                torch.tensor([new_hypothesis], dtype=torch.long)
+                .repeat_interleave(self.cfg.beam_size, dim=0)
+                .to(
+                    device=self.model.device,
+                )
             )
-        )
-        self.tokens.append(new_tokens)
-        # TODO: test if this is redundant or not
-        #        ret = ret[ret<DEC_PAD]
+            self.tokens.append(new_tokens)
 
         logger.info(f"Output: {self.tokenizer.decode(new_hypothesis)}")
 
