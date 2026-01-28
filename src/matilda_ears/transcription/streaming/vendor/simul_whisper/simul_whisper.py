@@ -583,8 +583,8 @@ class PaddedAlignAttWhisper:
             )
         )
         self.tokens.append(new_tokens)
-        # TODO: test if this is redundant or not
-        #        ret = ret[ret<DEC_PAD]
+        # Appending new_tokens (even if empty) is required to maintain alignment with audio segments.
+        # insert_audio assumes a 1-to-1 correspondence when removing old segments/tokens.
 
         logger.info(f"Output: {self.tokenizer.decode(new_hypothesis)}")
 
