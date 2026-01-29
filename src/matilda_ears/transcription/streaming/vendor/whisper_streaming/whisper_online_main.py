@@ -117,8 +117,7 @@ def simulation_args(parser):
         "audio_path", type=str, help="Filename of 16kHz mono channel wav, on which live streaming is simulated."
     )
     simulation_group.add_argument("--start_at", type=float, default=0.0, help="Start processing audio at this time.")
-    # TODO: offline mode is not implemented in SimulStreaming yet
-    #    simulation_group.add_argument('--offline', action="store_true", default=False, help='Offline mode.')
+    simulation_group.add_argument("--offline", action="store_true", default=False, help="Offline mode.")
     simulation_group.add_argument(
         "--comp_unaware", action="store_true", default=False, help="Computationally unaware simulation."
     )
@@ -140,7 +139,6 @@ def main_simulation_from_file(factory, add_args=None):
     simulation_args(parser)
 
     args = parser.parse_args()
-    args.offline = False  # TODO: offline mode is not implemented in SimulStreaming yet
 
     if args.offline and args.comp_unaware:
         logger.error("No or one option from --offline and --comp_unaware are available, not both. Exiting.")
@@ -188,17 +186,7 @@ def main_simulation_from_file(factory, add_args=None):
         else:
             logger.debug("No text in this segment")
 
-    if args.offline:  ## offline mode processing (for testing/debugging)
-        a = load_audio(audio_path)
-        online.insert_audio_chunk(a)
-        try:
-            o = online.process_iter()
-        except AssertionError as e:
-            logger.error(f"assertion error: {e!r}")
-        else:
-            output_transcript(o)
-        now = None
-    elif args.comp_unaware:  # computational unaware mode
+    if args.offline or args.comp_unaware:  # offline or computational unaware mode
         end = beg + min_chunk
         while True:
             a = load_audio_chunk(audio_path, beg, end)
