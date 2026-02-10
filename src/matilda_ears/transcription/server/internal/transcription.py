@@ -24,6 +24,15 @@ if TYPE_CHECKING:
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
+def _transcription_timeout_seconds() -> float | None:
+    value = get_config().get("transcription.timeout_seconds", 180)
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError):
+        timeout = 180.0
+    return timeout if timeout > 0 else None
+
+
 async def transcribe_audio_from_wav(
     server: "MatildaWebSocketServer",
     wav_data: bytes,
@@ -64,14 +73,23 @@ async def transcribe_audio_from_wav(
 
         # Serialize GPU work for Parakeet to prevent MPS crashes
         # Acquire semaphore before transcription (queues requests when limit reached)
+        timeout_seconds = _transcription_timeout_seconds()
         if server.transcription_semaphore:
             async with server.transcription_semaphore:
                 logger.debug(f"Client {client_id}: Acquired transcription lock (serialized GPU work)")
-                text, info = await loop.run_in_executor(None, transcribe_audio)
+                task = loop.run_in_executor(None, transcribe_audio)
+                if timeout_seconds is None:
+                    text, info = await task
+                else:
+                    text, info = await asyncio.wait_for(task, timeout=timeout_seconds)
                 logger.debug(f"Client {client_id}: Released transcription lock")
         else:
             # No serialization needed (faster_whisper/huggingface can run concurrently)
-            text, info = await loop.run_in_executor(None, transcribe_audio)
+            task = loop.run_in_executor(None, transcribe_audio)
+            if timeout_seconds is None:
+                text, info = await task
+            else:
+                text, info = await asyncio.wait_for(task, timeout=timeout_seconds)
 
         logger.debug(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
 
@@ -109,6 +127,10 @@ async def transcribe_audio_from_wav(
             },
         )
 
+    except asyncio.TimeoutError:
+        timeout_seconds = _transcription_timeout_seconds() or 0
+        logger.error(f"Client {client_id}: Transcription timed out after {timeout_seconds:.1f}s")
+        return False, "", {"error": f"Transcription timed out after {timeout_seconds:.1f}s"}
     except Exception as e:
         logger.exception(f"Client {client_id}: Transcription error: {e}")
         return False, "", {"error": str(e)}

@@ -20,7 +20,6 @@ from ...core.config import get_config, setup_logging
 from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
-from .main import start_server as _start_server
 from .internal.envelope import send_envelope
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
@@ -293,13 +292,27 @@ class MatildaWebSocketServer:
                     if session_id in self.streaming_sessions:
                         try:
                             session = self.streaming_sessions.pop(session_id)
-                            asyncio.create_task(session.abort())
-                        except Exception:
-                            # Ignore errors during cleanup
-                            pass
+                            await self._cleanup_streaming_session(session)
+                        except Exception as e:
+                            logger.debug(f"Client {client_id}: Session cleanup failed for {session_id}: {e}")
                 if orphaned_sessions:
                     logger.debug(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
             logger.debug(f"Client {client_id} removed")
+
+    async def _cleanup_streaming_session(self, session) -> None:
+        """Release streaming session resources without raising."""
+        try:
+            if hasattr(session, "abort"):
+                await session.abort()
+                return
+            if hasattr(session, "reset"):
+                await session.reset()
+                return
+            if hasattr(session, "finalize"):
+                await session.finalize()
+        except Exception:
+            # Best-effort cleanup only; caller handles logging.
+            pass
 
     async def handle_reload(self, websocket, data: dict, client_ip: str, client_id: str):
         """Handle configuration reload request."""
@@ -402,7 +415,10 @@ class MatildaWebSocketServer:
             port: Port to bind to (optional)
 
         """
-        await _start_server(self, host, port)
+        # Imported lazily to avoid circular import during module bootstrap.
+        from .main import start_server
+
+        await start_server(self, host, port)
 
 
 # Enhanced server with dual-mode support

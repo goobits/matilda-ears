@@ -800,6 +800,8 @@ async def handle_end_stream(
         # Remove from client sessions tracking
         if client_id in server.client_sessions:
             server.client_sessions[client_id].discard(session_id)
+            if not server.client_sessions[client_id]:
+                server.client_sessions.pop(client_id, None)
         if server.binary_stream_sessions.get(client_id) == session_id:
             server.binary_stream_sessions.pop(client_id, None)
         server.wake_word_sessions.pop(session_id, None)

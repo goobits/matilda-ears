@@ -93,3 +93,7 @@ class StreamingSession:
     async def reset(self) -> None:
         """Reset for a new session."""
         await self._adapter.reset()
+
+    async def abort(self) -> None:
+        """Abort active streaming and release resources."""
+        await self._adapter.reset()

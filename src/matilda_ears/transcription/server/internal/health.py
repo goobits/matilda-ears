@@ -37,6 +37,10 @@ async def health_handler(server: "MatildaWebSocketServer", request: web.Request)
             "backend": server.backend_name,
             "model_loaded": server.backend.is_ready if server.backend else False,
             "connected_clients": len(server.connected_clients),
+            "active_streaming_sessions": len(server.streaming_sessions),
+            "active_pcm_sessions": len(server.pcm_sessions),
+            "active_opus_sessions": len(server.opus_decoder.get_active_sessions()),
+            "ending_sessions": len(server.ending_sessions),
             "timestamp": time.time(),
         }
     )
