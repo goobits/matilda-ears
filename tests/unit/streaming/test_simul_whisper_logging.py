@@ -1,9 +1,11 @@
 import os
 import shutil
 import tempfile
-import torch
 import numpy as np
+import pytest
 from unittest.mock import MagicMock, patch
+
+torch = pytest.importorskip("torch")
 
 # Adjust import path as needed
 # Using string imports inside patch where possible or direct imports

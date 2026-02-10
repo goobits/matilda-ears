@@ -11,7 +11,6 @@ import sys
 from unittest.mock import Mock, patch, MagicMock
 
 
-# Mock transformers and torch before any imports
 mock_torch = MagicMock()
 mock_torch.cuda.is_available.return_value = False
 mock_torch.backends.mps.is_available.return_value = False
@@ -19,8 +18,12 @@ mock_torch.float16 = "float16"
 mock_torch.float32 = "float32"
 mock_torch.bfloat16 = "bfloat16"
 
-sys.modules["torch"] = mock_torch
-sys.modules["transformers"] = MagicMock()
+
+@pytest.fixture(autouse=True)
+def isolate_backend_modules():
+    """Isolate torch/transformers mocking per test to avoid cross-test pollution."""
+    with patch.dict(sys.modules, {"torch": mock_torch, "transformers": MagicMock()}):
+        yield
 
 
 class TestHuggingFaceBackend:

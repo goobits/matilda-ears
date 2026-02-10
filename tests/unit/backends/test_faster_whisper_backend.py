@@ -11,8 +11,11 @@ import sys
 from unittest.mock import Mock, patch, MagicMock
 
 
-# Mock faster_whisper before any imports
-sys.modules["faster_whisper"] = MagicMock()
+@pytest.fixture(autouse=True)
+def isolate_faster_whisper_module():
+    """Keep faster_whisper mocking scoped to each test."""
+    with patch.dict(sys.modules, {"faster_whisper": MagicMock()}):
+        yield
 
 
 class TestFasterWhisperBackend:

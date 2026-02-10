@@ -81,24 +81,6 @@ class TestBackendFactory:
         backends = get_available_backends()
         assert "parakeet" in backends
 
-    @pytest.mark.skip(
-        reason="Conflicts with global parakeet mocking in conftest.py - parakeet is always available in integration tests"
-    )
-    def test_get_available_backends_excludes_parakeet_when_unavailable(self):
-        """Verify get_available_backends excludes parakeet when unavailable."""
-        # NOTE: This test cannot work in integration tests because conftest.py
-        # globally mocks mlx/parakeet_mlx to make all backend tests work.
-        # The "unavailable" state is tested in unit tests instead.
-        with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", False):
-            import importlib
-            import matilda_ears.transcription.backends as backends_module
-
-            importlib.reload(backends_module)
-
-            backends = backends_module.get_available_backends()
-            assert "parakeet" not in backends
-
-
 class TestConfigIntegration:
     """Test backend configuration integration."""
 
