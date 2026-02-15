@@ -105,7 +105,9 @@ async def transcribe_audio_from_wav(
                 from matilda_ears_tuner import FormatterRequest, get_formatter
 
                 formatter = get_formatter(formatter_name)
-                formatted_text = formatter.format(FormatterRequest(text=text, language=info.get("language", "en"))).text
+                # Formatting locale is separate from STT backend language ("en" is common for Whisper).
+                formatter_locale = get_config().get("ears_tuner.locale", None) or info.get("language", "en")
+                formatted_text = formatter.format(FormatterRequest(text=text, language=formatter_locale)).text
                 if formatted_text != text:
                     logger.debug(
                         f"Client {client_id}: Formatted text: '{formatted_text[:50]}...' ({len(formatted_text)} chars)"

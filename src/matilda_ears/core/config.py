@@ -104,6 +104,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "ears_tuner": {
         "enabled": False,
         "formatter": "noop",
+        # Formatting locale for the Ears Tuner output (separate from STT backend language).
+        "locale": "en-US",
         "filename_formats": {
             "md": "UPPER_SNAKE",
             "json": "lower_snake",

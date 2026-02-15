@@ -145,7 +145,8 @@ class FileTranscribeMode:
             from matilda_ears_tuner import FormatterRequest, get_formatter
 
             formatter = get_formatter(formatter_name)
-            return formatter.format(FormatterRequest(text=text, language=self.mode_config.language)).text
+            formatter_locale = self.config.get("ears_tuner.locale", None) or self.mode_config.language
+            return formatter.format(FormatterRequest(text=text, language=formatter_locale)).text
         except ImportError:
             self.logger.warning("Ears Tuner formatting not available")
             return text
