@@ -22,6 +22,7 @@ Usage in config.toml:
 """
 
 import asyncio
+import importlib
 import logging
 import time
 from typing import Any
@@ -46,18 +47,41 @@ try:
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
+    pipeline = None  # type: ignore[assignment]
+    AutoModelForSpeechSeq2Seq = None  # type: ignore[assignment]
+    AutoProcessor = None  # type: ignore[assignment]
+
+
+def _get_torch():
+    """Get torch module dynamically so tests can patch availability."""
+    try:
+        return importlib.import_module("torch")
+    except ImportError:
+        return None
+
+
+def _ensure_transformers_pipeline():
+    """Ensure transformers pipeline is importable and bound to module global."""
+    global pipeline
+    try:
+        if pipeline is None:
+            pipeline = importlib.import_module("transformers").pipeline
+        return True
+    except Exception:
+        return False
 
 
 def _detect_device() -> str:
     """Auto-detect the best available device."""
-    if not TORCH_AVAILABLE:
+    torch_module = _get_torch()
+    if torch_module is None:
         return "cpu"
 
-    if torch.cuda.is_available():
+    if torch_module.cuda.is_available():
         return "cuda:0"
 
     # Check for Apple Silicon MPS
-    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    if hasattr(torch_module.backends, "mps") and torch_module.backends.mps.is_available():
         return "mps"
 
     return "cpu"
@@ -65,20 +89,21 @@ def _detect_device() -> str:
 
 def _resolve_torch_dtype(device: str, dtype_config: str) -> Any | None:
     """Resolve torch dtype based on config and device."""
-    if not TORCH_AVAILABLE:
+    torch_module = _get_torch()
+    if torch_module is None:
         return None
 
     if dtype_config == "auto":
         # Use float16 for GPU, float32 for CPU
         if device in ("cpu",):
-            return torch.float32
-        return torch.float16
+            return torch_module.float32
+        return torch_module.float16
     if dtype_config == "float16":
-        return torch.float16
+        return torch_module.float16
     if dtype_config == "bfloat16":
-        return torch.bfloat16
+        return torch_module.bfloat16
     if dtype_config == "float32":
-        return torch.float32
+        return torch_module.float32
 
     return None  # Let transformers decide
 
@@ -100,7 +125,7 @@ class HuggingFaceBackend(TranscriptionBackend):
     DEFAULT_MODEL = "openai/whisper-base"
 
     def __init__(self):
-        if not TRANSFORMERS_AVAILABLE:
+        if not _ensure_transformers_pipeline():
             raise ImportError(
                 "HuggingFace Transformers is not installed.\n"
                 "Install with: pip install transformers torch\n"

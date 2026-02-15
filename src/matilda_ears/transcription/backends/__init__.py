@@ -10,7 +10,6 @@ import logging
 import platform
 import subprocess
 from .base import TranscriptionBackend
-from .internal.faster_whisper import FasterWhisperBackend
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +163,8 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
 
     """
     if backend_name == "faster_whisper":
+        from .internal.faster_whisper import FasterWhisperBackend
+
         return FasterWhisperBackend
 
     if backend_name == "parakeet":
