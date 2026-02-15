@@ -7,9 +7,7 @@ import time
 import wave
 from pathlib import Path
 
-import numpy as np
 import pytest
-import websockets
 
 
 # Known hallucination patterns (garbage Whisper produces on silence)
@@ -46,6 +44,9 @@ async def test_streaming_replay_like():
     ws_url = os.environ.get("MATILDA_E2E_WS_URL")
     if not ws_url:
         pytest.skip("MATILDA_E2E_WS_URL not set for live streaming test")
+
+    import numpy as np
+    import websockets
 
     wav_path = os.environ.get("MATILDA_E2E_WAV_PATH")
     if wav_path is None:

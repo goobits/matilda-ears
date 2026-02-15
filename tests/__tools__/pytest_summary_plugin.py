@@ -3,7 +3,6 @@ Generates YAML/JSON reports with proper value extraction.
 """
 
 import pytest
-import yaml
 import re
 from collections import defaultdict
 from datetime import datetime
@@ -207,6 +206,8 @@ def pytest_sessionfinish(session, exitstatus):
         return
 
     report = _reporter.generate_yaml()
+
+    import yaml
 
     # Print YAML directly to console
     print("\n" + "=" * 80)

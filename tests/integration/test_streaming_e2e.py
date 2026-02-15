@@ -3,11 +3,7 @@ import base64
 import json
 import os
 
-import numpy as np
 import pytest
-import websockets
-
-from matilda_ears.audio.encoder import OpusEncoder
 
 
 @pytest.mark.asyncio
@@ -15,6 +11,11 @@ async def test_streaming_e2e():
     ws_url = os.environ.get("MATILDA_E2E_WS_URL")
     if not ws_url:
         pytest.skip("MATILDA_E2E_WS_URL not set for live streaming test")
+
+    import numpy as np
+    import websockets
+
+    from matilda_ears.audio.encoder import OpusEncoder
 
     async with websockets.connect(ws_url) as ws:
         welcome = await asyncio.wait_for(ws.recv(), timeout=5)
