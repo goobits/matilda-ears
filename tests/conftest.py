@@ -12,8 +12,16 @@ from rich.panel import Panel
 # CRITICAL: Set environment variable BEFORE any imports that might load models
 os.environ["STT_DISABLE_PUNCTUATION"] = "1"
 
-# Add the project root to the path for all tests
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Add the project root + src/ to the path for all tests (package lives in src/)
+project_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(project_root / "src"))
+sys.path.insert(0, str(project_root))
+
+# Ensure subprocesses (e.g., `python -m matilda_ears.cli`) can import the package too.
+pythonpath_entries = [str(project_root / "src"), str(project_root)]
+existing_pythonpath = os.environ.get("PYTHONPATH", "")
+prefix = os.pathsep.join(pythonpath_entries)
+os.environ["PYTHONPATH"] = f"{prefix}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else prefix
 
 # Register plugins
 pytest_plugins = ["tests.__tools__.pytest_diff_tracker", "tests.__tools__.pytest_summary_plugin"]
