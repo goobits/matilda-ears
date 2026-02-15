@@ -145,6 +145,14 @@ class ConfigLoader:
 
         self._config = self._merge_dicts(DEFAULT_CONFIG, ears_config)
 
+        # Formatting locale override (for Ears Tuner output).
+        # This is intentionally separate from STT backend language (often just "en").
+        env_locale = os.environ.get("MATILDA_LOCALE")
+        if env_locale:
+            self._config.setdefault("ears_tuner", {})
+            if isinstance(self._config["ears_tuner"], dict):
+                self._config["ears_tuner"]["locale"] = env_locale
+
         self._platform = platform.system().lower()
         if self._platform == "darwin":
             self._platform = "darwin"  # Keep as darwin for config lookup

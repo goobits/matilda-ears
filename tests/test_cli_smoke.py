@@ -71,6 +71,14 @@ class TestConfigSystem:
         port = config.websocket_port
         assert isinstance(port, int)
 
+    def test_matilda_locale_overrides_tuner_locale(self, monkeypatch):
+        """MATILDA_LOCALE should override Ears Tuner formatting locale."""
+        from matilda_ears.core.config import ConfigLoader
+
+        monkeypatch.setenv("MATILDA_LOCALE", "en-GB")
+        config = ConfigLoader()
+        assert config.get("ears_tuner.locale") == "en-GB"
+
 
 class TestCLICommands:
     """Test that basic CLI commands work without crashing."""
