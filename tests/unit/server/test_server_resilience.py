@@ -99,7 +99,7 @@ async def test_transcribe_audio_timeout_does_not_lock_serialization_semaphore(mo
         is_ready = True
 
         def transcribe(self, _path, language="en"):
-            time.sleep(0.1)
+            time.sleep(0.05)
             return "ignored", {"duration": 1.0, "language": language}
 
     server = SimpleNamespace(
