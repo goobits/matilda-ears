@@ -4,6 +4,7 @@ This module provides standardized logging configuration for all STT modules.
 """
 
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from pathlib import Path
 def setup_logging(
     module_name: str,
     log_level: str = "INFO",
-    include_console: bool = True,
+    include_console: bool | None = None,
     include_file: bool = True,
     log_filename: str | None = None,
 ) -> logging.Logger:
@@ -20,7 +21,8 @@ def setup_logging(
     Args:
         module_name: Name of the module (usually __name__)
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
-        include_console: Whether to log to console
+        include_console: Whether to log to console. If None, uses
+            MATILDA_EARS_CONSOLE_LOGS ("1"/"true"/"yes" enables).
         include_file: Whether to log to file
         log_filename: Optional custom log filename (defaults to module-based name)
 
@@ -35,6 +37,8 @@ def setup_logging(
         return logger
 
     logger.setLevel(getattr(logging, log_level.upper()))
+    if include_console is None:
+        include_console = os.environ.get("MATILDA_EARS_CONSOLE_LOGS", "").strip().lower() in {"1", "true", "yes"}
 
     # Create formatter
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
