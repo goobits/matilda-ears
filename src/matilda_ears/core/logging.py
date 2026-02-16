@@ -53,9 +53,12 @@ def setup_logging(
         # Import here to avoid circular imports
         from .config import get_config
 
-        # Ensure logs directory exists
+        # Ensure logs directory exists (best-effort; packaged/sandboxed environments may be read-only).
         logs_dir = Path(get_config().project_dir) / ".artifacts" / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            logs_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return logger
 
         # Generate log filename
         if log_filename is None:
@@ -63,9 +66,13 @@ def setup_logging(
             log_filename = f"{module_basename}.txt"
 
         log_path = logs_dir / log_filename
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        try:
+            file_handler = logging.FileHandler(log_path)
+        except OSError:
+            return logger
+        else:
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
 
     return logger
 
