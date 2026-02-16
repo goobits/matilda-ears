@@ -3,10 +3,95 @@
 This module provides standardized logging configuration for all STT modules.
 """
 
+import atexit
 import logging
 import os
 import sys
+import threading
+from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
+from queue import SimpleQueue
+
+_LISTENER_LOCK = threading.Lock()
+_LOG_QUEUE: SimpleQueue | None = None
+_LOG_LISTENER: QueueListener | None = None
+
+
+def _is_truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() in {"1", "true", "yes"}
+
+
+def _stop_listener() -> None:
+    global _LOG_LISTENER
+    if _LOG_LISTENER is not None:
+        _LOG_LISTENER.stop()
+        _LOG_LISTENER = None
+
+
+def _resolve_logs_dir() -> Path | None:
+    env_dir = os.environ.get("MATILDA_LOG_DIR") or os.environ.get("MATILDA_EARS_LOG_DIR")
+    if env_dir:
+        logs_dir = Path(env_dir)
+    else:
+        # Import here to avoid circular imports
+        from .config import get_config
+
+        logs_dir = Path(get_config().project_dir) / ".artifacts" / "logs"
+
+    try:
+        logs_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None
+    return logs_dir
+
+
+def _ensure_listener(log_level: int, include_console: bool, include_file: bool) -> QueueListener | None:
+    global _LOG_QUEUE, _LOG_LISTENER
+    with _LISTENER_LOCK:
+        if _LOG_LISTENER is not None and _LOG_QUEUE is not None:
+            return _LOG_LISTENER
+
+        handlers: list[logging.Handler] = []
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
+
+        if include_file:
+            logs_dir = _resolve_logs_dir()
+            if logs_dir is not None:
+                log_filename = os.environ.get("MATILDA_EARS_LOG_FILE", "matilda-ears.log")
+                log_path = logs_dir / log_filename
+                try:
+                    max_bytes = int(os.environ.get("MATILDA_LOG_MAX_BYTES", "10485760"))
+                except ValueError:
+                    max_bytes = 10 * 1024 * 1024
+                try:
+                    backup_count = int(os.environ.get("MATILDA_LOG_BACKUP_COUNT", "5"))
+                except ValueError:
+                    backup_count = 5
+                try:
+                    file_handler = RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=backup_count)
+                except OSError:
+                    file_handler = None
+                if file_handler is not None:
+                    file_handler.setLevel(log_level)
+                    file_handler.setFormatter(formatter)
+                    handlers.append(file_handler)
+
+        if include_console:
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setLevel(log_level)
+            console_handler.setFormatter(formatter)
+            handlers.append(console_handler)
+
+        if not handlers:
+            return None
+
+        _LOG_QUEUE = SimpleQueue()
+        _LOG_LISTENER = QueueListener(_LOG_QUEUE, *handlers, respect_handler_level=True)
+        _LOG_LISTENER.start()
+        atexit.register(_stop_listener)
+        return _LOG_LISTENER
 
 
 def setup_logging(
@@ -36,47 +121,24 @@ def setup_logging(
     if logger.handlers:
         return logger
 
-    logger.setLevel(getattr(logging, log_level.upper()))
+    level = getattr(logging, log_level.upper())
+    logger.setLevel(level)
     if include_console is None:
-        include_console = os.environ.get("MATILDA_EARS_CONSOLE_LOGS", "").strip().lower() in {"1", "true", "yes"}
-
-    # Create formatter
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-
-    # Console handler
-    if include_console:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
+        include_console = _is_truthy(os.environ.get("MATILDA_EARS_CONSOLE_LOGS"))
 
     # Prevent propagation to root logger to avoid duplicate console output
     logger.propagate = False
+    # log_filename is intentionally not used in unified mode; all modules go to one sink.
+    _ = log_filename
 
-    # File handler
-    if include_file:
-        # Import here to avoid circular imports
-        from .config import get_config
+    listener = _ensure_listener(level, include_console, include_file)
+    if listener is None or _LOG_QUEUE is None:
+        logger.addHandler(logging.NullHandler())
+        return logger
 
-        # Ensure logs directory exists (best-effort; packaged/sandboxed environments may be read-only).
-        logs_dir = Path(get_config().project_dir) / ".artifacts" / "logs"
-        try:
-            logs_dir.mkdir(parents=True, exist_ok=True)
-        except OSError:
-            return logger
-
-        # Generate log filename
-        if log_filename is None:
-            module_basename = module_name.split(".")[-1] if "." in module_name else module_name
-            log_filename = f"{module_basename}.txt"
-
-        log_path = logs_dir / log_filename
-        try:
-            file_handler = logging.FileHandler(log_path)
-        except OSError:
-            return logger
-        else:
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
+    queue_handler = QueueHandler(_LOG_QUEUE)
+    queue_handler.setLevel(level)
+    logger.addHandler(queue_handler)
 
     return logger
 
