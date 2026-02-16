@@ -28,8 +28,6 @@ mypy src/matilda_ears/
 ```bash
 ears --listen-once
 ears --conversation
-ears --tap-to-talk=f8
-ears --hold-to-talk=space
 ears --server --port=3211
 ```
 

@@ -5,7 +5,7 @@ This module centralizes common imports and fallback definitions
 to avoid duplication across mode files.
 
 Usage:
-    from ._imports import np, NUMPY_AVAILABLE, keyboard, PYNPUT_AVAILABLE
+    from ._imports import np, NUMPY_AVAILABLE
 """
 
 import sys
@@ -38,36 +38,10 @@ except ImportError:
 
     np = _DummyNumpy()  # type: ignore[assignment]
 
-# =============================================================================
-# Pynput keyboard fallback
-# =============================================================================
-
-try:
-    from pynput import keyboard
-    from pynput.keyboard import Controller, Key, Listener
-
-    PYNPUT_AVAILABLE = True
-except ImportError:
-    PYNPUT_AVAILABLE = False
-    keyboard = None  # type: ignore[assignment]
-    Controller = None  # type: ignore[assignment]
-    Key = None  # type: ignore[assignment]
-    Listener = None  # type: ignore[assignment]
-
-# =============================================================================
-# Exports
-# =============================================================================
-
 __all__ = [
     # Standard library
     "sys",
     # NumPy
     "np",
     "NUMPY_AVAILABLE",
-    # Pynput
-    "keyboard",
-    "Controller",
-    "Key",
-    "Listener",
-    "PYNPUT_AVAILABLE",
 ]

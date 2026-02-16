@@ -56,7 +56,6 @@ def main():
         ("aiohttp", "Async HTTP client", False),
         ("cryptography", "Cryptographic functions", False),
         ("requests", "HTTP requests", False),
-        ("pynput", "Keyboard/mouse input", False),
     ]
 
     passed = 0

@@ -47,8 +47,6 @@ messages:
     Quick start:
       ears --listen-once          # Single utterance
       ears --conversation         # Always listening
-      ears --tap-to-talk=f8       # Tap F8 to start/stop
-      ears --hold-to-talk=space   # Hold spacebar to record
       ears --server --port=3211   # WebSocket server
       # Config: ~/.matilda/config.toml ([ears])
 
@@ -85,7 +83,6 @@ cli:
       items:
         - { item: "ears --listen-once", desc: "Single utterance capture with VAD", style: "example" }
         - { item: "ears --conversation", desc: "Always listening mode", style: "example" }
-        - { item: "ears --tap-to-talk=f8", desc: "Tap F8 to start/stop", style: "example" }
 
     - title: "🔧 Operation Modes"
       items:
@@ -125,14 +122,6 @@ cli:
       type: "str"
       metavar: "KEY"
       desc: "Porcupine access key (or set PORCUPINE_ACCESS_KEY env var)"
-    - name: "tap_to_talk"
-      type: "str"
-      metavar: "KEY"
-      desc: "Tap KEY to start/stop recording"
-    - name: "hold_to_talk"
-      type: "str"
-      metavar: "KEY"
-      desc: "Hold KEY to record, release to stop"
     - name: "file"
       type: "str"
       metavar: "PATH"

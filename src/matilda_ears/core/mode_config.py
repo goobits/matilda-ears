@@ -34,42 +34,6 @@ class ListenOnceConfig(ModeConfig):
 
 
 @dataclass
-class TapToTalkConfig(ModeConfig):
-    hotkey: str = "f8"
-
-    @classmethod
-    def from_args(cls, args: Any) -> "TapToTalkConfig":
-        config = super().from_args(args)
-        return cls(
-            debug=config.debug,
-            format=config.format,
-            sample_rate=config.sample_rate,
-            device=config.device,
-            language=config.language,
-            model=config.model,
-            hotkey=getattr(args, "tap_to_talk", "f8"),
-        )
-
-
-@dataclass
-class HoldToTalkConfig(ModeConfig):
-    hotkey: str = "space"
-
-    @classmethod
-    def from_args(cls, args: Any) -> "HoldToTalkConfig":
-        config = super().from_args(args)
-        return cls(
-            debug=config.debug,
-            format=config.format,
-            sample_rate=config.sample_rate,
-            device=config.device,
-            language=config.language,
-            model=config.model,
-            hotkey=getattr(args, "hold_to_talk", "space"),
-        )
-
-
-@dataclass
 class FileTranscribeConfig(ModeConfig):
     file: str = ""
     no_formatting: bool = False

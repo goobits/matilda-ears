@@ -10,13 +10,11 @@ if TYPE_CHECKING:
     from .core.mode_config import (
         ConversationConfig,
         FileTranscribeConfig,
-        HoldToTalkConfig,
         ListenOnceConfig,
         ModeConfig,
-        TapToTalkConfig,
     )
     from .core.vad_state import VADEvent, VADState, VADStateMachine
-    from .modes import ConversationMode, HoldToTalkMode, TapToTalkMode, WakeWordMode
+    from .modes import ConversationMode, WakeWordMode
     from .transcription.backends import (
         get_available_backends,
         get_backend_class,
@@ -25,8 +23,6 @@ if TYPE_CHECKING:
 
 _LAZY_EXPORTS = {
     "ConversationMode": (".modes", "ConversationMode"),
-    "HoldToTalkMode": (".modes", "HoldToTalkMode"),
-    "TapToTalkMode": (".modes", "TapToTalkMode"),
     "WakeWordMode": (".modes", "WakeWordMode"),
     "VADEvent": (".core.vad_state", "VADEvent"),
     "VADState": (".core.vad_state", "VADState"),
@@ -36,8 +32,6 @@ _LAZY_EXPORTS = {
     "ModeConfig": (".core.mode_config", "ModeConfig"),
     "ConversationConfig": (".core.mode_config", "ConversationConfig"),
     "ListenOnceConfig": (".core.mode_config", "ListenOnceConfig"),
-    "TapToTalkConfig": (".core.mode_config", "TapToTalkConfig"),
-    "HoldToTalkConfig": (".core.mode_config", "HoldToTalkConfig"),
     "FileTranscribeConfig": (".core.mode_config", "FileTranscribeConfig"),
     "get_backend_class": (".transcription.backends", "get_backend_class"),
     "get_available_backends": (".transcription.backends", "get_available_backends"),
@@ -62,8 +56,6 @@ def __getattr__(name):
 
 __all__ = [
     "ConversationMode",
-    "HoldToTalkMode",
-    "TapToTalkMode",
     "WakeWordMode",
     "VADEvent",
     "VADState",
@@ -73,8 +65,6 @@ __all__ = [
     "ModeConfig",
     "ConversationConfig",
     "ListenOnceConfig",
-    "TapToTalkConfig",
-    "HoldToTalkConfig",
     "FileTranscribeConfig",
     "get_backend_class",
     "get_available_backends",

@@ -263,8 +263,8 @@ class BaseMode(ABC):
     async def _collect_audio(self):
         """Collect audio chunks while recording.
 
-        This shared method is used by tap-to-talk and hold-to-talk modes
-        to accumulate audio data into self.audio_data while self.is_recording is True.
+        This shared method accumulates audio data into self.audio_data while
+        self.is_recording is True.
         """
         while self.is_recording:
             try:
@@ -280,7 +280,7 @@ class BaseMode(ABC):
                 break
 
     # =========================================================================
-    # Recording control methods (shared by tap-to-talk and hold-to-talk)
+    # Recording control methods shared by explicit recording workflows
     # =========================================================================
 
     def _get_recording_start_message(self) -> str:
@@ -300,7 +300,7 @@ class BaseMode(ABC):
     async def _start_recording(self):
         """Start audio recording.
 
-        Shared implementation for tap-to-talk and hold-to-talk modes.
+        Shared implementation for explicit recording workflows.
         Override _get_recording_start_message() to customize the status message.
         """
         try:
@@ -328,7 +328,7 @@ class BaseMode(ABC):
     async def _stop_recording(self):
         """Stop recording and transcribe.
 
-        Shared implementation for tap-to-talk and hold-to-talk modes.
+        Shared implementation for explicit recording workflows.
         Override _get_recording_ready_message() to customize the status message.
         """
         try:

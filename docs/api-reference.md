@@ -17,8 +17,6 @@ ears train-wake-word "hey matilda"
 ears --listen-once
 ears --conversation
 ears --wake-word
-ears --tap-to-talk=f8
-ears --hold-to-talk=space
 ears --file recording.wav
 ears --server --port=3211 --host=0.0.0.0
 ```

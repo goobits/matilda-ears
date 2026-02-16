@@ -33,14 +33,10 @@ class TestCLIImports:
         """Can we import all the mode classes without dependency errors?"""
         from matilda_ears.modes.listen_once import ListenOnceMode
         from matilda_ears.modes.conversation import ConversationMode
-        from matilda_ears.modes.tap_to_talk import TapToTalkMode
-        from matilda_ears.modes.hold_to_talk import HoldToTalkMode
 
         # Just importing without crashing is the test
         assert ListenOnceMode is not None
         assert ConversationMode is not None
-        assert TapToTalkMode is not None
-        assert HoldToTalkMode is not None
 
 
 class TestConfigSystem:
