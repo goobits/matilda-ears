@@ -1,9 +1,28 @@
 """GOOBITS STT - Pure speech-to-text engine with multiple operation modes."""
 
+from importlib import metadata
 from importlib import import_module
+from pathlib import Path
+import tomllib
 from typing import TYPE_CHECKING
 
-__version__ = "1.0.0"
+
+def _get_version() -> str:
+    try:
+        return metadata.version("goobits-matilda-ears")
+    except Exception:
+        pass
+
+    try:
+        pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        with open(pyproject_path, "rb") as f:
+            data = tomllib.load(f)
+        return str(data["project"]["version"])
+    except Exception:
+        return "unknown"
+
+
+__version__ = _get_version()
 
 if TYPE_CHECKING:
     from .core.config import ConfigLoader, get_config

@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from docker.src import __version__ as APP_VERSION
 
 # Security: API Token Management
 API_TOKEN = os.getenv("MATILDA_API_TOKEN")
@@ -92,7 +93,7 @@ class ServerStatus(BaseModel):
 
 class DashboardAPI:
     def __init__(self):
-        self.app = FastAPI(title="Matilda Dashboard API", version="1.0.0")
+        self.app = FastAPI(title="Matilda Dashboard API", version=APP_VERSION)
         self.server_start_time = time.time()
         self.transcription_server = None
 
