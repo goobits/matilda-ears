@@ -44,12 +44,13 @@ except ImportError:
 
 try:
     from pynput import keyboard
-    from pynput.keyboard import Key, Listener
+    from pynput.keyboard import Controller, Key, Listener
 
     PYNPUT_AVAILABLE = True
 except ImportError:
     PYNPUT_AVAILABLE = False
     keyboard = None  # type: ignore[assignment]
+    Controller = None  # type: ignore[assignment]
     Key = None  # type: ignore[assignment]
     Listener = None  # type: ignore[assignment]
 
@@ -65,6 +66,7 @@ __all__ = [
     "NUMPY_AVAILABLE",
     # Pynput
     "keyboard",
+    "Controller",
     "Key",
     "Listener",
     "PYNPUT_AVAILABLE",
