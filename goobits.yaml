@@ -70,7 +70,7 @@ messages:
 # CLI fields for cli.py generation
 cli:
   name: "GOOBITS MATILDA EARS CLI"
-  version: "1.0.0"
+  version: "1.1.0"
   display_version: true
   tagline: "Pure speech-to-text engine with multiple operation modes"
   description: "Transform speech into text with AI-powered transcription using Whisper models."
