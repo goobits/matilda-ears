@@ -228,6 +228,15 @@ def get_hooks():
         _hooks = load_hooks()
     return _hooks
 
+def invoke_hook(ctx, hook_name: str, kwargs: Dict[str, Any]) -> None:
+    """Invoke a hook by name or exit with a clear error."""
+    hooks = get_hooks()
+    if hooks and hasattr(hooks, hook_name):
+        getattr(hooks, hook_name)(ctx=ctx, **kwargs)
+        return
+    logger.error(f"Hook '{hook_name}' not implemented in cli_hooks.py")
+    sys.exit(1)
+
 # ============================================================================
 # CLI COMMANDS
 # ============================================================================
@@ -249,13 +258,8 @@ def cli(ctx, verbose, debug, config):
 def status(ctx, json):
     """Show system status and capabilities"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_status'):
-            kwargs = {                'json': json,            }
-            hooks.on_status(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_status' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'json': json,        }
+        invoke_hook(ctx, 'on_status', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('models')
@@ -264,13 +268,8 @@ def status(ctx, json):
 def models(ctx, json):
     """List available Whisper models"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_models'):
-            kwargs = {                'json': json,            }
-            hooks.on_models(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_models' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'json': json,        }
+        invoke_hook(ctx, 'on_models', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('download')
@@ -280,13 +279,8 @@ def models(ctx, json):
 def download(ctx, model, progress):
     """Download Whisper model for offline use"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_download'):
-            kwargs = {                'model': model,                'progress': progress,            }
-            hooks.on_download(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_download' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'model': model,            'progress': progress,        }
+        invoke_hook(ctx, 'on_download', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('train-wake-word')
@@ -298,13 +292,8 @@ def download(ctx, model, progress):
 def train_wake_word(ctx, phrase, output, samples, epochs):
     """Train a custom wake word model using Modal.com cloud GPU"""
     try:
-        hooks = get_hooks()
-        if hooks and hasattr(hooks, 'on_train_wake_word'):
-            kwargs = {                'phrase': phrase,                'output': output,                'samples': samples,                'epochs': epochs,            }
-            hooks.on_train_wake_word(ctx=ctx, **kwargs)
-        else:
-            logger.error(f"Hook 'on_train_wake_word' not implemented in cli_hooks.py")
-            sys.exit(1)
+        kwargs = {            'phrase': phrase,            'output': output,            'samples': samples,            'epochs': epochs,        }
+        invoke_hook(ctx, 'on_train_wake_word', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 
