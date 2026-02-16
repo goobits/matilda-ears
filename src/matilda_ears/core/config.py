@@ -106,6 +106,14 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "formatter": "noop",
         # Formatting locale for the Ears Tuner output (separate from STT backend language).
         "locale": "en-US",
+        "formatting": {
+            "locale": "en-US",
+            "imperial_length_style": "ft_in",
+            "emoji_requires_keyword": True,
+            "unicode_mode": "unicode",
+            "max_chars_for_punctuation": 800,
+            "max_chars_for_full_pipeline": 4000,
+        },
         "filename_formats": {
             "md": "UPPER_SNAKE",
             "json": "lower_snake",
@@ -152,6 +160,9 @@ class ConfigLoader:
             self._config.setdefault("ears_tuner", {})
             if isinstance(self._config["ears_tuner"], dict):
                 self._config["ears_tuner"]["locale"] = env_locale
+                formatting = self._config["ears_tuner"].setdefault("formatting", {})
+                if isinstance(formatting, dict):
+                    formatting["locale"] = env_locale
 
         self._platform = platform.system().lower()
         if self._platform == "darwin":
@@ -657,6 +668,22 @@ class ConfigLoader:
         formats = self.filename_formats
         # Try exact match first, then fallback to wildcard
         return formats.get(extension.lower(), formats.get("*", "lower_snake"))
+
+    @property
+    def ears_tuner_formatting(self) -> dict[str, Any]:
+        return dict(
+            self.get(
+                "ears_tuner.formatting",
+                {
+                    "locale": self.get("ears_tuner.locale", "en-US"),
+                    "imperial_length_style": "ft_in",
+                    "emoji_requires_keyword": True,
+                    "unicode_mode": "unicode",
+                    "max_chars_for_punctuation": 800,
+                    "max_chars_for_full_pipeline": 4000,
+                },
+            )
+        )
 
 
 # Global singleton instance

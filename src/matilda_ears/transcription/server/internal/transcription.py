@@ -106,8 +106,20 @@ async def transcribe_audio_from_wav(
 
                 formatter = get_formatter(formatter_name)
                 # Formatting locale is separate from STT backend language ("en" is common for Whisper).
-                formatter_locale = get_config().get("ears_tuner.locale", None) or info.get("language", "en")
-                formatted_text = formatter.format(FormatterRequest(text=text, language=formatter_locale)).text
+                formatting_config = get_config().get("ears_tuner.formatting", {})
+                formatter_locale = (
+                    (formatting_config.get("locale") if isinstance(formatting_config, dict) else None)
+                    or get_config().get("ears_tuner.locale", None)
+                    or info.get("language", "en")
+                )
+                filename_formats = get_config().get("ears_tuner.filename_formats", {})
+                request_config = {
+                    "formatting": formatting_config if isinstance(formatting_config, dict) else {},
+                    "ears_tuner": {"filename_formats": filename_formats if isinstance(filename_formats, dict) else {}},
+                }
+                formatted_text = formatter.format(
+                    FormatterRequest(text=text, language=formatter_locale, config=request_config)
+                ).text
                 if formatted_text != text:
                     logger.debug(
                         f"Client {client_id}: Formatted text: '{formatted_text[:50]}...' ({len(formatted_text)} chars)"

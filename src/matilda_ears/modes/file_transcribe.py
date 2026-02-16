@@ -145,8 +145,18 @@ class FileTranscribeMode:
             from matilda_ears_tuner import FormatterRequest, get_formatter
 
             formatter = get_formatter(formatter_name)
-            formatter_locale = self.config.get("ears_tuner.locale", None) or self.mode_config.language
-            return formatter.format(FormatterRequest(text=text, language=formatter_locale)).text
+            formatting_config = self.config.get("ears_tuner.formatting", {})
+            formatter_locale = (
+                (formatting_config.get("locale") if isinstance(formatting_config, dict) else None)
+                or self.config.get("ears_tuner.locale", None)
+                or self.mode_config.language
+            )
+            filename_formats = self.config.get("ears_tuner.filename_formats", {})
+            request_config = {
+                "formatting": formatting_config if isinstance(formatting_config, dict) else {},
+                "ears_tuner": {"filename_formats": filename_formats if isinstance(filename_formats, dict) else {}},
+            }
+            return formatter.format(FormatterRequest(text=text, language=formatter_locale, config=request_config)).text
         except ImportError:
             self.logger.warning("Ears Tuner formatting not available")
             return text

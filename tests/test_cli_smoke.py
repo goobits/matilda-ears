@@ -78,6 +78,7 @@ class TestConfigSystem:
         monkeypatch.setenv("MATILDA_LOCALE", "en-GB")
         config = ConfigLoader()
         assert config.get("ears_tuner.locale") == "en-GB"
+        assert config.get("ears_tuner.formatting.locale") == "en-GB"
 
 
 class TestCLICommands:
