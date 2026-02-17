@@ -245,11 +245,15 @@ class TestBackendFactoryIntegration:
     def test_get_backend_class_huggingface(self):
         """Verify factory returns HuggingFaceBackend class."""
         with patch.dict(sys.modules, {"transformers": MagicMock()}):
-            from matilda_ears.transcription.backends import get_backend_class, HUGGINGFACE_AVAILABLE
+            from matilda_ears.transcription.backends import get_available_backends, get_backend_class
+            from matilda_ears.transcription.backends import registry
 
-            if HUGGINGFACE_AVAILABLE:
-                backend_class = get_backend_class("huggingface")
-                assert backend_class.__name__ == "HuggingFaceBackend"
+            # Force a fresh availability probe under the mocked import environment.
+            registry.HUGGINGFACE_AVAILABLE = None
+
+            assert "huggingface" in get_available_backends()
+            backend_class = get_backend_class("huggingface")
+            assert backend_class.__name__ == "HuggingFaceBackend"
 
     def test_get_backend_info_includes_huggingface(self):
         """Verify get_backend_info includes huggingface entry."""

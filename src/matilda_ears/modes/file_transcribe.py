@@ -12,9 +12,6 @@ import time
 from pathlib import Path
 from typing import Any, ClassVar
 
-# Import shared path setup (also adds project root to sys.path)
-from ._imports import *  # noqa: F403
-
 from matilda_ears.core.config import get_config, setup_logging
 from matilda_ears.core.mode_config import FileTranscribeConfig
 from matilda_ears.transcription.backends import get_backend_class

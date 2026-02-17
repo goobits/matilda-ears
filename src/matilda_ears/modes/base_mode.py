@@ -20,11 +20,7 @@ from pathlib import Path
 from typing import Any
 import sys
 
-# Shared imports and fallbacks
-from ._imports import np, NUMPY_AVAILABLE
-
-# Add project root to path for local imports (also done in _imports.py)
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.absolute()))
+import numpy as np
 
 from matilda_ears.core.config import get_config, setup_logging
 from matilda_ears.core.mode_config import ModeConfig
@@ -67,9 +63,6 @@ class BaseMode(ABC):
         self.audio_data = []
 
         # Check dependencies
-        if not NUMPY_AVAILABLE:
-            raise ImportError(f"NumPy is required for {self.__class__.__name__}. Install with: pip install numpy")
-
         self.logger.info(f"{self.__class__.__name__} initialized")
 
     def _get_mode_config(self) -> dict[str, Any]:

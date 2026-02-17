@@ -12,7 +12,7 @@ import asyncio
 import threading
 from typing import Any
 
-from ._imports import np
+import numpy as np
 from .base_mode import BaseMode
 from matilda_ears.core.mode_config import ConversationConfig
 from matilda_ears.core.vad_state import VADStateMachine, VADEvent

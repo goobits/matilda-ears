@@ -3,9 +3,7 @@ from __future__ import annotations
 import base64
 from pathlib import Path
 
-from matilda_transport import HubClient
-
-from ..base import TranscriptionBackend
+from ..base import BackendNotAvailableError, TranscriptionBackend
 
 
 class HubBackend(TranscriptionBackend):
@@ -16,6 +14,15 @@ class HubBackend(TranscriptionBackend):
         self._ready = True
 
     def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+        try:
+            from matilda_transport import HubClient  # type: ignore[import-not-found]
+        except Exception as exc:
+            raise BackendNotAvailableError(
+                "Hub backend requires matilda-transport.\n"
+                "Install it or switch to a local backend (e.g. faster_whisper/parakeet).\n"
+                'Hint: set [ears.transcription] backend = "faster_whisper"'
+            ) from exc
+
         audio_bytes = Path(audio_path).read_bytes()
         audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
         payload = {

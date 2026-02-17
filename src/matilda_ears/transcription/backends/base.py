@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 
 
+class BackendNotAvailableError(RuntimeError):
+    """Raised when a backend is requested but its optional dependencies are not installed."""
+
+
 class TranscriptionBackend(ABC):
     """Abstract base class for transcription backends.
 

@@ -13,7 +13,7 @@ import sys
 import time
 from typing import Any
 
-from ._imports import np
+import numpy as np
 from .base_mode import BaseMode
 from matilda_ears.core.mode_config import ListenOnceConfig
 from matilda_ears.core.vad_state import VADStateMachine, VADEvent

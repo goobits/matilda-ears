@@ -51,7 +51,7 @@ class TestBackendFactory:
     def test_factory_parakeet_unavailable_raises_valueerror(self):
         """Verify factory raises ValueError when Parakeet is requested but unavailable."""
         # Mock parakeet as unavailable
-        with patch("matilda_ears.transcription.backends.PARAKEET_AVAILABLE", False):
+        with patch("matilda_ears.transcription.backends.registry.PARAKEET_AVAILABLE", False):
             from matilda_ears.transcription.backends import get_backend_class
 
             with pytest.raises(ValueError) as exc_info:
