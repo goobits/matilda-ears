@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Configuration loader that reads from config files."""
+
 import logging
 import os
 import platform

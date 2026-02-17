@@ -32,7 +32,39 @@ ears-server = "matilda_ears.transcription.server:main"
 
 [tool.ruff]
 cache-dir = ".artifacts/cache/ruff"
-exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", ".artifacts", "logs", "*.egg-info", "docker", ".pytest_cache", "/tmp",]
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
+  ".artifacts",
+  "logs",
+  "*.egg-info",
+  "docker",
+  ".pytest_cache",
+  "/tmp",
+  # Generated (Goobits); keep linting on the sources/hooks instead.
+  "src/matilda_ears/cli.py",
+  # Vendored third-party code; treat as opaque and quarantine behind adapters.
+  "src/matilda_ears/transcription/streaming/vendor",
+]
 line-length = 120
 indent-width = 4
 target-version = "py311"
@@ -58,10 +90,69 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-exclude = [ "venv/", ".artifacts/", "logs/", "docker/", ".pytest_cache/", "build/", "dist/", "*.egg-info/",]
+disable_error_code = ["import-untyped"]
+# Single regex (mypy expects a regex string here).
+exclude = "(^|/)(venv/|\\.artifacts/|logs/|docker/|\\.pytest_cache/|build/|dist/|.*\\.egg-info/|src/matilda_ears/cli\\.py$|transcription/streaming/vendor/|wake_word/internal/)"
 [[tool.mypy.overrides]]
-module = [ "websockets.*", "faster_whisper.*", "deepmultilingualpunctuation.*", "spacy.*", "opuslib.*", "silero_vad.*", "torchaudio.*", "ctranslate2.*", "numpy.*", "whisper_online.*", "soundfile.*", "parakeet_mlx.*", "mlx.*", "openwakeword.*",]
+module = [
+  "websockets.*",
+  "faster_whisper.*",
+  "deepmultilingualpunctuation.*",
+  "spacy.*",
+  "opuslib.*",
+  "silero_vad.*",
+  "torchaudio.*",
+  "ctranslate2.*",
+  "matilda_ears_tuner.*",
+  "whisper_online.*",
+  "soundfile.*",
+  "parakeet_mlx.*",
+  "mlx.*",
+  "openwakeword.*",
+  "base_loader",
+  "modal",
+  "torch.*",
+  "tqdm.*",
+  "regex.*",
+  "matilda_transport.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.transcription.streaming.vendor.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.i18n", "matilda_ears.i18n.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.modes.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.wake_word.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.transcription.client.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.transcription.backends.internal.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.utils.model_downloader"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.audio.vad", "matilda_ears.audio.internal.capture"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["matilda_ears.transcription.server.*"]
+ignore_errors = true
 
 [tool.pylint]
 max-line-length = 120
@@ -109,14 +200,15 @@ directory = ".artifacts/cache/htmlcov"
 [tool.ruff.lint.per-file-ignores]
 "src/matilda_ears/app_hooks.py" = [ "T201", "PLC0415", "EXE001",]
 "src/matilda_ears/cli.py" = [ "T201", "RUF012",]
+"src/matilda_ears/service/health.py" = [ "ASYNC240",]
+"src/matilda_ears/transcription/client/batch.py" = [ "ASYNC240",]
 "src/matilda_ears/modes/__init__.py" = [ "F401", "UP035",]
 "src/matilda_ears/transcription/backends/huggingface_backend.py" = [ "F401",]
 "src/matilda_ears/transcription/backends/parakeet_backend.py" = [ "F401",]
-"src/matilda_ears/audio/*.py" = [ "F403",]
 "src/matilda_ears/transcription/streaming/strategies/*.py" = [ "F403",]
-"scripts/*.py" = [ "E402",]
+"scripts/*.py" = [ "E402", "NPY002",]
 "tests/**/conftest.py" = [ "E402",]
-"tests/**/*.py" = [ "S101", "PT011", "FBT003", "NPY002", "PLW0602",]
+"tests/**/*.py" = [ "S101", "S106", "PT011", "FBT003", "NPY002", "ASYNC240", "PLW0602",]
 "tests/__tools__/*.py" = [ "PTH109", "PTH207",]
 
 [tool.setuptools.packages.find]

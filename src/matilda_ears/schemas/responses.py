@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -136,4 +135,4 @@ class SimpleTranscriptionResponse(BaseModel):
 
     text: str
     is_final: bool
-    error: Optional[str] = None
+    error: str | None = None

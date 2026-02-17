@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from .whisper_adapter import StreamingConfig, StreamingResult
+from ..types import StreamingConfig, StreamingResult
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,10 @@ class ParakeetStreamingAdapter:
         self.config = config or StreamingConfig(backend="parakeet")
         self._backend = backend
         self._initialized = False
-        self._transcriber_cm = None
-        self._transcriber = None
+        # Backend-provided context manager and transcriber are intentionally `Any`:
+        # parakeet-mlx doesn't ship stable typing surfaces, and we treat it as a plugin.
+        self._transcriber_cm: Any | None = None
+        self._transcriber: Any | None = None
         self._lock = asyncio.Lock()
         self._alpha_text = ""
         self._total_samples = 0
@@ -50,6 +52,8 @@ class ParakeetStreamingAdapter:
             context_size=self.config.parakeet_context_size,
             depth=self.config.parakeet_depth,
         )
+        if self._transcriber_cm is None:
+            raise RuntimeError("Parakeet backend returned no transcriber")
         self._transcriber = self._transcriber_cm.__enter__()
 
         if self.config.vad_enabled and self._vad is None:
@@ -124,9 +128,12 @@ class ParakeetStreamingAdapter:
 
     def _add_audio_chunks(self, chunks: list[np.ndarray]) -> Any:
         last_result = None
+        transcriber = self._transcriber
+        if transcriber is None:
+            raise RuntimeError("Parakeet transcriber is not initialized")
         for chunk in chunks:
             audio_f32 = chunk.astype(np.float32) / 32768.0
-            last_result = self._transcriber.add_audio(audio_f32)
+            last_result = transcriber.add_audio(audio_f32)
         return last_result
 
     def _merge_alpha(self, alpha: str) -> None:
@@ -185,14 +192,16 @@ class ParakeetStreamingAdapter:
 
         try:
             final_result = None
-            if self._transcriber and hasattr(self._transcriber, "finish"):
+            transcriber = self._transcriber
+            if transcriber is not None and hasattr(transcriber, "finish"):
                 loop = asyncio.get_event_loop()
-                final_result = await loop.run_in_executor(None, self._transcriber.finish)
+                final_result = await loop.run_in_executor(None, transcriber.finish)
             alpha, _ = self._extract_text(final_result)
             self._merge_alpha(alpha)
         finally:
-            if self._transcriber_cm:
-                self._transcriber_cm.__exit__(None, None, None)
+            transcriber_cm = self._transcriber_cm
+            if transcriber_cm is not None:
+                transcriber_cm.__exit__(None, None, None)
 
         duration = self._total_samples / self.SAMPLE_RATE
         return StreamingResult(

@@ -1,6 +1,6 @@
 """Streaming transcription entrypoints."""
 
-from .internal.whisper_adapter import StreamingConfig, StreamingResult
+from .types import StreamingConfig, StreamingResult
 from .session import StreamingSession, SessionResult
 
 __all__ = [

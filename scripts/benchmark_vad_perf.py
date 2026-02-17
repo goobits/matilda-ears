@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 from matilda_ears.audio.vad import SileroVAD
 
+
 def benchmark():
     print("Initializing SileroVAD...")
     try:
@@ -35,9 +36,9 @@ def benchmark():
 
         # Simulate the preprocessing in the actual method
         if audio_chunk.dtype == np.int16:
-             audio_float = audio_chunk.astype(np.float32) / 32768.0
+            audio_float = audio_chunk.astype(np.float32) / 32768.0
         else:
-             audio_float = audio_chunk
+            audio_float = audio_chunk
 
         audio_float = audio_float.squeeze()
 
@@ -75,6 +76,7 @@ def benchmark():
 
     # Bind the inefficient method
     import types
+
     vad.process_chunk_loop = types.MethodType(process_chunk_loop, vad)
 
     start_time = time.time()
@@ -89,6 +91,7 @@ def benchmark():
         print(f"Speedup: {speedup:.2f}x")
     else:
         print("Speedup: N/A (Optimized time is 0)")
+
 
 if __name__ == "__main__":
     benchmark()

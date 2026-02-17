@@ -82,7 +82,7 @@ class OpusBatchEncoder:
                 opus_chunks.append(encoded)
                 frame_sizes.append(len(encoded))  # Track frame size for decoding
             except Exception as e:
-                logger.error(f"Opus encoding error on frame {i//samples_per_frame}: {e}")
+                logger.error(f"Opus encoding error on frame {i // samples_per_frame}: {e}")
                 raise
 
         # Combine all chunks

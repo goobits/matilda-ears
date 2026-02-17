@@ -10,7 +10,7 @@ from .envelope import send_envelope
 from .transcription import send_error, transcribe_audio_from_wav
 
 if TYPE_CHECKING:
-    from .core import MatildaWebSocketServer
+    from ..core import MatildaWebSocketServer
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 

@@ -4,6 +4,7 @@
 Single entry point for all testing functionality: running tests, viewing history,
 comparing runs, and detailed analysis.
 """
+
 import sys
 import subprocess
 import argparse

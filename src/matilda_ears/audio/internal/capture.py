@@ -97,7 +97,7 @@ class PipeBasedAudioStreamer:
 
         # Get config for cross-platform audio tools
         try:
-            from ..core.config import get_config
+            from ...core.config import get_config
 
             self.config = get_config()
         except ImportError:

@@ -71,6 +71,7 @@ def _spacy_available() -> bool:
     # Try fresh import
     try:
         import spacy
+
         # Verify it's not mocked by accessing __version__
         _ = spacy.__version__
         return True
@@ -235,7 +236,7 @@ def assert_format(input_text: str, expected: str, actual: str, test_name: str = 
                 else:
                     diff_text += a
             if len(actual) > len(expected):
-                diff_text += f"[red]{actual[len(expected):]}[/red]"
+                diff_text += f"[red]{actual[len(expected) :]}[/red]"
 
             console.print(f"[bold]Diff:[/bold] {diff_text}")
     # Also attach data for passed tests (optional for logging)

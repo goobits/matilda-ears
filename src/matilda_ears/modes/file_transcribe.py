@@ -10,7 +10,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 # Import shared path setup (also adds project root to sys.path)
 from ._imports import *  # noqa: F403
@@ -23,7 +23,7 @@ from matilda_ears.transcription.backends import get_backend_class
 class FileTranscribeMode:
     """Transcribe audio from a file."""
 
-    SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
+    SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
 
     def __init__(self, mode_config: FileTranscribeConfig):
         """Initialize file transcription mode."""
@@ -57,9 +57,7 @@ class FileTranscribeMode:
 
         # Check file extension
         if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
-            await self._send_error(
-                f"Unsupported format: {file_path.suffix}. Supported: {self.SUPPORTED_EXTENSIONS}"
-            )
+            await self._send_error(f"Unsupported format: {file_path.suffix}. Supported: {self.SUPPORTED_EXTENSIONS}")
             return
 
         # Send initializing status

@@ -95,7 +95,7 @@ class OpusDecoder:
 
         logger.info(
             f"Generated WAV: {len(wav_data)} bytes, {self.sample_count} samples, "
-            f"{self.sample_count/self.sample_rate:.2f}s duration"
+            f"{self.sample_count / self.sample_rate:.2f}s duration"
         )
         return wav_data
 

@@ -16,6 +16,7 @@ from .core import (
     MatildaWebSocketServer,
     WebSocketTranscriptionServer,
 )
+from .main import main
 
 # Re-export (tests patch these at module level)
 from matilda_ears.core.config import get_config
@@ -31,5 +32,6 @@ __all__ = [
     "WebSocketTranscriptionServer",
     "config",
     "get_config",
+    "main",
     "sys",
 ]

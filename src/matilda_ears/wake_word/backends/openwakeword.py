@@ -41,7 +41,7 @@ def _get_openwakeword_model():
             _openwakeword_model = Model
         except ImportError as e:
             raise ImportError(
-                "OpenWakeWord is required for wake word detection. " "Install with: pip install openwakeword"
+                "OpenWakeWord is required for wake word detection. Install with: pip install openwakeword"
             ) from e
     return _openwakeword_model
 
@@ -85,7 +85,7 @@ class OpenWakeWordBackend:
         self._models_dir = models_dir or Path(__file__).parent.parent / "internal" / "models"
 
         # Use provided aliases or default
-        self._agent_aliases = agent_aliases if agent_aliases else DEFAULT_AGENT_ALIASES.copy()
+        self._agent_aliases = agent_aliases or DEFAULT_AGENT_ALIASES.copy()
 
         # Collect all wake phrases and build reverse mapping
         all_phrases = []
@@ -98,8 +98,7 @@ class OpenWakeWordBackend:
                 if normalized in self._phrase_to_agent:
                     existing_agent = self._phrase_to_agent[normalized]
                     logger.warning(
-                        f"Wake phrase '{normalized}' already mapped to '{existing_agent}', "
-                        f"overwriting with '{agent}'"
+                        f"Wake phrase '{normalized}' already mapped to '{existing_agent}', overwriting with '{agent}'"
                     )
                 self._phrase_to_agent[normalized] = agent
                 logger.debug(f"Registered wake phrase '{normalized}' -> agent '{agent}'")
@@ -131,8 +130,7 @@ class OpenWakeWordBackend:
                 enable_speex_noise_suppression=noise_suppression,
             )
             logger.info(
-                f"OpenWakeWordBackend initialized with {len(model_specs)} phrases "
-                f"for {len(self._agent_aliases)} agents"
+                f"OpenWakeWordBackend initialized with {len(model_specs)} phrases for {len(self._agent_aliases)} agents"
             )
         except Exception as e:
             raise RuntimeError(f"Failed to load wake word models: {e}") from e

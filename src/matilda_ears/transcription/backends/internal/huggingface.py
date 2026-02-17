@@ -42,7 +42,7 @@ except ImportError:
     torch = None
 
 try:
-    from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor  # noqa: F401
+    from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
 
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
@@ -95,7 +95,7 @@ def _resolve_torch_dtype(device: str, dtype_config: str) -> Any | None:
 
     if dtype_config == "auto":
         # Use float16 for GPU, float32 for CPU
-        if device in ("cpu",):
+        if device == "cpu":
             return torch_module.float32
         return torch_module.float16
     if dtype_config == "float16":
@@ -232,7 +232,7 @@ class HuggingFaceBackend(TranscriptionBackend):
                 audio_path,
                 chunk_length_s=self.chunk_length_s,
                 batch_size=self.batch_size,
-                generate_kwargs=generate_kwargs if generate_kwargs else None,
+                generate_kwargs=generate_kwargs or None,
                 return_timestamps=False,  # Simpler output format
             )
 
@@ -314,7 +314,7 @@ class HuggingFaceBackend(TranscriptionBackend):
                 # If too many repetitions, keep only max_repeats
                 if repeat_count > max_repeats:
                     logger.warning(
-                        f"Detected repetition: '{' '.join(phrase)}' x{repeat_count}, " f"reducing to x{max_repeats}"
+                        f"Detected repetition: '{' '.join(phrase)}' x{repeat_count}, reducing to x{max_repeats}"
                     )
                     for _ in range(max_repeats):
                         cleaned_words.extend(phrase)

@@ -7,7 +7,8 @@ stream_handlers.py.
 import numpy as np
 from dataclasses import dataclass
 
-from .internal.whisper_adapter import StreamingAdapter, StreamingConfig
+from .adapter import StreamingAdapter
+from .types import StreamingConfig
 
 
 @dataclass

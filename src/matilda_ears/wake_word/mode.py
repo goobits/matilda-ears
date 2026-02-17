@@ -219,7 +219,7 @@ class WakeWordMode(BaseMode):
                 if detection:
                     agent, wake_phrase, confidence = detection
                     self.logger.info(
-                        f"Wake word detected: agent='{agent}', " f"phrase='{wake_phrase}', confidence={confidence:.2%}"
+                        f"Wake word detected: agent='{agent}', phrase='{wake_phrase}', confidence={confidence:.2%}"
                     )
                     await self._send_status(
                         "wake_word_detected",

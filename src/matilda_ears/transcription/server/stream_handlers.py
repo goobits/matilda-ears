@@ -94,7 +94,7 @@ def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -
     rms = float(np.sqrt(np.mean(pcm_samples.astype(np.float32) ** 2)))
     peak = int(np.max(np.abs(pcm_samples)))
     logger.info(
-        f"Client {client_id}: Session {session_id} decoded {pcm_samples.size} samples, " f"rms={rms:.3f}, peak={peak}"
+        f"Client {client_id}: Session {session_id} decoded {pcm_samples.size} samples, rms={rms:.3f}, peak={peak}"
     )
 
 
@@ -265,8 +265,7 @@ async def handle_start_stream(
     resampling_needed = needs_resampling(sample_rate)
     if resampling_needed:
         logger.debug(
-            f"Client {client_id}: Session {session_id} uses {sample_rate}Hz, "
-            f"will resample to {TARGET_SAMPLE_RATE}Hz"
+            f"Client {client_id}: Session {session_id} uses {sample_rate}Hz, will resample to {TARGET_SAMPLE_RATE}Hz"
         )
 
     # Create new decoder session (for Opus -> PCM)
@@ -721,8 +720,7 @@ async def handle_end_stream(
 
             except Exception as e:
                 logger.warning(
-                    f"Client {client_id}: Streaming session finalize failed: {e}. "
-                    "Falling back to batch transcription."
+                    f"Client {client_id}: Streaming session finalize failed: {e}. Falling back to batch transcription."
                 )
                 # Fall through to batch transcription
 

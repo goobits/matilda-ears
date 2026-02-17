@@ -1,9 +1,6 @@
-"""Health check server for WebSocket server.
+"""Health check server for Matilda Ears services."""
 
-This module provides HTTP health endpoints for service monitoring:
-- health_handler: Health check endpoint handler
-- start_health_server: Start the HTTP health server
-"""
+from __future__ import annotations
 
 import os
 import time
@@ -11,25 +8,15 @@ from typing import TYPE_CHECKING
 
 from aiohttp import web
 
-from ....core.config import setup_logging
+from ..core.config import setup_logging
 
 if TYPE_CHECKING:
-    from .core import MatildaWebSocketServer
+    from ..transcription.server.core import MatildaWebSocketServer
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
-async def health_handler(server: "MatildaWebSocketServer", request: web.Request) -> web.Response:
-    """HTTP health check endpoint for service monitoring.
-
-    Args:
-        server: The MatildaWebSocketServer instance
-        request: The HTTP request
-
-    Returns:
-        JSON response with health status
-
-    """
+async def health_handler(server: MatildaWebSocketServer, request: web.Request) -> web.Response:
     return web.json_response(
         {
             "status": "healthy",
@@ -46,36 +33,28 @@ async def health_handler(server: "MatildaWebSocketServer", request: web.Request)
     )
 
 
-async def start_health_server(
-    server: "MatildaWebSocketServer",
-    host: str,
-    port: int,
-) -> web.AppRunner:
-    """Start HTTP health check server.
-
-    Args:
-        server: The MatildaWebSocketServer instance
-        host: Host to bind to
-        port: Port to bind to
-
-    Returns:
-        The aiohttp AppRunner instance
-
-    """
+async def start_health_server(server: MatildaWebSocketServer, host: str, port: int) -> web.AppRunner:
     app = web.Application()
-    # Create a closure to pass server to handler
-    app.router.add_get("/health", lambda req: health_handler(server, req))
+
+    async def _health(req: web.Request) -> web.Response:
+        return await health_handler(server, req)
+
+    app.router.add_get("/health", _health)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info(f"HTTP health endpoint available at http://{host}:{port}/health")
+    logger.info("HTTP health endpoint available at http://%s:%s/health", host, port)
     return runner
 
 
-async def start_health_server_unix(server: "MatildaWebSocketServer", socket_path: str) -> web.AppRunner:
+async def start_health_server_unix(server: MatildaWebSocketServer, socket_path: str) -> web.AppRunner:
     app = web.Application()
-    app.router.add_get("/health", lambda req: health_handler(server, req))
+
+    async def _health(req: web.Request) -> web.Response:
+        return await health_handler(server, req)
+
+    app.router.add_get("/health", _health)
     runner = web.AppRunner(app)
     await runner.setup()
     socket_dir = os.path.dirname(socket_path)

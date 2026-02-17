@@ -1,5 +1,7 @@
 """Audio conversion helpers for PCM scaling."""
 
+from typing import cast
+
 import numpy as np
 
 
@@ -15,4 +17,4 @@ def float32_to_int16(audio: np.ndarray) -> np.ndarray:
     if audio.dtype == np.int16:
         return audio
     audio_f32 = audio.astype(np.float32)
-    return np.clip(audio_f32 * 32768.0, -32768, 32767).astype(np.int16)
+    return cast("np.ndarray", np.clip(audio_f32 * 32768.0, -32768, 32767).astype(np.int16))

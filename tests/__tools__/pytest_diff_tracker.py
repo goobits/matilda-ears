@@ -341,11 +341,9 @@ class DiffTracker:
                 self._write_line(f"- {test['name']}", session)
                 if test["details"]:
                     self._write_line(
-                        f"  [yellow]Expected:[/yellow] \"{test['details'].get('expected', 'N/A')}\"", session
+                        f'  [yellow]Expected:[/yellow] "{test["details"].get("expected", "N/A")}"', session
                     )
-                    self._write_line(
-                        f"  [yellow]Actual:[/yellow]   \"{test['details'].get('actual', 'N/A')}\"", session
-                    )
+                    self._write_line(f'  [yellow]Actual:[/yellow]   "{test["details"].get("actual", "N/A")}"', session)
 
         if diff["newly_passing"]:
             self._write_line("\n[bold green]NEWLY PASSING (Fixes):[/bold green]", session)

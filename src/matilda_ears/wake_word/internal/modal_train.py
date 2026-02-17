@@ -145,7 +145,7 @@ def train_wake_word(
         phrase.replace("hey", "say"),
         phrase.replace("hey", "hay"),
         phrase.replace("hey", "he"),
-        phrase.split()[-1] if len(phrase.split()) > 1 else "hello",
+        phrase.rsplit(maxsplit=1)[-1] if len(phrase.split()) > 1 else "hello",
         "hello there",
         "what's the weather",
         "play some music",

@@ -68,7 +68,7 @@ class BaseMode(ABC):
 
         # Check dependencies
         if not NUMPY_AVAILABLE:
-            raise ImportError(f"NumPy is required for {self.__class__.__name__}. " "Install with: pip install numpy")
+            raise ImportError(f"NumPy is required for {self.__class__.__name__}. Install with: pip install numpy")
 
         self.logger.info(f"{self.__class__.__name__} initialized")
 

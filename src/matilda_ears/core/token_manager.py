@@ -10,7 +10,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 import uuid
@@ -35,7 +35,7 @@ def get_default_data_dir() -> Path:
 class TokenManager:
     """Manages JWT tokens for client authentication"""
 
-    def __init__(self, secret_key: str | None = None, data_dir: Path = None):
+    def __init__(self, secret_key: str | None = None, data_dir: Path | None = None):
         self.data_dir = data_dir or get_default_data_dir()
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -143,7 +143,7 @@ class TokenManager:
 
     def _cleanup_expired_tokens(self):
         """Remove expired tokens from active tokens"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired_tokens = []
 
         for token_id, token_info in self.active_tokens.items():
@@ -153,7 +153,7 @@ class TokenManager:
                     expires = datetime.fromisoformat(expires_str)
                     # Handle backward compatibility for naive datetimes (assume UTC)
                     if expires.tzinfo is None:
-                        expires = expires.replace(tzinfo=timezone.utc)
+                        expires = expires.replace(tzinfo=UTC)
 
                     if now > expires:
                         expired_tokens.append(token_id)
@@ -182,14 +182,14 @@ class TokenManager:
         """
         try:
             token_id = str(uuid.uuid4())
-            expires = datetime.now(timezone.utc) + timedelta(days=expiration_days)
+            expires = datetime.now(UTC) + timedelta(days=expiration_days)
 
             # Create JWT payload
             payload = {
                 "token_id": token_id,
                 "client_name": client_name,
                 "exp": expires,
-                "iat": datetime.now(timezone.utc),
+                "iat": datetime.now(UTC),
                 "one_time_use": one_time_use,
                 "encryption_enabled": True,
             }
@@ -202,7 +202,7 @@ class TokenManager:
                 "token_id": token_id,
                 "client_name": client_name,
                 "expires": expires.isoformat(),
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
                 "one_time_use": one_time_use,
                 "used": False,
                 "last_seen": None,
@@ -268,7 +268,7 @@ class TokenManager:
                     logger.info(f"Marked one-time token {token_id} as used")
 
             # Update last seen
-            self.active_tokens[token_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
+            self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
             self.active_tokens[token_id]["active"] = True
             self._save_tokens_throttled()
 
@@ -313,7 +313,7 @@ class TokenManager:
         """Mark a client as active"""
         if token_id in self.active_tokens:
             self.active_tokens[token_id]["active"] = True
-            self.active_tokens[token_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
+            self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
 
     def mark_client_inactive(self, token_id: str):
         """Mark a client as inactive"""

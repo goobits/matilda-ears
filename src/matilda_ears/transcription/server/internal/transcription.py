@@ -19,7 +19,7 @@ import websockets
 from ....core.config import get_config, setup_logging
 
 if TYPE_CHECKING:
-    from .core import MatildaWebSocketServer
+    from ..core import MatildaWebSocketServer
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
@@ -66,10 +66,11 @@ async def transcribe_audio_from_wav(
         loop = asyncio.get_event_loop()
 
         def transcribe_audio():
-            if not server.backend.is_ready:
+            backend = server.backend
+            if backend is None or not backend.is_ready:
                 raise RuntimeError("Backend not ready/model not loaded")
             # Delegate to backend
-            return server.backend.transcribe(temp_path, language="en")
+            return backend.transcribe(temp_path, language="en")
 
         # Serialize GPU work for Parakeet to prevent MPS crashes
         # Acquire semaphore before transcription (queues requests when limit reached)
@@ -141,7 +142,7 @@ async def transcribe_audio_from_wav(
             },
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         timeout_seconds = _transcription_timeout_seconds() or 0
         logger.error(f"Client {client_id}: Transcription timed out after {timeout_seconds:.1f}s")
         return False, "", {"error": f"Transcription timed out after {timeout_seconds:.1f}s"}

@@ -5,13 +5,20 @@ Encapsulates the state machine for detecting speech start/end using Silero VAD.
 
 import logging
 from enum import Enum
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 
+_SileroVAD: Any
 try:
-    from matilda_ears.audio.vad import SileroVAD
+    from matilda_ears.audio.vad import SileroVAD as _SileroVAD
 except ImportError:
-    SileroVAD = None
+    _SileroVAD = None
+
+if TYPE_CHECKING:
+    from matilda_ears.audio.vad import SileroVAD
+else:
+    SileroVAD: TypeAlias = Any  # runtime-only dependency
 
 
 class VADState(Enum):
@@ -62,7 +69,9 @@ class VADStateMachine:
 
         try:
             self.logger.info("Initializing Silero VAD...")
-            self.vad_model = SileroVAD(
+            if _SileroVAD is None:
+                raise ImportError
+            self.vad_model = _SileroVAD(
                 sample_rate=self.sample_rate,
                 threshold=self.threshold,
                 min_speech_duration=self.min_speech_duration_s,
@@ -153,4 +162,5 @@ class VADStateMachine:
         self.consecutive_silence = 0
         self.utterance_chunks = []
         if self.vad_model:
-            self.vad_model.reset()
+            # `SileroVAD` exposes `reset_states()`.
+            self.vad_model.reset_states()

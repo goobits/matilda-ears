@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from matilda_ears.transcription.server.core import MatildaWebSocketServer
-from matilda_ears.transcription.server.internal.health import health_handler
+from matilda_ears.service.health import health_handler
 from matilda_ears.transcription.server.internal.transcription import transcribe_audio_from_wav
-import matilda_ears.transcription.server.stream_handlers as stream_handlers
+from matilda_ears.transcription.server import stream_handlers
 
 
 class _SilentWebSocket:
@@ -106,7 +106,11 @@ async def test_transcribe_audio_timeout_does_not_lock_serialization_semaphore(mo
         backend=_StuckBackend(),
         transcription_semaphore=asyncio.Semaphore(1),
     )
-    monkeypatch.setattr("matilda_ears.transcription.server.internal.transcription.get_config", lambda: _Config())
+
+    def _get_config() -> _Config:
+        return _Config()
+
+    monkeypatch.setattr("matilda_ears.transcription.server.internal.transcription.get_config", _get_config)
 
     # Size > MIN_AUDIO_SIZE so function reaches backend path.
     wav_data = b"RIFF" + b"\x00" * 2000

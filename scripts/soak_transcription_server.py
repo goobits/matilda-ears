@@ -172,7 +172,9 @@ async def run() -> int:
 
     p50 = statistics.median(latencies_ms) if latencies_ms else 0.0
     p95 = (
-        statistics.quantiles(latencies_ms, n=100, method="inclusive")[94] if len(latencies_ms) >= 20 else max(latencies_ms)
+        statistics.quantiles(latencies_ms, n=100, method="inclusive")[94]
+        if len(latencies_ms) >= 20
+        else max(latencies_ms)
     )
     print(
         f"Completed {args.iterations} iterations in {time.monotonic() - started:.1f}s. "

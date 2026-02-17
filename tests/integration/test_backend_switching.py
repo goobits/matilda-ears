@@ -81,6 +81,7 @@ class TestBackendFactory:
         backends = get_available_backends()
         assert "parakeet" in backends
 
+
 class TestConfigIntegration:
     """Test backend configuration integration."""
 
@@ -103,7 +104,7 @@ class TestConfigIntegration:
         config = get_config()
         available_backends = get_available_backends()
         if config.transcription_backend not in available_backends:
-            pytest.skip("Configured backend not available in this environment: " f"{config.transcription_backend}")
+            pytest.skip(f"Configured backend not available in this environment: {config.transcription_backend}")
         assert config.transcription_backend in available_backends
 
     def test_config_custom_backend_selection(self):

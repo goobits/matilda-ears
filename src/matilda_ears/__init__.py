@@ -73,6 +73,7 @@ def __getattr__(name):
     globals()[name] = value
     return value
 
+
 __all__ = [
     "ConversationMode",
     "WakeWordMode",

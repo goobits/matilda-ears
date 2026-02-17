@@ -141,21 +141,15 @@ try:
 
     # Generate synthetic clips
     print("\nGenerating synthetic speech samples...")
-    run(
-        f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
-        f"--training_config {config_path} --generate_clips"
-    )
+    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train --training_config {config_path} --generate_clips")
 
     # Augment clips
     print("\nAugmenting audio with noise and room acoustics...")
-    run(
-        f"cd {work_dir}/openWakeWord && python -m openwakeword.train "
-        f"--training_config {config_path} --augment_clips"
-    )
+    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train --training_config {config_path} --augment_clips")
 
     # Train model
     print("\nTraining neural network...")
-    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train " f"--training_config {config_path} --train_model")
+    run(f"cd {work_dir}/openWakeWord && python -m openwakeword.train --training_config {config_path} --train_model")
 
 except Exception as e:
     print(f"Note: Using fallback training method due to: {e}")

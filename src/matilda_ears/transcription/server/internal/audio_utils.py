@@ -5,6 +5,8 @@ This module provides audio processing utilities for the WebSocket server:
 - Resampling to 16000Hz (required by Whisper models)
 """
 
+from typing import cast
+
 import numpy as np
 
 from ....core.config import setup_logging
@@ -94,11 +96,10 @@ def resample_audio(pcm_samples: np.ndarray, source_rate: int, target_rate: int =
         resampled = resampled.astype(original_dtype)
 
     logger.debug(
-        f"Resampled audio: {len(pcm_samples)} samples @ {source_rate}Hz -> "
-        f"{len(resampled)} samples @ {target_rate}Hz"
+        f"Resampled audio: {len(pcm_samples)} samples @ {source_rate}Hz -> {len(resampled)} samples @ {target_rate}Hz"
     )
 
-    return resampled
+    return cast("np.ndarray", resampled)
 
 
 def resample_to_16k(pcm_samples: np.ndarray, source_rate: int) -> np.ndarray:

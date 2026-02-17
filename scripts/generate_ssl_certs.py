@@ -2,6 +2,7 @@
 """Generate self-signed SSL certificates for Matilda WebSocket server development.
 This script creates certificates suitable for development and testing purposes.
 """
+
 import os
 import sys
 import subprocess

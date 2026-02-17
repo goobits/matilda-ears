@@ -73,7 +73,7 @@ class PorcupineBackend:
         try:
             import pvporcupine
         except ImportError as e:
-            raise ImportError("Porcupine is required for this backend. " "Install with: pip install pvporcupine") from e
+            raise ImportError("Porcupine is required for this backend. Install with: pip install pvporcupine") from e
 
         # Get access key
         self._access_key = access_key or os.environ.get("PORCUPINE_ACCESS_KEY")
@@ -90,7 +90,7 @@ class PorcupineBackend:
         self._models_dir = models_dir or Path(__file__).parent.parent / "internal" / "models"
 
         # Use provided aliases or default
-        self._agent_aliases = agent_aliases if agent_aliases else DEFAULT_AGENT_ALIASES.copy()
+        self._agent_aliases = agent_aliases or DEFAULT_AGENT_ALIASES.copy()
 
         # Collect keywords and build mappings
         keywords = []
@@ -113,7 +113,7 @@ class PorcupineBackend:
                     logger.info(f"Using built-in Porcupine keyword: {normalized}")
                 else:
                     logger.warning(
-                        f"Keyword '{phrase}' not found. " f"Available built-in: {', '.join(BUILTIN_KEYWORDS[:5])}..."
+                        f"Keyword '{phrase}' not found. Available built-in: {', '.join(BUILTIN_KEYWORDS[:5])}..."
                     )
                     continue
 
@@ -159,14 +159,13 @@ class PorcupineBackend:
         try:
             self._porcupine = pvporcupine.create(**porcupine_kwargs)
             logger.info(
-                f"PorcupineBackend initialized with {len(sensitivities)} keywords "
-                f"for {len(self._agent_aliases)} agents"
+                f"PorcupineBackend initialized with {len(sensitivities)} keywords for {len(self._agent_aliases)} agents"
             )
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Porcupine: {e}") from e
 
         # Store keyword list for index lookup
-        self._keywords = builtin if builtin else [Path(p).stem for p in custom]
+        self._keywords = builtin or [Path(p).stem for p in custom]
 
     def detect(self, audio: "np.ndarray") -> tuple[str, str, float] | None:
         """Detect wake word in audio chunk.

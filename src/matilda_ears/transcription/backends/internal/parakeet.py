@@ -41,7 +41,7 @@ class ParakeetBackend(TranscriptionBackend):
         self.overlap_duration = config.get("parakeet.overlap_duration", 15.0)
 
         logger.info(
-            f"Parakeet config: chunk_duration={self.chunk_duration}s, " f"overlap_duration={self.overlap_duration}s"
+            f"Parakeet config: chunk_duration={self.chunk_duration}s, overlap_duration={self.overlap_duration}s"
         )
 
     async def load(self):

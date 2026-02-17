@@ -69,10 +69,10 @@ class SileroVAD:
 
         # Check dependencies
         if not NUMPY_AVAILABLE:
-            raise ImportError("NumPy is required for VAD. " "Install with: pip install numpy")
+            raise ImportError("NumPy is required for VAD. Install with: pip install numpy")
 
         if not TORCH_AVAILABLE:
-            raise ImportError("PyTorch is required for Silero VAD. " "Install with: pip install torch torchaudio")
+            raise ImportError("PyTorch is required for Silero VAD. Install with: pip install torch torchaudio")
 
         # Validate sample rate
         if sample_rate not in [8000, 16000]:
@@ -135,8 +135,7 @@ class SileroVAD:
             self.logger.error(f"Failed to load Silero VAD model: {e}")
             # Provide helpful error message
             error_msg = (
-                f"Failed to load VAD model: {e}. "
-                "Make sure you have installed: pip install torch torchaudio silero-vad"
+                f"Failed to load VAD model: {e}. Make sure you have installed: pip install torch torchaudio silero-vad"
             )
             raise RuntimeError(error_msg)
 
@@ -393,15 +392,14 @@ class SimpleFallbackVAD:
     def __init__(self, sample_rate: int = 16000, threshold: float = 0.01, **kwargs):
         """Initialize simple VAD with amplitude threshold."""
         if not NUMPY_AVAILABLE:
-            raise ImportError("NumPy is required for VAD. " "Install with: pip install numpy")
+            raise ImportError("NumPy is required for VAD. Install with: pip install numpy")
 
         self.sample_rate = sample_rate
         self.threshold = threshold
         self.logger = logging.getLogger(__name__)
 
         self.logger.warning(
-            "Using fallback amplitude-based VAD. "
-            "For better accuracy, install: pip install torch torchaudio silero-vad"
+            "Using fallback amplitude-based VAD. For better accuracy, install: pip install torch torchaudio silero-vad"
         )
 
     def process_chunk(self, audio_chunk: np.ndarray) -> float:
@@ -458,7 +456,7 @@ def create_vad(sample_rate: int = 16000, threshold: float = 0.5, use_fallback: b
     """
     # Check minimum dependencies
     if not NUMPY_AVAILABLE:
-        raise ImportError("NumPy is required for VAD functionality. " "Install with: pip install numpy")
+        raise ImportError("NumPy is required for VAD functionality. Install with: pip install numpy")
 
     if use_fallback or not TORCH_AVAILABLE:
         return SimpleFallbackVAD(sample_rate=sample_rate, threshold=threshold * 20, **kwargs)  # Scale threshold for RMS

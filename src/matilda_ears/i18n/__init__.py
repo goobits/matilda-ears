@@ -27,6 +27,7 @@ Usage:
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 
 def _find_i18n_root() -> Path | None:
@@ -50,7 +51,8 @@ if _I18N_PATH and str(_I18N_PATH) not in sys.path:
     sys.path.insert(0, str(_I18N_PATH))
 
 try:
-    from base_loader import I18nLoader, get_monorepo_locales_path
+    from base_loader import I18nLoader as _BaseI18nLoader
+    from base_loader import get_monorepo_locales_path as _base_get_monorepo_locales_path
 except ImportError:
     # Fallback: define minimal loader inline if base not available
     from collections.abc import Callable
@@ -82,9 +84,9 @@ except ImportError:
             self._cache.clear()
 
         def get_language(self) -> str:
-            return os.environ.get("MATILDA_LANG", self._lang)[:2]
+            return str(os.environ.get("MATILDA_LANG", self._lang))[:2]
 
-        def _load_domain(self, domain: str, lang: str = None) -> dict:
+        def _load_domain(self, domain: str, lang: str | None = None) -> dict[str, Any]:
             lang = lang or self.get_language()
             key = f"{lang}:{domain}"
             with self._lock:
@@ -96,9 +98,9 @@ except ImportError:
                             break
                     else:
                         self._cache[key] = {}
-                return self._cache.get(key, {})
+                return dict(self._cache.get(key, {}))
 
-        def t(self, key: str, domain: str = None, **kw) -> str:
+        def t(self, key: str, domain: str | None = None, **kw) -> str:
             domain = domain or self.default_domain
             val = self._load_domain(domain)
             for part in key.split("."):
@@ -109,6 +111,9 @@ except ImportError:
 
         def t_domain(self, domain: str) -> Callable[..., str]:
             return lambda key, **kw: self.t(key, domain, **kw)
+else:
+    I18nLoader = _BaseI18nLoader
+    get_monorepo_locales_path = _base_get_monorepo_locales_path
 
 
 # =============================================================================
