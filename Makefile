@@ -2,6 +2,8 @@
 
 .PHONY: help test test-summary test-diff test-sequential lint format type-check quality clean install dev
 
+PY ?= python3
+
 help: ## Show this help message
 	@echo "Matilda Ears Development Commands:"
 	@echo "==================================="
@@ -24,15 +26,18 @@ test-formatting: ## Run Ears Tuner tests only
 
 lint: ## Run linting with ruff
 	@echo "Running linter..."
-	@ruff check src/matilda_ears/ tests/
+	@$(PY) -c "import ruff" 2>/dev/null || (echo "ruff is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m ruff check src/matilda_ears/ tests/
 
 format: ## Format code with black
 	@echo "Formatting code..."
-	@black src/matilda_ears/ tests/ --line-length 120
+	@$(PY) -c "import black" 2>/dev/null || (echo "black is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m black src/matilda_ears/ tests/ --line-length 120
 
 type-check: ## Run type checking with mypy
 	@echo "Running type checker..."
-	@mypy src/matilda_ears/
+	@$(PY) -c "import mypy" 2>/dev/null || (echo "mypy is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m mypy src/matilda_ears/
 
 quality: format lint type-check ## Run all code quality checks
 	@echo "All quality checks completed!"
