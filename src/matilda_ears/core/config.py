@@ -112,7 +112,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "emoji_requires_keyword": True,
             "unicode_mode": "unicode",
             "collapse_repeated_words": True,
-            "collapse_repeated_words_min_run": 3,
+            "collapse_repeated_words_min_run": 2,
             "max_chars_for_punctuation": 800,
             "max_chars_for_full_pipeline": 4000,
         },

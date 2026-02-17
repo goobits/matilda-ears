@@ -33,10 +33,7 @@ def _resolve_logs_dir() -> Path | None:
     if env_dir:
         logs_dir = Path(env_dir)
     else:
-        # Import here to avoid circular imports
-        from .config import get_config
-
-        logs_dir = Path(get_config().project_dir) / ".artifacts" / "logs"
+        logs_dir = Path.home() / ".matilda" / "logs"
 
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
