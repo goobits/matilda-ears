@@ -11,14 +11,14 @@ Supported backends:
 - hub: Hub-backed transcription via matilda-api gateway
 """
 
-from .base import TranscriptionBackend
+from .base import BackendNotAvailableError, TranscriptionBackend
 from .registry import get_available_backends, get_backend_class, get_backend_info, get_recommended_backend
 
 __all__ = [
+    "BackendNotAvailableError",
     "TranscriptionBackend",
     "get_available_backends",
     "get_backend_class",
     "get_backend_info",
     "get_recommended_backend",
 ]
-

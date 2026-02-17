@@ -49,12 +49,12 @@ class TestBackendFactory:
         assert "faster_whisper" in error_msg
 
     def test_factory_parakeet_unavailable_raises_valueerror(self):
-        """Verify factory raises ValueError when Parakeet is requested but unavailable."""
+        """Verify factory raises BackendNotAvailableError when Parakeet is requested but unavailable."""
         # Mock parakeet as unavailable
         with patch("matilda_ears.transcription.backends.registry.PARAKEET_AVAILABLE", False):
-            from matilda_ears.transcription.backends import get_backend_class
+            from matilda_ears.transcription.backends import BackendNotAvailableError, get_backend_class
 
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(BackendNotAvailableError) as exc_info:
                 get_backend_class("parakeet")
 
             error_msg = str(exc_info.value)

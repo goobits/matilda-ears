@@ -10,7 +10,7 @@ import logging
 import platform
 import subprocess
 
-from .base import TranscriptionBackend
+from .base import BackendNotAvailableError, TranscriptionBackend
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +178,7 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
 
     if backend_name == "parakeet":
         if not _check_parakeet_available():
-            raise ValueError(
+            raise BackendNotAvailableError(
                 "Parakeet backend requested but dependencies are not installed.\n"
                 "To use Parakeet on macOS with Apple Silicon:\n"
                 "  1. Install: ./setup.sh install --dev (includes [mac] extras)\n"
@@ -191,7 +191,7 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
 
     if backend_name == "huggingface":
         if not _check_huggingface_available():
-            raise ValueError(
+            raise BackendNotAvailableError(
                 "HuggingFace backend requested but dependencies are not installed.\n"
                 "To use HuggingFace Transformers ASR models:\n"
                 "  1. Install: pip install goobits-matilda-ears[huggingface]\n"
@@ -204,7 +204,7 @@ def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
 
     if backend_name == "hub":
         if not _check_hub_available():
-            raise ValueError(
+            raise BackendNotAvailableError(
                 "Hub backend requested but matilda-transport is not installed.\n"
                 "Install matilda-transport or choose a local backend.\n"
                 'Hint: set [ears.transcription] backend = "faster_whisper"'
