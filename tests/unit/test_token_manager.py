@@ -2,6 +2,8 @@ from unittest.mock import patch
 import pytest
 from matilda_ears.core.token_manager import TokenManager
 
+TEST_SECRET_KEY = "test_secret_key_for_unit_tests____32_bytes_minimum____"
+
 
 @pytest.fixture
 def temp_data_dir(tmp_path):
@@ -12,7 +14,7 @@ def temp_data_dir(tmp_path):
 
 @pytest.fixture
 def token_manager(temp_data_dir):
-    return TokenManager(secret_key="test_secret", data_dir=temp_data_dir)
+    return TokenManager(secret_key=TEST_SECRET_KEY, data_dir=temp_data_dir)
 
 
 def test_token_generation_and_validation(token_manager):
@@ -31,7 +33,7 @@ def test_token_persistence(token_manager, temp_data_dir):
     token_id = token_info["token_id"]
 
     # Reload token manager
-    new_tm = TokenManager(secret_key="test_secret", data_dir=temp_data_dir)
+    new_tm = TokenManager(secret_key=TEST_SECRET_KEY, data_dir=temp_data_dir)
     assert token_id in new_tm.active_tokens
     assert new_tm.active_tokens[token_id]["client_name"] == "persistent_client"
 
