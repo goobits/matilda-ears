@@ -22,7 +22,8 @@ test-sequential: ## Run tests sequentially (for debugging)
 	@./scripts/test.py --sequential
 
 test-formatting: ## Run Ears Tuner tests only
-	@./scripts/test.py tests/ears_tuner/ --summary
+	@echo "Ears Tuner tests live in ../matilda-ears-tuner. Running them there..."
+	@(cd ../matilda-ears-tuner && MATILDA_ALLOW_PREREQ_SKIPS=1 pytest -q)
 
 lint: ## Run linting with ruff
 	@echo "Running linter..."
