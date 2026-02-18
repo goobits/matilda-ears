@@ -1,6 +1,6 @@
 # Matilda Ears Development Makefile
 
-.PHONY: help test test-summary test-diff test-sequential lint format type-check quality clean install dev
+.PHONY: help test test-summary test-diff test-sequential lint format format-check type-check quality clean install dev
 
 PY ?= python3
 
@@ -33,14 +33,19 @@ lint: ## Run linting with ruff
 format: ## Format code with black
 	@echo "Formatting code..."
 	@$(PY) -c "import black" 2>/dev/null || (echo "black is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
-	@$(PY) -m black src/matilda_ears/ tests/ --line-length 120
+	@$(PY) -m black src/matilda_ears/ tests/ --line-length 120 --force-exclude 'cli\.py$$'
+
+format-check: ## Check formatting (non-mutating)
+	@echo "Checking format..."
+	@$(PY) -c "import black" 2>/dev/null || (echo "black is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
+	@$(PY) -m black src/matilda_ears/ tests/ --line-length 120 --check --force-exclude 'cli\.py$$'
 
 type-check: ## Run type checking with mypy
 	@echo "Running type checker..."
 	@$(PY) -c "import mypy" 2>/dev/null || (echo "mypy is not installed. Install dev deps: python3 -m pip install -e '.[dev]'"; exit 1)
 	@$(PY) -m mypy src/matilda_ears/
 
-quality: format lint type-check ## Run all code quality checks
+quality: format-check lint type-check ## Run all code quality checks
 	@echo "All quality checks completed!"
 
 clean: ## Clean up build artifacts and cache

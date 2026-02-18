@@ -111,6 +111,7 @@ except ImportError:
 
         def t_domain(self, domain: str) -> Callable[..., str]:
             return lambda key, **kw: self.t(key, domain, **kw)
+
 else:
     I18nLoader = _BaseI18nLoader
     get_monorepo_locales_path = _base_get_monorepo_locales_path

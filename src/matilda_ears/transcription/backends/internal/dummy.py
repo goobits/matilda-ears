@@ -23,4 +23,3 @@ class DummyBackend(TranscriptionBackend):
     @property
     def is_ready(self) -> bool:
         return self._ready
-

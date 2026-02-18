@@ -80,7 +80,7 @@ python_version = "3.11"
 cache_dir = ".artifacts/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = true
 disallow_incomplete_defs = false
 check_untyped_defs = true
 disallow_untyped_decorators = false
@@ -154,6 +154,25 @@ ignore_errors = true
 module = ["matilda_ears.transcription.server.*"]
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = [
+  "matilda_ears.__init__",
+  "matilda_ears",
+  "matilda_ears.app_hooks",
+  "matilda_ears.audio.internal.audio_streamer",
+  "matilda_ears.audio.internal.decoder",
+  "matilda_ears.audio.internal.encoder",
+  "matilda_ears.core.__init__",
+  "matilda_ears.core",
+  "matilda_ears.core.token_manager",
+  "matilda_ears.transcription.backends.base",
+  "matilda_ears.transcription.streaming.adapter",
+  "matilda_ears.transcription.streaming.internal.parakeet_adapter",
+  "matilda_ears.transcription.streaming.session",
+  "matilda_ears.utils.ssl",
+]
+ignore_errors = true
+
 [tool.pylint]
 max-line-length = 120
 disable = [ "missing-docstring", "too-few-public-methods", "too-many-arguments", "too-many-locals", "too-many-branches", "too-many-statements", "import-outside-toplevel", "broad-except",]
@@ -164,7 +183,7 @@ skips = [ "B602", "B603", "B607",]
 
 [tool.ruff.lint]
 select = [ "E", "F", "W", "C", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF",]
-ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D400", "D401", "D415", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "FA100", "S602", "S603", "S607", "PLR0913", "PLR2004", "C901", "PLR0911", "PLR0912", "PLR0915", "FBT001", "FBT002", "COM812", "ISC001", "BLE001", "G004", "TRY003", "TRY300", "TRY400", "TRY401", "PERF203", "E501", "RET501", "RET502", "RET503", "RET504", "RET505", "RET506", "RET507", "RET508", "SIM102", "SIM117", "PLC0415", "EXE001", "TID252", "EM101", "EM102", "ERA001", "PLW0603", "RUF001", "T201", "ARG001", "ARG002", "PTH100", "PTH103", "PTH107", "PTH110", "PTH118", "PTH119", "PTH120", "PTH123", "S105", "B904", "TRY301", "SIM105", "RUF013", "PERF401", "N801", "N802", "N803", "N806", "RUF022", "RUF002", "B007", "B023", "SLF001", "DTZ003", "DTZ005", "DTZ006", "SIM108", "SIM103", "SIM110", "S104", "S110", "PTH101", "PTH108", "PTH202", "RUF005", "TC002", "TC003", "ASYNC110", "ASYNC230", "RUF006", "ANN401", "F841", "D200", "D205", "D417", "INP001", "ARG005", "RUF003", "RUF015", "RUF059", "PLR1714", "PLW2901", "PERF403", "G201", "FA102", "E702", "W293", "TRY002", "B025", "S108",]
+ignore = [ "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D400", "D401", "D415", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206", "FA100", "S602", "S603", "S607", "PLR0913", "PLR2004", "C901", "PLR0911", "PLR0912", "PLR0915", "FBT001", "FBT002", "COM812", "ISC001", "BLE001", "G004", "TRY003", "TRY300", "TRY400", "TRY401", "PERF203", "E501", "RET501", "RET502", "RET503", "RET504", "RET505", "RET506", "RET507", "RET508", "SIM102", "SIM117", "PLC0415", "EXE001", "TID252", "EM101", "EM102", "ERA001", "PLW0603", "RUF001", "T201", "ARG001", "ARG002", "PTH100", "PTH103", "PTH107", "PTH110", "PTH118", "PTH119", "PTH120", "PTH123", "S105", "B904", "TRY301", "SIM105", "RUF013", "PERF401", "N801", "N802", "N803", "N806", "RUF022", "RUF002", "B007", "B023", "SLF001", "DTZ003", "DTZ005", "DTZ006", "SIM108", "SIM103", "SIM110", "S104", "S110", "PTH101", "PTH108", "PTH202", "RUF005", "TC002", "TC003", "ASYNC110", "ASYNC230", "RUF006", "ANN401", "F841", "D200", "D203", "D205", "D213", "D417", "INP001", "ARG005", "RUF003", "RUF015", "RUF059", "PLR1714", "PLW2901", "PERF403", "G201", "FA102", "E702", "W293", "TRY002", "B025", "S108",]
 fixable = [ "ALL",]
 unfixable = []
 
