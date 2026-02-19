@@ -29,7 +29,7 @@ def _stop_listener() -> None:
 
 
 def _resolve_logs_dir() -> Path | None:
-    env_dir = os.environ.get("MATILDA_LOG_DIR") or os.environ.get("MATILDA_EARS_LOG_DIR")
+    env_dir = os.environ.get("MATILDA_LOG_DIR")
     if env_dir:
         logs_dir = Path(env_dir)
     else:
@@ -56,7 +56,7 @@ def _ensure_listener(log_level: int, include_console: bool, include_file: bool) 
         if include_file:
             logs_dir = _resolve_logs_dir()
             if logs_dir is not None:
-                log_filename = os.environ.get("MATILDA_EARS_LOG_FILE", "matilda-ears.log")
+                log_filename = os.environ.get("MATILDA_LOG_FILE", "matilda-ears.log")
                 log_path = logs_dir / log_filename
                 try:
                     max_bytes = int(os.environ.get("MATILDA_LOG_MAX_BYTES", "10485760"))
@@ -104,7 +104,7 @@ def setup_logging(
         module_name: Name of the module (usually __name__)
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
         include_console: Whether to log to console. If None, uses
-            MATILDA_EARS_CONSOLE_LOGS ("1"/"true"/"yes" enables).
+            MATILDA_LOG_CONSOLE ("1"/"true"/"yes" enables).
         include_file: Whether to log to file
         log_filename: Optional custom log filename (defaults to module-based name)
 
@@ -121,7 +121,7 @@ def setup_logging(
     level = getattr(logging, log_level.upper())
     logger.setLevel(level)
     if include_console is None:
-        include_console = _is_truthy(os.environ.get("MATILDA_EARS_CONSOLE_LOGS"))
+        include_console = _is_truthy(os.environ.get("MATILDA_LOG_CONSOLE"))
 
     # Prevent propagation to root logger to avoid duplicate console output
     logger.propagate = False
