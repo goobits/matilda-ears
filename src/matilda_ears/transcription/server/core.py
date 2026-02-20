@@ -203,6 +203,9 @@ class MatildaWebSocketServer:
             True if within limits, False if rate limited
 
         """
+        if client_ip in {"127.0.0.1", "::1", "localhost"}:
+            return True
+
         now = time.time()
         minute_ago = now - 60
 

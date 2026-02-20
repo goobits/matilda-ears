@@ -701,22 +701,29 @@ async def handle_end_stream(
                     f"Duration: {duration:.2f}s, Text: {len(text)} chars"
                 )
 
-                await send_envelope(
-                    websocket,
-                    "stream_transcription_complete",
-                    {
-                        "type": "stream_transcription_complete",
-                        "session_id": session_id,
-                        "confirmed_text": result.confirmed_text,
-                        "tentative_text": "",
-                        "success": True,
-                        "audio_duration": duration,
-                        "language": "en",
-                        "backend": server.backend_name,
-                        "streaming_mode": True,
-                    },
-                )
-                return
+                if not text.strip():
+                    logger.warning(
+                        f"Client {client_id}: Streaming finalize produced empty text for {session_id}; "
+                        "falling back to batch transcription."
+                    )
+                    # Fall through to batch transcription using accumulated decoded audio.
+                else:
+                    await send_envelope(
+                        websocket,
+                        "stream_transcription_complete",
+                        {
+                            "type": "stream_transcription_complete",
+                            "session_id": session_id,
+                            "confirmed_text": result.confirmed_text,
+                            "tentative_text": "",
+                            "success": True,
+                            "audio_duration": duration,
+                            "language": "en",
+                            "backend": server.backend_name,
+                            "streaming_mode": True,
+                        },
+                    )
+                    return
 
             except Exception as e:
                 logger.warning(

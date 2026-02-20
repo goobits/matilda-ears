@@ -6,6 +6,7 @@ import types
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
+import numpy as np
 import pytest
 
 from matilda_ears.transcription.server.core import MatildaWebSocketServer
@@ -188,3 +189,62 @@ async def test_end_stream_removes_empty_client_session_bucket(monkeypatch):
     assert session_id not in server.wake_word_debug_sessions
     assert client_id not in server.binary_stream_sessions
     send_error.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_end_stream_falls_back_to_batch_when_streaming_finalize_empty(monkeypatch):
+    session_id = "s-empty"
+    client_id = "client-empty"
+    ws = _SilentWebSocket()
+
+    finalize_result = SimpleNamespace(confirmed_text="", audio_duration_seconds=1.0)
+    streaming_session = SimpleNamespace(finalize=AsyncMock(return_value=finalize_result))
+
+    class _Decoder:
+        sample_rate = 16000
+        channels = 1
+
+        @staticmethod
+        def get_pcm_array():
+            # 1 second of non-silent mono PCM
+            return np.full(16000, 1000, dtype=np.int16)
+
+    send_envelope = AsyncMock()
+    send_error = AsyncMock()
+    transcribe_audio_from_wav = AsyncMock(return_value=(True, "fallback transcription", {"language": "en"}))
+
+    monkeypatch.setattr(stream_handlers, "send_envelope", send_envelope)
+    monkeypatch.setattr(stream_handlers, "send_error", send_error)
+    monkeypatch.setattr(stream_handlers, "transcribe_audio_from_wav", transcribe_audio_from_wav)
+
+    server = SimpleNamespace(
+        ending_sessions=set(),
+        check_rate_limit=lambda _ip: True,
+        session_chunk_counts={},
+        pcm_sessions={},
+        opus_decoder=SimpleNamespace(remove_session=lambda _sid: _Decoder()),
+        streaming_sessions={session_id: streaming_session},
+        client_sessions={client_id: {session_id}},
+        binary_stream_sessions={client_id: session_id},
+        wake_word_sessions={session_id: True},
+        wake_word_buffers={session_id: object()},
+        wake_word_debug_sessions={session_id: {"last_sent": 0}},
+        backend_name="parakeet",
+    )
+
+    await stream_handlers.handle_end_stream(
+        server=server,
+        websocket=ws,
+        data={"session_id": session_id},
+        client_ip="127.0.0.1",
+        client_id=client_id,
+    )
+
+    transcribe_audio_from_wav.assert_awaited_once()
+    send_error.assert_not_awaited()
+    # First envelope may be a final partial from streaming, second is the final batch result.
+    assert send_envelope.await_count >= 1
+    final_payload = send_envelope.await_args_list[-1].args[2]
+    assert final_payload["type"] == "stream_transcription_complete"
+    assert final_payload["confirmed_text"] == "fallback transcription"
+    assert final_payload["streaming_mode"] is False

@@ -23,6 +23,17 @@ HALLUCINATION_PATTERNS = [
 ]
 
 
+def _unwrap_envelope(payload: dict) -> dict:
+    """Support both raw payloads and API-envelope payloads."""
+    result = payload.get("result")
+    if isinstance(result, dict):
+        merged = dict(result)
+        if "type" not in merged and "task" in payload:
+            merged["type"] = payload["task"]
+        return merged
+    return payload
+
+
 def _load_wav(path: Path) -> tuple[np.ndarray, int]:
     with wave.open(str(path), "rb") as wav_file:
         sample_rate = wav_file.getframerate()
@@ -87,7 +98,7 @@ async def test_streaming_replay_like():
             )
         )
 
-        started = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+        started = _unwrap_envelope(json.loads(await asyncio.wait_for(ws.recv(), timeout=5)))
         assert started.get("type") == "stream_started"
         assert started.get("session_id") == session_id
 
@@ -103,7 +114,7 @@ async def test_streaming_replay_like():
                 message = await ws.recv()
                 if not isinstance(message, str):
                     continue
-                payload = json.loads(message)
+                payload = _unwrap_envelope(json.loads(message))
                 msg_type = payload.get("type")
                 if msg_type == "partial_result":
                     if first_partial_time is None:
