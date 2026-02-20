@@ -140,10 +140,14 @@ For more pytest options: python3 -m pytest --help
     print(examples)
 
 
+def _run_helper(script_name: str, args: list[str]) -> int:
+    script = Path(__file__).resolve().parent / script_name
+    cmd = [sys.executable, str(script), *args]
+    return subprocess.run(cmd, check=False).returncode
+
+
 def main():
     """Parse args and run pytest with appropriate settings."""
-    import os
-
     # Custom help handling
     if len(sys.argv) == 2 and sys.argv[1] in ["-h", "--help"]:
         show_examples()
@@ -169,144 +173,25 @@ def main():
     # Parse known args, keep the rest for pytest
     known_args, pytest_args = parser.parse_known_args()
 
-    # Handle installation
+    # Handle installation in dedicated helper.
     if known_args.install:
-        import os
-        import platform
-
-        print("🔧 GOOBITS STT Installation")
-        print("=" * 50)
-
-        # Check if we're in a virtual environment
-        in_venv = sys.prefix != sys.base_prefix or os.environ.get("VIRTUAL_ENV") is not None
-
-        if not in_venv:
-            print("⚠️  Not in a virtual environment!")
-
-            # Ensure .artifacts/test directory exists first
-            os.makedirs(".artifacts/test", exist_ok=True)
-
-            # Check if test-env already exists
-            test_env_path = os.path.join(".artifacts/test", "test-env")
-            if not os.path.exists(test_env_path):
-                print("\nCreating test environment...")
-                try:
-                    subprocess.run([sys.executable, "-m", "venv", test_env_path], check=True)
-                    print(f"✅ Test environment created in {test_env_path}")
-                except subprocess.CalledProcessError as e:
-                    print(f"❌ Failed to create test environment: {e}")
-                    print("   Try running: python3 -m venv .artifacts/test/test-env")
-                    return 1
-            else:
-                print(f"✅ Using existing test environment in {test_env_path}")
-
-            # Determine the correct python executable path
-            if platform.system() == "Windows":
-                python_exe = os.path.join(test_env_path, "Scripts", "python.exe")
-            else:
-                python_exe = os.path.join(test_env_path, "bin", "python")
-
-            print("\n📝 Activate it with:")
-            if platform.system() == "Windows":
-                print(f"   .\\{test_env_path}\\Scripts\\activate")
-            else:
-                print(f"   source {test_env_path}/bin/activate")
-            print("\nUsing test environment's pip for installation...")
-        else:
-            print("✅ Already in a virtual environment")
-
-        print("\n📦 Installing GOOBITS STT with all dependencies...")
-        # Use the venv's python to ensure pip is available
-        if not in_venv and "python_exe" in locals():
-            # Verify the python executable exists before using it
-            if not os.path.exists(python_exe):
-                print(f"❌ Python executable not found at {python_exe}")
-                print("   Virtual environment creation may have failed.")
-                return 1
-            install_cmd = [python_exe, "-m", "pip", "install", "-e", ".[dev]"]
-        else:
-            install_cmd = [sys.executable, "-m", "pip", "install", "-e", ".[dev]"]
-        result = subprocess.run(install_cmd, check=False)
-
-        if result.returncode == 0:
-            print("\n✅ Installation complete!")
-
-            # Install SpaCy language model
-            print("\n📥 Installing SpaCy English language model...")
-            spacy_python = sys.executable if in_venv else python_exe
-            spacy_cmd = [spacy_python, "-m", "spacy", "download", "en_core_web_sm"]
-            spacy_result = subprocess.run(spacy_cmd, check=False)
-            if spacy_result.returncode == 0:
-                print("✅ SpaCy model installed successfully!")
-            else:
-                print("⚠️  SpaCy model installation failed, trying fallback method...")
-                fallback_cmd = [
-                    spacy_python,
-                    "-m",
-                    "pip",
-                    "install",
-                    "en_core_web_sm@https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
-                ]
-                fallback_result = subprocess.run(fallback_cmd, check=False)
-                if fallback_result.returncode == 0:
-                    print("✅ SpaCy model installed via fallback method!")
-                else:
-                    print("❌ SpaCy model installation failed!")
-                    print("   Ears Tuner may not work properly.")
-
-            print("\n🧪 Verifying installation...")
-            verify_cmd = [sys.executable if in_venv else python_exe, "tests/__tools__/verify_test_setup.py"]
-            subprocess.run(verify_cmd, check=False)
-            print("\n🚀 Ready to run tests with: ./test.py")
-        else:
-            print("\n❌ Installation failed!")
-            print("   Check the error messages above for details.")
-            return 1
-
-        return 0
+        return _run_helper("test_install.py", [])
 
     # Handle read-only operations (history and diff) without running tests
     if known_args.history is not None or known_args.diff_range is not None:
-        # Check if test environment exists and use it
-        test_env_python = os.path.join(".artifacts/test", "test-env", "bin", "python")
-        if os.path.exists(test_env_python):
-            python_cmd = test_env_python
-        else:
-            python_cmd = "python3"
-
-        cmd = [python_cmd, "-m", "pytest"]
-
-        # Add test path first
-        if pytest_args:
-            # Use existing pytest args first
-            cmd.extend(pytest_args)
-        else:
-            # Default to ears_tuner for history/diff operations
-            cmd.append("tests/ears_tuner/")
-
-        # Then add our options
+        helper_args: list[str] = [*pytest_args]
         if known_args.history is not None:
             if known_args.history is True:
-                # Just --history without a number
-                cmd.append("--history")
+                helper_args.append("--history")
             else:
-                # --history=N
-                cmd.extend(["--history", str(known_args.history)])
-
+                helper_args.extend(["--history", str(known_args.history)])
         if known_args.diff_range is not None:
-            cmd.append("--diff")
-            # Parse the diff range string
+            helper_args.append("--diff")
             if "," in known_args.diff_range:
-                # Format like "-5,-1"
-                parts = known_args.diff_range.split(",")
-                cmd.extend([part.strip() for part in parts])
+                helper_args.extend([part.strip() for part in known_args.diff_range.split(",")])
             else:
-                # Single value like "-1"
-                cmd.append(known_args.diff_range)
-
-        # Run pytest for read-only operations
-        result = subprocess.run(cmd, check=False)
-        return result.returncode
+                helper_args.append(known_args.diff_range)
+        return _run_helper("test_history.py", helper_args)
 
     # Regular test execution
     # Check if test environment exists and use it
