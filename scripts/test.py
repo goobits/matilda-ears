@@ -11,10 +11,20 @@ import argparse
 import os
 from pathlib import Path
 import venv
+import tomllib
 
 
 def _test_env_python() -> Path:
     return Path(".artifacts/test/test-env/bin/python")
+
+
+def _get_version() -> str:
+    try:
+        with open(Path(__file__).resolve().parents[1] / "pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+        return str(data["project"]["version"])
+    except Exception:
+        return "unknown"
 
 
 def ensure_and_use_test_env() -> None:
@@ -88,7 +98,7 @@ ensure_and_use_test_env()
 def show_examples():
     """Show comprehensive usage examples."""
     examples = """
-🧪 GOOBITS STT TEST RUNNER - Complete Testing Suite
+🧪 MATILDA EARS TEST RUNNER
 
 INSTALLATION:
   ./test.py --install                              # Install project with all dependencies
@@ -122,6 +132,12 @@ FAILURE ANALYSIS:
 COVERAGE:
   ./test.py --coverage                             # Run tests with coverage report
   ./test.py -c tests/ears_tuner/             # Coverage for specific directory
+
+COMMON OPTIONS:
+  ./test.py --verbose                             # Verbose pytest output
+  ./test.py --test test_streaming                # Test name/pattern filter
+  ./test.py --markers "not slow"                 # Marker expression
+  ./test.py --version                            # Show runner version
 
 COMMON WORKFLOWS:
   ./test.py tests/ears_tuner/ --sequential --detailed
@@ -157,9 +173,16 @@ def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--sequential", action="store_true", help="Force sequential execution (disable parallel)")
     parser.add_argument(
-        "--parallel", default="auto", help='Parallel workers: "auto" (7), "off" (sequential), or number like "4"'
+        "--parallel",
+        "-p",
+        default="auto",
+        help='Parallel workers: "auto" (7), "off" (sequential), or number like "4"',
     )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose pytest output")
+    parser.add_argument("--test", "-t", help="Run specific test file or name pattern")
+    parser.add_argument("--markers", "-m", help="Run tests matching marker expression")
     parser.add_argument("--no-track", action="store_true", help="Disable automatic diff tracking")
+    parser.add_argument("--force", "-f", action="store_true", help="Reserved for CLI parity (no prompts in ears)")
     # Removed --detailed for now as it's not implemented in pytest plugins
     parser.add_argument("--full-diff", action="store_true", help="Show full assertion diffs")
     parser.add_argument(
@@ -169,9 +192,14 @@ def main():
     parser.add_argument("--install", action="store_true", help="Install the project with all dependencies")
     parser.add_argument("--summary", action="store_true", help="Show YAML summary of test failures")
     parser.add_argument("--coverage", "-c", action="store_true", help="Generate coverage report")
+    parser.add_argument("--version", action="store_true", help="Show version")
 
     # Parse known args, keep the rest for pytest
     known_args, pytest_args = parser.parse_known_args()
+
+    if known_args.version:
+        print(f"Matilda Ears Test Runner v{_get_version()}")
+        return 0
 
     # Handle installation in dedicated helper.
     if known_args.install:
@@ -202,6 +230,11 @@ def main():
         python_cmd = "python3"
 
     cmd = [python_cmd, "-m", "pytest"] + pytest_args
+
+    if known_args.test:
+        cmd.extend(["tests/", "-k", known_args.test])
+    if known_args.markers:
+        cmd.extend(["-m", known_args.markers])
 
     # Handle summary mode - force sequential for proper plugin support
     if known_args.summary:
@@ -360,11 +393,13 @@ def main():
 
         return process.returncode
     # Always use at least -v for better output unless user specified verbosity
+    elif known_args.verbose:
+        cmd.append("-v")
     elif not any(arg.startswith("-v") or arg in ["-q", "--quiet"] for arg in pytest_args):
         cmd.append("-v")
 
     # Default to tests/ if no test paths specified
-    if not any(arg.startswith("tests/") or arg.endswith(".py") for arg in pytest_args):
+    if not any(arg.startswith("tests/") or arg.endswith(".py") for arg in pytest_args) and not known_args.test:
         # Check if we have any non-flag arguments
         non_flag_args = [arg for arg in pytest_args if not arg.startswith("-")]
         if not non_flag_args:

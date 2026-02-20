@@ -6,7 +6,7 @@ Speech-to-text engine with multiple operation modes, real-time transcription, an
 
 ```bash
 pipx install .
-./setup.sh install --dev
+./scripts/setup.sh install --dev
 ears status
 ```
 
@@ -16,6 +16,7 @@ ears status
 ears status
 ears models
 ears status --json
+./scripts/test.py --help
 ```
 
 ## Operation Modes
@@ -68,14 +69,15 @@ ears models --json
 ./scripts/setup.sh install --dev
 python -m spacy download en_core_web_sm
 
-./scripts/test.py --summary
-./scripts/test.py tests/ears_tuner/ --summary
-./scripts/test.py --diff=-1
-
-ruff check src/ tests/
-black src/ tests/
-mypy src/
+make test
+make quality
 ```
+
+## Documentation
+
+- `docs/`
+- `AGENTS.md`
+- `CHANGELOG.md`
 
 ## Related Projects
 

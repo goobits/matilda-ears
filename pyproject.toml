@@ -200,6 +200,10 @@ goobits_matilda_ears = [ "setup.sh",]
 [tool.pytest.ini_options]
 cache_dir = ".artifacts/cache/pytest"
 testpaths = [ "tests",]
+python_files = [ "test_*.py",]
+python_classes = [ "Test*",]
+python_functions = [ "test_*",]
+addopts = [ "-ra",]
 asyncio_mode = "auto"
 filterwarnings = [ "ignore:Core Pydantic V1 functionality isn't compatible with Python 3\\.14 or greater\\.:UserWarning",]
 
