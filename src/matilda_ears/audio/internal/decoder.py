@@ -1,9 +1,12 @@
 """Opus audio decoder for streaming audio processing."""
 
 import io
+import os
 import wave
 import numpy as np
 import opuslib
+
+MAX_BUFFER_SECONDS = int(os.getenv("MATILDA_EARS_MAX_STREAM_BUFFER_SECONDS", "120"))
 
 # Setup standardized logging
 try:
@@ -38,6 +41,7 @@ class OpusDecoder:
         # PCM audio buffer (accumulates decoded audio)
         self.pcm_buffer = io.BytesIO()
         self.sample_count = 0
+        self.max_pcm_bytes = sample_rate * channels * 2 * MAX_BUFFER_SECONDS
 
         logger.info(f"Opus decoder initialized: {sample_rate}Hz, {channels} channel(s)")
 
@@ -57,6 +61,10 @@ class OpusDecoder:
 
             # Write decoded PCM to buffer
             self.pcm_buffer.write(pcm_data)
+            if self.pcm_buffer.tell() > self.max_pcm_bytes:
+                pcm_tail = self.pcm_buffer.getvalue()[-self.max_pcm_bytes :]
+                self.pcm_buffer = io.BytesIO()
+                self.pcm_buffer.write(pcm_tail)
 
             pcm_samples = np.frombuffer(pcm_data, dtype=np.int16)
             samples_decoded = len(pcm_samples)

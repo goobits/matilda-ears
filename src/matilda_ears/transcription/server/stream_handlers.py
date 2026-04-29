@@ -52,6 +52,8 @@ if TYPE_CHECKING:
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
+MAX_PCM_BUFFER_SECONDS = int(os.getenv("MATILDA_EARS_MAX_STREAM_BUFFER_SECONDS", "120"))
+
 
 def _downmix_to_mono(pcm_samples: np.ndarray, channels: int) -> np.ndarray:
     if channels <= 1 or pcm_samples.size == 0:
@@ -553,7 +555,9 @@ async def handle_pcm_chunk(
             "channels": channels,
             "chunk_count": 0,
             "needs_resampling": resampling_needed,
+            "total_samples": 0,
         }
+        server.client_sessions.setdefault(client_id, set()).add(session_id)
         if resampling_needed:
             logger.debug(
                 f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch) "
@@ -592,6 +596,11 @@ async def handle_pcm_chunk(
         # Accumulate samples for batch transcription (if needed)
         # Note: After resampling, samples are at 16kHz
         pcm_session["samples"].append(pcm_samples)
+        pcm_session["total_samples"] += len(pcm_samples)
+        max_samples = TARGET_SAMPLE_RATE * MAX_PCM_BUFFER_SECONDS
+        while pcm_session["samples"] and pcm_session["total_samples"] > max_samples:
+            dropped = pcm_session["samples"].pop(0)
+            pcm_session["total_samples"] -= len(dropped)
 
         # Log periodically
         if pcm_session["chunk_count"] % 10 == 1:
@@ -685,6 +694,7 @@ async def handle_end_stream(
     streaming_session = server.streaming_sessions.pop(session_id, None)
 
     if not decoder and not pcm_session and not streaming_session:
+        server.ending_sessions.discard(session_id)
         await send_error(websocket, f"Unknown session: {session_id}")
         return
 

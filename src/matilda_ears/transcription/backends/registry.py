@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import platform
 import subprocess
+import sys
 
 from .base import BackendNotAvailableError, TranscriptionBackend
 
@@ -77,9 +78,20 @@ def _check_parakeet_available() -> bool:
     if PARAKEET_AVAILABLE is not None:
         return PARAKEET_AVAILABLE
     try:
-        from .internal import parakeet as _parakeet_backend  # noqa: F401
-
-        PARAKEET_AVAILABLE = True
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import importlib; importlib.import_module('matilda_ears.transcription.backends.internal.parakeet')",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        PARAKEET_AVAILABLE = result.returncode == 0
+        if not PARAKEET_AVAILABLE:
+            logger.debug("Parakeet backend unavailable: %s", (result.stderr or result.stdout).strip())
     except Exception as exc:
         logger.debug("Parakeet backend unavailable: %s", exc)
         PARAKEET_AVAILABLE = False
