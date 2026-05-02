@@ -142,6 +142,11 @@ def main() -> None:
     parser.add_argument("--device", type=str, default=None, help="Device for inference (cuda, cpu, mlx)")
     args = parser.parse_args()
 
+    if args.model:
+        os.environ["EARS_MODEL"] = args.model
+    if args.device:
+        os.environ["EARS_DEVICE"] = args.device
+
     from ..transcription.server.core import MatildaWebSocketServer
 
     server = MatildaWebSocketServer()

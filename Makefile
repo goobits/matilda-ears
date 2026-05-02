@@ -52,8 +52,8 @@ clean: ## Clean up build artifacts and cache
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete
 
-install: ## Install package with pipx
-	@./scripts/setup.sh install
+install: ## Install package from this checkout
+	@./scripts/setup.sh install --dev
 
 dev: ## Install in development mode
 	@./scripts/setup.sh install --dev
