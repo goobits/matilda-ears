@@ -9,11 +9,24 @@ from typing import TYPE_CHECKING
 from aiohttp import web
 
 from ..core.config import setup_logging
+from ..core.memory import current_rss_bytes, peak_rss_bytes
 
 if TYPE_CHECKING:
     from ..transcription.server.core import MatildaWebSocketServer
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
+
+
+def _pcm_buffer_bytes(server: MatildaWebSocketServer) -> int:
+    total = 0
+    for session in server.pcm_sessions.values():
+        for samples in session.get("samples", []):
+            total += int(getattr(samples, "nbytes", 0))
+    return total
+
+
+def _wake_word_buffer_bytes(server: MatildaWebSocketServer) -> int:
+    return sum(int(getattr(buffer, "nbytes", 0)) for buffer in server.wake_word_buffers.values())
 
 
 async def health_handler(server: MatildaWebSocketServer, request: web.Request) -> web.Response:
@@ -28,6 +41,20 @@ async def health_handler(server: MatildaWebSocketServer, request: web.Request) -
             "active_pcm_sessions": len(server.pcm_sessions),
             "active_opus_sessions": len(server.opus_decoder.get_active_sessions()),
             "ending_sessions": len(server.ending_sessions),
+            "memory": {
+                "rss_bytes": current_rss_bytes(),
+                "peak_rss_bytes": peak_rss_bytes(),
+                "pcm_buffer_bytes": _pcm_buffer_bytes(server),
+                "opus_pcm_buffer_bytes": server.opus_decoder.get_total_buffer_bytes(),
+                "wake_word_buffer_bytes": _wake_word_buffer_bytes(server),
+            },
+            "transcriptions": {
+                "started": server.transcriptions_started,
+                "completed": server.transcriptions_completed,
+                "failed": server.transcriptions_failed,
+                "timed_out": server.transcriptions_timed_out,
+                "inflight": server.transcriptions_inflight,
+            },
             "timestamp": time.time(),
         }
     )

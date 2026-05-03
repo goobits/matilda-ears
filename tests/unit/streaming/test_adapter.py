@@ -96,6 +96,19 @@ class TestStreamingAdapter:
         with pytest.raises(RuntimeError, match="not started"):
             await adapter.process_chunk(pcm)
 
+    def test_pending_audio_is_bounded_by_configured_window(self):
+        config = StreamingConfig(audio_max_len=1.0)
+        adapter = StreamingAdapter(config)
+        adapter._pending_audio = [
+            np.zeros(8000, dtype=np.int16),
+            np.zeros(8000, dtype=np.int16),
+            np.zeros(8000, dtype=np.int16),
+        ]
+
+        adapter._trim_pending_audio()
+
+        assert sum(len(chunk) for chunk in adapter._pending_audio) <= 16000
+
 
 class TestAlphaOmegaWrapper:
     """Test AlphaOmegaWrapper behavior with mock objects."""

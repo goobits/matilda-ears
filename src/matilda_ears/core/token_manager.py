@@ -4,6 +4,7 @@ Handles token generation, validation, and one-time use enforcement
 
 import base64
 import concurrent.futures
+import atexit
 import json
 import logging
 import os
@@ -59,6 +60,8 @@ class TokenManager:
         # Load existing tokens
         self._load_tokens()
         self._load_used_tokens()
+        self._cleanup_used_tokens()
+        atexit.register(self.close)
 
         logger.info(f"TokenManager initialized with {len(self.active_tokens)} active tokens")
 
@@ -123,7 +126,10 @@ class TokenManager:
             data = json.dumps(self.active_tokens, indent=2)
             # Update time here to prevent multiple saves
             self._last_save_time = time.time()
-            self._save_executor.submit(self._perform_save, data)
+            if self._save_executor is not None:
+                self._save_executor.submit(self._perform_save, data)
+            else:
+                self._perform_save(data)
         except Exception as e:
             logger.error(f"Failed to initiate async token save: {e}")
 
@@ -140,6 +146,20 @@ class TokenManager:
             self.used_tokens_file.write_text(json.dumps(data, indent=2))
         except Exception as e:
             logger.error(f"Failed to save used tokens: {e}")
+
+    def _cleanup_used_tokens(self):
+        """Remove used-token markers for tokens that no longer need replay protection."""
+        keep_used_tokens = {
+            token_id
+            for token_id, token_info in self.active_tokens.items()
+            if token_info.get("one_time_use", False) and token_info.get("used", False)
+        }
+        removed = self.used_tokens - keep_used_tokens
+        if not removed:
+            return
+        self.used_tokens = self.used_tokens.intersection(keep_used_tokens)
+        self._save_used_tokens()
+        logger.info(f"Pruned {len(removed)} stale used token record(s)")
 
     def _cleanup_expired_tokens(self):
         """Remove expired tokens from active tokens"""
@@ -166,6 +186,7 @@ class TokenManager:
             logger.info(f"Removed expired token: {token_id}")
 
         if expired_tokens:
+            self._cleanup_used_tokens()
             self._save_tokens()
 
     def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> dict[str, Any]:
@@ -298,7 +319,9 @@ class TokenManager:
             if token_id in self.active_tokens:
                 client_name = self.active_tokens[token_id].get("client_name", "unknown")
                 del self.active_tokens[token_id]
+                self.used_tokens.discard(token_id)
                 self._save_tokens()
+                self._save_used_tokens()
 
                 logger.info(f"Revoked token for client '{client_name}' (ID: {token_id})")
                 return True
@@ -359,6 +382,13 @@ class TokenManager:
             "connected_clients": connected_count,
             "used_one_time_tokens": len(self.used_tokens),
         }
+
+    def close(self):
+        """Flush pending saves and stop the background save worker."""
+        executor = getattr(self, "_save_executor", None)
+        if executor is not None:
+            executor.shutdown(wait=True)
+            self._save_executor = None
 
 
 # Global token manager instance

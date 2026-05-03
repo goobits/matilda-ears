@@ -1,7 +1,10 @@
 """Adapter for Parakeet MLX streaming transcription."""
 
 import asyncio
+import atexit
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import numpy as np
@@ -9,6 +12,10 @@ import numpy as np
 from ..types import StreamingConfig, StreamingResult
 
 logger = logging.getLogger(__name__)
+STREAMING_INFERENCE_TIMEOUT_SECONDS = float(os.getenv("MATILDA_EARS_STREAMING_INFERENCE_TIMEOUT_SECONDS", "30"))
+STREAMING_WORKERS = max(1, int(os.getenv("MATILDA_EARS_STREAMING_WORKERS", "2")))
+_INFERENCE_EXECUTOR = ThreadPoolExecutor(max_workers=STREAMING_WORKERS, thread_name_prefix="ears-parakeet-streaming")
+atexit.register(_INFERENCE_EXECUTOR.shutdown, wait=False, cancel_futures=True)
 
 
 class ParakeetStreamingAdapter:
@@ -81,6 +88,7 @@ class ParakeetStreamingAdapter:
 
         self._pending_audio.append(pcm_int16)
         self._pending_samples += len(pcm_int16)
+        self._trim_pending_audio()
 
         if self._inference_running:
             self._dirty = True
@@ -109,8 +117,11 @@ class ParakeetStreamingAdapter:
                     self._pending_audio = []
                     self._pending_samples = 0
 
-                    loop = asyncio.get_event_loop()
-                    result = await loop.run_in_executor(None, self._add_audio_chunks, pending)
+                    loop = asyncio.get_running_loop()
+                    result = await asyncio.wait_for(
+                        loop.run_in_executor(_INFERENCE_EXECUTOR, self._add_audio_chunks, pending),
+                        timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
+                    )
 
                 alpha, omega = self._extract_text(result)
                 self._merge_alpha(alpha)
@@ -135,6 +146,12 @@ class ParakeetStreamingAdapter:
             audio_f32 = chunk.astype(np.float32) / 32768.0
             last_result = transcriber.add_audio(audio_f32)
         return last_result
+
+    def _trim_pending_audio(self) -> None:
+        max_samples = int(max(self.config.audio_max_len, 1.0) * self.SAMPLE_RATE)
+        while self._pending_audio and self._pending_samples > max_samples:
+            dropped = self._pending_audio.pop(0)
+            self._pending_samples -= len(dropped)
 
     def _merge_alpha(self, alpha: str) -> None:
         if not alpha:
@@ -194,14 +211,20 @@ class ParakeetStreamingAdapter:
             final_result = None
             transcriber = self._transcriber
             if transcriber is not None and hasattr(transcriber, "finish"):
-                loop = asyncio.get_event_loop()
-                final_result = await loop.run_in_executor(None, transcriber.finish)
+                loop = asyncio.get_running_loop()
+                final_result = await asyncio.wait_for(
+                    loop.run_in_executor(_INFERENCE_EXECUTOR, transcriber.finish),
+                    timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
+                )
             alpha, _ = self._extract_text(final_result)
             self._merge_alpha(alpha)
         finally:
             transcriber_cm = self._transcriber_cm
             if transcriber_cm is not None:
                 transcriber_cm.__exit__(None, None, None)
+            self._transcriber_cm = None
+            self._transcriber = None
+            self._initialized = False
 
         duration = self._total_samples / self.SAMPLE_RATE
         return StreamingResult(

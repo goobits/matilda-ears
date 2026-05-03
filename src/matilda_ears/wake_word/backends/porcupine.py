@@ -216,7 +216,12 @@ class PorcupineBackend:
         """Get the agent to wake phrases mapping."""
         return self._agent_aliases.copy()
 
-    def __del__(self):
+    def close(self) -> None:
         """Clean up Porcupine resources."""
         if hasattr(self, "_porcupine") and self._porcupine:
             self._porcupine.delete()
+            self._porcupine = None
+
+    def __del__(self):
+        """Clean up Porcupine resources."""
+        self.close()

@@ -60,12 +60,8 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
         try:
             server._health_runner = await start_health_server(server, server_host, health_port)
         except Exception as e:
-            logger.warning("Failed to start health server on port %s: %s", health_port, e)
-            try:
-                health_port = server_port + 100
-                server._health_runner = await start_health_server(server, server_host, health_port)
-            except Exception as e2:
-                logger.warning("Health server disabled: %s", e2)
+            logger.error("Failed to start health server on expected port %s: %s", health_port, e)
+            raise RuntimeError(f"Health server failed on expected port {health_port}") from e
 
     protocol = "wss" if server.ssl_enabled else "ws"
 
@@ -129,9 +125,12 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
         site = web.NamedPipeSite(runner, transport.endpoint)
         await site.start()
 
-    async with websockets.serve(server.handle_client, server_host, server_port, **cast("Any", server_kwargs)):
-        logger.info("✓ Ears ready (%s) on %s://%s:%s", server.backend_name, protocol, server_host, server_port)
-        await asyncio.Future()
+    try:
+        async with websockets.serve(server.handle_client, server_host, server_port, **cast("Any", server_kwargs)):
+            logger.info("✓ Ears ready (%s) on %s://%s:%s", server.backend_name, protocol, server_host, server_port)
+            await asyncio.Future()
+    finally:
+        server.close()
 
 
 def main() -> None:

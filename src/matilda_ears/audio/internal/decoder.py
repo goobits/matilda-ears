@@ -188,3 +188,7 @@ class OpusStreamDecoder:
     def get_active_sessions(self) -> list:
         """Get list of active session IDs."""
         return list(self.sessions.keys())
+
+    def get_total_buffer_bytes(self) -> int:
+        """Get total buffered PCM bytes across active sessions."""
+        return sum(decoder.get_stats()["buffer_size_bytes"] for decoder in self.sessions.values())

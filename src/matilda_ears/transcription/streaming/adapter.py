@@ -6,8 +6,10 @@ This is the only non-vendored module allowed to import `streaming.vendor`.
 from __future__ import annotations
 
 import asyncio
+import atexit
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import numpy as np
@@ -16,6 +18,10 @@ from ...audio.conversion import int16_to_float32
 from .types import StreamingConfig, StreamingResult
 
 logger = logging.getLogger(__name__)
+STREAMING_INFERENCE_TIMEOUT_SECONDS = float(os.getenv("MATILDA_EARS_STREAMING_INFERENCE_TIMEOUT_SECONDS", "30"))
+STREAMING_WORKERS = max(1, int(os.getenv("MATILDA_EARS_STREAMING_WORKERS", "2")))
+_INFERENCE_EXECUTOR = ThreadPoolExecutor(max_workers=STREAMING_WORKERS, thread_name_prefix="ears-streaming")
+atexit.register(_INFERENCE_EXECUTOR.shutdown, wait=False, cancel_futures=True)
 
 
 class AlphaOmegaWrapper:
@@ -152,6 +158,7 @@ class StreamingAdapter:
                 return self._last_result
 
         self._pending_audio.append(pcm_int16)
+        self._trim_pending_audio()
 
         if self._inference_running:
             self._dirty = True
@@ -169,8 +176,11 @@ class StreamingAdapter:
                     pending = self._pending_audio
                     self._pending_audio = []
 
-                    loop = asyncio.get_event_loop()
-                    result = await loop.run_in_executor(None, self._add_audio_chunks, pending)
+                    loop = asyncio.get_running_loop()
+                    result = await asyncio.wait_for(
+                        loop.run_in_executor(_INFERENCE_EXECUTOR, self._add_audio_chunks, pending),
+                        timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
+                    )
 
                 alpha, omega = self._extract_alpha_omega(result)
                 self._merge_alpha(alpha)
@@ -197,6 +207,13 @@ class StreamingAdapter:
             last = self._wrapper.process_iter()
         return last
 
+    def _trim_pending_audio(self) -> None:
+        max_samples = int(max(self.config.audio_max_len, 1.0) * self.SAMPLE_RATE)
+        pending_samples = sum(len(chunk) for chunk in self._pending_audio)
+        while self._pending_audio and pending_samples > max_samples:
+            dropped = self._pending_audio.pop(0)
+            pending_samples -= len(dropped)
+
     def _extract_alpha_omega(self, result: dict) -> tuple[str, str]:
         return (result.get("alpha", "") or "").strip(), (result.get("omega", "") or "").strip()
 
@@ -220,8 +237,11 @@ class StreamingAdapter:
             return StreamingResult(is_final=True)
 
         try:
-            loop = asyncio.get_event_loop()
-            final_result = await loop.run_in_executor(None, wrapper.finish)
+            loop = asyncio.get_running_loop()
+            final_result = await asyncio.wait_for(
+                loop.run_in_executor(_INFERENCE_EXECUTOR, wrapper.finish),
+                timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
+            )
             alpha, _ = self._extract_alpha_omega(final_result)
             self._merge_alpha(alpha)
         finally:

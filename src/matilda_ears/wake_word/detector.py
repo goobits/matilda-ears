@@ -138,6 +138,12 @@ class WakeWordDetector:
         """Reset model states (call between utterances)."""
         self._backend.reset()
 
+    def close(self) -> None:
+        """Release backend resources."""
+        close = getattr(self._backend, "close", None)
+        if close is not None:
+            close()
+
     @property
     def loaded_agents(self) -> list[str]:
         """List of agents with registered wake words."""

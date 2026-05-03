@@ -49,6 +49,7 @@ def train_wake_word(
     epochs: int = 10,
 ) -> bytes:
     """Train a wake word model and return the ONNX bytes."""
+    import shutil
     import tempfile
     import subprocess
     from pathlib import Path
@@ -63,122 +64,121 @@ def train_wake_word(
 
     # Create working directory
     work_dir = Path(tempfile.mkdtemp())
-    output_dir = work_dir / "output"
-    output_dir.mkdir()
-
-    # Clone OpenWakeWord
-    print("\n[1/5] Setting up OpenWakeWord...")
-    subprocess.run(
-        ["git", "clone", "--depth=1", "https://github.com/dscripka/openWakeWord.git"],
-        check=False,
-        cwd=work_dir,
-        capture_output=True,
-    )
-
-    oww_dir = work_dir / "openWakeWord"
-
-    # Generate synthetic training data using piper-tts
-    print("\n[2/5] Generating synthetic speech samples...")
-
-    # Use OpenWakeWord's built-in synthetic data generation
     try:
-        import sys
+        output_dir = work_dir / "output"
+        output_dir.mkdir()
 
-        sys.path.insert(0, str(oww_dir))
-
-        from openwakeword.data import generate_clips
-
-        # Generate positive samples
-        positive_dir = output_dir / "positive"
-        positive_dir.mkdir()
-
-        generate_clips(
-            text=phrase,
-            output_dir=str(positive_dir),
-            n_samples=num_samples,
-        )
-        print(f"Generated {num_samples} positive samples")
-
-    except ImportError:
-        # Fallback: Use piper directly
-        print("Using piper-tts directly for sample generation...")
-        positive_dir = output_dir / "positive"
-        positive_dir.mkdir()
-
-        # Install piper voices
+        # Clone OpenWakeWord
+        print("\n[1/5] Setting up OpenWakeWord...")
         subprocess.run(
-            ["pip", "install", "piper-tts"],
+            ["git", "clone", "--depth=1", "https://github.com/dscripka/openWakeWord.git"],
             check=False,
+            cwd=work_dir,
             capture_output=True,
         )
 
-        # Generate samples with different voices
-        voices = [
-            "en_US-lessac-medium",
-            "en_US-amy-medium",
-            "en_GB-alba-medium",
-        ]
+        oww_dir = work_dir / "openWakeWord"
 
-        samples_per_voice = num_samples // len(voices)
-        sample_idx = 0
+        # Generate synthetic training data using piper-tts
+        print("\n[2/5] Generating synthetic speech samples...")
 
-        for voice in voices:
-            for i in range(samples_per_voice):
-                wav_path = positive_dir / f"sample_{sample_idx:05d}.wav"
-                subprocess.run(
-                    ["piper", "--model", voice, "--output_file", str(wav_path)],
-                    check=False,
-                    input=phrase.encode(),
-                    capture_output=True,
-                )
-                sample_idx += 1
+        # Use OpenWakeWord's built-in synthetic data generation
+        try:
+            import sys
 
-        print(f"Generated {sample_idx} positive samples")
+            sys.path.insert(0, str(oww_dir))
 
-    # Generate negative samples (random speech without wake word)
-    print("\n[3/5] Generating negative samples...")
-    negative_dir = output_dir / "negative"
-    negative_dir.mkdir()
+            from openwakeword.data import generate_clips
 
-    # Use adversarial phrases that sound similar
-    adversarial_phrases = [
-        phrase.replace("hey", "say"),
-        phrase.replace("hey", "hay"),
-        phrase.replace("hey", "he"),
-        phrase.rsplit(maxsplit=1)[-1] if len(phrase.split()) > 1 else "hello",
-        "hello there",
-        "what's the weather",
-        "play some music",
-        "turn on the lights",
-    ]
+            # Generate positive samples
+            positive_dir = output_dir / "positive"
+            positive_dir.mkdir()
 
-    neg_samples_per_phrase = num_samples // (len(adversarial_phrases) * 2)
-    neg_idx = 0
+            generate_clips(
+                text=phrase,
+                output_dir=str(positive_dir),
+                n_samples=num_samples,
+            )
+            print(f"Generated {num_samples} positive samples")
 
-    for neg_phrase in adversarial_phrases:
-        for i in range(neg_samples_per_phrase):
-            wav_path = negative_dir / f"neg_{neg_idx:05d}.wav"
+        except ImportError:
+            # Fallback: Use piper directly
+            print("Using piper-tts directly for sample generation...")
+            positive_dir = output_dir / "positive"
+            positive_dir.mkdir()
+
+            # Install piper voices
             subprocess.run(
-                ["piper", "--model", "en_US-lessac-medium", "--output_file", str(wav_path)],
+                ["pip", "install", "piper-tts"],
                 check=False,
-                input=neg_phrase.encode(),
                 capture_output=True,
             )
-            neg_idx += 1
 
-    print(f"Generated {neg_idx} negative samples")
+            # Generate samples with different voices
+            voices = [
+                "en_US-lessac-medium",
+                "en_US-amy-medium",
+                "en_GB-alba-medium",
+            ]
 
-    # Train the model
-    print("\n[4/5] Training neural network...")
+            samples_per_voice = num_samples // len(voices)
+            sample_idx = 0
 
-    model_output_path = output_dir / f"{model_name}.onnx"
+            for voice in voices:
+                for i in range(samples_per_voice):
+                    wav_path = positive_dir / f"sample_{sample_idx:05d}.wav"
+                    subprocess.run(
+                        ["piper", "--model", voice, "--output_file", str(wav_path)],
+                        check=False,
+                        input=phrase.encode(),
+                        capture_output=True,
+                    )
+                    sample_idx += 1
 
-    # Use OpenWakeWord's training CLI which is more reliable
-    train_result = subprocess.run(
-        [
-            "python",
-            "-c",
-            f"""
+            print(f"Generated {sample_idx} positive samples")
+
+        # Generate negative samples (random speech without wake word)
+        print("\n[3/5] Generating negative samples...")
+        negative_dir = output_dir / "negative"
+        negative_dir.mkdir()
+
+        # Use adversarial phrases that sound similar
+        adversarial_phrases = [
+            phrase.replace("hey", "say"),
+            phrase.replace("hey", "hay"),
+            phrase.replace("hey", "he"),
+            phrase.rsplit(maxsplit=1)[-1] if len(phrase.split()) > 1 else "hello",
+            "hello there",
+            "what's the weather",
+            "play some music",
+            "turn on the lights",
+        ]
+
+        neg_samples_per_phrase = num_samples // (len(adversarial_phrases) * 2)
+        neg_idx = 0
+
+        for neg_phrase in adversarial_phrases:
+            for i in range(neg_samples_per_phrase):
+                wav_path = negative_dir / f"neg_{neg_idx:05d}.wav"
+                subprocess.run(
+                    ["piper", "--model", "en_US-lessac-medium", "--output_file", str(wav_path)],
+                    check=False,
+                    input=neg_phrase.encode(),
+                    capture_output=True,
+                )
+                neg_idx += 1
+
+        print(f"Generated {neg_idx} negative samples")
+
+        # Train the model
+        print("\n[4/5] Training neural network...")
+
+        # Use OpenWakeWord's training CLI which is more reliable
+        train_result = subprocess.run(
+            [
+                "python",
+                "-c",
+                f"""
 import os
 import sys
 sys.path.insert(0, '{oww_dir}')
@@ -196,69 +196,71 @@ train_model(
     batch_size=64,
 )
 """,
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    if train_result.stdout:
-        print(f"Training stdout: {train_result.stdout}")
-    if train_result.stderr:
-        print(f"Training stderr: {train_result.stderr}")
-
-    if train_result.returncode != 0:
-        print(f"Training failed with code {train_result.returncode}")
-        # Try alternative method using the module directly
-        print("Trying alternative training method...")
-        alt_result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "openwakeword.train",
-                "--target_phrase",
-                phrase,
-                "--positive_audio_dir",
-                str(positive_dir),
-                "--negative_audio_dir",
-                str(negative_dir),
-                "--output_dir",
-                str(output_dir),
-                "--epochs",
-                str(epochs),
             ],
             check=False,
             capture_output=True,
             text=True,
         )
-        if alt_result.stdout:
-            print(f"Alt stdout: {alt_result.stdout}")
-        if alt_result.stderr:
-            print(f"Alt stderr: {alt_result.stderr}")
 
-    # Find the output model
-    print("\n[5/5] Exporting model...")
+        if train_result.stdout:
+            print(f"Training stdout: {train_result.stdout}")
+        if train_result.stderr:
+            print(f"Training stderr: {train_result.stderr}")
 
-    onnx_files = list(output_dir.glob("**/*.onnx"))
-    if not onnx_files:
-        # Check if model was saved elsewhere
-        onnx_files = list(work_dir.glob("**/*.onnx"))
+        if train_result.returncode != 0:
+            print(f"Training failed with code {train_result.returncode}")
+            # Try alternative method using the module directly
+            print("Trying alternative training method...")
+            alt_result = subprocess.run(
+                [
+                    "python",
+                    "-m",
+                    "openwakeword.train",
+                    "--target_phrase",
+                    phrase,
+                    "--positive_audio_dir",
+                    str(positive_dir),
+                    "--negative_audio_dir",
+                    str(negative_dir),
+                    "--output_dir",
+                    str(output_dir),
+                    "--epochs",
+                    str(epochs),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if alt_result.stdout:
+                print(f"Alt stdout: {alt_result.stdout}")
+            if alt_result.stderr:
+                print(f"Alt stderr: {alt_result.stderr}")
 
-    if onnx_files:
-        model_path = onnx_files[0]
-        print(f"Model saved: {model_path}")
+        # Find the output model
+        print("\n[5/5] Exporting model...")
 
-        # Read and return the model bytes
-        with open(model_path, "rb") as f:
-            model_bytes = f.read()
+        onnx_files = list(output_dir.glob("**/*.onnx"))
+        if not onnx_files:
+            # Check if model was saved elsewhere
+            onnx_files = list(work_dir.glob("**/*.onnx"))
 
-        print(f"\n{'=' * 60}")
-        print(f"SUCCESS! Model size: {len(model_bytes) / 1024 / 1024:.2f} MB")
-        print(f"{'=' * 60}")
+        if onnx_files:
+            model_path = onnx_files[0]
+            print(f"Model saved: {model_path}")
 
-        return model_bytes
-    else:
-        raise RuntimeError("Training failed - no ONNX model produced")
+            # Read and return the model bytes
+            with open(model_path, "rb") as f:
+                model_bytes = f.read()
+
+            print(f"\n{'=' * 60}")
+            print(f"SUCCESS! Model size: {len(model_bytes) / 1024 / 1024:.2f} MB")
+            print(f"{'=' * 60}")
+
+            return model_bytes
+        else:
+            raise RuntimeError("Training failed - no ONNX model produced")
+    finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
 
 
 @app.local_entrypoint()

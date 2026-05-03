@@ -34,6 +34,7 @@ class TokenManager:
         # Load existing tokens
         self._load_tokens()
         self._load_used_tokens()
+        self._cleanup_used_tokens()
 
         logger.info(f"TokenManager initialized with {len(self.active_tokens)} active tokens")
 
@@ -90,6 +91,20 @@ class TokenManager:
         except Exception as e:
             logger.error(f"Failed to save used tokens: {e}")
 
+    def _cleanup_used_tokens(self):
+        """Remove used-token markers for expired or revoked tokens."""
+        keep_used_tokens = {
+            token_id
+            for token_id, token_info in self.active_tokens.items()
+            if token_info.get("one_time_use", False) and token_info.get("used", False)
+        }
+        removed = self.used_tokens - keep_used_tokens
+        if not removed:
+            return
+        self.used_tokens = self.used_tokens.intersection(keep_used_tokens)
+        self._save_used_tokens()
+        logger.info(f"Pruned {len(removed)} stale used token record(s)")
+
     def _cleanup_expired_tokens(self):
         """Remove expired tokens from active tokens"""
         now = datetime.utcnow()
@@ -111,6 +126,7 @@ class TokenManager:
             logger.info(f"Removed expired token: {token_id}")
 
         if expired_tokens:
+            self._cleanup_used_tokens()
             self._save_tokens()
 
     def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> Dict[str, Any]:
@@ -243,7 +259,9 @@ class TokenManager:
             if token_id in self.active_tokens:
                 client_name = self.active_tokens[token_id].get("client_name", "unknown")
                 del self.active_tokens[token_id]
+                self.used_tokens.discard(token_id)
                 self._save_tokens()
+                self._save_used_tokens()
 
                 logger.info(f"Revoked token for client '{client_name}' (ID: {token_id})")
                 return True

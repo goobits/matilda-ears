@@ -26,6 +26,8 @@ from matilda_ears.core.mode_config import ModeConfig
 from matilda_ears.audio.capture import PipeBasedAudioStreamer
 from matilda_ears.transcription.backends import get_backend_class
 
+DEFAULT_MAX_RECORDING_SECONDS = 300
+
 
 class BaseMode(ABC):
     """Abstract base class for all STT operation modes."""
@@ -60,9 +62,20 @@ class BaseMode(ABC):
         # Recording state
         self.is_recording = False
         self.audio_data = []
+        self.audio_data_samples = 0
+        self.max_recording_samples = self._resolve_max_recording_samples()
 
         # Check dependencies
         self.logger.info(f"{self.__class__.__name__} initialized")
+
+    def _resolve_max_recording_samples(self) -> int:
+        try:
+            max_seconds = float(
+                os.environ.get("MATILDA_EARS_MAX_RECORDING_SECONDS", DEFAULT_MAX_RECORDING_SECONDS)
+            )
+        except ValueError:
+            max_seconds = DEFAULT_MAX_RECORDING_SECONDS
+        return max(1, int(max_seconds * self.mode_config.sample_rate))
 
     def _get_mode_config(self) -> dict[str, Any]:
         """Get mode-specific configuration from matilda config."""
@@ -264,6 +277,10 @@ class BaseMode(ABC):
                     break
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
                 self.audio_data.append(audio_chunk)
+                self.audio_data_samples += len(audio_chunk)
+                while self.audio_data_samples > self.max_recording_samples and self.audio_data:
+                    removed_chunk = self.audio_data.pop(0)
+                    self.audio_data_samples -= len(removed_chunk)
             except TimeoutError:
                 # No audio data available - continue if still recording
                 continue
@@ -301,6 +318,7 @@ class BaseMode(ABC):
 
             self.is_recording = True
             self.audio_data = []
+            self.audio_data_samples = 0
 
             # Start audio streamer
             if self.audio_streamer is None or not self.audio_streamer.start_recording():
@@ -351,7 +369,8 @@ class BaseMode(ABC):
 
     async def _cleanup(self):
         """Default cleanup behavior. Can be overridden by subclasses."""
-        if self.is_recording and self.audio_streamer:
+        if self.audio_streamer and (self.is_recording or self.audio_streamer.is_recording()):
             self.audio_streamer.stop_recording()
+        self.is_recording = False
 
         self.logger.info(f"{self.__class__.__name__} cleanup completed")

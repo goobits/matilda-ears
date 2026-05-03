@@ -17,11 +17,19 @@ import numpy as np
 import websockets
 
 from ....core.config import get_config, setup_logging
+from ....core.memory import current_rss_bytes
 
 if TYPE_CHECKING:
     from ..core import MatildaWebSocketServer
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
+
+
+def _delete_temp_file(temp_path: str) -> None:
+    try:
+        os.unlink(temp_path)
+    except OSError:
+        logger.warning(f"Failed to delete temp file: {temp_path}")
 
 
 def _transcription_timeout_seconds() -> float | None:
@@ -55,6 +63,11 @@ async def transcribe_audio_from_wav(
         logger.warning(f"Client {client_id}: Audio too small ({len(wav_data)} bytes < {MIN_AUDIO_SIZE}), skipping")
         return False, "", {"error": "Audio data too small"}
 
+    server.transcriptions_started += 1
+    server.transcriptions_inflight += 1
+    rss_before = current_rss_bytes()
+    started = asyncio.get_running_loop().time()
+
     # Save to temporary file
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
         temp_file.write(wav_data)
@@ -62,7 +75,12 @@ async def transcribe_audio_from_wav(
 
     try:
         # Transcribe in executor to avoid blocking
-        logger.debug(f"Client {client_id}: Starting transcription...")
+        logger.info(
+            "Client %s: Starting transcription (wav=%d bytes, rss=%s)",
+            client_id,
+            len(wav_data),
+            rss_before,
+        )
         loop = asyncio.get_event_loop()
 
         def transcribe_audio():
@@ -72,25 +90,45 @@ async def transcribe_audio_from_wav(
             # Delegate to backend
             return backend.transcribe(temp_path, language="en")
 
-        # Serialize GPU work for Parakeet to prevent MPS crashes
-        # Acquire semaphore before transcription (queues requests when limit reached)
         timeout_seconds = _transcription_timeout_seconds()
+        await server.transcription_executor_semaphore.acquire()
+        executor_slot_released = False
+
+        def release_executor_slot_when_done(_task):
+            nonlocal executor_slot_released
+            if not executor_slot_released:
+                server.transcription_executor_semaphore.release()
+                executor_slot_released = True
+
         if server.transcription_semaphore:
-            async with server.transcription_semaphore:
-                logger.debug(f"Client {client_id}: Acquired transcription lock (serialized GPU work)")
-                task = loop.run_in_executor(None, transcribe_audio)
-                if timeout_seconds is None:
-                    text, info = await task
-                else:
-                    text, info = await asyncio.wait_for(task, timeout=timeout_seconds)
+            await server.transcription_semaphore.acquire()
+            logger.debug(f"Client {client_id}: Acquired transcription lock (serialized GPU work)")
+            task = loop.run_in_executor(server.transcription_executor, transcribe_audio)
+            task.add_done_callback(release_executor_slot_when_done)
+
+            def release_lock_when_done(_task):
+                server.transcription_semaphore.release()
                 logger.debug(f"Client {client_id}: Released transcription lock")
-        else:
-            # No serialization needed (faster_whisper/huggingface can run concurrently)
-            task = loop.run_in_executor(None, transcribe_audio)
+
+            task.add_done_callback(release_lock_when_done)
             if timeout_seconds is None:
                 text, info = await task
             else:
-                text, info = await asyncio.wait_for(task, timeout=timeout_seconds)
+                done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
+                if not done:
+                    raise TimeoutError
+                text, info = await task
+        else:
+            # No serialization needed (faster_whisper/huggingface can run concurrently)
+            task = loop.run_in_executor(server.transcription_executor, transcribe_audio)
+            task.add_done_callback(release_executor_slot_when_done)
+            if timeout_seconds is None:
+                text, info = await task
+            else:
+                done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
+                if not done:
+                    raise TimeoutError
+                text, info = await task
 
         logger.debug(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
 
@@ -133,6 +171,18 @@ async def transcribe_audio_from_wav(
             except Exception as e:
                 logger.warning(f"Client {client_id}: Ears Tuner formatting failed: {e}")
 
+        server.transcriptions_completed += 1
+        rss_after = current_rss_bytes()
+        logger.info(
+            "Client %s: Transcription complete (duration=%.2fs, text=%d chars, rss_before=%s, rss_after=%s, rss_delta=%s)",
+            client_id,
+            asyncio.get_running_loop().time() - started,
+            len(text),
+            rss_before,
+            rss_after,
+            None if rss_before is None or rss_after is None else rss_after - rss_before,
+        )
+
         return (
             True,
             text,
@@ -144,17 +194,20 @@ async def transcribe_audio_from_wav(
 
     except TimeoutError:
         timeout_seconds = _transcription_timeout_seconds() or 0
+        server.transcriptions_timed_out += 1
         logger.error(f"Client {client_id}: Transcription timed out after {timeout_seconds:.1f}s")
         return False, "", {"error": f"Transcription timed out after {timeout_seconds:.1f}s"}
     except Exception as e:
+        server.transcriptions_failed += 1
         logger.exception(f"Client {client_id}: Transcription error: {e}")
         return False, "", {"error": str(e)}
     finally:
-        # Clean up temp file
-        try:
-            os.unlink(temp_path)
-        except OSError:
-            logger.warning(f"Failed to delete temp file: {temp_path}")
+        server.transcriptions_inflight = max(0, server.transcriptions_inflight - 1)
+        task = locals().get("task")
+        if task is not None and not task.done():
+            task.add_done_callback(lambda _task: _delete_temp_file(temp_path))
+        else:
+            _delete_temp_file(temp_path)
 
 
 def pcm_to_wav(samples: np.ndarray, sample_rate: int, channels: int = 1) -> bytes:

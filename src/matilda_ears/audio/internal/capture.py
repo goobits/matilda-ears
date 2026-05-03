@@ -194,6 +194,11 @@ class PipeBasedAudioStreamer:
     def start_recording(self) -> bool:
         """Start recording with direct pipe streaming."""
         try:
+            if self.is_recording():
+                logger.warning("[PIPE-STREAM] Recording is already active")
+                return False
+            self._cleanup_process()
+
             # Build platform-specific audio command
             cmd = self._build_audio_command()
 
@@ -210,18 +215,18 @@ class PipeBasedAudioStreamer:
                 try:
                     # Try with stdbuf first (to disable arecord's internal buffering)
                     self.arecord_process = subprocess.Popen(
-                        cmd_with_stdbuf, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+                        cmd_with_stdbuf, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0
                     )
                     logger.info("[PIPE-STREAM] Started with stdbuf for unbuffered output")
                 except FileNotFoundError:
                     # Fall back to regular command if stdbuf not available
                     self.arecord_process = subprocess.Popen(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0
                     )
                     logger.info("[PIPE-STREAM] Started without stdbuf")
             else:
                 # For ffmpeg and other tools, start directly without stdbuf
-                self.arecord_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+                self.arecord_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
                 logger.info(f"[PIPE-STREAM] Started {audio_tool} directly")
 
             # Start reader thread
@@ -234,7 +239,36 @@ class PipeBasedAudioStreamer:
 
         except Exception as e:
             logger.info(f"[PIPE-STREAM] Failed to start recording: {e}")
+            self._cleanup_process()
             return False
+
+    def _cleanup_process(self) -> None:
+        self._stop_event.set()
+
+        if self.arecord_process is not None:
+            if self.arecord_process.stdout is not None:
+                try:
+                    self.arecord_process.stdout.close()
+                except OSError:
+                    pass
+
+            if self.arecord_process.poll() is None:
+                try:
+                    self.arecord_process.terminate()
+                    self.arecord_process.wait(timeout=1.0)
+                except subprocess.TimeoutExpired:
+                    self.arecord_process.kill()
+                    self.arecord_process.wait()
+                except OSError:
+                    pass
+
+        if self.reader_thread and self.reader_thread.is_alive():
+            self.reader_thread.join(timeout=1.0)
+
+        self.arecord_process = None
+        self.reader_thread = None
+        self._audio_buffer = b""
+        self._stop_event.clear()
 
     def stop_recording(self) -> dict[str, Any]:
         """Stop recording and return final statistics."""
@@ -416,7 +450,7 @@ class PipeBasedAudioStreamer:
 
             # Use the thread-safe method to put the item on the async queue.
             try:
-                self.loop.call_soon_threadsafe(self.queue.put_nowait, audio_chunk)
+                self.loop.call_soon_threadsafe(self._put_chunk_nowait, audio_chunk)
             except Exception as e:
                 logger.error(f"[PIPE-STREAM] Error putting chunk in queue: {e}")
                 # If queue is full or loop is closed, we need to handle this gracefully
@@ -443,11 +477,19 @@ class PipeBasedAudioStreamer:
                 self.stats.update_chunk(len(remaining_chunk))
                 # Use the same thread-safe method for the final chunk.
                 try:
-                    self.loop.call_soon_threadsafe(self.queue.put_nowait, remaining_chunk)
+                    self.loop.call_soon_threadsafe(self._put_chunk_nowait, remaining_chunk)
                 except Exception as e:
                     logger.error(f"[PIPE-STREAM] Final callback error: {e}")
 
             self._audio_buffer = b""
+
+    def _put_chunk_nowait(self, audio_chunk):
+        try:
+            self.queue.put_nowait(audio_chunk)
+        except asyncio.QueueFull:
+            logger.warning("[PIPE-STREAM] Audio queue is full, dropping chunk to prevent blocking")
+        except RuntimeError as e:
+            logger.warning(f"[PIPE-STREAM] Unable to queue audio chunk: {e}")
 
     def is_recording(self) -> bool:
         """Check if recording is active."""

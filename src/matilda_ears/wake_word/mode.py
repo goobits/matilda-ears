@@ -306,4 +306,7 @@ class WakeWordMode(BaseMode):
     async def _cleanup(self):
         """Clean up resources."""
         self._running = False
+        if self.detector:
+            self.detector.close()
+            self.detector = None
         await super()._cleanup()

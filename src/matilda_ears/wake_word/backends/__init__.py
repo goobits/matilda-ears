@@ -37,6 +37,10 @@ class WakeWordBackend(Protocol):
         """Reset internal state between utterances."""
         ...
 
+    def close(self) -> None:
+        """Release backend resources."""
+        ...
+
     @property
     def loaded_agents(self) -> list[str]:
         """List of agents with registered wake words."""

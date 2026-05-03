@@ -194,9 +194,13 @@ class TranscriptionClient:
             on_partial_result=on_partial_result,
         )
 
-        # Connect and start session
-        await streaming_client.connect()
-        actual_session_id = await streaming_client.start_stream(session_id)
+        try:
+            # Connect and start session
+            await streaming_client.connect()
+            actual_session_id = await streaming_client.start_stream(session_id)
+        except Exception:
+            await streaming_client.disconnect()
+            raise
 
         # Track active session
         self.active_streaming_sessions[actual_session_id] = streaming_client
@@ -210,8 +214,16 @@ class TranscriptionClient:
             streaming_client: The streaming client to clean up
 
         """
-        if streaming_client.session_id and streaming_client.session_id in self.active_streaming_sessions:
-            del self.active_streaming_sessions[streaming_client.session_id]
+        if streaming_client.session_id:
+            self.active_streaming_sessions.pop(streaming_client.session_id, None)
+        else:
+            stale_session_ids = [
+                session_id
+                for session_id, active_client in self.active_streaming_sessions.items()
+                if active_client is streaming_client
+            ]
+            for session_id in stale_session_ids:
+                self.active_streaming_sessions.pop(session_id, None)
 
         try:
             await streaming_client.disconnect()

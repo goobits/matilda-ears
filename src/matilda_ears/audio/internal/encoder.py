@@ -50,7 +50,8 @@ class OpusEncoder:
             audio_data: Audio samples as numpy array (float32 or int16)
 
         Returns:
-            Opus-encoded data if frame is complete, None if buffering
+            Opus-encoded data if frame is complete, None if buffering.
+            For callers that can accept multiple packets, prefer encode_chunks().
 
         """
         # Convert to int16 if needed
@@ -80,6 +81,32 @@ class OpusEncoder:
                 return None
 
         return None
+
+    def encode_chunks(self, audio_data: np.ndarray) -> list[bytes]:
+        """Encode audio chunk to all complete Opus frames currently available."""
+        packets = []
+
+        if audio_data.dtype == np.float32:
+            audio_data = float32_to_int16(audio_data)
+
+        self.audio_buffer.extend(audio_data)
+        self.buffer_size += len(audio_data)
+
+        while self.buffer_size >= self.frame_size:
+            frame = np.array(self.audio_buffer[: self.frame_size], dtype=np.int16)
+            self.audio_buffer = self.audio_buffer[self.frame_size :]
+            self.buffer_size -= self.frame_size
+
+            try:
+                encoded = self.encoder.encode(frame.tobytes(), self.frame_size)
+                packets.append(bytes(encoded))
+            except Exception as e:
+                logger.error(f"Opus encoding error: {e}")
+                break
+
+        if packets:
+            logger.debug(f"Encoded {len(packets)} frame(s) from chunk")
+        return packets
 
     def flush(self) -> bytes | None:
         """Encode any remaining samples in buffer with padding."""

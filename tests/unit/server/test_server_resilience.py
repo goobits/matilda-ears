@@ -38,6 +38,10 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
 
     session_id = "s-1"
     client_id = "deadbeef"
+
+    async def cleanup_session_state(session_id):
+        await MatildaWebSocketServer._cleanup_session_state(server, session_id)
+
     server = SimpleNamespace(
         connected_clients=set(),
         binary_stream_sessions={},
@@ -47,8 +51,12 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
         session_chunk_counts={session_id: {"received": 1}},
         ending_sessions={session_id},
         streaming_sessions={session_id: object()},
+        wake_word_sessions={session_id: True},
+        wake_word_buffers={session_id: object()},
+        wake_word_debug_sessions={session_id: {"last_sent": 0}},
         process_message=AsyncMock(),
         _cleanup_streaming_session=cleanup_mock,
+        _cleanup_session_state=cleanup_session_state,
         backend=SimpleNamespace(is_ready=True),
     )
 
@@ -64,6 +72,65 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
     assert session_id not in server.pcm_sessions
     assert session_id not in server.session_chunk_counts
     assert session_id not in server.ending_sessions
+    assert session_id not in server.wake_word_sessions
+    assert session_id not in server.wake_word_buffers
+    assert session_id not in server.wake_word_debug_sessions
+
+
+@pytest.mark.asyncio
+async def test_handle_client_disconnect_cleans_binary_session_not_in_client_sessions(monkeypatch):
+    cleanup_mock = AsyncMock()
+    opus_decoder = SimpleNamespace(remove_session=Mock())
+
+    session_id = "binary-only"
+    client_id = "deadbeef"
+
+    async def cleanup_session_state(session_id):
+        await MatildaWebSocketServer._cleanup_session_state(server, session_id)
+
+    server = SimpleNamespace(
+        connected_clients=set(),
+        binary_stream_sessions={client_id: session_id},
+        client_sessions={},
+        pcm_sessions={},
+        opus_decoder=opus_decoder,
+        session_chunk_counts={session_id: {"received": 1}},
+        ending_sessions=set(),
+        streaming_sessions={},
+        wake_word_sessions={session_id: True},
+        wake_word_buffers={session_id: object()},
+        wake_word_debug_sessions={},
+        process_message=AsyncMock(),
+        _cleanup_streaming_session=cleanup_mock,
+        _cleanup_session_state=cleanup_session_state,
+        backend=SimpleNamespace(is_ready=True),
+    )
+
+    monkeypatch.setattr("matilda_ears.transcription.server.core.uuid.uuid4", lambda: "deadbeef-0000-0000-0000")
+
+    ws = _SilentWebSocket()
+    await MatildaWebSocketServer.handle_client(server, ws)
+
+    opus_decoder.remove_session.assert_called_once_with(session_id)
+    assert client_id not in server.binary_stream_sessions
+    assert session_id not in server.session_chunk_counts
+    assert session_id not in server.wake_word_sessions
+    assert session_id not in server.wake_word_buffers
+
+
+def test_rate_limit_prunes_inactive_ip_buckets():
+    server = SimpleNamespace(
+        rate_limits={
+            "203.0.113.10": [100.0],
+            "203.0.113.11": [195.0],
+        },
+        _last_rate_limit_cleanup=0.0,
+    )
+
+    MatildaWebSocketServer._cleanup_rate_limits(server, now=200.0)
+
+    assert "203.0.113.10" not in server.rate_limits
+    assert server.rate_limits["203.0.113.11"] == [195.0]
 
 
 @pytest.mark.asyncio
@@ -89,7 +156,7 @@ async def test_start_server_delegates_via_lazy_import(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_transcribe_audio_timeout_does_not_lock_serialization_semaphore(monkeypatch):
+async def test_transcribe_audio_timeout_holds_serialization_until_worker_finishes(monkeypatch):
     class _Config:
         def get(self, key, default=None):
             if key == "transcription.timeout_seconds":
@@ -120,6 +187,8 @@ async def test_transcribe_audio_timeout_does_not_lock_serialization_semaphore(mo
     assert success is False
     assert text == ""
     assert "timed out" in info["error"].lower()
+    assert server.transcription_semaphore.locked() is True
+    await asyncio.sleep(0.06)
     assert server.transcription_semaphore.locked() is False
 
 

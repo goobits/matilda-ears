@@ -10,11 +10,20 @@ import sys
 import threading
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
-from queue import SimpleQueue
+from queue import Full, Queue
 
 _LISTENER_LOCK = threading.Lock()
-_LOG_QUEUE: SimpleQueue | None = None
+_LOG_QUEUE: Queue | None = None
 _LOG_LISTENER: QueueListener | None = None
+_DEFAULT_LOG_QUEUE_SIZE = 10_000
+
+
+class _DroppingQueueHandler(QueueHandler):
+    def enqueue(self, record: logging.LogRecord) -> None:
+        try:
+            self.queue.put_nowait(record)
+        except Full:
+            pass
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -84,7 +93,11 @@ def _ensure_listener(log_level: int, include_console: bool, include_file: bool) 
         if not handlers:
             return None
 
-        _LOG_QUEUE = SimpleQueue()
+        try:
+            queue_size = int(os.environ.get("MATILDA_LOG_QUEUE_SIZE", str(_DEFAULT_LOG_QUEUE_SIZE)))
+        except ValueError:
+            queue_size = _DEFAULT_LOG_QUEUE_SIZE
+        _LOG_QUEUE = Queue(maxsize=max(1, queue_size))
         _LOG_LISTENER = QueueListener(_LOG_QUEUE, *handlers, respect_handler_level=True)
         _LOG_LISTENER.start()
         atexit.register(_stop_listener)
@@ -133,7 +146,7 @@ def setup_logging(
         logger.addHandler(logging.NullHandler())
         return logger
 
-    queue_handler = QueueHandler(_LOG_QUEUE)
+    queue_handler = _DroppingQueueHandler(_LOG_QUEUE)
     queue_handler.setLevel(level)
     logger.addHandler(queue_handler)
 

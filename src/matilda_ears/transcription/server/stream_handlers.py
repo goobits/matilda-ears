@@ -53,6 +53,9 @@ if TYPE_CHECKING:
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 MAX_PCM_BUFFER_SECONDS = int(os.getenv("MATILDA_EARS_MAX_STREAM_BUFFER_SECONDS", "120"))
+MAX_SESSIONS_PER_CLIENT = int(os.getenv("MATILDA_EARS_MAX_SESSIONS_PER_CLIENT", "4"))
+MAX_ACTIVE_SESSIONS = int(os.getenv("MATILDA_EARS_MAX_ACTIVE_SESSIONS", "32"))
+MAX_DEBUG_OPUS_LOG_CHUNKS = int(os.getenv("MATILDA_EARS_MAX_DEBUG_OPUS_LOG_CHUNKS", "1000"))
 
 
 def _downmix_to_mono(pcm_samples: np.ndarray, channels: int) -> np.ndarray:
@@ -76,6 +79,44 @@ def _streaming_enabled() -> bool:
 
     config = get_config()
     return bool(config.get("streaming", {}).get("enabled", True))
+
+
+async def _cleanup_existing_session(server: "MatildaWebSocketServer", session_id: str) -> None:
+    """Remove stale state before reusing a client-provided session id."""
+    has_existing_state = (
+        session_id in server.streaming_sessions
+        or session_id in server.pcm_sessions
+        or session_id in server.session_chunk_counts
+        or session_id in server.ending_sessions
+        or session_id in server.wake_word_sessions
+        or server.opus_decoder.get_session(session_id) is not None
+    )
+    if not has_existing_state:
+        return
+
+    await server._cleanup_session_state(session_id)
+    for tracked_client_id, sessions in list(server.client_sessions.items()):
+        sessions.discard(session_id)
+        if not sessions:
+            server.client_sessions.pop(tracked_client_id, None)
+    for tracked_client_id, tracked_session_id in list(server.binary_stream_sessions.items()):
+        if tracked_session_id == session_id:
+            server.binary_stream_sessions.pop(tracked_client_id, None)
+
+
+def _active_session_count(server: "MatildaWebSocketServer") -> int:
+    session_ids = set(server.streaming_sessions)
+    session_ids.update(server.pcm_sessions)
+    session_ids.update(server.session_chunk_counts)
+    session_ids.update(server.opus_decoder.get_active_sessions())
+    return len(session_ids)
+
+
+def _append_debug_opus_log(server: "MatildaWebSocketServer", session_id: str, entry: dict) -> None:
+    opus_log = server.session_chunk_counts[session_id]["opus_log"]
+    opus_log.append(entry)
+    if len(opus_log) > MAX_DEBUG_OPUS_LOG_CHUNKS:
+        del opus_log[: len(opus_log) - MAX_DEBUG_OPUS_LOG_CHUNKS]
 
 
 def _audio_debug_enabled() -> bool:
@@ -239,6 +280,16 @@ async def handle_start_stream(
 
     # Create session ID for this stream
     session_id = data.get("session_id", f"{client_id}_{uuid.uuid4().hex[:8]}")
+    await _cleanup_existing_session(server, session_id)
+
+    client_session_count = len(server.client_sessions.get(client_id, set()))
+    if client_session_count >= MAX_SESSIONS_PER_CLIENT:
+        await send_error(websocket, "Too many active sessions for this client", code="too_many_sessions")
+        return
+
+    if _active_session_count(server) >= MAX_ACTIVE_SESSIONS:
+        await send_error(websocket, "Too many active sessions on server", code="too_many_sessions")
+        return
 
     # Track session for this client (for cleanup on disconnect)
     if client_id not in server.client_sessions:
@@ -392,7 +443,9 @@ async def handle_audio_chunk(
 
         # Store chunk info for analysis
         if _audio_debug_enabled():
-            server.session_chunk_counts[session_id]["opus_log"].append(
+            _append_debug_opus_log(
+                server,
+                session_id,
                 {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}  # Store actual data for analysis
             )
 
@@ -479,8 +532,10 @@ async def handle_binary_stream_chunk(
         logger.debug(f"Client {client_id}: Received binary chunk #{chunk_num}, size: {len(opus_data)} bytes")
 
         if _audio_debug_enabled():
-            server.session_chunk_counts[session_id]["opus_log"].append(
-                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}
+            _append_debug_opus_log(
+                server,
+                session_id,
+                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},
             )
 
         pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)

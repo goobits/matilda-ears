@@ -6,6 +6,7 @@ wires them together.
 """
 
 import asyncio
+import concurrent.futures
 import json
 import os
 import time
@@ -82,6 +83,15 @@ class MatildaWebSocketServer:
             os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
             logger.debug("PYTORCH_ENABLE_MPS_FALLBACK=1 set")
 
+        try:
+            max_workers = 1 if self.backend_name == "parakeet" else int(config.get("transcription.max_workers", 2))
+        except (TypeError, ValueError):
+            max_workers = 2
+        self.transcription_executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max(1, max_workers), thread_name_prefix="EarsTranscribe"
+        )
+        self.transcription_executor_semaphore = asyncio.Semaphore(max(1, max_workers))
+
         # WebSocket-level session tracking (self-contained)
         self.streaming_sessions = {}  # session_id -> StreamingSession (new framework)
 
@@ -96,6 +106,7 @@ class MatildaWebSocketServer:
         # Rate limiting: max 10 requests per minute per IP
         self.rate_limits = defaultdict(list)
         self.max_requests_per_minute = 10
+        self._last_rate_limit_cleanup = 0.0
 
         # Client tracking
         self.connected_clients = set()
@@ -142,6 +153,12 @@ class MatildaWebSocketServer:
 
         # Health server runner (set during start_server)
         self._health_runner = None
+
+        self.transcriptions_started = 0
+        self.transcriptions_completed = 0
+        self.transcriptions_failed = 0
+        self.transcriptions_timed_out = 0
+        self.transcriptions_inflight = 0
 
         # Set up message handlers dictionary
         self.message_handlers = {
@@ -208,6 +225,7 @@ class MatildaWebSocketServer:
 
         now = time.time()
         minute_ago = now - 60
+        self._cleanup_rate_limits(now)
 
         # Clean old entries
         self.rate_limits[client_ip] = [timestamp for timestamp in self.rate_limits[client_ip] if timestamp > minute_ago]
@@ -219,6 +237,21 @@ class MatildaWebSocketServer:
         # Add current request
         self.rate_limits[client_ip].append(now)
         return True
+
+    def _cleanup_rate_limits(self, now: float | None = None) -> None:
+        """Prune inactive rate-limit buckets so remote IP churn cannot grow forever."""
+        now = time.time() if now is None else now
+        if now - self._last_rate_limit_cleanup < 60:
+            return
+
+        minute_ago = now - 60
+        self._last_rate_limit_cleanup = now
+        for ip, timestamps in list(self.rate_limits.items()):
+            recent = [timestamp for timestamp in timestamps if timestamp > minute_ago]
+            if recent:
+                self.rate_limits[ip] = recent
+            else:
+                self.rate_limits.pop(ip, None)
 
     async def handle_client(self, websocket, path=None):
         """Handle individual WebSocket client connections.
@@ -281,26 +314,33 @@ class MatildaWebSocketServer:
             logger.exception(traceback.format_exc())
         finally:
             self.connected_clients.discard(websocket)
-            self.binary_stream_sessions.pop(client_id, None)
+            binary_session_id = self.binary_stream_sessions.pop(client_id, None)
             # Clean up any streaming sessions for this client
-            if client_id in self.client_sessions:
-                orphaned_sessions = self.client_sessions.pop(client_id, set())
-                for session_id in orphaned_sessions:
-                    # Clean up all session state
-                    self.pcm_sessions.pop(session_id, None)
-                    self.opus_decoder.remove_session(session_id)
-                    self.session_chunk_counts.pop(session_id, None)
-                    self.ending_sessions.discard(session_id)
-                    # Abort new streaming framework session if active
-                    if session_id in self.streaming_sessions:
-                        try:
-                            session = self.streaming_sessions.pop(session_id)
-                            await self._cleanup_streaming_session(session)
-                        except Exception as e:
-                            logger.debug(f"Client {client_id}: Session cleanup failed for {session_id}: {e}")
-                if orphaned_sessions:
-                    logger.debug(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
+            orphaned_sessions = set(self.client_sessions.pop(client_id, set()))
+            if binary_session_id:
+                orphaned_sessions.add(binary_session_id)
+            for session_id in orphaned_sessions:
+                try:
+                    await self._cleanup_session_state(session_id)
+                except Exception as e:
+                    logger.debug(f"Client {client_id}: Session cleanup failed for {session_id}: {e}")
+            if orphaned_sessions:
+                logger.debug(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
             logger.debug(f"Client {client_id} removed")
+
+    async def _cleanup_session_state(self, session_id: str) -> None:
+        """Release all server-side state associated with a streaming session."""
+        self.pcm_sessions.pop(session_id, None)
+        self.opus_decoder.remove_session(session_id)
+        self.session_chunk_counts.pop(session_id, None)
+        self.ending_sessions.discard(session_id)
+        self.wake_word_sessions.pop(session_id, None)
+        self.wake_word_buffers.pop(session_id, None)
+        self.wake_word_debug_sessions.pop(session_id, None)
+
+        session = self.streaming_sessions.pop(session_id, None)
+        if session is not None:
+            await self._cleanup_streaming_session(session)
 
     async def _cleanup_streaming_session(self, session) -> None:
         """Release streaming session resources without raising."""
@@ -422,6 +462,12 @@ class MatildaWebSocketServer:
         from .main import start_server
 
         await start_server(self, host, port)
+
+    def close(self) -> None:
+        self.transcription_executor.shutdown(wait=False, cancel_futures=True)
+        close = getattr(self.token_manager, "close", None)
+        if close is not None:
+            close()
 
 
 # Enhanced server with dual-mode support

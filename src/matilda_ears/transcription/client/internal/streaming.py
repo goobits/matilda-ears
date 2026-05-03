@@ -22,6 +22,8 @@ from ....audio.encoder import OpusEncoder
 from ....core.config import setup_logging
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
+MAX_PENDING_MESSAGES = int(os.getenv("MATILDA_EARS_STREAM_CLIENT_PENDING_MESSAGES", "100"))
+RESULT_TIMEOUT_SECONDS = float(os.getenv("MATILDA_EARS_STREAM_RESULT_TIMEOUT_SECONDS", "60"))
 
 
 def _unwrap_envelope(data: dict) -> dict:
@@ -120,7 +122,7 @@ class StreamingAudioClient:
         self.on_partial_result = on_partial_result
         self._listener_task: asyncio.Task | None = None
         self._stop_listener = asyncio.Event()
-        self._pending_messages: asyncio.Queue = asyncio.Queue()
+        self._pending_messages: asyncio.Queue = asyncio.Queue(maxsize=MAX_PENDING_MESSAGES)
 
         # Track latest partial result for callers that don't use callback
         self._latest_partial: PartialResult | None = None
@@ -201,7 +203,7 @@ class StreamingAudioClient:
                         )
                     else:
                         # Queue non-partial messages for end_stream to process
-                        await self._pending_messages.put(data)
+                        await self._queue_pending_message(data)
                         logger.debug(f"Queued message type: {msg_type}")
 
                 except TimeoutError:
@@ -219,6 +221,21 @@ class StreamingAudioClient:
         finally:
             logger.debug("Partial result listener stopped")
 
+    def _clear_pending_messages(self):
+        while not self._pending_messages.empty():
+            try:
+                self._pending_messages.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
+    async def _queue_pending_message(self, data: dict) -> None:
+        if self._pending_messages.full():
+            try:
+                self._pending_messages.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        await self._pending_messages.put(data)
+
     def _start_listener(self):
         """Start the background listener task."""
         self._stop_listener.clear()
@@ -230,7 +247,7 @@ class StreamingAudioClient:
         if self._listener_task:
             try:
                 await asyncio.wait_for(self._listener_task, timeout=2.0)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self._listener_task.cancel()
                 try:
                     await self._listener_task
@@ -288,6 +305,7 @@ class StreamingAudioClient:
 
         self.session_id = session_id
         self._latest_partial = None  # Reset for new session
+        self._clear_pending_messages()
 
         # Send start stream message
         message = {
@@ -340,11 +358,19 @@ class StreamingAudioClient:
         # Update raw byte counter
         self.total_raw_bytes += len(audio_data) * 2  # 2 bytes per sample (16-bit audio)
 
-        # Encode chunk (may return None if buffering)
-        opus_data = self.encoder.encode_chunk(audio_data)
+        # Encode all complete Opus frames from this chunk. Larger caller chunks
+        # can produce multiple packets; emitting only one would retain excess
+        # samples and increase memory/latency over time.
+        opus_packets = self.encoder.encode_chunks(audio_data)
 
-        if opus_data:
-            # Only increment counter when Opus packet is actually created and sent
+        if opus_packets:
+            for opus_data in opus_packets:
+                await self._send_opus_packet(opus_data, len(audio_data))
+        else:
+            logger.debug(f"Buffering audio: {len(audio_data)} samples (waiting for complete frame)")
+
+    async def _send_opus_packet(self, opus_data: bytes, source_sample_count: int) -> None:
+        try:
             self.sent_opus_packets += 1
             self.debug_chunk_count += 1
             self.total_opus_bytes += len(opus_data)
@@ -363,21 +389,18 @@ class StreamingAudioClient:
                 "audio_data": base64.b64encode(opus_data).decode("utf-8"),
             }
 
-            try:
-                await self.websocket.send(json.dumps(message))
-                logger.info(
-                    f"SENT opus packet #{self.sent_opus_packets}: {len(audio_data)} samples -> {len(opus_data)} bytes"
-                )
-            except websockets.exceptions.ConnectionClosed as e:
-                logger.error(f"Connection closed while sending audio chunk: {e}")
-                # Store error for later handling but don't interrupt stream
-                self._last_streaming_error = TranscriptionConnectionError(f"Connection lost during streaming: {e}")
-            except Exception as e:
-                logger.error(f"Failed to send audio chunk: {e}")
-                # Store error for later handling but don't interrupt stream
-                self._last_streaming_error = StreamingError(f"Failed to send audio chunk: {e}")
-        else:
-            logger.debug(f"Buffering audio: {len(audio_data)} samples (waiting for complete frame)")
+            await self.websocket.send(json.dumps(message))
+            logger.info(
+                f"SENT opus packet #{self.sent_opus_packets}: {source_sample_count} source samples -> {len(opus_data)} bytes"
+            )
+        except websockets.exceptions.ConnectionClosed as e:
+            logger.error(f"Connection closed while sending audio chunk: {e}")
+            # Store error for later handling but don't interrupt stream
+            self._last_streaming_error = TranscriptionConnectionError(f"Connection lost during streaming: {e}")
+        except Exception as e:
+            logger.error(f"Failed to send audio chunk: {e}")
+            # Store error for later handling but don't interrupt stream
+            self._last_streaming_error = StreamingError(f"Failed to send audio chunk: {e}")
 
     async def end_stream(self) -> dict:
         """End streaming session and get transcription.
@@ -510,8 +533,16 @@ class StreamingAudioClient:
         # If not in queue, wait for it from websocket
         if response_data is None:
             try:
-                response = await self.websocket.recv()
+                response = await asyncio.wait_for(self.websocket.recv(), timeout=RESULT_TIMEOUT_SECONDS)
                 response_data = _unwrap_envelope(json.loads(response))
+            except asyncio.TimeoutError:
+                logger.error("Timed out waiting for transcription result")
+                if self.debug_save_audio:
+                    self.save_debug_audio()
+                    self.debug_raw_chunks.clear()
+                    self.debug_opus_chunks.clear()
+                await self.disconnect()
+                return self._error_response("Timed out waiting for transcription result")
             except websockets.exceptions.ConnectionClosed as e:
                 logger.error(f"Connection closed while receiving transcription result: {e}")
                 # Save debug audio on connection failure
@@ -535,6 +566,7 @@ class StreamingAudioClient:
         self.session_id = None
         self.encoder.reset()
         self.sent_opus_packets = 0
+        self.debug_chunk_count = 0
 
         # Reset byte counters
         self.total_raw_bytes = 0
@@ -550,6 +582,7 @@ class StreamingAudioClient:
         # Clear debug collections after saving to free memory
         self.debug_raw_chunks.clear()
         self.debug_opus_chunks.clear()
+        self._clear_pending_messages()
 
         # Normalize response to include new schema fields
         return self._normalize_response(response_data)
@@ -675,3 +708,4 @@ class StreamingAudioClient:
             await self.websocket.close()
             self.websocket = None
             logger.info("Disconnected from server")
+        self._clear_pending_messages()

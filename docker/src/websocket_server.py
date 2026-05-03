@@ -376,13 +376,14 @@ class EnhancedMatildaWebSocketServer:
         now = time.time()
         minute_ago = now - 60
 
-        # Clean old entries
-        if client_ip in self.rate_limits:
-            self.rate_limits[client_ip] = [
-                timestamp for timestamp in self.rate_limits[client_ip] if timestamp > minute_ago
-            ]
-        else:
-            self.rate_limits[client_ip] = []
+        for ip, timestamps in list(self.rate_limits.items()):
+            recent = [timestamp for timestamp in timestamps if timestamp > minute_ago]
+            if recent:
+                self.rate_limits[ip] = recent
+            else:
+                del self.rate_limits[ip]
+
+        self.rate_limits.setdefault(client_ip, [])
 
         # Check limit
         if len(self.rate_limits[client_ip]) >= self.max_requests_per_minute:
