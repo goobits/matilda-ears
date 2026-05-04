@@ -5,6 +5,18 @@ All notable changes to Matilda Ears will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-05-03
+
+### Added
+- Added Ears health telemetry for current RSS, peak RSS, live audio buffer sizes, and transcription counters.
+
+### Changed
+- Reduced memory growth during long-running streaming and push-to-talk use by bounding audio/session buffers and inference workers.
+
+### Fixed
+- Fixed Ears health-port fallback behavior so managed startup fails clearly instead of appearing healthy on a port Matilda does not check.
+- Improved cleanup for streaming sessions, wake-word backends, token state, and installer temp logs.
+
 ## [1.1.0] - 2026-01-12
 
 ### Added
@@ -38,5 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multiple operation modes (listen-once, conversation, push-to-talk)
 - Wake word detection with OpenWakeWord
 
+[1.1.1]: https://github.com/goobits/matilda-ears/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/goobits/matilda-ears/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/goobits/matilda-ears/releases/tag/v1.0.0
