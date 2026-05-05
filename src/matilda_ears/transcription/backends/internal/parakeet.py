@@ -11,6 +11,7 @@ import time
 
 from ..base import TranscriptionBackend
 from ....core.config import get_config
+from ....core.mlx_memory import clear_mlx_cache, mlx_memory_stats
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,21 @@ try:
     import parakeet_mlx  # noqa: F401
 except ImportError:
     raise ImportError("parakeet-mlx or mlx is not installed")
+
+
+def _config_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return _config_bool(value)
 
 
 class ParakeetBackend(TranscriptionBackend):
@@ -34,6 +50,10 @@ class ParakeetBackend(TranscriptionBackend):
         self.model_name = config.get("parakeet.model", "mlx-community/parakeet-tdt-0.6b-v3")
         self.model = None
         self.processor = None
+        self.clear_mlx_cache_after_transcribe = _env_bool(
+            "MATILDA_EARS_MLX_CLEAR_CACHE",
+            _config_bool(config.get("parakeet.clear_mlx_cache", True)),
+        )
 
         # Configure chunk duration and overlap to reduce MPS pressure and prevent AGXG15X crashes
         # These settings trade slight performance for stability on macOS Metal/MPS
@@ -41,7 +61,10 @@ class ParakeetBackend(TranscriptionBackend):
         self.overlap_duration = config.get("parakeet.overlap_duration", 15.0)
 
         logger.info(
-            f"Parakeet config: chunk_duration={self.chunk_duration}s, overlap_duration={self.overlap_duration}s"
+            "Parakeet config: chunk_duration=%ss, overlap_duration=%ss, clear_mlx_cache=%s",
+            self.chunk_duration,
+            self.overlap_duration,
+            self.clear_mlx_cache_after_transcribe,
         )
 
     async def load(self):
@@ -70,6 +93,7 @@ class ParakeetBackend(TranscriptionBackend):
         start_time = time.time()
 
         try:
+            mlx_before = mlx_memory_stats()
             # Use chunk_duration and overlap_duration parameters per parakeet-mlx API
             # This prevents Metal command buffer overflows (AGXG15X crashes)
             result = self.model.transcribe(
@@ -89,15 +113,26 @@ class ParakeetBackend(TranscriptionBackend):
             if audio_duration == 0.0:
                 audio_duration = duration
 
-            return text, {
+            info = {
                 "duration": audio_duration,
                 "language": "en",  # Parakeet is primarily English AFAIK
                 "backend": "parakeet",
             }
+            mlx_after = mlx_memory_stats()
+            if mlx_before or mlx_after:
+                info["mlx_memory_before"] = mlx_before
+                info["mlx_memory_after"] = mlx_after
+
+            return text, info
 
         except Exception as e:
             logger.error(f"Parakeet transcription failed: {e}")
             raise
+        finally:
+            if self.clear_mlx_cache_after_transcribe:
+                released = clear_mlx_cache()
+                mlx_cleanup = mlx_memory_stats()
+                logger.info("Parakeet MLX cache cleanup complete (released=%s, mlx=%s)", released, mlx_cleanup)
 
     @property
     def is_ready(self) -> bool:

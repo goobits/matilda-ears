@@ -19,7 +19,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "chunk_length_s": 30,
         "batch_size": 1,
     },
-    "parakeet": {"model": "mlx-community/parakeet-tdt-0.6b-v3"},
+    "parakeet": {"model": "mlx-community/parakeet-tdt-0.6b-v3", "clear_mlx_cache": True},
     "streaming": {
         "enabled": False,
         "backend": "auto",
