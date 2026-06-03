@@ -47,3 +47,8 @@ ears --server --port=3211
 - `goobits.yaml`: CLI spec for goobits
 - `~/.matilda/config.toml`: shared config (`[ears]` section)
 - `tests/`: test suite
+
+## Shared-Folder Git
+
+- Shared macOS/Linux checkouts should use `core.filemode=false`; chmod-only changes will not be noticed reliably.
+- When a script must be executable, run `git update-index --chmod=+x path/to/script.sh` and include that in the commit.
