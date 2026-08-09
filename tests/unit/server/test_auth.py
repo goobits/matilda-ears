@@ -10,6 +10,7 @@ from matilda_ears.transcription.server.core import (
     _client_ip,
     _connection_token,
 )
+from matilda_ears.transcription.server.internal.session_registry import SessionRegistry
 
 
 class StubTokenManager:
@@ -108,8 +109,7 @@ async def test_unauthenticated_binary_audio_is_rejected():
     server.authenticated_clients = {}
     server.trusted_proxies = []
     server.connected_clients = set()
-    server.binary_stream_sessions = {}
-    server.client_sessions = {}
+    server.sessions = SessionRegistry()
     server.backend = SimpleNamespace(is_ready=True)
     websocket = StubWebSocket(messages=[b"RIFF" + b"\x00" * 2000])
 

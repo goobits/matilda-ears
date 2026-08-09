@@ -4,16 +4,17 @@ import sys
 import time
 import types
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import ANY, AsyncMock
 
 import numpy as np
 import pytest
 
 from matilda_ears.core.auth import AuthResult
-from matilda_ears.transcription.server.core import MatildaWebSocketServer
 from matilda_ears.service.health import health_handler
-from matilda_ears.transcription.server.internal.transcription import transcribe_audio_from_wav
 from matilda_ears.transcription.server import stream_handlers
+from matilda_ears.transcription.server.core import MatildaWebSocketServer
+from matilda_ears.transcription.server.internal.session_registry import PcmBuffer, SessionRegistry
+from matilda_ears.transcription.server.internal.transcription import transcribe_audio_from_wav
 
 
 class _SilentWebSocket:
@@ -35,32 +36,29 @@ class _SilentWebSocket:
 @pytest.mark.asyncio
 async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monkeypatch):
     cleanup_mock = AsyncMock()
-    opus_decoder = SimpleNamespace(remove_session=Mock())
-
     session_id = "s-1"
     client_id = "deadbeef"
+    sessions = SessionRegistry()
+    session = sessions.create(session_id, client_id, "opus")
+    session.decoder = object()
+    session.pcm = PcmBuffer(sample_rate=16000, channels=1, needs_resampling=False)
+    session.streaming = object()
+    session.ending = True
+    session.wake_word_enabled = True
+    session.wake_word_debug_last_sent = 0.0
 
-    async def cleanup_session_state(session_id):
-        await MatildaWebSocketServer._cleanup_session_state(server, session_id)
+    async def cleanup_server_session(orphaned_session):
+        await MatildaWebSocketServer._cleanup_server_session(server, orphaned_session)
 
     server = SimpleNamespace(
         auth=SimpleNamespace(check=lambda _token, _ip: AuthResult(authorized=True, method="localhost")),
         authenticated_clients={},
         trusted_proxies=[],
         connected_clients=set(),
-        binary_stream_sessions={},
-        client_sessions={client_id: {session_id}},
-        pcm_sessions={session_id: object()},
-        opus_decoder=opus_decoder,
-        session_chunk_counts={session_id: {"received": 1}},
-        ending_sessions={session_id},
-        streaming_sessions={session_id: object()},
-        wake_word_sessions={session_id: True},
-        wake_word_buffers={session_id: object()},
-        wake_word_debug_sessions={session_id: {"last_sent": 0}},
+        sessions=sessions,
         process_message=AsyncMock(),
         _cleanup_streaming_session=cleanup_mock,
-        _cleanup_session_state=cleanup_session_state,
+        _cleanup_server_session=cleanup_server_session,
         backend=SimpleNamespace(is_ready=True),
     )
 
@@ -70,46 +68,28 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
     await MatildaWebSocketServer.handle_client(server, ws)
 
     cleanup_mock.assert_awaited_once()
-    opus_decoder.remove_session.assert_called_once_with(session_id)
-    assert client_id not in server.client_sessions
-    assert session_id not in server.streaming_sessions
-    assert session_id not in server.pcm_sessions
-    assert session_id not in server.session_chunk_counts
-    assert session_id not in server.ending_sessions
-    assert session_id not in server.wake_word_sessions
-    assert session_id not in server.wake_word_buffers
-    assert session_id not in server.wake_word_debug_sessions
+    assert len(sessions) == 0
 
 
 @pytest.mark.asyncio
 async def test_handle_client_disconnect_cleans_binary_session_not_in_client_sessions(monkeypatch):
-    cleanup_mock = AsyncMock()
-    opus_decoder = SimpleNamespace(remove_session=Mock())
-
     session_id = "binary-only"
     client_id = "deadbeef"
+    sessions = SessionRegistry()
+    session = sessions.create(session_id, client_id, "binary")
+    session.decoder = object()
+    session.wake_word_enabled = True
 
-    async def cleanup_session_state(session_id):
-        await MatildaWebSocketServer._cleanup_session_state(server, session_id)
+    cleanup_server_session = AsyncMock()
 
     server = SimpleNamespace(
         auth=SimpleNamespace(check=lambda _token, _ip: AuthResult(authorized=True, method="localhost")),
         authenticated_clients={},
         trusted_proxies=[],
         connected_clients=set(),
-        binary_stream_sessions={client_id: session_id},
-        client_sessions={},
-        pcm_sessions={},
-        opus_decoder=opus_decoder,
-        session_chunk_counts={session_id: {"received": 1}},
-        ending_sessions=set(),
-        streaming_sessions={},
-        wake_word_sessions={session_id: True},
-        wake_word_buffers={session_id: object()},
-        wake_word_debug_sessions={},
+        sessions=sessions,
         process_message=AsyncMock(),
-        _cleanup_streaming_session=cleanup_mock,
-        _cleanup_session_state=cleanup_session_state,
+        _cleanup_server_session=cleanup_server_session,
         backend=SimpleNamespace(is_ready=True),
     )
 
@@ -118,11 +98,8 @@ async def test_handle_client_disconnect_cleans_binary_session_not_in_client_sess
     ws = _SilentWebSocket()
     await MatildaWebSocketServer.handle_client(server, ws)
 
-    opus_decoder.remove_session.assert_called_once_with(session_id)
-    assert client_id not in server.binary_stream_sessions
-    assert session_id not in server.session_chunk_counts
-    assert session_id not in server.wake_word_sessions
-    assert session_id not in server.wake_word_buffers
+    cleanup_server_session.assert_awaited_once_with(session)
+    assert len(sessions) == 0
 
 
 def test_rate_limit_prunes_inactive_ip_buckets():
@@ -208,18 +185,24 @@ async def test_transcribe_audio_timeout_holds_serialization_until_worker_finishe
 
 @pytest.mark.asyncio
 async def test_health_handler_reports_session_counters():
+    sessions = SessionRegistry()
+    streaming = sessions.create("a", "client-a", "opus")
+    streaming.streaming = object()
+    streaming.decoder = SimpleNamespace(get_stats=lambda: {"buffer_size_bytes": 0})
+    pcm_b = sessions.create("b", "client-b", "pcm")
+    pcm_b.pcm = PcmBuffer(sample_rate=16000, channels=1, needs_resampling=False)
+    pcm_c = sessions.create("c", "client-c", "pcm")
+    pcm_c.pcm = PcmBuffer(sample_rate=16000, channels=1, needs_resampling=False)
+    pcm_c.decoder = SimpleNamespace(get_stats=lambda: {"buffer_size_bytes": 0})
+    ending = sessions.create("done", "client-d", "opus")
+    ending.decoder = SimpleNamespace(get_stats=lambda: {"buffer_size_bytes": 0})
+    ending.ending = True
+
     server = SimpleNamespace(
         backend_name="parakeet",
         backend=SimpleNamespace(is_ready=True),
         connected_clients={object(), object()},
-        streaming_sessions={"a": object()},
-        pcm_sessions={"b": object(), "c": object()},
-        opus_decoder=SimpleNamespace(
-            get_active_sessions=lambda: ["x", "y", "z"],
-            get_total_buffer_bytes=lambda: 0,
-        ),
-        ending_sessions={"done"},
-        wake_word_buffers={},
+        sessions=sessions,
         transcriptions_started=4,
         transcriptions_completed=3,
         transcriptions_failed=1,
@@ -252,20 +235,12 @@ async def test_end_stream_removes_empty_client_session_bucket(monkeypatch):
     monkeypatch.setattr(stream_handlers, "send_envelope", send_envelope)
     monkeypatch.setattr(stream_handlers, "send_error", send_error)
 
-    server = SimpleNamespace(
-        ending_sessions=set(),
-        check_rate_limit=lambda _ip: True,
-        session_chunk_counts={},
-        pcm_sessions={},
-        opus_decoder=SimpleNamespace(remove_session=lambda _sid: None),
-        streaming_sessions={session_id: streaming_session},
-        client_sessions={client_id: {session_id}},
-        binary_stream_sessions={client_id: session_id},
-        wake_word_sessions={session_id: True},
-        wake_word_buffers={session_id: object()},
-        wake_word_debug_sessions={session_id: {"last_sent": 0}},
-        backend_name="parakeet",
-    )
+    sessions = SessionRegistry()
+    session = sessions.create(session_id, client_id, "binary")
+    session.streaming = streaming_session
+    session.wake_word_enabled = True
+    session.wake_word_debug_last_sent = 0.0
+    server = SimpleNamespace(sessions=sessions, check_rate_limit=lambda _ip: True, backend_name="parakeet")
 
     await stream_handlers.handle_end_stream(
         server=server,
@@ -275,11 +250,7 @@ async def test_end_stream_removes_empty_client_session_bucket(monkeypatch):
         client_id=client_id,
     )
 
-    assert client_id not in server.client_sessions
-    assert session_id not in server.wake_word_sessions
-    assert session_id not in server.wake_word_buffers
-    assert session_id not in server.wake_word_debug_sessions
-    assert client_id not in server.binary_stream_sessions
+    assert sessions.get(session_id) is None
     send_error.assert_not_awaited()
 
 
@@ -309,20 +280,11 @@ async def test_end_stream_falls_back_to_batch_when_streaming_finalize_empty(monk
     monkeypatch.setattr(stream_handlers, "send_error", send_error)
     monkeypatch.setattr(stream_handlers, "transcribe_audio_from_wav", transcribe_audio_from_wav)
 
-    server = SimpleNamespace(
-        ending_sessions=set(),
-        check_rate_limit=lambda _ip: True,
-        session_chunk_counts={},
-        pcm_sessions={},
-        opus_decoder=SimpleNamespace(remove_session=lambda _sid: _Decoder()),
-        streaming_sessions={session_id: streaming_session},
-        client_sessions={client_id: {session_id}},
-        binary_stream_sessions={client_id: session_id},
-        wake_word_sessions={session_id: True},
-        wake_word_buffers={session_id: object()},
-        wake_word_debug_sessions={session_id: {"last_sent": 0}},
-        backend_name="parakeet",
-    )
+    sessions = SessionRegistry()
+    session = sessions.create(session_id, client_id, "binary")
+    session.streaming = streaming_session
+    session.decoder = _Decoder()
+    server = SimpleNamespace(sessions=sessions, check_rate_limit=lambda _ip: True, backend_name="parakeet")
 
     await stream_handlers.handle_end_stream(
         server=server,
@@ -340,3 +302,47 @@ async def test_end_stream_falls_back_to_batch_when_streaming_finalize_empty(monk
     assert final_payload["type"] == "stream_transcription_complete"
     assert final_payload["confirmed_text"] == "fallback transcription"
     assert final_payload["streaming_mode"] is False
+
+
+@pytest.mark.asyncio
+async def test_stream_handlers_reject_cross_client_session_access(monkeypatch):
+    sessions = SessionRegistry()
+    sessions.create("owned-session", "owner", "opus")
+    send_error = AsyncMock()
+    monkeypatch.setattr(stream_handlers, "send_error", send_error)
+
+    server = SimpleNamespace(sessions=sessions)
+    await stream_handlers.handle_audio_chunk(
+        server,
+        _SilentWebSocket(),
+        {"session_id": "owned-session", "audio_data": "unused"},
+        "127.0.0.1",
+        "attacker",
+    )
+
+    send_error.assert_awaited_once()
+    assert sessions.get_owned("owned-session", "owner") is not None
+
+
+@pytest.mark.asyncio
+async def test_start_stream_rejects_duplicate_session_id(monkeypatch):
+    sessions = SessionRegistry()
+    existing = sessions.create("duplicate", "owner", "opus")
+    send_error = AsyncMock()
+    monkeypatch.setattr(stream_handlers, "send_error", send_error)
+
+    server = SimpleNamespace(backend=SimpleNamespace(is_ready=True), sessions=sessions)
+    await stream_handlers.handle_start_stream(
+        server,
+        _SilentWebSocket(),
+        {"session_id": "duplicate", "sample_rate": 16000},
+        "127.0.0.1",
+        "other-client",
+    )
+
+    send_error.assert_awaited_once_with(
+        ANY,
+        "Session ID is already active",
+        code="session_conflict",
+    )
+    assert sessions.get("duplicate") is existing

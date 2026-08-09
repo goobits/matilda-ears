@@ -18,12 +18,12 @@ from urllib.parse import parse_qs, urlsplit
 
 import websockets
 
-from ...audio.decoder import OpusStreamDecoder
 from ...core.config import get_config, setup_logging
 from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
 from .internal.envelope import send_envelope
+from .internal.session_registry import ServerSession, SessionRegistry
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 # Get config instance and setup logging
@@ -159,11 +159,6 @@ class MatildaWebSocketServer:
         )
         self.transcription_executor_semaphore = asyncio.Semaphore(max(1, max_workers))
 
-        # WebSocket-level session tracking (self-contained)
-        self.streaming_sessions = {}  # session_id -> StreamingSession (new framework)
-
-        # Streaming sessions managed by streaming framework
-
         # SSL configuration
         self.ssl_enabled = config.ssl_enabled
         self.ssl_context = None
@@ -181,8 +176,7 @@ class MatildaWebSocketServer:
         trusted_proxies = getattr(_config, "websocket_trusted_proxies", [])
         self.trusted_proxies = trusted_proxies if isinstance(trusted_proxies, list) else []
 
-        # Opus stream decoder for handling streaming audio
-        self.opus_decoder = OpusStreamDecoder()
+        self.sessions = SessionRegistry()
 
         self.streaming_vad = None
         streaming_config = config.get("streaming", {})
@@ -200,25 +194,6 @@ class MatildaWebSocketServer:
             except Exception as e:
                 logger.warning(f"SileroVAD unavailable for streaming ({e}); continuing without VAD gating")
 
-        # Track chunk counts for proper stream ending
-        self.session_chunk_counts = {}  # session_id -> {"received": count, "expected": count}
-
-        # PCM streaming sessions (for web clients sending raw PCM, not Opus)
-        self.pcm_sessions = {}  # session_id -> {"samples": [], "sample_rate": int, "channels": int}
-
-        # Sessions that are currently ending (to prevent race conditions)
-        self.ending_sessions = set()  # session_ids being finalized
-
-        # Track sessions per client for cleanup on disconnect
-        self.client_sessions = {}  # client_id -> set of session_ids
-
-        # Track binary streaming sessions per client (Opus chunks over binary frames)
-        self.binary_stream_sessions = {}  # client_id -> session_id
-
-        # Wake word streaming sessions
-        self.wake_word_sessions = {}  # session_id -> bool
-        self.wake_word_buffers = {}  # session_id -> np.ndarray
-        self.wake_word_debug_sessions = {}  # session_id -> {"last_sent": float}
         self.wake_word_detector = None
 
         # Health server runner (set during start_server)
@@ -361,7 +336,7 @@ class MatildaWebSocketServer:
                         if client_id not in self.authenticated_clients:
                             await send_error(websocket, "Authentication required", code="unauthorized")
                             continue
-                        if client_id in self.binary_stream_sessions:
+                        if self.sessions.binary_for_client(client_id) is not None:
                             await handlers.handle_binary_stream_chunk(self, websocket, message, client_ip, client_id)
                         else:
                             await handlers.handle_binary_audio(self, websocket, message, client_ip, client_id)
@@ -384,33 +359,25 @@ class MatildaWebSocketServer:
         finally:
             self.connected_clients.discard(websocket)
             self.authenticated_clients.pop(client_id, None)
-            binary_session_id = self.binary_stream_sessions.pop(client_id, None)
-            # Clean up any streaming sessions for this client
-            orphaned_sessions = set(self.client_sessions.pop(client_id, set()))
-            if binary_session_id:
-                orphaned_sessions.add(binary_session_id)
-            for session_id in orphaned_sessions:
+            orphaned_sessions = self.sessions.pop_client(client_id)
+            for session in orphaned_sessions:
                 try:
-                    await self._cleanup_session_state(session_id)
+                    await self._cleanup_server_session(session)
                 except Exception as e:
-                    logger.debug(f"Client {client_id}: Session cleanup failed for {session_id}: {e}")
+                    logger.debug(f"Client {client_id}: Session cleanup failed for {session.session_id}: {e}")
             if orphaned_sessions:
                 logger.debug(f"Client {client_id}: Cleaned up {len(orphaned_sessions)} orphaned session(s)")
             logger.debug(f"Client {client_id} removed")
 
     async def _cleanup_session_state(self, session_id: str) -> None:
         """Release all server-side state associated with a streaming session."""
-        self.pcm_sessions.pop(session_id, None)
-        self.opus_decoder.remove_session(session_id)
-        self.session_chunk_counts.pop(session_id, None)
-        self.ending_sessions.discard(session_id)
-        self.wake_word_sessions.pop(session_id, None)
-        self.wake_word_buffers.pop(session_id, None)
-        self.wake_word_debug_sessions.pop(session_id, None)
-
-        session = self.streaming_sessions.pop(session_id, None)
+        session = self.sessions.pop(session_id)
         if session is not None:
-            await self._cleanup_streaming_session(session)
+            await self._cleanup_server_session(session)
+
+    async def _cleanup_server_session(self, session: ServerSession) -> None:
+        if session.streaming is not None:
+            await self._cleanup_streaming_session(session.streaming)
 
     async def _cleanup_streaming_session(self, session) -> None:
         """Release streaming session resources without raising."""

@@ -9,8 +9,10 @@ import numpy as np
 from ...core.config import get_config, setup_logging
 from ...wake_word.detector import WakeWordDetector
 from ...audio.conversion import int16_to_float32
+from ...audio.decoder import OpusDecoder
 from .internal.audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
 from .internal.envelope import send_envelope
+from .internal.session_registry import PcmBuffer, ServerSession, SessionConflictError
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
 
 
@@ -81,42 +83,10 @@ def _streaming_enabled() -> bool:
     return bool(config.get("streaming", {}).get("enabled", True))
 
 
-async def _cleanup_existing_session(server: "MatildaWebSocketServer", session_id: str) -> None:
-    """Remove stale state before reusing a client-provided session id."""
-    has_existing_state = (
-        session_id in server.streaming_sessions
-        or session_id in server.pcm_sessions
-        or session_id in server.session_chunk_counts
-        or session_id in server.ending_sessions
-        or session_id in server.wake_word_sessions
-        or server.opus_decoder.get_session(session_id) is not None
-    )
-    if not has_existing_state:
-        return
-
-    await server._cleanup_session_state(session_id)
-    for tracked_client_id, sessions in list(server.client_sessions.items()):
-        sessions.discard(session_id)
-        if not sessions:
-            server.client_sessions.pop(tracked_client_id, None)
-    for tracked_client_id, tracked_session_id in list(server.binary_stream_sessions.items()):
-        if tracked_session_id == session_id:
-            server.binary_stream_sessions.pop(tracked_client_id, None)
-
-
-def _active_session_count(server: "MatildaWebSocketServer") -> int:
-    session_ids = set(server.streaming_sessions)
-    session_ids.update(server.pcm_sessions)
-    session_ids.update(server.session_chunk_counts)
-    session_ids.update(server.opus_decoder.get_active_sessions())
-    return len(session_ids)
-
-
-def _append_debug_opus_log(server: "MatildaWebSocketServer", session_id: str, entry: dict) -> None:
-    opus_log = server.session_chunk_counts[session_id]["opus_log"]
-    opus_log.append(entry)
-    if len(opus_log) > MAX_DEBUG_OPUS_LOG_CHUNKS:
-        del opus_log[: len(opus_log) - MAX_DEBUG_OPUS_LOG_CHUNKS]
+def _append_debug_opus_log(session: ServerSession, entry: dict) -> None:
+    session.opus_log.append(entry)
+    if len(session.opus_log) > MAX_DEBUG_OPUS_LOG_CHUNKS:
+        del session.opus_log[: len(session.opus_log) - MAX_DEBUG_OPUS_LOG_CHUNKS]
 
 
 def _audio_debug_enabled() -> bool:
@@ -173,21 +143,20 @@ def _get_wake_word_detector(server: "MatildaWebSocketServer") -> WakeWordDetecto
 async def _process_wake_word_chunk(
     server: "MatildaWebSocketServer",
     websocket,
-    session_id: str,
+    session: ServerSession,
     pcm_samples: np.ndarray,
 ) -> None:
-    if not server.wake_word_sessions.get(session_id):
+    if not session.wake_word_enabled:
         return
 
     detector = _get_wake_word_detector(server)
     if detector is None:
         return
 
-    debug_state = server.wake_word_debug_sessions.get(session_id)
     max_phrase = None
     max_confidence = 0.0
 
-    buffer = server.wake_word_buffers.get(session_id)
+    buffer = session.wake_word_buffer
     if buffer is None or buffer.size == 0:
         combined = pcm_samples
     else:
@@ -211,13 +180,13 @@ async def _process_wake_word_chunk(
     if detected:
         agent, phrase, confidence = detected
         detector.reset()
-        server.wake_word_buffers[session_id] = np.array([], dtype=np.int16)
+        session.wake_word_buffer = np.array([], dtype=np.int16)
         await send_envelope(
             websocket,
             "wake_word_detected",
             {
                 "type": "wake_word_detected",
-                "session_id": session_id,
+                "session_id": session.session_id,
                 "agent": agent,
                 "phrase": phrase,
                 "confidence": confidence,
@@ -225,12 +194,12 @@ async def _process_wake_word_chunk(
         )
         return
 
-    server.wake_word_buffers[session_id] = combined[offset:]
+    session.wake_word_buffer = combined[offset:]
 
-    if debug_state is not None:
+    if session.wake_word_debug_last_sent is not None:
         now = time.time()
-        if now - debug_state["last_sent"] >= 0.5:
-            debug_state["last_sent"] = now
+        if now - session.wake_word_debug_last_sent >= 0.5:
+            session.wake_word_debug_last_sent = now
             if pcm_samples.size:
                 samples = int16_to_float32(pcm_samples)
                 rms = float(np.sqrt(np.mean(samples * samples)))
@@ -243,7 +212,7 @@ async def _process_wake_word_chunk(
                 "wake_word_score",
                 {
                     "type": "wake_word_score",
-                    "session_id": session_id,
+                    "session_id": session.session_id,
                     "phrase": str(max_phrase or ""),
                     "confidence": float(max_confidence),
                     "rms": rms,
@@ -265,23 +234,14 @@ async def handle_start_stream(
         await send_error(websocket, "Server not ready. Model not loaded.", code="not_ready")
         return
 
-    # Create session ID for this stream
-    session_id = data.get("session_id", f"{client_id}_{uuid.uuid4().hex[:8]}")
-    await _cleanup_existing_session(server, session_id)
-
-    client_session_count = len(server.client_sessions.get(client_id, set()))
-    if client_session_count >= MAX_SESSIONS_PER_CLIENT:
+    session_id = str(data.get("session_id") or f"{client_id}_{uuid.uuid4().hex[:8]}")
+    if server.sessions.count_for_client(client_id) >= MAX_SESSIONS_PER_CLIENT:
         await send_error(websocket, "Too many active sessions for this client", code="too_many_sessions")
         return
 
-    if _active_session_count(server) >= MAX_ACTIVE_SESSIONS:
+    if len(server.sessions) >= MAX_ACTIVE_SESSIONS:
         await send_error(websocket, "Too many active sessions on server", code="too_many_sessions")
         return
-
-    # Track session for this client (for cleanup on disconnect)
-    if client_id not in server.client_sessions:
-        server.client_sessions[client_id] = set()
-    server.client_sessions[client_id].add(session_id)
 
     # Get audio parameters
     sample_rate = data.get("sample_rate", 16000)
@@ -296,9 +256,6 @@ async def handle_start_stream(
     is_valid, error_msg = validate_sample_rate(sample_rate)
     if not is_valid:
         await send_error(websocket, error_msg)
-        # Clean up session tracking
-        if client_id in server.client_sessions:
-            server.client_sessions[client_id].discard(session_id)
         return
 
     # Track if resampling is needed (8kHz -> 16kHz)
@@ -308,19 +265,30 @@ async def handle_start_stream(
             f"Client {client_id}: Session {session_id} uses {sample_rate}Hz, will resample to {TARGET_SAMPLE_RATE}Hz"
         )
 
-    # Create new decoder session (for Opus -> PCM)
-    server.opus_decoder.create_session(session_id, sample_rate, channels)
-
-    if use_binary:
-        server.binary_stream_sessions[client_id] = session_id
+    try:
+        session = server.sessions.create(
+            session_id,
+            client_id,
+            "binary" if use_binary else "opus",
+            sample_rate=sample_rate,
+            channels=channels,
+        )
+        session.decoder = OpusDecoder(sample_rate, channels)
+    except SessionConflictError:
+        await send_error(websocket, "Session ID is already active", code="session_conflict")
+        return
+    except Exception as exc:
+        server.sessions.pop(session_id)
+        logger.warning(f"Client {client_id}: Failed to initialize decoder for {session_id}: {exc}")
+        await send_error(websocket, "Failed to initialize audio decoder", code="decoder_unavailable")
+        return
 
     wake_word_enabled = bool(data.get("wake_word_enabled", False))
     wake_word_debug = bool(data.get("wake_word_debug", False))
     if wake_word_enabled:
-        server.wake_word_sessions[session_id] = True
-        server.wake_word_buffers[session_id] = np.array([], dtype=np.int16)
+        session.wake_word_enabled = True
         if wake_word_debug:
-            server.wake_word_debug_sessions[session_id] = {"last_sent": 0.0}
+            session.wake_word_debug_last_sent = 0.0
         _get_wake_word_detector(server)
 
     # Try to create streaming session with new framework
@@ -342,8 +310,7 @@ async def handle_start_stream(
             # Start the session
             await streaming_session.start()
 
-            # Store session
-            server.streaming_sessions[session_id] = streaming_session
+            session.streaming = streaming_session
             streaming_enabled = True
             strategy_name = "simul_streaming"
 
@@ -393,13 +360,16 @@ async def handle_audio_chunk(
         await send_error(websocket, "No session_id provided")
         return
 
-    # Skip if session is ending (prevents race condition)
-    if session_id in server.ending_sessions:
+    session = server.sessions.get_owned(session_id, client_id)
+    if session is None:
+        await send_error(websocket, f"Unknown session: {session_id}")
+        return
+
+    if session.ending:
         logger.debug(f"Client {client_id}: Ignoring Opus chunk for ending session {session_id}")
         return
 
-    # Get decoder for this session
-    decoder = server.opus_decoder.get_session(session_id)
+    decoder = session.decoder
     if not decoder:
         await send_error(websocket, f"Unknown session: {session_id}")
         return
@@ -411,10 +381,7 @@ async def handle_audio_chunk(
         return
 
     try:
-        # Track chunk count for this session
-        if session_id not in server.session_chunk_counts:
-            server.session_chunk_counts[session_id] = {"received": 0, "expected": None, "opus_log": []}
-        server.session_chunk_counts[session_id]["received"] += 1
+        chunk_num = session.record_chunk()
 
         # Decode base64 to bytes
         opus_data = base64.b64decode(opus_data_b64)
@@ -424,29 +391,24 @@ async def handle_audio_chunk(
             logger.warning(f"Client {client_id} sent an empty audio chunk. Ignoring.")
             return
 
-        # Log what we received for debugging
-        chunk_num = server.session_chunk_counts[session_id]["received"]
         logger.debug(f"Client {client_id}: Received chunk #{chunk_num}, size: {len(opus_data)} bytes")
 
         # Store chunk info for analysis
         if _audio_debug_enabled():
             _append_debug_opus_log(
-                server,
-                session_id,
-                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},  # Store actual data for analysis
+                session,
+                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},
             )
 
         # Decode Opus chunk and append to PCM buffer
         # This returns the decoded PCM samples as numpy array
         pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
 
-        await _process_wake_word_chunk(server, websocket, session_id, pcm_samples)
+        await _process_wake_word_chunk(server, websocket, session, pcm_samples)
 
-        # If streaming session exists, process chunk with new framework
-        if session_id in server.streaming_sessions:
+        if session.streaming is not None:
             try:
-                streaming_session = server.streaming_sessions[session_id]
-                result = await streaming_session.process_chunk(pcm_samples)
+                result = await session.streaming.process_chunk(pcm_samples)
 
                 # Send partial result with new schema (confirmed + tentative)
                 if result.confirmed_text or result.tentative_text:
@@ -491,17 +453,17 @@ async def handle_binary_stream_chunk(
     client_id: str,
 ) -> None:
     """Handle incoming Opus audio chunk as binary payload."""
-    session_id = server.binary_stream_sessions.get(client_id)
-    if not session_id:
+    session = server.sessions.binary_for_client(client_id)
+    if session is None:
         await send_error(websocket, "No active binary stream session")
         return
+    session_id = session.session_id
 
-    # Skip if session is ending (prevents race condition)
-    if session_id in server.ending_sessions:
+    if session.ending:
         logger.debug(f"Client {client_id}: Ignoring Opus chunk for ending session {session_id}")
         return
 
-    decoder = server.opus_decoder.get_session(session_id)
+    decoder = session.decoder
     if not decoder:
         await send_error(websocket, f"Unknown session: {session_id}")
         return
@@ -511,28 +473,22 @@ async def handle_binary_stream_chunk(
         return
 
     try:
-        if session_id not in server.session_chunk_counts:
-            server.session_chunk_counts[session_id] = {"received": 0, "expected": None, "opus_log": []}
-        server.session_chunk_counts[session_id]["received"] += 1
-
-        chunk_num = server.session_chunk_counts[session_id]["received"]
+        chunk_num = session.record_chunk()
         logger.debug(f"Client {client_id}: Received binary chunk #{chunk_num}, size: {len(opus_data)} bytes")
 
         if _audio_debug_enabled():
             _append_debug_opus_log(
-                server,
-                session_id,
+                session,
                 {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},
             )
 
         pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
 
-        await _process_wake_word_chunk(server, websocket, session_id, pcm_samples)
+        await _process_wake_word_chunk(server, websocket, session, pcm_samples)
 
-        if session_id in server.streaming_sessions:
+        if session.streaming is not None:
             try:
-                streaming_session = server.streaming_sessions[session_id]
-                result = await streaming_session.process_chunk(pcm_samples)
+                result = await session.streaming.process_chunk(pcm_samples)
 
                 if result.confirmed_text or result.tentative_text:
                     await send_envelope(
@@ -571,36 +527,53 @@ async def handle_pcm_chunk(
         await send_error(websocket, "No session_id provided")
         return
 
-    # Skip if session is ending (prevents race condition)
-    if session_id in server.ending_sessions:
+    session = server.sessions.get(session_id)
+    if session is not None and session.client_id != client_id:
+        await send_error(websocket, f"Unknown session: {session_id}")
+        return
+    if session is not None and session.ending:
         logger.debug(f"Client {client_id}: Ignoring chunk for ending session {session_id}")
         return
 
-    # Get or create PCM session
-    if session_id not in server.pcm_sessions:
-        # Initialize PCM session with default parameters
+    if session is None:
+        if server.sessions.count_for_client(client_id) >= MAX_SESSIONS_PER_CLIENT:
+            await send_error(websocket, "Too many active sessions for this client", code="too_many_sessions")
+            return
+        if len(server.sessions) >= MAX_ACTIVE_SESSIONS:
+            await send_error(websocket, "Too many active sessions on server", code="too_many_sessions")
+            return
         sample_rate = data.get("sample_rate", 16000)
         channels = data.get("channels", 1)
 
-        # Validate sample rate for new sessions
         is_valid, error_msg = validate_sample_rate(sample_rate)
         if not is_valid:
             await send_error(websocket, error_msg)
             return
+        try:
+            session = server.sessions.create(
+                session_id,
+                client_id,
+                "pcm",
+                sample_rate=sample_rate,
+                channels=channels,
+            )
+        except SessionConflictError:
+            await send_error(websocket, "Session ID is already active", code="session_conflict")
+            return
 
-        # Track if resampling is needed
-        resampling_needed = needs_resampling(sample_rate)
-
-        server.pcm_sessions[session_id] = {
-            "samples": [],
-            "sample_rate": sample_rate,
-            "channels": channels,
-            "chunk_count": 0,
-            "needs_resampling": resampling_needed,
-            "total_samples": 0,
-        }
-        server.client_sessions.setdefault(client_id, set()).add(session_id)
-        if resampling_needed:
+    if session.pcm is None:
+        sample_rate = data.get("sample_rate", session.sample_rate)
+        channels = data.get("channels", session.channels)
+        is_valid, error_msg = validate_sample_rate(sample_rate)
+        if not is_valid:
+            await send_error(websocket, error_msg)
+            return
+        session.pcm = PcmBuffer(
+            sample_rate=sample_rate,
+            channels=channels,
+            needs_resampling=needs_resampling(sample_rate),
+        )
+        if session.pcm.needs_resampling:
             logger.debug(
                 f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch) "
                 f"- will resample to {TARGET_SAMPLE_RATE}Hz"
@@ -608,7 +581,7 @@ async def handle_pcm_chunk(
         else:
             logger.debug(f"Client {client_id}: Created PCM session {session_id} ({sample_rate}Hz, {channels}ch)")
 
-    pcm_session = server.pcm_sessions[session_id]
+    pcm_session = session.pcm
 
     # Get PCM data (base64 encoded)
     pcm_data_b64 = data.get("audio_data")
@@ -619,7 +592,7 @@ async def handle_pcm_chunk(
     try:
         # Decode base64 to bytes
         pcm_bytes = base64.b64decode(pcm_data_b64)
-        pcm_session["chunk_count"] += 1
+        pcm_session.chunk_count += 1
 
         # Guard against empty packets
         if not pcm_bytes:
@@ -630,34 +603,28 @@ async def handle_pcm_chunk(
         pcm_samples = np.frombuffer(pcm_bytes, dtype=np.int16)
 
         # Resample to 16kHz if needed (e.g., 8kHz input)
-        if pcm_session.get("needs_resampling", False):
-            pcm_samples = resample_to_16k(pcm_samples, pcm_session["sample_rate"])
+        if pcm_session.needs_resampling:
+            pcm_samples = resample_to_16k(pcm_samples, pcm_session.sample_rate)
 
-        await _process_wake_word_chunk(server, websocket, session_id, pcm_samples)
+        await _process_wake_word_chunk(server, websocket, session, pcm_samples)
 
         # Accumulate samples for batch transcription (if needed)
         # Note: After resampling, samples are at 16kHz
-        pcm_session["samples"].append(pcm_samples)
-        pcm_session["total_samples"] += len(pcm_samples)
         max_samples = TARGET_SAMPLE_RATE * MAX_PCM_BUFFER_SECONDS
-        while pcm_session["samples"] and pcm_session["total_samples"] > max_samples:
-            dropped = pcm_session["samples"].pop(0)
-            pcm_session["total_samples"] -= len(dropped)
+        pcm_session.append(pcm_samples, max_samples)
 
         # Log periodically
-        if pcm_session["chunk_count"] % 10 == 1:
-            total_samples = sum(len(s) for s in pcm_session["samples"])
-            duration = total_samples / pcm_session["sample_rate"]
+        if pcm_session.chunk_count % 10 == 1:
+            output_sample_rate = TARGET_SAMPLE_RATE if pcm_session.needs_resampling else pcm_session.sample_rate
+            duration = pcm_session.total_samples / output_sample_rate
             logger.debug(
-                f"Client {client_id}: PCM chunk #{pcm_session['chunk_count']}, "
+                f"Client {client_id}: PCM chunk #{pcm_session.chunk_count}, "
                 f"size: {len(pcm_bytes)} bytes, total: {duration:.2f}s"
             )
 
-        # If streaming session exists, process chunk with new framework
-        if session_id in server.streaming_sessions:
+        if session.streaming is not None:
             try:
-                streaming_session = server.streaming_sessions[session_id]
-                result = await streaming_session.process_chunk(pcm_samples)
+                result = await session.streaming.process_chunk(pcm_samples)
 
                 # Send partial result with new schema (confirmed + tentative)
                 if result.confirmed_text or result.tentative_text:
@@ -698,20 +665,25 @@ async def handle_end_stream(
         await send_error(websocket, "No session_id provided")
         return
 
-    # Mark session as ending FIRST (prevents race condition with incoming chunks)
-    server.ending_sessions.add(session_id)
+    session = server.sessions.get_owned(session_id, client_id)
+    if session is None:
+        await send_error(websocket, f"Unknown session: {session_id}")
+        return
+    if session.ending:
+        return
+    session.ending = True
 
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
-        server.ending_sessions.discard(session_id)
+        session.ending = False
         await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.", code="rate_limited")
         return
 
     # Log chunk statistics (no waiting needed - WebSocket ensures order)
     expected_chunks = data.get("expected_chunks")
     if expected_chunks is not None:
-        chunk_info = server.session_chunk_counts.get(session_id, {"received": 0})
-        received_chunks = chunk_info["received"]
+        session.expected_chunks = expected_chunks
+        received_chunks = session.chunks_received
 
         if received_chunks != expected_chunks:
             logger.warning(
@@ -721,22 +693,17 @@ async def handle_end_stream(
         else:
             logger.debug(f"Client {client_id}: All {received_chunks} chunks received")
     elif _audio_debug_enabled():
-        chunk_info = server.session_chunk_counts.get(session_id, {"received": 0})
-        logger.info(f"Client {client_id}: Stream ending with {chunk_info['received']} chunks")
+        logger.info(f"Client {client_id}: Stream ending with {session.chunks_received} chunks")
 
-    # Clean up chunk tracking
-    if session_id in server.session_chunk_counts:
-        del server.session_chunk_counts[session_id]
-
-    # Check what type of session this is
-    pcm_session = server.pcm_sessions.pop(session_id, None)
-    decoder = server.opus_decoder.remove_session(session_id)
-
-    # Get streaming session if it exists
-    streaming_session = server.streaming_sessions.pop(session_id, None)
+    session = server.sessions.pop_owned(session_id, client_id)
+    if session is None:
+        await send_error(websocket, f"Unknown session: {session_id}")
+        return
+    pcm_session = session.pcm
+    decoder = session.decoder
+    streaming_session = session.streaming
 
     if not decoder and not pcm_session and not streaming_session:
-        server.ending_sessions.discard(session_id)
         await send_error(websocket, f"Unknown session: {session_id}")
         return
 
@@ -786,15 +753,11 @@ async def handle_end_stream(
         # Batch mode: Use accumulated audio for transcription
         if pcm_session:
             # PCM session: concatenate accumulated samples and create WAV
-            all_samples = (
-                np.concatenate(pcm_session["samples"]) if pcm_session["samples"] else np.array([], dtype=np.int16)
-            )
+            all_samples = np.concatenate(pcm_session.samples) if pcm_session.samples else np.array([], dtype=np.int16)
             # Use 16kHz if samples were resampled, otherwise original rate
-            output_sample_rate = (
-                TARGET_SAMPLE_RATE if pcm_session.get("needs_resampling", False) else pcm_session["sample_rate"]
-            )
+            output_sample_rate = TARGET_SAMPLE_RATE if pcm_session.needs_resampling else pcm_session.sample_rate
             duration = len(all_samples) / output_sample_rate
-            wav_data = pcm_to_wav(all_samples, output_sample_rate, pcm_session["channels"])
+            wav_data = pcm_to_wav(all_samples, output_sample_rate, pcm_session.channels)
             logger.debug(
                 f"Client {client_id}: PCM stream ended (batch mode). "
                 f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
@@ -852,15 +815,4 @@ async def handle_end_stream(
         await send_error(websocket, f"Stream transcription failed: {e!s}", code="internal_error", retryable=True)
 
     finally:
-        # Remove from ending sessions (cleanup complete)
-        server.ending_sessions.discard(session_id)
-        # Remove from client sessions tracking
-        if client_id in server.client_sessions:
-            server.client_sessions[client_id].discard(session_id)
-            if not server.client_sessions[client_id]:
-                server.client_sessions.pop(client_id, None)
-        if server.binary_stream_sessions.get(client_id) == session_id:
-            server.binary_stream_sessions.pop(client_id, None)
-        server.wake_word_sessions.pop(session_id, None)
-        server.wake_word_buffers.pop(session_id, None)
-        server.wake_word_debug_sessions.pop(session_id, None)
+        session.ending = False

@@ -18,27 +18,13 @@ if TYPE_CHECKING:
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
-def _pcm_buffer_bytes(server: MatildaWebSocketServer) -> int:
-    total = 0
-    for session in server.pcm_sessions.values():
-        if not isinstance(session, dict):
-            continue
-        for samples in session.get("samples", []):
-            total += int(getattr(samples, "nbytes", 0))
-    return total
-
-
-def _wake_word_buffer_bytes(server: MatildaWebSocketServer) -> int:
-    return sum(int(getattr(buffer, "nbytes", 0)) for buffer in server.wake_word_buffers.values())
-
-
 async def health_handler(server: MatildaWebSocketServer, request: web.Request) -> web.Response:
     memory = {
         "rss_bytes": current_rss_bytes(),
         "peak_rss_bytes": peak_rss_bytes(),
-        "pcm_buffer_bytes": _pcm_buffer_bytes(server),
-        "opus_pcm_buffer_bytes": server.opus_decoder.get_total_buffer_bytes(),
-        "wake_word_buffer_bytes": _wake_word_buffer_bytes(server),
+        "pcm_buffer_bytes": server.sessions.pcm_buffer_bytes,
+        "opus_pcm_buffer_bytes": server.sessions.opus_buffer_bytes,
+        "wake_word_buffer_bytes": server.sessions.wake_word_buffer_bytes,
         "mlx": mlx_memory_stats(),
     }
     if request is not None and request.query.get("footprint", "").strip().lower() in {"1", "true", "yes", "on"}:
@@ -51,10 +37,10 @@ async def health_handler(server: MatildaWebSocketServer, request: web.Request) -
             "backend": server.backend_name,
             "model_loaded": server.backend.is_ready if server.backend else False,
             "connected_clients": len(server.connected_clients),
-            "active_streaming_sessions": len(server.streaming_sessions),
-            "active_pcm_sessions": len(server.pcm_sessions),
-            "active_opus_sessions": len(server.opus_decoder.get_active_sessions()),
-            "ending_sessions": len(server.ending_sessions),
+            "active_streaming_sessions": server.sessions.streaming_count,
+            "active_pcm_sessions": server.sessions.pcm_count,
+            "active_opus_sessions": server.sessions.opus_count,
+            "ending_sessions": server.sessions.ending_count,
             "memory": memory,
             "transcriptions": {
                 "started": server.transcriptions_started,
