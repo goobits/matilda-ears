@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, Mock
 import numpy as np
 import pytest
 
+from matilda_ears.core.auth import AuthResult
 from matilda_ears.transcription.server.core import MatildaWebSocketServer
 from matilda_ears.service.health import health_handler
 from matilda_ears.transcription.server.internal.transcription import transcribe_audio_from_wav
@@ -43,6 +44,9 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
         await MatildaWebSocketServer._cleanup_session_state(server, session_id)
 
     server = SimpleNamespace(
+        auth=SimpleNamespace(check=lambda _token, _ip: AuthResult(authorized=True, method="localhost")),
+        authenticated_clients={},
+        trusted_proxies=[],
         connected_clients=set(),
         binary_stream_sessions={},
         client_sessions={client_id: {session_id}},
@@ -89,6 +93,9 @@ async def test_handle_client_disconnect_cleans_binary_session_not_in_client_sess
         await MatildaWebSocketServer._cleanup_session_state(server, session_id)
 
     server = SimpleNamespace(
+        auth=SimpleNamespace(check=lambda _token, _ip: AuthResult(authorized=True, method="localhost")),
+        authenticated_clients={},
+        trusted_proxies=[],
         connected_clients=set(),
         binary_stream_sessions={client_id: session_id},
         client_sessions={},
@@ -173,6 +180,13 @@ async def test_transcribe_audio_timeout_holds_serialization_until_worker_finishe
     server = SimpleNamespace(
         backend=_StuckBackend(),
         transcription_semaphore=asyncio.Semaphore(1),
+        transcription_executor=None,
+        transcription_executor_semaphore=asyncio.Semaphore(1),
+        transcriptions_started=0,
+        transcriptions_completed=0,
+        transcriptions_failed=0,
+        transcriptions_timed_out=0,
+        transcriptions_inflight=0,
     )
 
     def _get_config() -> _Config:
@@ -200,8 +214,17 @@ async def test_health_handler_reports_session_counters():
         connected_clients={object(), object()},
         streaming_sessions={"a": object()},
         pcm_sessions={"b": object(), "c": object()},
-        opus_decoder=SimpleNamespace(get_active_sessions=lambda: ["x", "y", "z"]),
+        opus_decoder=SimpleNamespace(
+            get_active_sessions=lambda: ["x", "y", "z"],
+            get_total_buffer_bytes=lambda: 0,
+        ),
         ending_sessions={"done"},
+        wake_word_buffers={},
+        transcriptions_started=4,
+        transcriptions_completed=3,
+        transcriptions_failed=1,
+        transcriptions_timed_out=0,
+        transcriptions_inflight=0,
     )
 
     response = await health_handler(server, request=None)

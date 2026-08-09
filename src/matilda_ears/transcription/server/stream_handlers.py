@@ -260,19 +260,6 @@ async def handle_start_stream(
     client_id: str,
 ) -> None:
     """Handle start of audio streaming session."""
-    # Check authentication using centralized policy
-    origin = websocket.request_headers.get("Origin") if hasattr(websocket, "request_headers") else None
-    auth_result = server.auth.check(data.get("token"), client_ip, origin)
-    logger.debug(f"Client {client_id}: IP={client_ip}, auth={auth_result.authorized}, method={auth_result.method}")
-
-    if not auth_result.authorized:
-        logger.warning(f"Client {client_id}: Auth required (IP={client_ip})")
-        await send_error(websocket, "Authentication required", code="unauthorized")
-        return
-
-    if auth_result.client_id:
-        logger.debug(f"Stream session started by {auth_result.client_id} via {auth_result.method}")
-
     # Check if model is loaded
     if not server.backend.is_ready:
         await send_error(websocket, "Server not ready. Model not loaded.", code="not_ready")
@@ -446,7 +433,7 @@ async def handle_audio_chunk(
             _append_debug_opus_log(
                 server,
                 session_id,
-                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data}  # Store actual data for analysis
+                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},  # Store actual data for analysis
             )
 
         # Decode Opus chunk and append to PCM buffer

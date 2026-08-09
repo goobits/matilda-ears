@@ -49,7 +49,7 @@ class TokenManager:
         self.used_tokens: set[str] = set()
 
         # Thread safety
-        self._file_lock = threading.Lock()
+        self._file_lock = threading.RLock()
 
         # Performance: Use ThreadPoolExecutor for async saves to avoid thread creation overhead
         self._save_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="TokenSaver")
@@ -247,12 +247,13 @@ class TokenManager:
             logger.error(f"Failed to generate token: {e}")
             raise ValueError(f"Token generation failed: {e}")
 
-    def validate_token(self, token: str, mark_as_used: bool = False) -> dict[str, Any] | None:
+    def validate_token(self, token: str, mark_as_used: bool = True) -> dict[str, Any] | None:
         """Validate a JWT token
 
         Args:
             token: JWT token to validate
-            mark_as_used: Whether to mark one-time tokens as used
+            mark_as_used: Whether to consume one-time tokens. Runtime callers should
+                keep the default; False is reserved for non-authentication inspection.
 
         Returns:
             Token payload if valid, None otherwise
@@ -267,31 +268,30 @@ class TokenManager:
                 logger.warning("Token missing token_id")
                 return None
 
-            # Check if token exists in active tokens
-            if token_id not in self.active_tokens:
-                logger.warning(f"Token {token_id} not found in active tokens")
-                return None
-
-            token_info = self.active_tokens[token_id]
-
-            # Check if token was already used (for one-time tokens)
-            if token_info.get("one_time_use", False):
-                if token_id in self.used_tokens:
-                    logger.warning(f"One-time token {token_id} already used")
+            with self._file_lock:
+                if token_id not in self.active_tokens:
+                    logger.warning(f"Token {token_id} not found in active tokens")
                     return None
 
-                if mark_as_used:
-                    # Mark as used
+                token_info = self.active_tokens[token_id]
+                if token_info.get("one_time_use", False):
+                    if token_id in self.used_tokens:
+                        logger.warning(f"One-time token {token_id} already used")
+                        return None
+
+                    if not mark_as_used:
+                        return payload
+
                     self.used_tokens.add(token_id)
                     self.active_tokens[token_id]["used"] = True
                     self._save_used_tokens()
                     self._save_tokens()
                     logger.info(f"Marked one-time token {token_id} as used")
 
-            # Update last seen
-            self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
-            self.active_tokens[token_id]["active"] = True
-            self._save_tokens_throttled()
+                self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
+                self.active_tokens[token_id]["active"] = True
+                if not token_info.get("one_time_use", False):
+                    self._save_tokens_throttled()
 
             return payload
 

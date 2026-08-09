@@ -76,3 +76,10 @@ def test_one_time_token_usage_saves(token_manager):
         # validate with mark_as_used=True should trigger save
         token_manager.validate_token(token, mark_as_used=True)
         assert mock_save.call_count >= 1
+
+
+def test_one_time_token_is_consumed_by_default(token_manager):
+    token = token_manager.generate_token("onetime", one_time_use=True)["token"]
+
+    assert token_manager.validate_token(token) is not None
+    assert token_manager.validate_token(token) is None

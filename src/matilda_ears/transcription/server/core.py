@@ -13,6 +13,8 @@ import time
 import traceback
 import uuid
 from collections import defaultdict
+from ipaddress import ip_address, ip_network
+from urllib.parse import parse_qs, urlsplit
 
 import websockets
 
@@ -27,6 +29,71 @@ from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_fro
 # Get config instance and setup logging
 config = get_config()
 logger = setup_logging(__name__, log_filename="transcription.txt")
+
+
+def _request_headers(websocket):
+    headers = getattr(websocket, "request_headers", None)
+    if headers is not None:
+        return headers
+    request = getattr(websocket, "request", None)
+    return getattr(request, "headers", None)
+
+
+def _request_path(websocket) -> str:
+    request = getattr(websocket, "request", None)
+    if request is not None and getattr(request, "path", None):
+        return str(request.path)
+    return str(getattr(websocket, "path", "") or "")
+
+
+def _connection_token(websocket) -> str | None:
+    headers = _request_headers(websocket)
+    authorization = headers.get("Authorization") if headers else None
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+        if token:
+            return token
+
+    query = parse_qs(urlsplit(_request_path(websocket)).query)
+    for key in ("api_token", "token"):
+        values = query.get(key)
+        if values and values[0]:
+            return values[0]
+    return None
+
+
+def _is_trusted_proxy(peer_ip: str, trusted_proxies: list[str]) -> bool:
+    try:
+        peer = ip_address(peer_ip.split("%", maxsplit=1)[0])
+    except ValueError:
+        return False
+
+    for value in trusted_proxies:
+        try:
+            if peer in ip_network(value, strict=False):
+                return True
+        except ValueError:
+            logger.warning("Ignoring invalid trusted proxy entry: %s", value)
+    return False
+
+
+def _client_ip(websocket, trusted_proxies: list[str]) -> str:
+    remote_address = getattr(websocket, "remote_address", None)
+    peer_ip = str(remote_address[0]) if remote_address else "unknown"
+    if not _is_trusted_proxy(peer_ip, trusted_proxies):
+        return peer_ip
+
+    headers = _request_headers(websocket)
+    forwarded = headers.get("X-Forwarded-For") if headers else None
+    if not forwarded:
+        return peer_ip
+    candidate = forwarded.split(",", maxsplit=1)[0].strip()
+    try:
+        ip_address(candidate.split("%", maxsplit=1)[0])
+    except ValueError:
+        logger.warning("Ignoring invalid X-Forwarded-For address from trusted proxy: %s", candidate)
+        return peer_ip
+    return candidate
 
 
 class MatildaWebSocketServer:
@@ -110,6 +177,9 @@ class MatildaWebSocketServer:
 
         # Client tracking
         self.connected_clients = set()
+        self.authenticated_clients = {}
+        trusted_proxies = getattr(_config, "websocket_trusted_proxies", [])
+        self.trusted_proxies = trusted_proxies if isinstance(trusted_proxies, list) else []
 
         # Opus stream decoder for handling streaming audio
         self.opus_decoder = OpusStreamDecoder()
@@ -220,7 +290,7 @@ class MatildaWebSocketServer:
             True if within limits, False if rate limited
 
         """
-        if client_ip in {"127.0.0.1", "::1", "localhost"}:
+        if self.auth._is_localhost(client_ip):
             return True
 
         now = time.time()
@@ -262,18 +332,13 @@ class MatildaWebSocketServer:
 
         """
         client_id = str(uuid.uuid4())[:8]
-        client_ip = websocket.remote_address[0]
-        headers = None
-        if hasattr(websocket, "request_headers"):
-            headers = websocket.request_headers
-        elif hasattr(websocket, "request") and websocket.request is not None:
-            headers = websocket.request.headers
-        forwarded_ip = headers.get("X-Forwarded-For") if headers else None
-        if forwarded_ip:
-            client_ip = forwarded_ip.split(",")[0].strip()
+        client_ip = _client_ip(websocket, self.trusted_proxies)
 
         try:
             self.connected_clients.add(websocket)
+            connection_auth = self.auth.check(_connection_token(websocket), client_ip)
+            if connection_auth.authorized:
+                self.authenticated_clients[client_id] = connection_auth
             logger.debug(f"Client {client_id} connected from {client_ip}")
 
             # Send welcome message
@@ -285,6 +350,7 @@ class MatildaWebSocketServer:
                     "message": "Connected to Matilda WebSocket Server",
                     "client_id": client_id,
                     "server_ready": self.backend.is_ready,
+                    "authenticated": connection_auth.authorized,
                 },
             )
 
@@ -292,6 +358,9 @@ class MatildaWebSocketServer:
                 try:
                     # Handle binary messages (raw WAV audio data)
                     if isinstance(message, bytes):
+                        if client_id not in self.authenticated_clients:
+                            await send_error(websocket, "Authentication required", code="unauthorized")
+                            continue
                         if client_id in self.binary_stream_sessions:
                             await handlers.handle_binary_stream_chunk(self, websocket, message, client_ip, client_id)
                         else:
@@ -314,6 +383,7 @@ class MatildaWebSocketServer:
             logger.exception(traceback.format_exc())
         finally:
             self.connected_clients.discard(websocket)
+            self.authenticated_clients.pop(client_id, None)
             binary_session_id = self.binary_stream_sessions.pop(client_id, None)
             # Clean up any streaming sessions for this client
             orphaned_sessions = set(self.client_sessions.pop(client_id, set()))
@@ -401,6 +471,12 @@ class MatildaWebSocketServer:
         """
         message_type = data.get("type")
 
+        if message_type not in {"ping", "auth", "generate_token"}:
+            auth_result = self._authenticate_client(client_id, client_ip, data.get("token"))
+            if not auth_result.authorized:
+                await send_error(websocket, "Authentication required", code="unauthorized")
+                return
+
         # Handle reload explicitly since it's new
         if message_type == "reload":
             await self.handle_reload(websocket, data, client_ip, client_id)
@@ -412,6 +488,16 @@ class MatildaWebSocketServer:
             await handler(websocket, data, client_ip, client_id)
         else:
             await send_error(websocket, f"Unknown message type: {message_type}")
+
+    def _authenticate_client(self, client_id: str, client_ip: str, token: str | None = None):
+        existing = self.authenticated_clients.get(client_id)
+        if existing is not None:
+            return existing
+
+        result = self.auth.check(token, client_ip)
+        if result.authorized:
+            self.authenticated_clients[client_id] = result
+        return result
 
     async def transcribe_audio_from_wav(self, wav_data: bytes, client_id: str):
         """Transcribe audio from WAV data.

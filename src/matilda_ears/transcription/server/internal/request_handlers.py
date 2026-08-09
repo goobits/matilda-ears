@@ -103,13 +103,16 @@ async def handle_auth(
 ) -> None:
     """Handle authentication messages."""
     token = data.get("token")
-    jwt_payload = server.token_manager.validate_token(token)
-    if jwt_payload:
-        client_name = jwt_payload.get("client_id", "unknown")
+    auth_result = server._authenticate_client(client_id, client_ip, token)
+    if auth_result.authorized:
         await send_envelope(
             websocket,
             "auth_success",
-            {"type": "auth_success", "message": "Authentication successful", "client_id": client_name},
+            {
+                "type": "auth_success",
+                "message": "Authentication successful",
+                "client_id": auth_result.client_id,
+            },
         )
         logger.info(f"Client {client_id} authenticated successfully")
     else:
@@ -158,17 +161,6 @@ async def handle_transcription(
     client_id: str,
 ) -> None:
     """Handle transcription requests."""
-    # Check authentication using centralized policy
-    origin = websocket.request_headers.get("Origin") if hasattr(websocket, "request_headers") else None
-    auth_result = server.auth.check(data.get("token"), client_ip, origin)
-    if not auth_result.authorized:
-        logger.warning(f"Client {client_id}: Auth failed (ip={client_ip})")
-        await send_error(websocket, "Authentication required", code="unauthorized")
-        return
-
-    if auth_result.client_id:
-        logger.debug(f"Transcription request from {auth_result.client_id} via {auth_result.method}")
-
     # Check rate limiting
     if not server.check_rate_limit(client_ip):
         await send_error(websocket, "Rate limit exceeded. Max 10 requests per minute.", code="rate_limited")

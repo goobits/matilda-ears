@@ -6,6 +6,7 @@ instead of duplicating auth logic.
 
 import logging
 import os
+from ipaddress import ip_address
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -56,43 +57,36 @@ class AuthPolicy:
         self,
         token: str | None,
         client_ip: str,
-        origin: str | None = None,
     ) -> AuthResult:
         """Single auth check - used by all handlers.
 
         Args:
             token: JWT or dev token from request
             client_ip: Client IP address
-            origin: Origin header (for browser requests)
-
         Returns:
             AuthResult with authorized status and method used
 
         """
-        # 1. Valid JWT token (production path)
-        if token:
-            payload = self.token_manager.validate_token(token)
-            if payload:
-                client_id = payload.get("client_id", "jwt_client")
-                return AuthResult(authorized=True, client_id=client_id, method="jwt")
-
-        # 2. Dev token from orchestrator (just dev)
+        # 1. Dev token from orchestrator (local development)
         if token and self._dev_token and token == self._dev_token:
             return AuthResult(authorized=True, client_id=f"dev:{client_ip}", method="dev_token")
 
-        # 3. Localhost direct connection
+        # 2. Valid JWT token (production path)
+        if token:
+            payload = self.token_manager.validate_token(token)
+            if payload:
+                client_id = payload.get("client_name") or payload.get("token_id") or "jwt_client"
+                return AuthResult(authorized=True, client_id=str(client_id), method="jwt")
+
+        # 3. Loopback transport
         if self._is_localhost(client_ip):
             return AuthResult(authorized=True, client_id=f"local:{client_ip}", method="localhost")
 
-        # 4. Trusted origin (localhost browser, any port)
-        if origin and self._is_localhost_origin(origin):
-            return AuthResult(authorized=True, client_id=f"origin:{origin}", method="trusted_origin")
-
-        # 5. Explicit dev mode (escape hatch)
+        # 4. Explicit dev mode (escape hatch)
         if self._dev_mode:
             return AuthResult(authorized=True, client_id=f"dev_mode:{client_ip}", method="dev_mode")
 
-        # 6. Deny
+        # 5. Deny
         return AuthResult(authorized=False)
 
     def can_generate_tokens(self, client_ip: str) -> bool:
@@ -111,10 +105,13 @@ class AuthPolicy:
 
     def _is_localhost(self, ip: str) -> bool:
         """Check if IP is localhost."""
-        return ip in ("127.0.0.1", "::1", "localhost")
-
-    def _is_localhost_origin(self, origin: str) -> bool:
-        """Check if origin is from localhost (any port)."""
-        # Parse "http://localhost:3210" -> "localhost"
-        host = origin.replace("http://", "").replace("https://", "").split(":")[0]
-        return host in ("localhost", "127.0.0.1", "::1")
+        if ip == "localhost":
+            return True
+        try:
+            address = ip_address(ip.split("%", maxsplit=1)[0])
+        except ValueError:
+            return False
+        if address.is_loopback:
+            return True
+        mapped = getattr(address, "ipv4_mapped", None)
+        return bool(mapped and mapped.is_loopback)

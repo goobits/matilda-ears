@@ -39,8 +39,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "websocket": {
             "port": 3212,
             "host": "localhost",
-            "bind_host": "0.0.0.0",
+            "bind_host": "127.0.0.1",
             "connect_host": "localhost",
+            "trusted_proxies": [],
             "max_message_mb": 50,
             "jwt_secret_key": "GENERATE_RANDOM_SECRET_HERE",
             "jwt_token": "",
@@ -230,7 +231,16 @@ class ConfigLoader:
 
     @property
     def websocket_bind_host(self) -> str:
-        return str(self.get("server.websocket.bind_host", "0.0.0.0"))
+        return str(self.get("server.websocket.bind_host", "127.0.0.1"))
+
+    @property
+    def websocket_trusted_proxies(self) -> list[str]:
+        value = self.get("server.websocket.trusted_proxies", [])
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return []
 
     @property
     def websocket_connect_host(self) -> str:
