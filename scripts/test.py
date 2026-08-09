@@ -43,7 +43,12 @@ def ensure_and_use_test_env() -> None:
     def _probe_ok() -> bool:
         if not py.exists():
             return False
-        probe = subprocess.run([str(py), "-c", "import pip,pytest"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        probe = subprocess.run(
+            [str(py), "-c", "import pip,pytest"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
         return probe.returncode == 0
 
     if not _probe_ok():
@@ -53,38 +58,29 @@ def ensure_and_use_test_env() -> None:
     env = os.environ.copy()
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 
-    # Install the test stack plus the lightweight runtime deps that are imported
-    # during collection (e.g., in tests/conftest.py). Avoid heavyweight ML deps
-    # (torch/torchaudio) unless a test explicitly requires them.
+    project_dir = Path(__file__).resolve().parents[1]
     transport_dir = Path(__file__).resolve().parents[2] / "matilda-transport"
     if transport_dir.is_dir():
         subprocess.run(
             [str(py), "-m", "pip", "install", "-q", "--disable-pip-version-check", "-e", str(transport_dir)],
             env=env,
-            check=False,
+            check=True,
         )
 
-    reqs = [
-        "pytest>=8.2.0,<10.0",
-        "pytest-xdist>=3.0.0,<4.0",
-        "pytest-asyncio>=1.0.0,<2.0",
-        "rich>=13.0.0,<14.0",
-        "rich-click>=1.7.0,<2.0",
-        "numpy>=1.21.0,<3.0",
-        "pydantic>=2.0.0,<3.0",
-        "toml>=0.10.2,<1.0",
-        "pyyaml>=6.0.1,<7.0",
-        "click>=8.0.0,<9.0",
-        "aiohttp>=3.8.0,<4.0",
-        "websockets>=10.0,<14.0",
-        "cryptography>=42.0.0,<44.0",
-        "PyJWT>=2.0.0,<3.0",
-        "opuslib>=3.0.0,<4.0",
-    ]
     subprocess.run(
-        [str(py), "-m", "pip", "install", "-q", "--disable-pip-version-check", "--upgrade", *reqs],
+        [
+            str(py),
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "--disable-pip-version-check",
+            "--upgrade",
+            "-e",
+            f"{project_dir}[dev]",
+        ],
         env=env,
-        check=False,
+        check=True,
     )
 
     os.environ["MATILDA_EARS_TEST_ENV"] = "1"
@@ -393,9 +389,7 @@ def main():
 
         return process.returncode
     # Always use at least -v for better output unless user specified verbosity
-    elif known_args.verbose:
-        cmd.append("-v")
-    elif not any(arg.startswith("-v") or arg in ["-q", "--quiet"] for arg in pytest_args):
+    elif known_args.verbose or not any(arg.startswith("-v") or arg in ["-q", "--quiet"] for arg in pytest_args):
         cmd.append("-v")
 
     # Default to tests/ if no test paths specified

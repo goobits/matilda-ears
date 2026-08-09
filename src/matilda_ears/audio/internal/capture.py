@@ -226,7 +226,9 @@ class PipeBasedAudioStreamer:
                     logger.info("[PIPE-STREAM] Started without stdbuf")
             else:
                 # For ffmpeg and other tools, start directly without stdbuf
-                self.arecord_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+                self.arecord_process = subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0
+                )
                 logger.info(f"[PIPE-STREAM] Started {audio_tool} directly")
 
             # Start reader thread

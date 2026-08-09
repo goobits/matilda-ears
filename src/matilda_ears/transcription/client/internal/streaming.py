@@ -247,7 +247,7 @@ class StreamingAudioClient:
         if self._listener_task:
             try:
                 await asyncio.wait_for(self._listener_task, timeout=2.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self._listener_task.cancel()
                 try:
                     await self._listener_task
@@ -535,7 +535,7 @@ class StreamingAudioClient:
             try:
                 response = await asyncio.wait_for(self.websocket.recv(), timeout=RESULT_TIMEOUT_SECONDS)
                 response_data = _unwrap_envelope(json.loads(response))
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.error("Timed out waiting for transcription result")
                 if self.debug_save_audio:
                     self.save_debug_audio()
