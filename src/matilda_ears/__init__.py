@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         FileTranscribeConfig,
         ListenOnceConfig,
         ModeConfig,
+        WakeWordConfig,
     )
     from .core.vad_state import VADEvent, VADState, VADStateMachine
     from .modes import ConversationMode, WakeWordMode
@@ -52,6 +53,7 @@ _LAZY_EXPORTS = {
     "ConversationConfig": (".core.mode_config", "ConversationConfig"),
     "ListenOnceConfig": (".core.mode_config", "ListenOnceConfig"),
     "FileTranscribeConfig": (".core.mode_config", "FileTranscribeConfig"),
+    "WakeWordConfig": (".core.mode_config", "WakeWordConfig"),
     "get_backend_class": (".transcription.backends", "get_backend_class"),
     "get_available_backends": (".transcription.backends", "get_available_backends"),
     "get_recommended_backend": (".transcription.backends", "get_recommended_backend"),
@@ -86,6 +88,7 @@ __all__ = [
     "ConversationConfig",
     "ListenOnceConfig",
     "FileTranscribeConfig",
+    "WakeWordConfig",
     "get_backend_class",
     "get_available_backends",
     "get_recommended_backend",

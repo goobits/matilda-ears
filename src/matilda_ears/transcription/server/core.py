@@ -523,14 +523,5 @@ class MatildaWebSocketServer:
             close()
 
 
-# Enhanced server with dual-mode support
-class EnhancedWebSocketServer(MatildaWebSocketServer):
-    """Enhanced WebSocket server with full dual-mode support."""
-
-    def __init__(self):
-        super().__init__()
-        logger.debug("Enhanced WebSocket server initialized with dual-mode support")
-
-
-# Use enhanced server as default
-WebSocketTranscriptionServer = EnhancedWebSocketServer
+EnhancedWebSocketServer = MatildaWebSocketServer
+WebSocketTranscriptionServer = MatildaWebSocketServer

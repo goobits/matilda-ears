@@ -9,12 +9,151 @@ Example:
 - Command 'hello-world' -> Hook function 'on_hello_world'
 """
 
-# Import any modules you need here
+import asyncio
 import json as json_module
+import os
 from typing import Any
 
 
-def on_status(json: bool = False, **kwargs) -> dict[str, Any]:
+def _prepare_runtime(ctx=None, model: str | None = None, inference_device: str | None = None) -> None:
+    config_file = getattr(getattr(ctx, "config", None), "config_file", None)
+    if config_file is not None:
+        os.environ["MATILDA_CONFIG"] = str(config_file)
+    if model:
+        os.environ["EARS_MODEL"] = model
+    if inference_device:
+        os.environ["EARS_DEVICE"] = inference_device
+
+
+def _mode_config(config_class, ctx, model, language, device, sample_rate, json, debug, **extra):
+    _prepare_runtime(ctx, model=model)
+    return config_class(
+        debug=bool(debug or getattr(ctx, "debug", False)),
+        format="json" if json else "text",
+        sample_rate=sample_rate,
+        device=device,
+        language=language,
+        model=model,
+        **extra,
+    )
+
+
+def on_listen_once(
+    model: str | None = None,
+    language: str | None = None,
+    device: str | None = None,
+    sample_rate: int = 16000,
+    json: bool = False,
+    debug: bool = False,
+    ctx=None,
+    **kwargs,
+) -> None:
+    from .core.mode_config import ListenOnceConfig
+    from .modes.listen_once import ListenOnceMode
+
+    config = _mode_config(ListenOnceConfig, ctx, model, language, device, sample_rate, json, debug)
+    asyncio.run(ListenOnceMode(config).run())
+
+
+def on_conversation(
+    model: str | None = None,
+    language: str | None = None,
+    device: str | None = None,
+    sample_rate: int = 16000,
+    json: bool = False,
+    debug: bool = False,
+    ctx=None,
+    **kwargs,
+) -> None:
+    from .core.mode_config import ConversationConfig
+    from .modes.conversation import ConversationMode
+
+    config = _mode_config(ConversationConfig, ctx, model, language, device, sample_rate, json, debug)
+    asyncio.run(ConversationMode(config).run())
+
+
+def on_wake_word(
+    agent_aliases: str | None = None,
+    threshold: float | None = None,
+    backend: str | None = None,
+    access_key: str | None = None,
+    model: str | None = None,
+    language: str | None = None,
+    device: str | None = None,
+    sample_rate: int = 16000,
+    json: bool = False,
+    debug: bool = False,
+    ctx=None,
+    **kwargs,
+) -> None:
+    from .core.mode_config import WakeWordConfig
+    from .wake_word.mode import WakeWordMode
+
+    config = _mode_config(
+        WakeWordConfig,
+        ctx,
+        model,
+        language,
+        device,
+        sample_rate,
+        json,
+        debug,
+        agent_aliases=agent_aliases,
+        threshold=threshold,
+        backend=backend,
+        access_key=access_key,
+    )
+    asyncio.run(WakeWordMode(config).run())
+
+
+def on_transcribe(
+    file: str | None,
+    model: str | None = None,
+    language: str | None = None,
+    no_formatting: bool = False,
+    json: bool = False,
+    debug: bool = False,
+    ctx=None,
+    **kwargs,
+) -> None:
+    if not file:
+        raise SystemExit("Audio file path is required")
+
+    from .core.mode_config import FileTranscribeConfig
+    from .modes.file_transcribe import FileTranscribeMode
+
+    config = _mode_config(
+        FileTranscribeConfig,
+        ctx,
+        model,
+        language,
+        None,
+        None,
+        json,
+        debug,
+        file=file,
+        no_formatting=no_formatting,
+    )
+    asyncio.run(FileTranscribeMode(config).run())
+
+
+def on_serve(
+    host: str | None = None,
+    port: int | None = None,
+    model: str | None = None,
+    device: str | None = None,
+    ctx=None,
+    **kwargs,
+) -> None:
+    _prepare_runtime(ctx, model=model, inference_device=device)
+
+    from .transcription.server.core import MatildaWebSocketServer
+
+    server = MatildaWebSocketServer()
+    asyncio.run(server.start_server(host, port))
+
+
+def on_status(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
     """Handle status command - show system status and capabilities.
 
     Args:
@@ -24,6 +163,8 @@ def on_status(json: bool = False, **kwargs) -> dict[str, Any]:
         Dictionary with status and optional results
 
     """
+    _prepare_runtime(ctx)
+
     from .core.config import get_config
     from .utils.model_downloader import is_model_cached
 
@@ -53,7 +194,7 @@ def on_status(json: bool = False, **kwargs) -> dict[str, Any]:
     return {"status": "success", "data": status}
 
 
-def on_models(json: bool = False, **kwargs) -> dict[str, Any]:
+def on_models(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
     """Handle models command - list available Whisper models.
 
     Args:
@@ -63,6 +204,8 @@ def on_models(json: bool = False, **kwargs) -> dict[str, Any]:
         Dictionary with status and optional results
 
     """
+    _prepare_runtime(ctx)
+
     from .utils.model_downloader import list_available_models
 
     models = list_available_models()
@@ -82,7 +225,7 @@ def on_models(json: bool = False, **kwargs) -> dict[str, Any]:
     return {"status": "success", "data": models}
 
 
-def on_download(model: str | None = None, progress: bool = False, **kwargs) -> dict[str, Any]:
+def on_download(model: str | None = None, progress: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
     """Handle download command - download Whisper model for offline use.
 
     Args:
@@ -93,6 +236,8 @@ def on_download(model: str | None = None, progress: bool = False, **kwargs) -> d
         Dictionary with status and optional results
 
     """
+    _prepare_runtime(ctx)
+
     from .utils.model_downloader import download_model, download_with_json_output, is_model_cached
 
     # Default model
@@ -134,6 +279,7 @@ def on_train_wake_word(
     output: str | None = None,
     samples: str | None = "3000",
     epochs: str | None = "10",
+    ctx=None,
     **kwargs,
 ) -> dict[str, Any]:
     """Train a custom wake word model using Modal.com cloud GPU.
@@ -148,6 +294,8 @@ def on_train_wake_word(
         Dictionary with status and optional results
 
     """
+    _prepare_runtime(ctx)
+
     from .wake_word.internal.training import train_wake_word
 
     return train_wake_word(phrase=phrase, output=output, samples=samples, epochs=epochs)

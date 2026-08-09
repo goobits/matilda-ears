@@ -70,9 +70,7 @@ class BaseMode(ABC):
 
     def _resolve_max_recording_samples(self) -> int:
         try:
-            max_seconds = float(
-                os.environ.get("MATILDA_EARS_MAX_RECORDING_SECONDS", DEFAULT_MAX_RECORDING_SECONDS)
-            )
+            max_seconds = float(os.environ.get("MATILDA_EARS_MAX_RECORDING_SECONDS", DEFAULT_MAX_RECORDING_SECONDS))
         except ValueError:
             max_seconds = DEFAULT_MAX_RECORDING_SECONDS
         return max(1, int(max_seconds * self.mode_config.sample_rate))
@@ -89,8 +87,7 @@ class BaseMode(ABC):
     async def _load_model(self):
         """Load transcription backend asynchronously."""
         try:
-            # Determine backend from config
-            backend_name = self.config.get("transcription", {}).get("backend", "faster_whisper")
+            backend_name = self.config.transcription_backend
             self.logger.info(f"Initializing backend: {backend_name}")
 
             # Get backend class

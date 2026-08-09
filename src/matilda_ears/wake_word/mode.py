@@ -17,6 +17,7 @@ try:
 except ImportError:
     NUMPY_AVAILABLE = False
 
+from ..core.mode_config import WakeWordConfig
 from ..modes.base_mode import BaseMode
 from .detector import WakeWordDetector
 
@@ -41,47 +42,35 @@ class WakeWordMode(BaseMode):
     - PipeBasedAudioStreamer: Audio capture (from audio.capture)
     """
 
-    def __init__(self, args):
-        """Initialize wake word mode.
-
-        Args:
-            args: Namespace with CLI arguments including:
-                - agent_aliases: Agent aliases string
-                  Format: "Agent1:phrase1,phrase2;Agent2:phrase3"
-                - wake_word_threshold: Detection threshold (default: 0.5)
-                - wake_word_backend: Backend to use (openwakeword or porcupine)
-                - sample_rate: Audio sample rate (default: 16000)
-
-        """
-        super().__init__(args)
+    def __init__(self, mode_config: WakeWordConfig):
+        """Initialize wake word mode."""
+        super().__init__(mode_config)
 
         # Wake word specific config
-        mode_config = self._get_mode_config()
+        settings = self._get_mode_config()
 
-        self.agent_aliases = self._parse_agent_aliases(args, mode_config)
+        self.agent_aliases = self._parse_agent_aliases(mode_config.agent_aliases, settings)
 
         # Threshold from CLI or config (explicit None checks to allow threshold=0.0)
-        wake_word_threshold = getattr(args, "wake_word_threshold", None)
-        if wake_word_threshold is not None:
-            self.threshold = wake_word_threshold
+        if mode_config.threshold is not None:
+            self.threshold = mode_config.threshold
         else:
-            self.threshold = mode_config.get("threshold", 0.5)
-        self.silence_duration = mode_config.get("silence_duration", 0.8)
-        self.vad_hysteresis = mode_config.get("hysteresis", 0.2)
-        self.max_speech_duration_s = mode_config.get("max_speech_duration_s", 10.0)
-        self.noise_suppression = mode_config.get("noise_suppression", True)
+            self.threshold = settings.get("threshold", 0.5)
+        self.silence_duration = settings.get("silence_duration", 0.8)
+        self.vad_hysteresis = settings.get("hysteresis", 0.2)
+        self.max_speech_duration_s = settings.get("max_speech_duration_s", 10.0)
+        self.noise_suppression = settings.get("noise_suppression", True)
 
         # Backend selection (CLI takes precedence over config)
-        wake_word_backend = getattr(args, "wake_word_backend", None)
-        self.backend = wake_word_backend or mode_config.get("backend", "openwakeword")
-        self.access_key = getattr(args, "wake_word_key", None) or mode_config.get("access_key")
+        self.wake_word_backend = mode_config.backend or settings.get("backend", "openwakeword")
+        self.access_key = mode_config.access_key or settings.get("access_key")
 
         # Components (initialized in run)
         self.detector: WakeWordDetector | None = None
         self.vad = None
         self._running = False
 
-    def _parse_agent_aliases(self, args, mode_config: dict) -> dict[str, list[str]] | None:
+    def _parse_agent_aliases(self, cli_aliases: str | None, mode_config: dict) -> dict[str, list[str]] | None:
         """Parse agent aliases from CLI or config.
 
         Priority:
@@ -93,7 +82,6 @@ class WakeWordMode(BaseMode):
 
         """
         # CLI --agent-aliases (highest priority)
-        cli_aliases = getattr(args, "agent_aliases", None)
         if cli_aliases:
             return WakeWordDetector.parse_cli_aliases(cli_aliases)
 
@@ -119,7 +107,7 @@ class WakeWordMode(BaseMode):
                     agent_aliases=self.agent_aliases,
                     threshold=self.threshold,
                     noise_suppression=self.noise_suppression,
-                    backend=self.backend,
+                    backend=self.wake_word_backend,
                     access_key=self.access_key,
                 ),
             )
@@ -181,7 +169,7 @@ class WakeWordMode(BaseMode):
             self.vad = await loop.run_in_executor(
                 None,
                 lambda: SileroVAD(
-                    sample_rate=self.args.sample_rate,
+                    sample_rate=self.mode_config.sample_rate,
                     threshold=mode_config.get("vad_threshold", 0.5),
                     min_speech_duration=mode_config.get("min_speech_duration", 0.25),
                     min_silence_duration=self.silence_duration,

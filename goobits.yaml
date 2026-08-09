@@ -45,9 +45,9 @@ messages:
     You can now use 'ears' from your terminal.
 
     Quick start:
-      ears --listen-once          # Single utterance
-      ears --conversation         # Always listening
-      ears --server --port=3211   # WebSocket server
+      ears listen-once            # Single utterance
+      ears conversation           # Always listening
+      ears serve                  # WebSocket server
       # Config: ~/.matilda/config.toml ([ears])
 
   install_dev_success: |
@@ -56,7 +56,7 @@ messages:
 
     Development workflow:
       - Edit code in src/matilda_ears/ directory
-      - Test immediately with: ears --listen-once
+      - Test immediately with: ears listen-once
       - Run tests with: make test-formatting
 
   upgrade_success: |
@@ -81,90 +81,81 @@ cli:
   header_sections:
     - title: "🚀 Quick Start"
       items:
-        - { item: "ears --listen-once", desc: "Single utterance capture with VAD", style: "example" }
-        - { item: "ears --conversation", desc: "Always listening mode", style: "example" }
+        - { item: "ears listen-once", desc: "Single utterance capture with VAD", style: "example" }
+        - { item: "ears transcribe recording.wav", desc: "Transcribe an audio file", style: "example" }
 
     - title: "🔧 Operation Modes"
       items:
-        - { item: "--listen-once", desc: "Single utterance capture", style: "command" }
-        - { item: "--conversation", desc: "Continuous listening", style: "command" }
-        - { item: "--wake-word", desc: "Always-listening wake word detection", style: "command" }
-        - { item: "--server", desc: "WebSocket server mode", style: "command" }
+        - { item: "listen-once", desc: "Single utterance capture", style: "command" }
+        - { item: "conversation", desc: "Continuous listening", style: "command" }
+        - { item: "wake-word", desc: "Always-listening wake word detection", style: "command" }
+        - { item: "serve", desc: "WebSocket server mode", style: "command" }
 
   command_groups:
+    - name: "Operation Modes"
+      commands: ["listen-once", "conversation", "wake-word", "transcribe", "serve"]
     - name: "System Commands"
       commands: ["status", "models", "download", "train-wake-word"]
 
-  # Root command options (main CLI)
-  root_options:
-    - name: "listen_once"
-      type: "flag"
-      desc: "Single utterance capture with VAD"
-    - name: "conversation"
-      type: "flag"
-      desc: "Always listening with interruption support"
-    - name: "wake_word"
-      type: "flag"
-      desc: "Always-listening wake word detection mode"
-    - name: "agent_aliases"
-      type: "str"
-      metavar: "ALIASES"
-      desc: "Agent wake word aliases (format: 'Agent1:phrase1,phrase2;Agent2:phrase3')"
-    - name: "wake_word_threshold"
-      type: "float"
-      default: 0.5
-      desc: "Wake word detection threshold (0.0-1.0)"
-    - name: "wake_word_backend"
-      type: "str"
-      default: "openwakeword"
-      desc: "Wake word backend (openwakeword or porcupine)"
-    - name: "wake_word_key"
-      type: "str"
-      metavar: "KEY"
-      desc: "Porcupine access key (or set PORCUPINE_ACCESS_KEY env var)"
-    - name: "file"
-      type: "str"
-      metavar: "PATH"
-      desc: "Transcribe audio file (WAV, MP3, etc.)"
-    - name: "server"
-      type: "flag"
-      desc: "Run as WebSocket server for remote clients"
-    - name: "port"
-      type: "int"
-      default: 8769
-      desc: "Server port"
-    - name: "host"
-      type: "str"
-      default: "0.0.0.0"
-      desc: "Server host"
-    - name: "json"
-      type: "flag"
-      desc: "Output JSON format"
-    - name: "debug"
-      type: "flag"
-      desc: "Enable detailed debug logging"
-    - name: "no_formatting"
-      type: "flag"
-      desc: "Disable Ears Tuner formatting"
-    - name: "model"
-      type: "str"
-      default: "base"
-      desc: "Whisper model size (tiny, base, small, medium, large)"
-    - name: "language"
-      type: "str"
-      desc: "Language code (e.g., 'en', 'es', 'fr')"
-    - name: "device"
-      type: "str"
-      desc: "Audio input device name or index"
-    - name: "sample_rate"
-      type: "int"
-      default: 16000
-      desc: "Audio sample rate in Hz"
-    - name: "config"
-      type: "str"
-      desc: "Configuration file path (default: ~/.matilda/config.toml)"
-
   commands:
+    listen-once:
+      desc: "Capture and transcribe one utterance"
+      icon: "🎤"
+      options:
+        - { name: "model", type: "str", desc: "Transcription model" }
+        - { name: "language", type: "str", desc: "Language code" }
+        - { name: "device", type: "str", desc: "Audio input device name or index" }
+        - { name: "sample-rate", type: "int", default: 16000, desc: "Audio sample rate in Hz" }
+        - { name: "json", type: "flag", desc: "Output JSON events" }
+        - { name: "debug", type: "flag", desc: "Enable detailed logging" }
+
+    conversation:
+      desc: "Continuously listen for and transcribe utterances"
+      icon: "🗣️"
+      options:
+        - { name: "model", type: "str", desc: "Transcription model" }
+        - { name: "language", type: "str", desc: "Language code" }
+        - { name: "device", type: "str", desc: "Audio input device name or index" }
+        - { name: "sample-rate", type: "int", default: 16000, desc: "Audio sample rate in Hz" }
+        - { name: "json", type: "flag", desc: "Output JSON events" }
+        - { name: "debug", type: "flag", desc: "Enable detailed logging" }
+
+    wake-word:
+      desc: "Continuously listen for wake words and transcribe requests"
+      icon: "👂"
+      options:
+        - { name: "agent-aliases", type: "str", desc: "Agent aliases, e.g. 'Matilda:hey_matilda,computer'" }
+        - { name: "threshold", type: "float", desc: "Wake word detection threshold" }
+        - { name: "backend", type: "str", desc: "Wake word backend" }
+        - { name: "access-key", type: "str", desc: "Wake word provider access key" }
+        - { name: "model", type: "str", desc: "Transcription model" }
+        - { name: "language", type: "str", desc: "Language code" }
+        - { name: "device", type: "str", desc: "Audio input device name or index" }
+        - { name: "sample-rate", type: "int", default: 16000, desc: "Audio sample rate in Hz" }
+        - { name: "json", type: "flag", desc: "Output JSON events" }
+        - { name: "debug", type: "flag", desc: "Enable detailed logging" }
+
+    transcribe:
+      desc: "Transcribe an audio file"
+      icon: "📄"
+      args:
+        - { name: "file", desc: "Audio file to transcribe", required: true }
+      options:
+        - { name: "model", type: "str", desc: "Transcription model" }
+        - { name: "language", type: "str", desc: "Language code" }
+        - { name: "no-formatting", type: "flag", desc: "Disable Ears Tuner formatting" }
+        - { name: "json", type: "flag", desc: "Output JSON events" }
+        - { name: "debug", type: "flag", desc: "Enable detailed logging" }
+
+    serve:
+      desc: "Run the WebSocket transcription server"
+      icon: "🌐"
+      options:
+        - { name: "host", type: "str", desc: "Host to bind to" }
+        - { name: "port", type: "int", desc: "Port to bind to" }
+        - { name: "model", type: "str", desc: "Transcription model" }
+        - { name: "device", type: "str", desc: "Inference device" }
+
     status:
       desc: "Show system status and capabilities"
       icon: "📊"

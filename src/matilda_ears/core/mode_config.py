@@ -34,6 +34,14 @@ class ListenOnceConfig(ModeConfig):
 
 
 @dataclass
+class WakeWordConfig(ModeConfig):
+    agent_aliases: str | None = None
+    threshold: float | None = None
+    backend: str | None = None
+    access_key: str | None = None
+
+
+@dataclass
 class FileTranscribeConfig(ModeConfig):
     file: str = ""
     no_formatting: bool = False

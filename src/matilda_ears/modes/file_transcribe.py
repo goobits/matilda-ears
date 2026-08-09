@@ -12,34 +12,13 @@ import time
 from pathlib import Path
 from typing import Any, ClassVar
 
-from matilda_ears.core.config import get_config, setup_logging
-from matilda_ears.core.mode_config import FileTranscribeConfig
-from matilda_ears.transcription.backends import get_backend_class
+from matilda_ears.modes.base_mode import BaseMode
 
 
-class FileTranscribeMode:
+class FileTranscribeMode(BaseMode):
     """Transcribe audio from a file."""
 
     SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
-
-    def __init__(self, mode_config: FileTranscribeConfig):
-        """Initialize file transcription mode."""
-        self.mode_config = mode_config
-        self.config = get_config()
-        if self.mode_config.language is None:
-            self.mode_config.language = "en"
-        if self.mode_config.model is None:
-            self.mode_config.model = self.config.whisper_model
-        if not self.mode_config.format:
-            self.mode_config.format = "text"
-        self.logger = setup_logging(
-            "FileTranscribeMode",
-            log_level="DEBUG" if self.mode_config.debug else "WARNING",
-            include_console=self.mode_config.debug,
-            include_file=True,
-        )
-        self.backend = None
-        self.logger.info("FileTranscribeMode initialized")
 
     async def run(self):
         """Main entry point - transcribe the file."""
@@ -75,26 +54,6 @@ class FileTranscribeMode:
 
         # Output result
         await self._send_result(result)
-
-    async def _load_model(self):
-        """Load transcription backend."""
-        try:
-            # Determine backend from config
-            backend_name = self.config.get("transcription", {}).get("backend", "faster_whisper")
-            self.logger.info(f"Initializing backend: {backend_name}")
-
-            # Get backend class
-            BackendClass = get_backend_class(backend_name)
-            self.backend = BackendClass()
-
-            self.logger.info(f"Loading backend: {backend_name}")
-
-            await self.backend.load()
-
-            self.logger.info(f"Backend {backend_name} loaded")
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to load backend: {e}")
 
     async def _transcribe_file(self, file_path: str) -> dict[str, Any]:
         """Transcribe audio file using backend."""
