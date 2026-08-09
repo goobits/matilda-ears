@@ -158,8 +158,7 @@ except Exception as e:
     print("\nRunning alternative training pipeline...")
 
     # This is a simplified version - the full pipeline is in the notebook
-    run(
-        f"""
+    run(f"""
     cd {work_dir}/openWakeWord && python -c "
 from openwakeword.utils import train_custom_model
 train_custom_model(
@@ -169,8 +168,7 @@ train_custom_model(
     epochs={EPOCHS}
 )
 "
-    """
-    )
+    """)
 
 # Step 6: Export and download
 print("\n[6/6] Exporting model...")

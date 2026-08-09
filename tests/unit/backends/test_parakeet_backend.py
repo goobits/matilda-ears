@@ -9,7 +9,6 @@ import pytest
 import asyncio
 from unittest.mock import Mock, patch
 
-
 try:
     import mlx.core  # noqa: F401
     import parakeet_mlx  # noqa: F401

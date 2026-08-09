@@ -124,7 +124,7 @@ class SileroVAD:
 
             # Get utility functions from torch.hub
             if self.utils is not None:
-                (get_speech_timestamps, _, _, _, _) = self.utils
+                get_speech_timestamps, _, _, _, _ = self.utils
                 self.get_speech_timestamps = get_speech_timestamps
             else:
                 raise RuntimeError("Utils not loaded from torch.hub")

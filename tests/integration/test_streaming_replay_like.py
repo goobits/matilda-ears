@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 import numpy as np
 
-
 # Known hallucination patterns (garbage Whisper produces on silence)
 HALLUCINATION_PATTERNS = [
     r"sous.?titres",

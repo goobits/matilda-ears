@@ -111,8 +111,7 @@ class TestConfigIntegration:
         """Verify config can specify custom backend."""
         # Create a temporary config file with parakeet backend
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
-            f.write(
-                """
+            f.write("""
 [ears.transcription]
 backend = "parakeet"
 
@@ -138,8 +137,7 @@ windows = "%TEMP%\\\\test-stt"
 linux = "arecord"
 darwin = "ffmpeg"
 windows = "ffmpeg"
-"""
-            )
+""")
             temp_config_path = f.name
 
         try:

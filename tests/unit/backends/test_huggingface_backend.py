@@ -10,7 +10,6 @@ import asyncio
 import sys
 from unittest.mock import Mock, patch, MagicMock
 
-
 mock_torch = MagicMock()
 mock_torch.cuda.is_available.return_value = False
 mock_torch.backends.mps.is_available.return_value = False
