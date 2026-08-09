@@ -1,3 +1,5 @@
+@use "sass:color";
+
 // Modern color palette
 $primary: #5B21B6;
 $primary-light: #7C3AED;
@@ -376,18 +378,6 @@ header {
   }
 }
 
-// Settings
-.settings {
-  grid-column: 1 / -1;
-}
-
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: $spacing-lg;
-  margin-bottom: $spacing-lg;
-}
-
 // Buttons
 @mixin button-base {
   display: inline-flex;
@@ -446,7 +436,7 @@ header {
   padding: $spacing-xs $spacing-sm;
 
   &:hover:not(:disabled) {
-    background: darken($danger, 10%);
+    background: color.adjust($danger, $lightness: -10%);
   }
 }
 
@@ -519,10 +509,6 @@ header {
   .result-stats {
     flex-direction: column;
     gap: $spacing-sm;
-  }
-  
-  .settings-grid {
-    grid-template-columns: 1fr;
   }
   
   .client-item {

@@ -308,6 +308,9 @@ class ConfigLoader:
 
     @property
     def whisper_compute_type(self) -> str:
+        env_compute_type = os.environ.get("EARS_COMPUTE_TYPE")
+        if env_compute_type:
+            return env_compute_type
         return str(self.get("whisper.compute_type", "float16"))
 
     def detect_cuda_support(self) -> tuple[bool, str]:
@@ -335,7 +338,7 @@ class ConfigLoader:
     @property
     def whisper_device_auto(self) -> str:
         """Auto-detect the best device for Whisper based on CUDA availability."""
-        configured_device = self.get("whisper.device", "auto")
+        configured_device = self.whisper_device
 
         if configured_device != "auto":
             return str(configured_device)
@@ -349,7 +352,7 @@ class ConfigLoader:
     def whisper_compute_type_auto(self) -> str:
         """Auto-detect the best compute type based on device."""
         device = self.whisper_device_auto
-        configured_compute_type = self.get("whisper.compute_type", "auto")
+        configured_compute_type = self.whisper_compute_type
 
         if configured_compute_type != "auto":
             return str(configured_compute_type)
@@ -715,7 +718,6 @@ def get_config() -> ConfigLoader:
 
 # Re-export logging functions
 from .logging import get_logger, setup_logging  # noqa: E402, F401
-
 
 if __name__ == "__main__":
     # Test the config loader

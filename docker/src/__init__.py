@@ -1,12 +1,4 @@
-"""STT Docker Server Source Code
-
-This package contains the core components for the STT Docker server:
-- Admin dashboard API
-- End-to-end encryption
-- JWT token management
-- Enhanced WebSocket server
-- Server launcher and coordination
-"""
+"""Docker dashboard integration for the canonical Matilda Ears runtime."""
 
 from pathlib import Path
 import tomllib
@@ -23,4 +15,3 @@ def _get_version() -> str:
 
 
 __version__ = _get_version()
-__author__ = "STT Team"

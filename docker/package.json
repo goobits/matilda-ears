@@ -1,5 +1,11 @@
 {
+  "name": "matilda-ears-docker-dashboard",
+  "private": true,
+  "packageManager": "pnpm@10.12.3",
+  "scripts": {
+    "build": "sass dashboard/admin.scss dashboard/admin.css --no-source-map"
+  },
   "devDependencies": {
-    "sass": "^1.99.0"
+    "sass": "^1.102.0"
   }
 }

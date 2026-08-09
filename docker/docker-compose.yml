@@ -1,59 +1,39 @@
-version: '3.8'
-
 services:
-  matilda-server:
+  matilda-ears:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: matilda-transcription-server
+      context: ../..
+      dockerfile: matilda-ears/docker/Dockerfile
     ports:
-      - "8081:8080"  # Dashboard port
-      - "8773:8773"  # WebSocket port
+      - "8080:8080"
+      - "8773:8773"
+    environment:
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:8080}"
+      EARS_COMPUTE_TYPE: "${EARS_COMPUTE_TYPE:-auto}"
+      EARS_DEVICE: "${EARS_DEVICE:-auto}"
+      EARS_MODEL: "${EARS_MODEL:-base}"
+      MATILDA_API_TOKEN: "${MATILDA_API_TOKEN:?Set MATILDA_API_TOKEN in docker/.env}"
+      MATILDA_DATA_DIR: /app/data
+      MATILDA_EARS_TRANSPORT: tcp
+      STT_JWT_SECRET: "${STT_JWT_SECRET:-}"
+      WEB_BIND_HOST: 0.0.0.0
+      WEB_PORT: "8080"
+      WEBSOCKET_BIND_HOST: 0.0.0.0
+      WEBSOCKET_PORT: "8773"
     volumes:
       - matilda-data:/app/data
       - matilda-logs:/app/logs
-      - matilda-ssl:/app/ssl
-      - matilda-models:/root/.cache/huggingface
-      # Mount source code for development - changes reflect immediately
-      - ./src:/app/docker/src
-      - ./dashboard:/app/docker/dashboard
-      - ./start_both.py:/app/docker/start_both.py
-    environment:
-      - WEBSOCKET_BIND_HOST=0.0.0.0
-      - WEBSOCKET_PORT=8773
-      - WEB_PORT=8080
-      - WHISPER_MODEL=large-v3-turbo
-      - MAX_CLIENTS=20
-      - GPU_ENABLED=false
-      - CUDA_VISIBLE_DEVICES=0
+      - matilda-models:/home/matilda/.cache/huggingface
     restart: unless-stopped
-    networks:
-      - matilda-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      test:
+        - CMD-SHELL
+        - health_port=$$((WEBSOCKET_PORT + 1)); curl -fsS "http://127.0.0.1:$$health_port/health"
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
-    # GPU support disabled - uncomment below to enable
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      start_period: 120s
 
 volumes:
   matilda-data:
-    driver: local
   matilda-logs:
-    driver: local
-  matilda-ssl:
-    driver: local
   matilda-models:
-    driver: local
-
-networks:
-  matilda-network:
-    driver: bridge

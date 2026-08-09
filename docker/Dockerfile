@@ -1,63 +1,35 @@
-# Use Python slim base image 
 FROM python:3.12-slim
 
-# Install system dependencies including OpenSSL for certificates and curl for health checks
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    build-essential \
-    git \
-    openssl \
-    curl \
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV MATILDA_DATA_DIR=/app/data
+ENV WEBSOCKET_BIND_HOST=0.0.0.0
+ENV WEBSOCKET_PORT=8773
+ENV WEB_BIND_HOST=0.0.0.0
+ENV WEB_PORT=8080
+ENV HOME=/home/matilda
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ffmpeg libgomp1 libopus0 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /app/matilda-ears
+COPY matilda-transport /app/matilda-transport
+COPY matilda-ears /app/matilda-ears
 
-# Install PyTorch with GPU support first
-RUN pip install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+RUN python -m pip install --no-cache-dir --editable /app/matilda-transport \
+    && python -m pip install --no-cache-dir --editable ".[whisper,docker]" \
+    && useradd --create-home --uid 10001 matilda \
+    && mkdir -p /app/data /app/logs /home/matilda/.cache/huggingface \
+    && chown -R matilda:matilda /app/data /app/logs /home/matilda
 
-# Install other dependencies from PyPI
-RUN pip install --no-cache-dir \
-    faster-whisper \
-    fastapi[all] \
-    uvicorn \
-    websockets \
-    cryptography \
-    pyjwt \
-    httpx \
-    pydantic \
-    python-multipart \
-    ffmpeg-python
+USER matilda
 
-# Copy the entire project from parent directory
-COPY .. /app/
+EXPOSE 8080 8773 8774
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/ssl /app/data /app/data/encryption
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD health_port=$((WEBSOCKET_PORT + 1)); \
+    curl -fsS "http://127.0.0.1:$health_port/health" || exit 1
 
-# Generate SSL certificates
-RUN openssl req -x509 -newkey rsa:4096 \
-    -keyout /app/ssl/key.pem \
-    -out /app/ssl/cert.pem \
-    -days 365 -nodes \
-    -subj "/C=US/ST=State/L=City/O=STT/OU=Server/CN=localhost" || true
-
-# Expose both WebSocket and dashboard ports
-EXPOSE 8769 8080
-
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV WEBSOCKET_PORT=8769
-ENV WEB_PORT=8080
-ENV WEBSOCKET_BIND_HOST=0.0.0.0
-
-# Whisper GPU settings - will auto-detect GPU when available
-ENV WHISPER_DEVICE=auto
-ENV WHISPER_COMPUTE_TYPE=auto
-
-# Health check for the services
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/api/status || exit 1
-
-# Run both servers (startup script is already copied with COPY .. /app/)
-CMD ["python", "/app/docker/start_both.py"]
+CMD ["python", "-m", "docker.start_both"]

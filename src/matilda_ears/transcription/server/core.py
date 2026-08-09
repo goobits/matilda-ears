@@ -14,6 +14,7 @@ import traceback
 import uuid
 from collections import defaultdict
 from ipaddress import ip_address, ip_network
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlsplit
 
 import websockets
@@ -25,6 +26,11 @@ from . import handlers
 from .internal.envelope import send_envelope
 from .internal.session_registry import ServerSession, SessionRegistry
 from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
+
+if TYPE_CHECKING:
+    from aiohttp.web import AppRunner
+
+    from ...core.token_manager import TokenManager
 
 # Get config instance and setup logging
 config = get_config()
@@ -107,7 +113,7 @@ class MatildaWebSocketServer:
     - Rate limiting per client IP
     """
 
-    def __init__(self):
+    def __init__(self, token_manager: "TokenManager | None" = None):
         # Get config from package namespace for patchability in tests
         from . import config as _config
 
@@ -117,7 +123,7 @@ class MatildaWebSocketServer:
         # Initialize JWT token manager
         from . import TokenManager as _TokenManager
 
-        self.token_manager = _TokenManager(_config.jwt_secret_key)
+        self.token_manager = token_manager if token_manager is not None else _TokenManager(_config.jwt_secret_key)
 
         # Initialize centralized auth policy
         from ...core.auth import AuthPolicy
@@ -197,7 +203,7 @@ class MatildaWebSocketServer:
         self.wake_word_detector = None
 
         # Health server runner (set during start_server)
-        self._health_runner = None
+        self._health_runner: AppRunner | None = None
 
         self.transcriptions_started = 0
         self.transcriptions_completed = 0
