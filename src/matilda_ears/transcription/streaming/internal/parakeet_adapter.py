@@ -144,8 +144,10 @@ class ParakeetStreamingAdapter:
             raise RuntimeError("Parakeet transcriber is not initialized")
         for chunk in chunks:
             audio_f32 = chunk.astype(np.float32) / 32768.0
-            last_result = transcriber.add_audio(audio_f32)
-        return last_result
+            result = transcriber.add_audio(audio_f32)
+            if result is not None:
+                last_result = result
+        return last_result if last_result is not None else transcriber
 
     def _trim_pending_audio(self) -> None:
         max_samples = int(max(self.config.audio_max_len, 1.0) * self.SAMPLE_RATE)
@@ -216,8 +218,11 @@ class ParakeetStreamingAdapter:
                     loop.run_in_executor(_INFERENCE_EXECUTOR, transcriber.finish),
                     timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
                 )
-            alpha, _ = self._extract_text(final_result)
+            if final_result is None:
+                final_result = transcriber
+            alpha, omega = self._extract_text(final_result)
             self._merge_alpha(alpha)
+            self._merge_alpha(omega)
         finally:
             transcriber_cm = self._transcriber_cm
             if transcriber_cm is not None:
