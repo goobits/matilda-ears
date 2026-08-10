@@ -32,7 +32,7 @@ def create_ssl_context(mode: SSLMode = "client", auto_generate: bool = True) -> 
         if mode == "server":
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         else:
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
 
         # Server-specific certificate loading
         if mode == "server":

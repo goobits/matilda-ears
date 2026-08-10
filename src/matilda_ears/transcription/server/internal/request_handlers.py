@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 from ....audio.opus_batch import OpusBatchDecoder
 from ....core.config import setup_logging
-from .envelope import send_envelope
-from .transcription import send_error, transcribe_audio_from_wav
+from .transcription import send_envelope, send_error, transcribe_audio_from_wav
 
 if TYPE_CHECKING:
     from ..core import MatildaWebSocketServer

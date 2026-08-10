@@ -11,6 +11,8 @@ import json
 import base64
 import ssl
 import threading
+
+from matilda_transport import unwrap_envelope
 import websockets
 
 from .internal.circuit_breaker import CircuitBreaker
@@ -20,22 +22,6 @@ from ...core.config import get_config, setup_logging
 
 config = get_config()
 logger = setup_logging(__name__, log_filename="transcription.txt")
-
-
-def _unwrap_envelope(data: dict) -> dict:
-    if data.get("service") == "ears" and data.get("task"):
-        if data.get("error"):
-            error = data.get("error", {})
-            return {
-                "type": "error",
-                "message": error.get("message"),
-                "error": error,
-            }
-        payload = data.get("result") or {}
-        if "type" not in payload:
-            payload = {**payload, "type": data.get("task")}
-        return payload
-    return data
 
 
 class BatchTranscriber:
@@ -152,7 +138,7 @@ class BatchTranscriber:
             async with websockets.connect(self.websocket_url, ssl=ssl_context) as websocket:
                 # Wait for welcome message
                 welcome_msg = await asyncio.wait_for(websocket.recv(), timeout=10.0)
-                welcome_data = _unwrap_envelope(json.loads(welcome_msg))
+                welcome_data = unwrap_envelope(json.loads(welcome_msg), service="ears")
 
                 if welcome_data.get("type") != "welcome":
                     return False, None, f"Unexpected welcome message: {welcome_data}"
@@ -172,7 +158,7 @@ class BatchTranscriber:
 
                 # Wait for response with timeout
                 response_msg = await asyncio.wait_for(websocket.recv(), timeout=60.0)
-                response_data = _unwrap_envelope(json.loads(response_msg))
+                response_data = unwrap_envelope(json.loads(response_msg), service="ears")
 
                 if response_data.get("type") == "transcription_complete":
                     transcription = response_data.get("text", "").strip()

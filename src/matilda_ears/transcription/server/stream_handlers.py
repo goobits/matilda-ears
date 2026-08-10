@@ -11,9 +11,8 @@ from ...wake_word.detector import WakeWordDetector
 from ...audio.conversion import int16_to_float32
 from ...audio.decoder import OpusDecoder
 from .internal.audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
-from .internal.envelope import send_envelope
 from .internal.session_registry import PcmBuffer, ServerSession, SessionConflictError
-from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
+from .internal.transcription import pcm_to_wav, send_envelope, send_error, transcribe_audio_from_wav
 
 
 def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore, vad):

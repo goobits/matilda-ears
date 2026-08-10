@@ -8,13 +8,16 @@ This module contains the core transcription functionality including:
 
 import asyncio
 import io
+import json
 import os
 import tempfile
+import uuid
 import wave
 from typing import TYPE_CHECKING
 
 import numpy as np
 import websockets
+from matilda_transport import build_envelope
 
 from ....core.config import get_config, setup_logging
 from ....core.memory import current_rss_bytes
@@ -237,6 +240,17 @@ def pcm_to_wav(samples: np.ndarray, sample_rate: int, channels: int = 1) -> byte
     return buffer.getvalue()
 
 
+async def send_envelope(websocket, task: str, result: dict | None = None, error: dict | None = None) -> None:
+    payload = build_envelope(
+        request_id=str(uuid.uuid4()),
+        service="ears",
+        task=task,
+        result=result,
+        error=error,
+    )
+    await websocket.send(json.dumps(payload))
+
+
 async def send_error(
     websocket,
     message: str,
@@ -251,8 +265,6 @@ async def send_error(
 
     """
     try:
-        from .envelope import send_envelope
-
         await send_envelope(websocket, "error", error={"message": message, "code": code, "retryable": retryable})
     except (websockets.exceptions.ConnectionClosed, websockets.exceptions.ConnectionClosedError) as e:
         logger.warning(f"WebSocket connection closed while sending error: {e}")

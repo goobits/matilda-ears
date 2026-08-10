@@ -23,9 +23,8 @@ from ...core.config import get_config, setup_logging
 from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
-from .internal.envelope import send_envelope
 from .internal.session_registry import ServerSession, SessionRegistry
-from .internal.transcription import pcm_to_wav, send_error, transcribe_audio_from_wav
+from .internal.transcription import pcm_to_wav, send_envelope, send_error, transcribe_audio_from_wav
 
 if TYPE_CHECKING:
     from aiohttp.web import AppRunner

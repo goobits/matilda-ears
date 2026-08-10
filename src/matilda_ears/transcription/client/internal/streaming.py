@@ -9,37 +9,30 @@ import asyncio
 import os
 import json
 import base64
-import ssl
 import wave
 import tempfile
 from dataclasses import dataclass
 from collections.abc import Callable
+
 import numpy as np
+from matilda_transport import unwrap_envelope
 import websockets
 
 from .exceptions import TranscriptionConnectionError, StreamingError
 from ....audio.encoder import OpusEncoder
 from ....core.config import setup_logging
+from ....utils.ssl import create_ssl_context
 
 logger = setup_logging(__name__, log_filename="transcription.txt")
 MAX_PENDING_MESSAGES = int(os.getenv("MATILDA_EARS_STREAM_CLIENT_PENDING_MESSAGES", "100"))
 RESULT_TIMEOUT_SECONDS = float(os.getenv("MATILDA_EARS_STREAM_RESULT_TIMEOUT_SECONDS", "60"))
-
-
-def _unwrap_envelope(data: dict) -> dict:
-    if data.get("service") == "ears" and data.get("task"):
-        if data.get("error"):
-            error = data.get("error", {})
-            return {
-                "type": "error",
-                "message": error.get("message"),
-                "error": error,
-            }
-        payload = data.get("result") or {}
-        if "type" not in payload:
-            payload = {**payload, "type": data.get("task")}
-        return payload
-    return data
+FINAL_MESSAGE_TYPES = {
+    "error",
+    "stream_ended",
+    "stream_transcription_complete",
+    "transcription_complete",
+    "transcription_result",
+}
 
 
 @dataclass
@@ -183,7 +176,7 @@ class StreamingAudioClient:
                         self.websocket.recv(),
                         timeout=0.5,
                     )
-                    data = _unwrap_envelope(json.loads(message))
+                    data = unwrap_envelope(json.loads(message), service="ears")
                     msg_type = data.get("type", "")
 
                     if msg_type == "partial_result":
@@ -263,12 +256,11 @@ class StreamingAudioClient:
     async def connect(self):
         """Connect to WebSocket server."""
         try:
-            # Set up SSL context for self-signed certificates
             ssl_context = None
             if self.websocket_url.startswith("wss://"):
-                ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
+                ssl_context = create_ssl_context(mode="client", auto_generate=False)
+                if ssl_context is None:
+                    raise TranscriptionConnectionError("SSL context creation failed")
 
             self.websocket = await websockets.connect(self.websocket_url, ssl=ssl_context)
             logger.info("Connected to WebSocket server")
@@ -277,7 +269,7 @@ class StreamingAudioClient:
             if self.websocket is None:
                 raise Exception("WebSocket connection failed")
             welcome = await self.websocket.recv()
-            welcome_data = _unwrap_envelope(json.loads(welcome))
+            welcome_data = unwrap_envelope(json.loads(welcome), service="ears")
             logger.debug(f"Server welcome: {welcome_data}")
 
         except Exception as e:
@@ -320,7 +312,7 @@ class StreamingAudioClient:
 
         # Wait for acknowledgment
         response = await self.websocket.recv()
-        response_data = _unwrap_envelope(json.loads(response))
+        response_data = unwrap_envelope(json.loads(response), service="ears")
 
         if response_data.get("type") == "stream_started":
             logger.info(f"Stream started: {session_id}")
@@ -375,12 +367,7 @@ class StreamingAudioClient:
             self.debug_chunk_count += 1
             self.total_opus_bytes += len(opus_data)
 
-            # Debug: Save Opus data (bounded collection)
-            if self.debug_save_audio:
-                self.debug_opus_chunks.append(opus_data)
-                # Prevent unbounded growth - keep only recent chunks
-                if len(self.debug_opus_chunks) > self.max_debug_chunks:
-                    self.debug_opus_chunks.pop(0)
+            self._remember_debug_opus(opus_data)
 
             # Send to server
             message = {
@@ -416,194 +403,124 @@ class StreamingAudioClient:
         if not self.session_id:
             raise RuntimeError("No active stream session")
 
-        # Stop the background listener first
         await self._stop_listener_task()
-
-        # Check if we had streaming errors
         if self._last_streaming_error:
             logger.warning(f"Stream had errors during transmission: {self._last_streaming_error}")
 
-        # Check if WebSocket connection is still valid
-        if not self.websocket or self._is_websocket_closed():
-            logger.error("WebSocket connection is None or closed - cannot end stream properly")
-            return {
-                "success": False,
-                "text": "",
-                "confirmed_text": "",
-                "tentative_text": "",
-                "is_final": True,
-                "message": "WebSocket connection lost",
-            }
+        try:
+            if not self.websocket or self._is_websocket_closed():
+                return self._error_response("WebSocket connection lost", include_text=True)
+            await self._send_final_audio()
+            await self._send_end_message()
+            response = await self._receive_final_response()
+            logger.info(f"Stream ended: {self.session_id}")
+            return self._normalize_response(response)
+        except TimeoutError:
+            logger.error("Timed out waiting for transcription result")
+            await self._close_websocket()
+            return self._error_response("Timed out waiting for transcription result")
+        except (TranscriptionConnectionError, StreamingError) as error:
+            logger.error(str(error))
+            await self._close_websocket()
+            return self._error_response(str(error))
+        finally:
+            self._reset_stream_state()
 
-        # CRITICAL: Flush any remaining audio from encoder buffer
-        logger.info("FLUSHING encoder buffer")
+    async def _send_final_audio(self) -> None:
         final_chunk = self.encoder.flush()
-        if final_chunk:
-            # Crucially, count this final flushed packet
-            self.sent_opus_packets += 1
-            self.total_opus_bytes += len(final_chunk)
+        if not final_chunk:
+            return
+        self.sent_opus_packets += 1
+        self.total_opus_bytes += len(final_chunk)
+        self._remember_debug_opus(final_chunk)
+        message = {
+            "type": "audio_chunk",
+            "session_id": self.session_id,
+            "audio_data": base64.b64encode(final_chunk).decode("utf-8"),
+        }
+        try:
+            await self.websocket.send(json.dumps(message))
+        except websockets.exceptions.ConnectionClosed as error:
+            raise TranscriptionConnectionError(f"Connection closed during finalization: {error}") from error
+        except Exception as error:
+            raise StreamingError(f"Failed to send final chunk: {error}") from error
 
-            # Debug: Save Opus data (bounded collection)
-            if self.debug_save_audio:
-                self.debug_opus_chunks.append(final_chunk)
-                # Prevent unbounded growth - keep only recent chunks
-                if len(self.debug_opus_chunks) > self.max_debug_chunks:
-                    self.debug_opus_chunks.pop(0)
-
-            # Send the final encoded chunk directly
-            message = {
-                "type": "audio_chunk",
-                "session_id": self.session_id,
-                "audio_data": base64.b64encode(final_chunk).decode("utf-8"),
-            }
-            try:
-                await self.websocket.send(json.dumps(message))
-            except websockets.exceptions.ConnectionClosed as e:
-                logger.error(f"Connection closed while sending final chunk: {e}")
-                # Save debug audio on connection failure
-                if self.debug_save_audio:
-                    self.save_debug_audio()
-                    # Clear debug collections to free memory
-                    self.debug_raw_chunks.clear()
-                    self.debug_opus_chunks.clear()
-                return self._error_response(f"Connection closed during finalization: {e}")
-            except Exception as e:
-                logger.error(f"Failed to send final chunk: {e}")
-                # Save debug audio on failure
-                if self.debug_save_audio:
-                    self.save_debug_audio()
-                    # Clear debug collections to free memory
-                    self.debug_raw_chunks.clear()
-                    self.debug_opus_chunks.clear()
-                return self._error_response(f"Failed to send final chunk: {e}")
-            logger.info(
-                f"SENT final flushed opus packet #{self.sent_opus_packets} ({len(final_chunk)} bytes). "
-                f"Final totals: {self.total_raw_bytes} raw, {self.total_opus_bytes} opus"
-            )
-        else:
-            logger.info("No data to flush from encoder buffer")
-
-        # Send end stream message with correct packet count for verification
+    async def _send_end_message(self) -> None:
         message = {
             "type": "end_stream",
             "session_id": self.session_id,
-            "expected_chunks": self.sent_opus_packets,  # Correct count of actual Opus packets sent
+            "expected_chunks": self.sent_opus_packets,
             "final_chunk": True,
         }
-
         try:
             await self.websocket.send(json.dumps(message))
-        except websockets.exceptions.ConnectionClosed as e:
-            logger.error(f"Connection closed while sending end stream message: {e}")
-            # Save debug audio on connection failure
-            if self.debug_save_audio:
-                self.save_debug_audio()
-                # Clear debug collections to free memory
-                self.debug_raw_chunks.clear()
-                self.debug_opus_chunks.clear()
-            return self._error_response(f"Connection closed during stream end: {e}")
-        except Exception as e:
-            logger.error(f"Failed to send end stream message: {e}")
-            # Save debug audio on failure
-            if self.debug_save_audio:
-                self.save_debug_audio()
-                # Clear debug collections to free memory
-                self.debug_raw_chunks.clear()
-                self.debug_opus_chunks.clear()
-            return self._error_response(f"Failed to send end stream message: {e}")
+        except websockets.exceptions.ConnectionClosed as error:
+            raise TranscriptionConnectionError(f"Connection closed during stream end: {error}") from error
+        except Exception as error:
+            raise StreamingError(f"Failed to send end stream message: {error}") from error
 
-        # Wait for transcription result - check pending messages first
-        response_data = None
-
-        # Check if we already received the result during listening
-        while not self._pending_messages.empty():
+    async def _receive_final_response(self) -> dict:
+        while True:
             try:
                 queued = self._pending_messages.get_nowait()
-                if queued.get("type") in (
-                    "transcription_result",
-                    "stream_ended",
-                    "transcription_complete",
-                    "stream_transcription_complete",
-                ):
-                    response_data = queued
-                    break
             except asyncio.QueueEmpty:
                 break
+            if queued.get("type") in FINAL_MESSAGE_TYPES:
+                return queued
 
-        # If not in queue, wait for it from websocket
-        if response_data is None:
-            try:
-                response = await asyncio.wait_for(self.websocket.recv(), timeout=RESULT_TIMEOUT_SECONDS)
-                response_data = _unwrap_envelope(json.loads(response))
-            except TimeoutError:
-                logger.error("Timed out waiting for transcription result")
-                if self.debug_save_audio:
-                    self.save_debug_audio()
-                    self.debug_raw_chunks.clear()
-                    self.debug_opus_chunks.clear()
-                await self.disconnect()
-                return self._error_response("Timed out waiting for transcription result")
-            except websockets.exceptions.ConnectionClosed as e:
-                logger.error(f"Connection closed while receiving transcription result: {e}")
-                # Save debug audio on connection failure
-                if self.debug_save_audio:
-                    self.save_debug_audio()
-                    # Clear debug collections to free memory
-                    self.debug_raw_chunks.clear()
-                    self.debug_opus_chunks.clear()
-                return self._error_response(f"Connection closed during result reception: {e}")
-            except Exception as e:
-                logger.error(f"Failed to receive transcription result: {e}")
-                # Save debug audio on failure
-                if self.debug_save_audio:
-                    self.save_debug_audio()
-                    # Clear debug collections to free memory
-                    self.debug_raw_chunks.clear()
-                    self.debug_opus_chunks.clear()
-                return self._error_response(f"Failed to receive transcription result: {e}")
+        try:
+            response = await asyncio.wait_for(self.websocket.recv(), timeout=RESULT_TIMEOUT_SECONDS)
+            return unwrap_envelope(json.loads(response), service="ears")
+        except websockets.exceptions.ConnectionClosed as error:
+            raise TranscriptionConnectionError(f"Connection closed during result reception: {error}") from error
+        except (json.JSONDecodeError, TypeError) as error:
+            raise StreamingError(f"Invalid transcription result: {error}") from error
+        except TimeoutError:
+            raise
+        except Exception as error:
+            raise StreamingError(f"Failed to receive transcription result: {error}") from error
 
-        logger.info(f"Stream ended: {self.session_id}")
+    def _remember_debug_opus(self, chunk: bytes) -> None:
+        if not self.debug_save_audio:
+            return
+        self.debug_opus_chunks.append(chunk)
+        if len(self.debug_opus_chunks) > self.max_debug_chunks:
+            self.debug_opus_chunks.pop(0)
+
+    def _reset_stream_state(self) -> None:
+        if self.debug_save_audio and (self.debug_raw_chunks or self.debug_opus_chunks):
+            self.save_debug_audio()
         self.session_id = None
         self.encoder.reset()
         self.sent_opus_packets = 0
         self.debug_chunk_count = 0
-
-        # Reset byte counters
         self.total_raw_bytes = 0
         self.total_opus_bytes = 0
-
-        # Reset error tracking
         self._last_streaming_error = None
-
-        # Debug: Save audio data for analysis
-        if self.debug_save_audio:
-            self.save_debug_audio()
-
-        # Clear debug collections after saving to free memory
         self.debug_raw_chunks.clear()
         self.debug_opus_chunks.clear()
         self._clear_pending_messages()
 
-        # Normalize response to include new schema fields
-        return self._normalize_response(response_data)
+    async def _close_websocket(self) -> None:
+        try:
+            if self.websocket and not self._is_websocket_closed():
+                await self.websocket.close()
+        except websockets.exceptions.ConnectionClosed:
+            pass
+        finally:
+            self.websocket = None
 
-    def _error_response(self, message: str) -> dict:
-        """Create a standardized error response with new schema fields.
-
-        Args:
-            message: Error message to include
-
-        Returns:
-            Error response dict with all expected fields
-
-        """
-        return {
+    def _error_response(self, message: str, *, include_text: bool = False) -> dict:
+        response = {
             "success": False,
             "confirmed_text": "",
             "tentative_text": "",
             "is_final": True,
             "message": message,
         }
+        if include_text:
+            response["text"] = ""
+        return response
 
     def _normalize_response(self, response_data: dict) -> dict:
         """Normalize server response to include all expected schema fields.
@@ -694,18 +611,9 @@ class StreamingAudioClient:
 
     async def disconnect(self):
         """Disconnect from server."""
-        # Stop the listener task if running
         await self._stop_listener_task()
-
-        if self.websocket:
-            # Save debug audio if we have data and we're disconnecting without proper completion
-            if self.debug_save_audio and (self.debug_raw_chunks or self.debug_opus_chunks):
-                logger.info("Saving debug audio on disconnection")
-                self.save_debug_audio()
-                # Clear debug collections to free memory
-                self.debug_raw_chunks.clear()
-                self.debug_opus_chunks.clear()
+        if self.websocket and not self._is_websocket_closed():
             await self.websocket.close()
-            self.websocket = None
             logger.info("Disconnected from server")
-        self._clear_pending_messages()
+        self.websocket = None
+        self._reset_stream_state()
