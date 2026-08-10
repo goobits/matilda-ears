@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import math
+import os
 import statistics
 import time
 import uuid
@@ -17,9 +18,11 @@ import websockets
 
 
 def parse_args() -> argparse.Namespace:
+    ws_port = int(os.getenv("MATILDA_PORT_EARS_WS", os.getenv("EARS_PORT", "3211")))
+    health_port = int(os.getenv("MATILDA_PORT_EARS_HEALTH", os.getenv("EARS_HEALTH_PORT", str(ws_port + 1))))
     parser = argparse.ArgumentParser(description="Soak test Matilda Ears server for latency and resource drift.")
-    parser.add_argument("--ws-url", default="ws://127.0.0.1:8769", help="WebSocket URL")
-    parser.add_argument("--health-url", default="http://127.0.0.1:8770/health", help="Health endpoint URL")
+    parser.add_argument("--ws-url", default=f"ws://127.0.0.1:{ws_port}", help="WebSocket URL")
+    parser.add_argument("--health-url", default=f"http://127.0.0.1:{health_port}/health", help="Health endpoint URL")
     parser.add_argument("--iterations", type=int, default=200, help="Number of stream sessions")
     parser.add_argument("--chunks-per-iteration", type=int, default=20, help="PCM chunks per stream session")
     parser.add_argument("--chunk-ms", type=int, default=100, help="Chunk size in milliseconds")

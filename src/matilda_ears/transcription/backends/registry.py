@@ -20,6 +20,17 @@ HUGGINGFACE_AVAILABLE: bool | None = None
 HUB_AVAILABLE: bool | None = None
 IS_APPLE_SILICON: bool | None = None
 
+BACKEND_ALIASES = {
+    "faster-whisper": "faster_whisper",
+    "hf": "huggingface",
+    "whisper": "faster_whisper",
+}
+
+
+def normalize_backend_name(backend_name: object) -> str:
+    name = str(backend_name).strip().lower()
+    return BACKEND_ALIASES.get(name, name) if name else "auto"
+
 
 def _is_apple_silicon() -> bool:
     """Detect if running on Apple Silicon (M1/M2/M3/M4 chips)."""
@@ -178,6 +189,7 @@ def get_backend_info() -> dict[str, dict]:
 
 def get_backend_class(backend_name: str) -> type[TranscriptionBackend]:
     """Factory function to get the backend class based on name."""
+    backend_name = normalize_backend_name(backend_name)
     if backend_name == "dummy":
         from .internal.dummy import DummyBackend
 

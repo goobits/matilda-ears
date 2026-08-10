@@ -12,7 +12,13 @@ Supported backends:
 """
 
 from .base import BackendNotAvailableError, TranscriptionBackend
-from .registry import get_available_backends, get_backend_class, get_backend_info, get_recommended_backend
+from .registry import (
+    get_available_backends,
+    get_backend_class,
+    get_backend_info,
+    get_recommended_backend,
+    normalize_backend_name,
+)
 
 __all__ = [
     "BackendNotAvailableError",
@@ -21,4 +27,5 @@ __all__ = [
     "get_backend_class",
     "get_backend_info",
     "get_recommended_backend",
+    "normalize_backend_name",
 ]

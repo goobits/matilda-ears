@@ -103,7 +103,7 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
     from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
 
     server_host = host if host is not None else (server.host or "0.0.0.0")
-    server_port = port if port is not None else (server.port or 8769)
+    server_port = port if port is not None else (server.port or config.websocket_port)
     transport = resolve_transport("MATILDA_EARS_TRANSPORT", "MATILDA_EARS_ENDPOINT", server_host, server_port)
     websocket_host: str | None = server_host
     websocket_port: int | None = server_port
@@ -128,7 +128,7 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
             except Exception as exc:
                 logger.warning("Health server disabled: %s", exc)
         else:
-            health_port = server_port + 1
+            health_port = config.websocket_health_port_for(server_port)
             try:
                 server._health_runner = await start_health_server(server, server_host, health_port)
             except Exception as exc:

@@ -3,10 +3,29 @@
 
 import os
 import platform
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 import tomllib
+
+DEFAULT_WEBSOCKET_PORT = 3211
+DEFAULT_WEBSOCKET_HEALTH_PORT = 3212
+
+
+def _environment_port(*names: str) -> int | None:
+    for name in names:
+        value = os.environ.get(name)
+        if value is None:
+            continue
+        try:
+            port = int(value)
+        except ValueError:
+            continue
+        if 1 <= port <= 65535:
+            return port
+    return None
+
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "transcription": {"backend": "auto"},
@@ -36,7 +55,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "server": {
         "websocket": {
-            "port": 3212,
+            "port": DEFAULT_WEBSOCKET_PORT,
+            "health_port": DEFAULT_WEBSOCKET_HEALTH_PORT,
             "host": "localhost",
             "bind_host": "127.0.0.1",
             "connect_host": "localhost",
@@ -199,7 +219,7 @@ class ConfigLoader:
         os.makedirs(self.temp_dir, mode=0o700, exist_ok=True)
 
     def _merge_dicts(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-        merged = base.copy()
+        merged = deepcopy(base)
         for key, value in override.items():
             if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
                 merged[key] = self._merge_dicts(merged[key], value)
@@ -222,7 +242,22 @@ class ConfigLoader:
 
     @property
     def websocket_port(self) -> int:
-        return int(self.get("server.websocket.port", 8769))
+        configured = int(self.get("server.websocket.port", DEFAULT_WEBSOCKET_PORT))
+        return _environment_port("MATILDA_PORT_EARS_WS", "EARS_PORT") or configured
+
+    def websocket_health_port_for(self, websocket_port: int) -> int:
+        env_port = _environment_port("MATILDA_PORT_EARS_HEALTH", "EARS_HEALTH_PORT")
+        if env_port is not None:
+            return env_port
+
+        configured_websocket = int(self.get("server.websocket.port", DEFAULT_WEBSOCKET_PORT))
+        if websocket_port == configured_websocket:
+            return int(self.get("server.websocket.health_port", DEFAULT_WEBSOCKET_HEALTH_PORT))
+        return min(websocket_port + 1, 65535)
+
+    @property
+    def websocket_health_port(self) -> int:
+        return self.websocket_health_port_for(self.websocket_port)
 
     @property
     def websocket_host(self) -> str:
@@ -367,11 +402,9 @@ class ConfigLoader:
 
         """
         # Check environment variable first
-        env_backend = os.environ.get("EARS_BACKEND")
-        if env_backend:
-            return env_backend
+        from matilda_ears.transcription.backends import normalize_backend_name
 
-        backend = str(self.get("transcription.backend", "auto"))
+        backend = normalize_backend_name(os.environ.get("EARS_BACKEND") or self.get("transcription.backend", "auto"))
 
         if backend == "auto":
             # Import here to avoid circular imports

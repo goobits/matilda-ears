@@ -378,8 +378,25 @@ def test_streaming_session_keeps_vad_enabled_and_forwards_inference_gate(monkeyp
 
     assert result is sentinel
     assert captured["config"].vad_enabled is True
+    assert captured["config"].backend == "parakeet"
     assert captured["vad"] is None
     assert captured["inference_semaphore"] is semaphore
+
+
+def test_streaming_rejects_parakeet_without_matching_loaded_backend(monkeypatch):
+    monkeypatch.setattr(
+        stream_handlers,
+        "get_config",
+        lambda: {"streaming": {"backend": "parakeet", "simul_streaming": {}, "parakeet": {}}},
+    )
+
+    with pytest.raises(ValueError, match="loaded transcription backend"):
+        stream_handlers._create_streaming_session(
+            "session",
+            backend=object(),
+            backend_name="faster_whisper",
+            transcription_semaphore=None,
+        )
 
 
 @pytest.mark.asyncio

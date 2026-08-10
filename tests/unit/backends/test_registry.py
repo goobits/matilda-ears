@@ -19,3 +19,10 @@ def test_check_parakeet_available_returns_false_when_probe_crashes() -> None:
         assert registry._check_parakeet_available() is False
 
     registry.PARAKEET_AVAILABLE = None
+
+
+def test_backend_names_are_normalized_once() -> None:
+    assert registry.normalize_backend_name(" faster-whisper ") == "faster_whisper"
+    assert registry.normalize_backend_name("WHISPER") == "faster_whisper"
+    assert registry.normalize_backend_name("hf") == "huggingface"
+    assert registry.normalize_backend_name("") == "auto"

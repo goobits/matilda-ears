@@ -33,6 +33,10 @@ def _create_streaming_session(session_id: str, backend, backend_name: str, trans
     streaming_config = app_config.get("streaming", {})
     simul_config = streaming_config.get("simul_streaming", {})
     parakeet_config = streaming_config.get("parakeet", {})
+    configured_backend = str(streaming_config.get("backend", "auto")).strip().lower()
+    streaming_backend = backend_name if configured_backend in {"", "auto"} else configured_backend
+    if streaming_backend == "parakeet" and backend_name != "parakeet":
+        raise ValueError("Parakeet streaming requires the loaded transcription backend to be parakeet")
 
     context_size = parakeet_config.get("context_size", (128, 128))
     if isinstance(context_size, list) and len(context_size) == 2:
@@ -41,7 +45,7 @@ def _create_streaming_session(session_id: str, backend, backend_name: str, trans
         context_size = (128, 128)
 
     config = StreamingConfig(
-        backend=str(streaming_config.get("backend", backend_name)).lower(),
+        backend=streaming_backend,
         language=simul_config.get("language", "en"),
         model_size=simul_config.get("model_size", "tiny"),  # tiny for CPU streaming
         frame_threshold=simul_config.get("frame_threshold", 25),
