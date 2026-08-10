@@ -61,12 +61,10 @@ class FileTranscribeMode(BaseMode):
             if self.backend is None or not self.backend.is_ready:
                 raise RuntimeError("Backend not loaded")
 
-            loop = asyncio.get_event_loop()
-
             def do_transcribe():
                 return self.backend.transcribe(file_path, language=self.mode_config.language)
 
-            text, info = await loop.run_in_executor(None, do_transcribe)
+            text, info = await asyncio.to_thread(do_transcribe)
 
             # Apply Ears Tuner formatting if enabled
             if not self.mode_config.no_formatting:

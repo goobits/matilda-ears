@@ -198,6 +198,7 @@ class PipeBasedAudioStreamer:
                 logger.warning("[PIPE-STREAM] Recording is already active")
                 return False
             self._cleanup_process()
+            self.stats = StreamingStats()
 
             # Build platform-specific audio command
             cmd = self._build_audio_command()
@@ -270,7 +271,6 @@ class PipeBasedAudioStreamer:
         self.arecord_process = None
         self.reader_thread = None
         self._audio_buffer = b""
-        self._stop_event.clear()
 
     def stop_recording(self) -> dict[str, Any]:
         """Stop recording and return final statistics."""
@@ -304,14 +304,8 @@ class PipeBasedAudioStreamer:
                 self.arecord_process.kill()
                 self.arecord_process.wait()
 
-        # Get final statistics
-        final_stats = {
-            "chunks_sent": self.stats.chunks_sent,
-            "samples_sent": self.stats.samples_sent,
-            "bytes_sent": self.stats.bytes_sent,
-            "total_duration": self.stats.total_duration,
-            "sample_rate": self.sample_rate,
-        }
+        final_stats = self._stats_snapshot()
+        self._cleanup_process()
 
         logger.info(f"[PIPE-STREAM] Recording stopped. Final stats: {final_stats}")
         return final_stats
@@ -326,17 +320,18 @@ class PipeBasedAudioStreamer:
         # Process any remaining buffer data
         self._flush_remaining_data()
 
-        # Get final statistics
-        final_stats = {
+        final_stats = self._stats_snapshot()
+        logger.info(f"[PIPE-STREAM] Recording stopped. Final stats: {final_stats}")
+        return final_stats
+
+    def _stats_snapshot(self) -> dict[str, Any]:
+        return {
             "chunks_sent": self.stats.chunks_sent,
             "samples_sent": self.stats.samples_sent,
             "bytes_sent": self.stats.bytes_sent,
             "total_duration": self.stats.total_duration,
             "sample_rate": self.sample_rate,
         }
-
-        logger.info(f"[PIPE-STREAM] Recording stopped. Final stats: {final_stats}")
-        return final_stats
 
     def _read_pipe_loop(self):
         """Main loop for reading from arecord pipe."""

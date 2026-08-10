@@ -18,7 +18,7 @@ except ImportError:
     NUMPY_AVAILABLE = False
 
 from ..core.mode_config import WakeWordConfig
-from ..modes.base_mode import BaseMode
+from ..modes.base_mode import AudioCaptureEndedError, BaseMode
 from .detector import WakeWordDetector
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,6 @@ class WakeWordMode(BaseMode):
         # Components (initialized in run)
         self.detector: WakeWordDetector | None = None
         self.vad = None
-        self._running = False
 
     def _parse_agent_aliases(self, cli_aliases: str | None, mode_config: dict) -> dict[str, list[str]] | None:
         """Parse agent aliases from CLI or config.
@@ -100,16 +99,14 @@ class WakeWordMode(BaseMode):
             await self._send_status("initializing", "Loading wake word models...")
 
             # Load models in executor (CPU-bound)
-            loop = asyncio.get_event_loop()
-            self.detector = await loop.run_in_executor(
-                None,
+            self.detector = await asyncio.to_thread(
                 lambda: WakeWordDetector(
                     agent_aliases=self.agent_aliases,
                     threshold=self.threshold,
                     noise_suppression=self.noise_suppression,
                     backend=self.wake_word_backend,
                     access_key=self.access_key,
-                ),
+                )
             )
 
             # Load VAD for utterance boundary detection
@@ -119,13 +116,7 @@ class WakeWordMode(BaseMode):
             await self._load_model()
 
             # Setup audio streaming (chunk size depends on backend)
-            await self._setup_audio_streamer(maxsize=2000, chunk_duration_ms=self.detector.CHUNK_DURATION_MS)
-
-            # Start audio capture
-            if self.audio_streamer is None:
-                raise RuntimeError("Audio streamer not initialized")
-            self.audio_streamer.start_recording()
-            self.is_recording = True
+            await self._start_audio_capture(maxsize=2000, chunk_duration_ms=self.detector.CHUNK_DURATION_MS)
 
             # Build listening message showing agents and their aliases
             aliases_info = self.detector.agent_aliases
@@ -137,8 +128,7 @@ class WakeWordMode(BaseMode):
             )
 
             # Main detection loop
-            self._running = True
-            while self._running:
+            while not self._stop_requested:
                 result = await self._detection_loop()
                 if result:
                     # Send transcription with agent info
@@ -163,18 +153,16 @@ class WakeWordMode(BaseMode):
         try:
             from ..audio.vad import SileroVAD
 
-            loop = asyncio.get_event_loop()
             mode_config = self._get_mode_config()
 
-            self.vad = await loop.run_in_executor(
-                None,
+            self.vad = await asyncio.to_thread(
                 lambda: SileroVAD(
                     sample_rate=self.mode_config.sample_rate,
                     threshold=mode_config.get("vad_threshold", 0.5),
                     min_speech_duration=mode_config.get("min_speech_duration", 0.25),
                     min_silence_duration=self.silence_duration,
                     use_onnx=True,
-                ),
+                )
             )
             self.logger.info("VAD initialized for utterance detection")
         except ImportError as e:
@@ -188,12 +176,9 @@ class WakeWordMode(BaseMode):
             Transcription result dict with agent, or None if stopped.
 
         """
-        audio_buffer = []
-
-        while self._running:
+        while not self._stop_requested:
             try:
-                # Get audio chunk (80ms for OpenWakeWord)
-                chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
+                chunk = await self._read_audio_chunk()
 
                 # Normalize to float32 for OpenWakeWord
                 if chunk.dtype == np.int16:
@@ -221,9 +206,7 @@ class WakeWordMode(BaseMode):
                     if utterance_chunks:
                         # Transcribe
                         audio_array = np.concatenate(utterance_chunks)
-                        result = await asyncio.get_event_loop().run_in_executor(
-                            None, self._transcribe_audio, audio_array
-                        )
+                        result = await self._transcribe_async(audio_array)
 
                         if result.get("success"):
                             result["agent"] = agent
@@ -236,6 +219,9 @@ class WakeWordMode(BaseMode):
 
             except TimeoutError:
                 continue
+            except AudioCaptureEndedError as exc:
+                self.logger.warning(str(exc))
+                break
             except Exception as e:
                 self.logger.error(f"Detection loop error: {e}")
                 await asyncio.sleep(0.1)
@@ -257,9 +243,9 @@ class WakeWordMode(BaseMode):
 
         self.logger.debug(f"Capturing utterance (max silence: {max_silence_chunks} chunks)")
 
-        while len(chunks) < max_duration_chunks:
+        while len(chunks) < max_duration_chunks and not self._stop_requested:
             try:
-                chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.5)
+                chunk = await self._read_audio_chunk(timeout_seconds=0.5)
                 chunks.append(chunk)
 
                 # Check VAD for speech/silence
@@ -284,16 +270,14 @@ class WakeWordMode(BaseMode):
             except TimeoutError:
                 self.logger.warning("Timeout waiting for audio during utterance capture")
                 break
+            except AudioCaptureEndedError as exc:
+                self.logger.warning(str(exc))
+                break
 
         return chunks
 
-    def stop(self):
-        """Stop the detection loop."""
-        self._running = False
-
     async def _cleanup(self):
         """Clean up resources."""
-        self._running = False
         if self.detector:
             self.detector.close()
             self.detector = None

@@ -11,13 +11,14 @@ This class provides common functionality shared across all operation modes:
 
 import asyncio
 import json
-import time
-import tempfile
-import wave
 import os
+import re
+import sys
+import tempfile
+import time
+import wave
 from abc import ABC, abstractmethod
 from typing import Any
-import sys
 
 import numpy as np
 
@@ -26,7 +27,9 @@ from matilda_ears.core.mode_config import ModeConfig
 from matilda_ears.audio.capture import PipeBasedAudioStreamer
 from matilda_ears.transcription.backends import get_backend_class
 
-DEFAULT_MAX_RECORDING_SECONDS = 300
+
+class AudioCaptureEndedError(RuntimeError):
+    pass
 
 
 class BaseMode(ABC):
@@ -52,28 +55,18 @@ class BaseMode(ABC):
         )
 
         # Audio processing
-        self.loop = None
-        self.audio_queue = None
-        self.audio_streamer = None
+        self.audio_queue: asyncio.Queue[np.ndarray] | None = None
+        self.audio_streamer: PipeBasedAudioStreamer | None = None
 
         # Transcription Backend
         self.backend = None
 
         # Recording state
         self.is_recording = False
-        self.audio_data = []
-        self.audio_data_samples = 0
-        self.max_recording_samples = self._resolve_max_recording_samples()
+        self._stop_requested = False
 
         # Check dependencies
         self.logger.info(f"{self.__class__.__name__} initialized")
-
-    def _resolve_max_recording_samples(self) -> int:
-        try:
-            max_seconds = float(os.environ.get("MATILDA_EARS_MAX_RECORDING_SECONDS", DEFAULT_MAX_RECORDING_SECONDS))
-        except ValueError:
-            max_seconds = DEFAULT_MAX_RECORDING_SECONDS
-        return max(1, int(max_seconds * self.mode_config.sample_rate))
 
     def _get_mode_config(self) -> dict[str, Any]:
         """Get mode-specific configuration from matilda config."""
@@ -103,26 +96,55 @@ class BaseMode(ABC):
             self.logger.error(f"Failed to load transcription backend: {e}")
             raise
 
-    async def _setup_audio_streamer(self, maxsize: int = 1000, chunk_duration_ms: int = 32):
-        """Initialize the PipeBasedAudioStreamer."""
-        try:
-            self.loop = asyncio.get_event_loop()
-            self.audio_queue = asyncio.Queue(maxsize=maxsize)
+    async def _start_audio_capture(self, maxsize: int = 1000, chunk_duration_ms: int = 32) -> None:
+        """Initialize and start the shared audio capture pipeline."""
+        if self.is_recording:
+            return
 
-            # Create audio streamer
+        try:
+            self.audio_queue = asyncio.Queue(maxsize=maxsize)
             self.audio_streamer = PipeBasedAudioStreamer(
-                loop=self.loop,
+                loop=asyncio.get_running_loop(),
                 queue=self.audio_queue,
                 chunk_duration_ms=chunk_duration_ms,
                 sample_rate=self.mode_config.sample_rate,
                 audio_device=self.mode_config.device,
             )
-
-            self.logger.info("Audio streamer setup completed")
-
-        except Exception as e:
-            self.logger.error(f"Failed to setup audio streaming: {e}")
+            if not await asyncio.to_thread(self.audio_streamer.start_recording):
+                raise RuntimeError("Failed to start audio recording")
+            self.is_recording = True
+            self._stop_requested = False
+            self.logger.info("Audio capture started")
+        except Exception:
+            self.audio_queue = None
+            self.audio_streamer = None
+            self.is_recording = False
             raise
+
+    async def _stop_audio_capture(self) -> dict[str, Any]:
+        """Stop capture once and release all queue/process ownership."""
+        streamer = self.audio_streamer
+        self.audio_streamer = None
+        self.audio_queue = None
+        self.is_recording = False
+        if streamer is None:
+            return {}
+        return await asyncio.to_thread(streamer.stop_recording)
+
+    async def _read_audio_chunk(self, timeout_seconds: float = 0.1) -> np.ndarray:
+        """Read one chunk and distinguish silence from a dead capture process."""
+        if self.audio_queue is None:
+            raise AudioCaptureEndedError("Audio capture is not initialized")
+        try:
+            return await asyncio.wait_for(self.audio_queue.get(), timeout=timeout_seconds)
+        except TimeoutError:
+            if self.audio_streamer is None or not self.audio_streamer.is_recording():
+                raise AudioCaptureEndedError("Audio capture process stopped") from None
+            raise
+
+    def stop(self) -> None:
+        """Request a graceful mode shutdown."""
+        self._stop_requested = True
 
     def _transcribe_audio(self, audio_data: np.ndarray) -> dict[str, Any]:
         """Transcribe audio data using the loaded backend."""
@@ -226,148 +248,27 @@ class BaseMode(ABC):
         """Get the mode name from the class name."""
         class_name = self.__class__.__name__
         class_name = class_name.removesuffix("Mode")  # Remove "Mode" suffix
-
-        # Convert CamelCase to snake_case
-        import re
-
         return re.sub("([A-Z]+)", r"_\1", class_name).lower().strip("_")
 
-    async def _process_and_transcribe_collected_audio(self, audio_chunks: list | None = None):
-        """A helper to process a list of audio chunks, transcribe it,
-        and send the results. Uses self.audio_data by default.
-        """
-        # Use the provided chunks, or fall back to the instance's audio_data
-        chunks_to_process = audio_chunks if audio_chunks is not None else self.audio_data
+    async def _transcribe_async(self, audio_data: np.ndarray) -> dict[str, Any]:
+        duration = len(audio_data) / self.mode_config.sample_rate
+        self.logger.info(f"Transcribing {duration:.2f}s of audio ({len(audio_data)} samples)")
+        return await asyncio.to_thread(self._transcribe_audio, audio_data)
 
-        if not chunks_to_process:
-            await self._send_error("No audio data to transcribe")
-            return
+    async def _transcribe_and_send(self, audio_data: np.ndarray, extra: dict | None = None) -> dict[str, Any]:
+        """Transcribe one normalized utterance and emit the standard result."""
+        if audio_data.size == 0:
+            result = {"success": False, "error": "No audio data to transcribe"}
+        else:
+            result = await self._transcribe_async(audio_data)
 
-        try:
-            # Combine all audio chunks
-            audio_array = np.concatenate(chunks_to_process)
-            duration = len(audio_array) / self.mode_config.sample_rate
-            self.logger.info(f"Transcribing {duration:.2f}s of audio ({len(audio_array)} samples)")
-
-            # Transcribe in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._transcribe_audio, audio_array)
-
-            if result.get("success"):
-                await self._send_transcription(result)
-            else:
-                await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
-
-        except Exception as e:
-            self.logger.exception(f"Error during transcription processing: {e}")
-            await self._send_error(f"Transcription error: {e}")
-
-    async def _collect_audio(self):
-        """Collect audio chunks while recording.
-
-        This shared method accumulates audio data into self.audio_data while
-        self.is_recording is True.
-        """
-        while self.is_recording:
-            try:
-                if self.audio_queue is None:
-                    break
-                audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
-                self.audio_data.append(audio_chunk)
-                self.audio_data_samples += len(audio_chunk)
-                while self.audio_data_samples > self.max_recording_samples and self.audio_data:
-                    removed_chunk = self.audio_data.pop(0)
-                    self.audio_data_samples -= len(removed_chunk)
-            except TimeoutError:
-                # No audio data available - continue if still recording
-                continue
-            except Exception as e:
-                self.logger.error(f"Error collecting audio: {e}")
-                break
-
-    # =========================================================================
-    # Recording control methods shared by explicit recording workflows
-    # =========================================================================
-
-    def _get_recording_start_message(self) -> str:
-        """Get the status message shown when recording starts.
-
-        Override in subclasses to customize the message.
-        """
-        return "Recording..."
-
-    def _get_recording_ready_message(self) -> str:
-        """Get the status message shown when ready to record.
-
-        Override in subclasses to customize the message.
-        """
-        return "Ready to record"
-
-    async def _start_recording(self):
-        """Start audio recording.
-
-        Shared implementation for explicit recording workflows.
-        Override _get_recording_start_message() to customize the status message.
-        """
-        try:
-            if self.is_recording:
-                return
-
-            self.is_recording = True
-            self.audio_data = []
-            self.audio_data_samples = 0
-
-            # Start audio streamer
-            if self.audio_streamer is None or not self.audio_streamer.start_recording():
-                raise RuntimeError("Failed to start audio recording")
-
-            # Start collecting audio in background
-            asyncio.create_task(self._collect_audio())
-
-            await self._send_status("recording", self._get_recording_start_message())
-            self.logger.info("Recording started")
-
-        except Exception as e:
-            self.logger.error(f"Error starting recording: {e}")
-            await self._send_error(f"Failed to start recording: {e}")
-            self.is_recording = False
-
-    async def _stop_recording(self):
-        """Stop recording and transcribe.
-
-        Shared implementation for explicit recording workflows.
-        Override _get_recording_ready_message() to customize the status message.
-        """
-        try:
-            if not self.is_recording:
-                return
-
-            self.is_recording = False
-
-            # Stop audio streamer
-            stats = {}
-            if self.audio_streamer is not None:
-                stats = self.audio_streamer.stop_recording()
-
-            await self._send_status("processing", "Recording stopped - Transcribing...")
-            self.logger.info(f"Recording stopped. Stats: {stats}")
-
-            # Process the recorded audio
-            if self.audio_data:
-                await self._transcribe_recording()
-            else:
-                await self._send_error("No audio data recorded")
-
-            await self._send_status("ready", self._get_recording_ready_message())
-
-        except Exception as e:
-            self.logger.exception(f"Error stopping recording: {e}")
-            await self._send_error(f"Failed to stop recording: {e}")
+        if result.get("success"):
+            await self._send_transcription(result, extra)
+        else:
+            await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
+        return result
 
     async def _cleanup(self):
-        """Default cleanup behavior. Can be overridden by subclasses."""
-        if self.audio_streamer and (self.is_recording or self.audio_streamer.is_recording()):
-            self.audio_streamer.stop_recording()
-        self.is_recording = False
-
+        """Stop capture and release mode resources once."""
+        await self._stop_audio_capture()
         self.logger.info(f"{self.__class__.__name__} cleanup completed")

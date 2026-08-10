@@ -11,12 +11,13 @@ This mode provides automatic speech detection and transcription of a single utte
 import asyncio
 import sys
 import time
-from typing import Any
 
 import numpy as np
-from .base_mode import BaseMode
+
 from matilda_ears.core.mode_config import ListenOnceConfig
 from matilda_ears.core.vad_state import VADStateMachine, VADEvent
+
+from .base_mode import AudioCaptureEndedError, BaseMode
 
 
 class ListenOnceMode(BaseMode):
@@ -62,14 +63,15 @@ class ListenOnceMode(BaseMode):
             # Initialize VAD
             await self._initialize_vad()
 
-            # Start audio streaming
-            await self._start_audio_streaming()
+            await self._start_audio_capture(maxsize=100)
+            self.recording_start_time = time.monotonic()
 
             # Send listening status
             await self._send_status("listening", "Listening for speech...")
 
             # Capture single utterance
             utterance_audio = await self._capture_utterance()
+            await self._stop_audio_capture()
 
             if utterance_audio is not None and len(utterance_audio) > 0:
                 # Process and transcribe
@@ -94,26 +96,9 @@ class ListenOnceMode(BaseMode):
     async def _initialize_vad(self):
         """Initialize VAD Processor."""
         try:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.vad_processor.initialize)
+            await asyncio.to_thread(self.vad_processor.initialize)
         except Exception as e:
             self.logger.error(f"Failed to initialize VAD: {e}")
-            raise
-
-    async def _start_audio_streaming(self):
-        """Initialize and start audio streaming."""
-        try:
-            await self._setup_audio_streamer(maxsize=100)
-
-            # Start recording
-            if not self.audio_streamer.start_recording():
-                raise RuntimeError("Failed to start audio recording")
-
-            self.recording_start_time = time.time()
-            self.logger.info("Audio streaming started successfully")
-
-        except Exception as e:
-            self.logger.error(f"Failed to start audio streaming: {e}")
             raise
 
     async def _capture_utterance(self):
@@ -121,21 +106,20 @@ class ListenOnceMode(BaseMode):
         utterance_complete = False
 
         self.vad_processor.reset()
+        self.speech_started = False
 
-        while not utterance_complete:
+        while not utterance_complete and not self._stop_requested:
             try:
                 # Check for timeout
                 if (
                     self.recording_start_time is not None
-                    and time.time() - self.recording_start_time > self.max_recording_duration
+                    and time.monotonic() - self.recording_start_time > self.max_recording_duration
                 ):
                     self.logger.warning("Maximum recording duration reached")
                     break
 
                 # Get audio chunk with timeout
-                if self.audio_queue is None:
-                    break
-                audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=0.1)
+                audio_chunk = await self._read_audio_chunk()
 
                 # Process with VAD
                 event, speech_prob = self.vad_processor.process(audio_chunk)
@@ -152,6 +136,9 @@ class ListenOnceMode(BaseMode):
             except TimeoutError:
                 # No audio data - continue waiting
                 continue
+            except AudioCaptureEndedError as exc:
+                self.logger.warning(str(exc))
+                break
             except Exception as e:
                 self.logger.error(f"Error capturing utterance: {e}")
                 break
@@ -160,36 +147,15 @@ class ListenOnceMode(BaseMode):
             return self.vad_processor.get_audio()
         return None
 
-    async def _process_utterance(self, audio_data):
+    async def _process_utterance(self, audio_data: np.ndarray) -> None:
         """Process and transcribe the captured utterance."""
         if audio_data is None or len(audio_data) == 0:
             await self._send_error("No audio data to transcribe")
             return
 
         await self._send_status("processing", "Processing speech...")
-
-        # Pass the full audio array to the base helper
-        # We wrap it in a list to mimic chunks if needed, or modify base helper
-        # BaseMode._process_and_transcribe_collected_audio expects self.audio_data list
-        # But here we have the numpy array directly.
-        # Let's use _transcribe_audio directly which takes numpy array
-
         try:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._transcribe_audio_with_vad_stats, audio_data)
-
-            if result["success"]:
-                await self._send_transcription(result)
-            else:
-                await self._send_error(f"Transcription failed: {result.get('error', 'Unknown error')}")
-
+            await self._transcribe_and_send(audio_data)
         except Exception as e:
             self.logger.exception(f"Error processing utterance: {e}")
             await self._send_error(f"Processing error: {e}")
-
-    def _transcribe_audio_with_vad_stats(self, audio_data: np.ndarray) -> dict[str, Any]:
-        """Transcribe audio data using Whisper and include VAD stats."""
-        result = super()._transcribe_audio(audio_data)
-        if result["success"]:
-            result["model"] = self.mode_config.model
-        return result
