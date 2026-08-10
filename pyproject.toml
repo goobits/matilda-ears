@@ -25,7 +25,7 @@ huggingface = [ "torch>=2.0.0,<3.0", "transformers>=4.36.0,<5.0", "accelerate>=0
 streaming = [ "torch>=2.0.0,<3.0", "librosa>=0.10.0,<1.0", "tiktoken>=0.5.0,<1.0",]
 wake_word = [ "openwakeword>=0.6.0,<1.0", "onnxruntime>=1.15.0,<2.0",]
 docker = [ "fastapi>=0.115.0,<1.0", "uvicorn>=0.30.0,<1.0", "python-multipart>=0.0.9,<1.0",]
-dev = [ "pytest>=6.0,<10.0", "pytest-asyncio>=0.20.0,<2.0", "pytest-xdist>=3.0.0,<4.0", "pytest-sugar>=0.9.0,<2.0", "pytest-clarity>=1.0.0,<2.0", "pytest-html>=3.0.0,<5.0", "pytest-json-report>=1.5.0,<2.0", "rich>=13.0.0,<16.0", "ruff>=0.1.0,<1.0", "black>=22.0.0,<27.0", "mypy>=1.0.0,<3.0", "bandit>=1.7.0,<2.0", "pyyaml>=6.0.1,<7.0",]
+dev = [ "pytest>=6.0,<10.0", "pytest-asyncio>=0.20.0,<2.0", "pytest-cov>=5.0.0,<8.0", "pytest-xdist>=3.0.0,<4.0", "pytest-sugar>=0.9.0,<2.0", "pytest-clarity>=1.0.0,<2.0", "pytest-html>=3.0.0,<5.0", "pytest-json-report>=1.5.0,<2.0", "build>=1.2.0,<2.0", "rich>=13.0.0,<16.0", "ruff>=0.1.0,<1.0", "black>=22.0.0,<27.0", "mypy>=1.0.0,<3.0", "bandit>=1.7.0,<2.0", "pyyaml>=6.0.1,<7.0",]
 
 [project.scripts]
 ears = "matilda_ears.cli:main"

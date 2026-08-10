@@ -21,7 +21,7 @@ def main(argv: list[str]) -> int:
     cmd = [python_cmd, "-m", "pytest"]
     has_test_target = any(not arg.startswith("-") for arg in pytest_args)
     if not has_test_target:
-        cmd.append("tests/ears_tuner/")
+        cmd.append("tests/")
 
     cmd.extend(pytest_args)
     if known.history is not None:

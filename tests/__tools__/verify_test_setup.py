@@ -1,88 +1,63 @@
 #!/usr/bin/env python3
-"""Verification script to check if all test dependencies are properly installed.
-Run this before running the test suite to ensure everything is set up correctly.
-"""
+"""Verify required and optional Matilda Ears test dependencies."""
 
-import sys
+from __future__ import annotations
+
 import importlib
 
+REQUIRED = {
+    "aiohttp": "HTTP client",
+    "bandit": "security scanner",
+    "black": "formatter",
+    "cryptography": "TLS support",
+    "matilda_transport": "shared transport",
+    "mypy": "type checker",
+    "numpy": "audio arrays",
+    "opuslib": "Opus codec",
+    "pytest": "test runner",
+    "pytest_cov": "coverage plugin",
+    "ruff": "linter",
+    "websockets": "WebSocket support",
+    "xdist": "parallel tests",
+}
 
-def check_dependency(module_name, description, allow_display_errors=False):
-    """Check if a dependency can be imported"""
+OPTIONAL = {
+    "faster_whisper": "Whisper backend",
+    "mlx": "Apple MLX runtime",
+    "openwakeword": "wake-word backend",
+    "parakeet_mlx": "Parakeet backend",
+    "silero_vad": "voice activity detection",
+    "torch": "streaming runtime",
+}
+
+
+def _available(module: str) -> bool:
     try:
-        importlib.import_module(module_name)
-        print(f"✅ {description}: {module_name}")
-        return True
-    except ImportError as e:
-        print(f"❌ {description}: {module_name} - {e}")
+        importlib.import_module(module)
+    except Exception:
         return False
-    except Exception as e:
-        error_str = str(e).lower()
-        if allow_display_errors and any(
-            keyword in error_str for keyword in ["display", "x server", "egl", "connection refused", "x11"]
-        ):
-            print(f"⚠️  {description}: {module_name} - Display/Graphics not available (OK for headless)")
-            return True
-        print(f"❌ {description}: {module_name} - {e}")
-        return False
+    return True
 
 
-def main():
-    """Check all test dependencies"""
-    print("🔍 Verifying GOOBITS STT test setup dependencies...\n")
-
-    dependencies = [
-        # Core testing
-        ("pytest", "Testing framework", False),
-        ("xdist", "Parallel test execution", False),
-        # STT dependencies (required for Ears Tuner tests)
-        ("spacy", "SpaCy NLP library", False),
-        ("pyparsing", "Text parsing library", False),
-        ("faster_whisper", "Whisper transcription", False),
-        ("torch", "PyTorch ML framework", False),
-        ("torchaudio", "PyTorch audio processing", False),
-        ("deepmultilingualpunctuation", "Punctuation restoration", False),
-        # Audio dependencies
-        ("opuslib", "Opus audio codec", False),
-        ("silero_vad", "Voice activity detection", False),
-        # Development tools
-        ("ruff", "Code linting", False),
-        ("black", "Code formatting", False),
-        ("mypy", "Type checking", False),
-        ("bandit", "Security scanning", False),
-        # Core dependencies
-        ("numpy", "Numerical computing", False),
-        ("websockets", "WebSocket support", False),
-        ("aiohttp", "Async HTTP client", False),
-        ("cryptography", "Cryptographic functions", False),
-        ("requests", "HTTP requests", False),
-    ]
-
-    passed = 0
-    failed = 0
-
-    for module, description, allow_display_errors in dependencies:
-        if check_dependency(module, description, allow_display_errors):
-            passed += 1
+def main() -> int:
+    missing = []
+    for module, purpose in REQUIRED.items():
+        if _available(module):
+            print(f"✅ {purpose}: {module}")
         else:
-            failed += 1
+            print(f"❌ {purpose}: {module}")
+            missing.append(module)
 
-    print(f"\n📊 Results: {passed} passed, {failed} failed")
+    for module, purpose in OPTIONAL.items():
+        symbol = "✅" if _available(module) else "➖"
+        print(f"{symbol} optional {purpose}: {module}")
 
-    if failed == 0:
-        print("\n🎉 All dependencies verified! You're ready to run tests.")
-        print("   Run: ./test.py tests/ears_tuner/ --track-diff")
-        return 0
-    print(f"\n⚠️  {failed} dependencies missing. Install with:")
-    print('   pip install -e ".[dev]"')
-    if any("opus" in str(dep[0]).lower() for dep in dependencies):
-        print("\nFor system dependencies like Opus:")
-        print("   # Ubuntu/Debian:")
-        print("   sudo apt-get install libopus-dev libopus0")
-        print("   # macOS:")
-        print("   brew install opus")
-    return 1
+    if missing:
+        print(f"\nMissing required dependencies: {', '.join(missing)}")
+        return 1
+    print("\nAll required test dependencies are available.")
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

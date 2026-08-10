@@ -1,3 +1,5 @@
+import json
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -44,3 +46,38 @@ def test_transcribe_requires_file_path():
 
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
+
+
+def test_status_json_output_contract(monkeypatch, capsys):
+    config = SimpleNamespace(
+        transcription_backend="faster-whisper",
+        whisper_model="base",
+        whisper_device_auto="cpu",
+        whisper_compute_type_auto="int8",
+        websocket_port=3211,
+    )
+    monkeypatch.setattr("matilda_ears.core.config.get_config", lambda: config)
+    monkeypatch.setattr("matilda_ears.utils.model_downloader.is_model_cached", lambda _model: True)
+
+    result = app_hooks.on_status(json=True)
+    status = {
+        "backend": "faster-whisper",
+        "model": "base",
+        "device": "cpu",
+        "compute_type": "int8",
+        "model_cached": True,
+        "websocket_port": 3211,
+    }
+
+    assert capsys.readouterr().out == f"{json.dumps(status, indent=2)}\n"
+    assert result == {"status": "success", "data": status}
+
+
+def test_models_json_output_contract(monkeypatch, capsys):
+    models = {"base": {"size_mb": 142, "cached": False}}
+    monkeypatch.setattr("matilda_ears.utils.model_downloader.list_available_models", lambda: models)
+
+    result = app_hooks.on_models(json=True)
+
+    assert capsys.readouterr().out == f"{json.dumps(models, indent=2)}\n"
+    assert result == {"status": "success", "data": models}
