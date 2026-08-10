@@ -1,402 +1,283 @@
-"""JWT Token Management System for STT Docker Server
-Handles token generation, validation, and one-time use enforcement
-"""
+"""JWT token generation, validation, and replay protection."""
 
-import base64
-import concurrent.futures
-import atexit
-import json
+from __future__ import annotations
+
 import logging
-import os
-import sys
 import threading
 import time
+import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
-import uuid
 
 import jwt
+
+from .token_store import TokenStore, TokenStoreError, get_default_data_dir
+
+__all__ = ["TokenManager", "get_default_data_dir", "get_token_manager"]
 
 logger = logging.getLogger(__name__)
 
 
-def get_default_data_dir() -> Path:
-    """Get platform-appropriate data directory"""
-    if sys.platform == "darwin":  # macOS
-        base = Path.home() / "Library" / "Application Support"
-    elif sys.platform == "win32":  # Windows
-        base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
-    else:  # Linux and others
-        base = Path.home() / ".local" / "share"
-
-    return base / "ears"
-
-
 class TokenManager:
-    """Manages JWT tokens for client authentication"""
+    """Manage JWT policy while ``TokenStore`` owns durable state."""
 
-    def __init__(self, secret_key: str | None = None, data_dir: Path | None = None):
-        self.data_dir = data_dir or get_default_data_dir()
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-
-        self.secret_key = secret_key or self._get_or_create_secret()
-        self.tokens_file = self.data_dir / "tokens.json"
-        self.used_tokens_file = self.data_dir / "used_tokens.json"
-
-        # In-memory token storage
-        self.active_tokens: dict[str, dict[str, Any]] = {}
-        self.used_tokens: set[str] = set()
-
-        # Thread safety
+    def __init__(self, secret_key: str | None = None, data_dir: Path | None = None) -> None:
+        self.store = TokenStore(data_dir)
+        self.data_dir = self.store.data_dir
+        self.secret_key = secret_key or self.store.get_or_create_secret()
+        self.tokens_file = self.store.tokens_file
+        self.used_tokens_file = self.store.used_tokens_file
         self._file_lock = threading.RLock()
-
-        # Performance: Use ThreadPoolExecutor for async saves to avoid thread creation overhead
-        self._save_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="TokenSaver")
-
-        # Throttling state
         self._last_save_time = 0.0
 
-        # Load existing tokens
-        self._load_tokens()
-        self._load_used_tokens()
+        self.active_tokens = self._load_tokens()
+        self.used_tokens = self._load_used_tokens()
+        self._synchronize_used_tokens()
+        self._cleanup_expired_tokens()
+        logger.info("TokenManager initialized with %s active tokens", len(self.active_tokens))
+
+    def _load_tokens(self) -> dict[str, dict[str, Any]]:
+        try:
+            return self.store.load_tokens()
+        except TokenStoreError as error:
+            logger.error("Token state rejected: %s", error)
+            return {}
+
+    def _load_used_tokens(self) -> set[str]:
+        try:
+            return self.store.load_used_tokens()
+        except TokenStoreError as error:
+            logger.error("Used-token state rejected: %s", error)
+            return set()
+
+    def _synchronize_used_tokens(self) -> None:
+        changed = False
+        for token_id in self.used_tokens:
+            token = self.active_tokens.get(token_id)
+            if token and token.get("one_time_use") and not token.get("used"):
+                token["used"] = True
+                changed = True
         self._cleanup_used_tokens()
-        atexit.register(self.close)
+        if changed:
+            self._save_tokens()
 
-        logger.info(f"TokenManager initialized with {len(self.active_tokens)} active tokens")
-
-    def _get_or_create_secret(self) -> str:
-        """Get or create JWT secret key"""
-        secret_file = self.data_dir / "jwt_secret.key"
-
-        if secret_file.exists():
-            return secret_file.read_text().strip()
-        # Generate new secret
-        secret = base64.urlsafe_b64encode(os.urandom(32)).decode()
-        secret_file.write_text(secret)
-        os.chmod(secret_file, 0o600)
-        logger.info("Generated new JWT secret key")
-        return secret
-
-    def _load_tokens(self):
-        """Load active tokens from storage"""
-        try:
-            if self.tokens_file.exists():
-                data = json.loads(self.tokens_file.read_text())
-                self.active_tokens = data
-
-                # Clean expired tokens
-                self._cleanup_expired_tokens()
-
-        except Exception as e:
-            logger.error(f"Failed to load tokens: {e}")
-            self.active_tokens = {}
-
-    def _load_used_tokens(self):
-        """Load used tokens from storage"""
-        try:
-            if self.used_tokens_file.exists():
-                data = json.loads(self.used_tokens_file.read_text())
-                self.used_tokens = set(data.get("used_tokens", []))
-
-        except Exception as e:
-            logger.error(f"Failed to load used tokens: {e}")
-            self.used_tokens = set()
-
-    def _perform_save(self, data: str):
-        """Write token data to file with lock"""
+    def _save_tokens(self) -> None:
         with self._file_lock:
-            try:
-                self.tokens_file.write_text(data)
-            except Exception as e:
-                logger.error(f"Failed to save tokens: {e}")
+            self.store.save_tokens(self.active_tokens)
+            self._last_save_time = time.monotonic()
 
-    def _save_tokens(self):
-        """Save active tokens to storage synchronously"""
-        try:
-            data = json.dumps(self.active_tokens, indent=2)
-            self._perform_save(data)
-            self._last_save_time = time.time()
-        except Exception as e:
-            logger.error(f"Failed to prepare token save: {e}")
+    def _save_tokens_throttled(self) -> None:
+        if time.monotonic() - self._last_save_time > 60:
+            self._save_tokens()
 
-    def _save_tokens_async(self):
-        """Save active tokens to storage asynchronously"""
-        try:
-            data = json.dumps(self.active_tokens, indent=2)
-            # Update time here to prevent multiple saves
-            self._last_save_time = time.time()
-            if self._save_executor is not None:
-                self._save_executor.submit(self._perform_save, data)
-            else:
-                self._perform_save(data)
-        except Exception as e:
-            logger.error(f"Failed to initiate async token save: {e}")
+    def _save_used_tokens(self) -> None:
+        with self._file_lock:
+            self.store.save_used_tokens(self.used_tokens)
 
-    def _save_tokens_throttled(self):
-        """Save active tokens to storage if enough time has passed"""
-        # Save at most once per minute to avoid I/O thrashing on hot paths
-        if (time.time() - self._last_save_time) > 60:
-            self._save_tokens_async()
-
-    def _save_used_tokens(self):
-        """Save used tokens to storage"""
-        try:
-            data = {"used_tokens": list(self.used_tokens)}
-            self.used_tokens_file.write_text(json.dumps(data, indent=2))
-        except Exception as e:
-            logger.error(f"Failed to save used tokens: {e}")
-
-    def _cleanup_used_tokens(self):
-        """Remove used-token markers for tokens that no longer need replay protection."""
-        keep_used_tokens = {
+    def _cleanup_used_tokens(self) -> None:
+        keep = {
             token_id
-            for token_id, token_info in self.active_tokens.items()
-            if token_info.get("one_time_use", False) and token_info.get("used", False)
+            for token_id, token in self.active_tokens.items()
+            if token.get("one_time_use") and token_id in self.used_tokens
         }
-        removed = self.used_tokens - keep_used_tokens
-        if not removed:
+        if keep == self.used_tokens:
             return
-        self.used_tokens = self.used_tokens.intersection(keep_used_tokens)
+        removed = len(self.used_tokens - keep)
+        self.used_tokens = keep
         self._save_used_tokens()
-        logger.info(f"Pruned {len(removed)} stale used token record(s)")
+        logger.info("Pruned %s stale used token record(s)", removed)
 
-    def _cleanup_expired_tokens(self):
-        """Remove expired tokens from active tokens"""
+    def _cleanup_expired_tokens(self) -> None:
         now = datetime.now(UTC)
-        expired_tokens = []
-
-        for token_id, token_info in self.active_tokens.items():
-            try:
-                expires_str = token_info.get("expires")
-                if expires_str:
-                    expires = datetime.fromisoformat(expires_str)
-                    # Handle backward compatibility for naive datetimes (assume UTC)
+        expired = []
+        with self._file_lock:
+            for token_id, token in self.active_tokens.items():
+                try:
+                    expires = datetime.fromisoformat(str(token.get("expires")))
                     if expires.tzinfo is None:
                         expires = expires.replace(tzinfo=UTC)
-
                     if now > expires:
-                        expired_tokens.append(token_id)
-            except Exception as e:
-                logger.warning(f"Error checking expiration for token {token_id}: {e}")
-                expired_tokens.append(token_id)
+                        expired.append(token_id)
+                except (TypeError, ValueError):
+                    expired.append(token_id)
 
-        for token_id in expired_tokens:
-            del self.active_tokens[token_id]
-            logger.info(f"Removed expired token: {token_id}")
+            for token_id in expired:
+                self.active_tokens.pop(token_id, None)
+                self.used_tokens.discard(token_id)
 
-        if expired_tokens:
-            self._cleanup_used_tokens()
-            self._save_tokens()
+            if expired:
+                try:
+                    self._save_tokens()
+                    self._save_used_tokens()
+                except TokenStoreError as error:
+                    logger.error("Unable to persist expired-token cleanup: %s", error)
 
     def generate_token(self, client_name: str, expiration_days: int = 90, one_time_use: bool = False) -> dict[str, Any]:
-        """Generate a new JWT token for a client
+        """Generate and durably register a client JWT."""
+        token_id = str(uuid.uuid4())
+        now = datetime.now(UTC)
+        expires = now + timedelta(days=expiration_days)
+        payload = {
+            "token_id": token_id,
+            "client_name": client_name,
+            "exp": expires,
+            "iat": now,
+            "one_time_use": one_time_use,
+            "encryption_enabled": True,
+        }
+        encoded = jwt.encode(payload, self.secret_key, algorithm="HS256")
+        token_info = {
+            "token_id": token_id,
+            "client_name": client_name,
+            "expires": expires.isoformat(),
+            "created_at": now.isoformat(),
+            "one_time_use": one_time_use,
+            "used": False,
+            "last_seen": None,
+            "active": False,
+        }
 
-        Args:
-            client_name: Name of the client
-            expiration_days: Number of days until token expires
-            one_time_use: Whether token can only be used once
-
-        Returns:
-            Dictionary with token information
-
-        """
-        try:
-            token_id = str(uuid.uuid4())
-            expires = datetime.now(UTC) + timedelta(days=expiration_days)
-
-            # Create JWT payload
-            payload = {
-                "token_id": token_id,
-                "client_name": client_name,
-                "exp": expires,
-                "iat": datetime.now(UTC),
-                "one_time_use": one_time_use,
-                "encryption_enabled": True,
-            }
-
-            # Generate JWT token
-            token = jwt.encode(payload, self.secret_key, algorithm="HS256")
-
-            # Store token info
-            token_info = {
-                "token_id": token_id,
-                "client_name": client_name,
-                "expires": expires.isoformat(),
-                "created_at": datetime.now(UTC).isoformat(),
-                "one_time_use": one_time_use,
-                "used": False,
-                "last_seen": None,
-                "active": False,
-            }
-
+        with self._file_lock:
             self.active_tokens[token_id] = token_info
-            self._save_tokens()
+            try:
+                self._save_tokens()
+            except TokenStoreError as error:
+                self.active_tokens.pop(token_id, None)
+                raise ValueError(f"Token generation failed: {error}") from error
 
-            logger.info(f"Generated token for client '{client_name}' (ID: {token_id}, one-time: {one_time_use})")
-
-            return {
-                "token": token,
-                "token_id": token_id,
-                "client_name": client_name,
-                "expires": expires.isoformat(),
-                "one_time_use": one_time_use,
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to generate token: {e}")
-            raise ValueError(f"Token generation failed: {e}")
+        logger.info("Generated token for client %r (ID: %s, one-time: %s)", client_name, token_id, one_time_use)
+        return {
+            "token": encoded,
+            "token_id": token_id,
+            "client_name": client_name,
+            "expires": expires.isoformat(),
+            "one_time_use": one_time_use,
+        }
 
     def validate_token(self, token: str, mark_as_used: bool = True) -> dict[str, Any] | None:
-        """Validate a JWT token
-
-        Args:
-            token: JWT token to validate
-            mark_as_used: Whether to consume one-time tokens. Runtime callers should
-                keep the default; False is reserved for non-authentication inspection.
-
-        Returns:
-            Token payload if valid, None otherwise
-
-        """
+        """Validate a JWT and optionally consume a one-time token."""
         try:
-            # Decode JWT token
             payload = jwt.decode(token, self.secret_key, algorithms=["HS256"])
-            token_id = payload.get("token_id")
-
-            if not token_id:
-                logger.warning("Token missing token_id")
-                return None
-
-            with self._file_lock:
-                if token_id not in self.active_tokens:
-                    logger.warning(f"Token {token_id} not found in active tokens")
-                    return None
-
-                token_info = self.active_tokens[token_id]
-                if token_info.get("one_time_use", False):
-                    if token_id in self.used_tokens:
-                        logger.warning(f"One-time token {token_id} already used")
-                        return None
-
-                    if not mark_as_used:
-                        return payload
-
-                    self.used_tokens.add(token_id)
-                    self.active_tokens[token_id]["used"] = True
-                    self._save_used_tokens()
-                    self._save_tokens()
-                    logger.info(f"Marked one-time token {token_id} as used")
-
-                self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
-                self.active_tokens[token_id]["active"] = True
-                if not token_info.get("one_time_use", False):
-                    self._save_tokens_throttled()
-
-            return payload
-
         except jwt.ExpiredSignatureError:
             logger.warning("Token expired")
             return None
-        except jwt.InvalidTokenError as e:
-            logger.warning(f"Invalid token: {e}")
+        except jwt.InvalidTokenError as error:
+            logger.warning("Invalid token: %s", error)
             return None
-        except Exception as e:
-            logger.error(f"Token validation error: {e}")
+
+        token_id = payload.get("token_id")
+        if not token_id:
+            logger.warning("Token missing token_id")
             return None
+
+        with self._file_lock:
+            token_info = self.active_tokens.get(token_id)
+            if token_info is None:
+                logger.warning("Token %s not found in active tokens", token_id)
+                return None
+
+            one_time = bool(token_info.get("one_time_use"))
+            if one_time and token_id in self.used_tokens:
+                logger.warning("One-time token %s already used", token_id)
+                return None
+            if one_time and not mark_as_used:
+                return payload
+
+            token_info["last_seen"] = datetime.now(UTC).isoformat()
+            token_info["active"] = True
+            if one_time:
+                token_info["used"] = True
+                self.used_tokens.add(token_id)
+                try:
+                    self._save_used_tokens()
+                    self._save_tokens()
+                except TokenStoreError as error:
+                    logger.error("Unable to persist one-time token use: %s", error)
+                    return None
+            else:
+                try:
+                    self._save_tokens_throttled()
+                except TokenStoreError as error:
+                    logger.error("Unable to persist token activity: %s", error)
+
+        return payload
 
     def revoke_token(self, token_id: str) -> bool:
-        """Revoke a token by removing it from active tokens
-
-        Args:
-            token_id: ID of token to revoke
-
-        Returns:
-            True if token was revoked, False if not found
-
-        """
-        try:
-            if token_id in self.active_tokens:
-                client_name = self.active_tokens[token_id].get("client_name", "unknown")
-                del self.active_tokens[token_id]
-                self.used_tokens.discard(token_id)
+        """Revoke a token and persist the revocation before returning."""
+        with self._file_lock:
+            token_info = self.active_tokens.pop(token_id, None)
+            if token_info is None:
+                logger.warning("Token %s not found for revocation", token_id)
+                return False
+            was_used = token_id in self.used_tokens
+            self.used_tokens.discard(token_id)
+            try:
                 self._save_tokens()
+            except TokenStoreError as error:
+                self.active_tokens[token_id] = token_info
+                if was_used:
+                    self.used_tokens.add(token_id)
+                logger.error("Failed to revoke token %s: %s", token_id, error)
+                return False
+            try:
                 self._save_used_tokens()
+            except TokenStoreError as error:
+                logger.warning("Revocation succeeded but stale replay state could not be pruned: %s", error)
 
-                logger.info(f"Revoked token for client '{client_name}' (ID: {token_id})")
-                return True
-            logger.warning(f"Token {token_id} not found for revocation")
-            return False
+        logger.info("Revoked token for client %r (ID: %s)", token_info.get("client_name", "unknown"), token_id)
+        return True
 
-        except Exception as e:
-            logger.error(f"Failed to revoke token {token_id}: {e}")
-            return False
+    def mark_client_active(self, token_id: str) -> None:
+        with self._file_lock:
+            if token_id in self.active_tokens:
+                self.active_tokens[token_id]["active"] = True
+                self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
 
-    def mark_client_active(self, token_id: str):
-        """Mark a client as active"""
-        if token_id in self.active_tokens:
-            self.active_tokens[token_id]["active"] = True
-            self.active_tokens[token_id]["last_seen"] = datetime.now(UTC).isoformat()
+    def mark_client_inactive(self, token_id: str) -> None:
+        with self._file_lock:
+            if token_id in self.active_tokens:
+                self.active_tokens[token_id]["active"] = False
 
-    def mark_client_inactive(self, token_id: str):
-        """Mark a client as inactive"""
-        if token_id in self.active_tokens:
-            self.active_tokens[token_id]["active"] = False
-
-    def get_active_clients(self) -> list:
-        """Get list of all clients with active tokens"""
+    def get_active_clients(self) -> list[dict[str, Any]]:
         self._cleanup_expired_tokens()
-
-        clients = []
-        for token_id, token_info in self.active_tokens.items():
-            # Skip used one-time tokens
-            if token_info.get("one_time_use", False) and token_info.get("used", False):
-                continue
-
-            clients.append(
+        with self._file_lock:
+            return [
                 {
                     "token_id": token_id,
-                    "name": token_info.get("client_name", "Unknown"),
-                    "expires": token_info.get("expires"),
-                    "last_seen": token_info.get("last_seen"),
-                    "active": token_info.get("active", False),
-                    "one_time_use": token_info.get("one_time_use", False),
-                    "used": token_info.get("used", False),
+                    "name": token.get("client_name", "Unknown"),
+                    "expires": token.get("expires"),
+                    "last_seen": token.get("last_seen"),
+                    "active": token.get("active", False),
+                    "one_time_use": token.get("one_time_use", False),
+                    "used": token.get("used", False),
                 }
-            )
-
-        return clients
+                for token_id, token in self.active_tokens.items()
+                if not (token.get("one_time_use") and token.get("used"))
+            ]
 
     def get_server_stats(self) -> dict[str, Any]:
-        """Get token manager statistics"""
         self._cleanup_expired_tokens()
+        with self._file_lock:
+            available = sum(
+                not (token.get("one_time_use") and token.get("used")) for token in self.active_tokens.values()
+            )
+            connected = sum(bool(token.get("active")) for token in self.active_tokens.values())
+            return {
+                "total_tokens": len(self.active_tokens),
+                "active_tokens": available,
+                "connected_clients": connected,
+                "used_one_time_tokens": len(self.used_tokens),
+            }
 
-        active_count = len(
-            [t for t in self.active_tokens.values() if not (t.get("one_time_use", False) and t.get("used", False))]
-        )
-        connected_count = len([t for t in self.active_tokens.values() if t.get("active", False)])
-
-        return {
-            "total_tokens": len(self.active_tokens),
-            "active_tokens": active_count,
-            "connected_clients": connected_count,
-            "used_one_time_tokens": len(self.used_tokens),
-        }
-
-    def close(self):
-        """Flush pending saves and stop the background save worker."""
-        executor = getattr(self, "_save_executor", None)
-        if executor is not None:
-            executor.shutdown(wait=True)
-            self._save_executor = None
+    def close(self) -> None:
+        """Compatibility hook; writes are synchronous and already durable."""
 
 
-# Global token manager instance
-_token_manager = None
+_token_manager: TokenManager | None = None
 
 
 def get_token_manager() -> TokenManager:
-    """Get the global token manager instance"""
     global _token_manager
     if _token_manager is None:
         _token_manager = TokenManager()

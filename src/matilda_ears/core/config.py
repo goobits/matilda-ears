@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Configuration loader that reads from config files."""
 
-import logging
 import os
 import platform
 from pathlib import Path
@@ -257,7 +256,7 @@ class ConfigLoader:
         Priority order:
         1. Environment variable STT_JWT_SECRET (production)
         2. Config file value (development)
-        3. Auto-generated temporary secret (fallback)
+        3. Persisted application secret (fallback)
         """
         # 1. Environment variable (highest priority - production use)
         env_key = os.environ.get("STT_JWT_SECRET")
@@ -269,17 +268,9 @@ class ConfigLoader:
         if config_key and config_key != "GENERATE_RANDOM_SECRET_HERE" and self._validate_secret_key(config_key):
             return str(config_key)
 
-        # 3. Auto-generate in memory only (no file modification)
-        logger = logging.getLogger(__name__)
-        logger.info("No valid JWT secret found in environment or config. Generating temporary secret for this session.")
-        # logger.info("For production, set STT_JWT_SECRET environment variable with a secure 32+ character secret.")
-        return self._generate_secret_key()
+        from .token_store import TokenStore
 
-    def _generate_secret_key(self) -> str:
-        """Generate a cryptographically secure secret key."""
-        import secrets
-
-        return secrets.token_urlsafe(32)
+        return TokenStore().get_or_create_secret()
 
     def _validate_secret_key(self, key: str) -> bool:
         """Validate that secret key meets minimum security requirements."""
