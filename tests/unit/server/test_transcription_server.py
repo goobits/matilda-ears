@@ -13,7 +13,7 @@ async def test_start_server_cleans_health_runner_on_shutdown(monkeypatch) -> Non
     health_runner = SimpleNamespace(cleanup=AsyncMock())
     server = SimpleNamespace(
         host="127.0.0.1",
-        port=8769,
+        port=3211,
         load_model=AsyncMock(),
         _health_runner=None,
         ssl_enabled=False,
@@ -33,7 +33,7 @@ async def test_start_server_cleans_health_runner_on_shutdown(monkeypatch) -> Non
 
     monkeypatch.setattr(
         "matilda_transport.resolve_transport",
-        lambda *_args: SimpleNamespace(transport="tcp", endpoint="ws://127.0.0.1:8769"),
+        lambda *_args: SimpleNamespace(transport="tcp", endpoint="ws://127.0.0.1:3211"),
     )
     monkeypatch.setattr(transcription_server, "start_health_server", AsyncMock(return_value=health_runner))
     monkeypatch.setattr(transcription_server.websockets, "serve", lambda *_args, **_kwargs: RunningServer())

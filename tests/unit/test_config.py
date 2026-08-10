@@ -1,5 +1,10 @@
 from matilda_ears.core import token_store
-from matilda_ears.core.config import DEFAULT_WEBSOCKET_HEALTH_PORT, DEFAULT_WEBSOCKET_PORT, ConfigLoader
+from matilda_ears.core.config import (
+    DEFAULT_TEMP_DIR,
+    DEFAULT_WEBSOCKET_HEALTH_PORT,
+    DEFAULT_WEBSOCKET_PORT,
+    ConfigLoader,
+)
 
 
 def test_default_jwt_secret_is_persistent(monkeypatch, tmp_path):
@@ -34,6 +39,12 @@ def test_port_defaults_and_environment_ownership(monkeypatch, tmp_path):
     monkeypatch.setenv("MATILDA_PORT_EARS_HEALTH", "4200")
     assert config.websocket_port == 4100
     assert config.websocket_health_port == 4200
+
+
+def test_temp_directory_uses_platform_default(monkeypatch, tmp_path):
+    monkeypatch.delenv("EARS_TEMP_DIR", raising=False)
+
+    assert ConfigLoader(tmp_path / "missing.toml").temp_dir == DEFAULT_TEMP_DIR
 
 
 def test_custom_cli_port_gets_adjacent_health_port(monkeypatch, tmp_path):

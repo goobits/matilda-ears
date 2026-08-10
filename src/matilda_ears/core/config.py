@@ -3,6 +3,7 @@
 
 import os
 import platform
+import tempfile
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ import tomllib
 
 DEFAULT_WEBSOCKET_PORT = 3211
 DEFAULT_WEBSOCKET_HEALTH_PORT = 3212
+DEFAULT_TEMP_DIR = str(Path(tempfile.gettempdir()) / "goobits-matilda-ears")
 
 
 def _environment_port(*names: str) -> int | None:
@@ -87,9 +89,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "windows": "venv\\Scripts\\python.exe",
         },
         "temp_dir": {
-            "linux": "/tmp/goobits-matilda-ears",
-            "darwin": "/tmp/goobits-matilda-ears",
-            "windows": "%TEMP%\\goobits-matilda-ears",
+            "linux": DEFAULT_TEMP_DIR,
+            "darwin": DEFAULT_TEMP_DIR,
+            "windows": DEFAULT_TEMP_DIR,
         },
     },
     "modes": {
@@ -210,7 +212,7 @@ class ConfigLoader:
         if os.environ.get("EARS_TEMP_DIR"):
             self.temp_dir = os.environ["EARS_TEMP_DIR"]
         else:
-            temp_dir_template = self.get(f"paths.temp_dir.{self._platform}", "/tmp/goobits-matilda-ears")
+            temp_dir_template = self.get(f"paths.temp_dir.{self._platform}", DEFAULT_TEMP_DIR)
             if self._platform == "windows":
                 # Expand Windows environment variables
                 temp_dir_template = os.path.expandvars(temp_dir_template)

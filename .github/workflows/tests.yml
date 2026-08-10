@@ -1,0 +1,87 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    name: Verify (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout shared transport
+        uses: actions/checkout@v4
+        with:
+          repository: goobits/matildaverse
+          path: matildaverse
+          sparse-checkout: matilda-transport
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            matildaverse/matilda-transport/pyproject.toml
+      - name: Install package and development tools
+        run: |
+          python -m pip install -e ./matildaverse/matilda-transport
+          python -m pip install -e ".[dev]"
+      - name: Run complete verification
+        env:
+          MATILDA_EARS_TEST_ENV: "1"
+        run: make check
+
+  package:
+    name: Wheel (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout shared transport
+        uses: actions/checkout@v4
+        with:
+          repository: goobits/matildaverse
+          path: matildaverse
+          sparse-checkout: matilda-transport
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            matildaverse/matilda-transport/pyproject.toml
+      - name: Build wheels
+        run: |
+          python -m pip wheel --no-deps --wheel-dir /tmp/matilda-ears-wheels ./matildaverse/matilda-transport
+          python -m pip wheel --no-deps --wheel-dir /tmp/matilda-ears-wheels .
+      - name: Test installed wheel and resources
+        run: |
+          python -m venv /tmp/matilda-ears-smoke
+          /tmp/matilda-ears-smoke/bin/python -m pip install \
+            /tmp/matilda-ears-wheels/matilda_transport-*.whl \
+            /tmp/matilda-ears-wheels/goobits_matilda_ears-*.whl
+          /tmp/matilda-ears-smoke/bin/python - <<'PY'
+          from importlib.metadata import files
+
+          import matilda_ears
+
+          installed = {str(path) for path in files("goobits-matilda-ears") or ()}
+          expected = {
+              "matilda_ears/py.typed",
+              "matilda_ears/transcription/streaming/vendor/simul_whisper/whisper/assets/mel_filters.npz",
+              "matilda_ears/transcription/streaming/vendor/simul_whisper/whisper/assets/multilingual.tiktoken",
+          }
+          assert matilda_ears.__version__ != "unknown"
+          assert expected <= installed
+          PY
+          /tmp/matilda-ears-smoke/bin/ears --help

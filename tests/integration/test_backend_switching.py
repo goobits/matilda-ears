@@ -161,7 +161,7 @@ class TestServerIntegration:
         config.transcription_backend = "faster_whisper"
         config.jwt_token = "test_token"
         config.jwt_secret_key = "test_secret_key"
-        config.websocket_port = 8769
+        config.websocket_port = 3211
         config.websocket_host = "localhost"
         config.ssl_enabled = False
         config.whisper_model = "base"

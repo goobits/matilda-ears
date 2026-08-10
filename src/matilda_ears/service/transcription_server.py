@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import tempfile
 import traceback
 from typing import TYPE_CHECKING, Any, cast
 
@@ -102,7 +103,7 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
     """Start the WebSocket server and its health endpoint."""
     from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
 
-    server_host = host if host is not None else (server.host or "0.0.0.0")
+    server_host = host if host is not None else (server.host or config.websocket_bind_host)
     server_port = port if port is not None else (server.port or config.websocket_port)
     transport = resolve_transport("MATILDA_EARS_TRANSPORT", "MATILDA_EARS_ENDPOINT", server_host, server_port)
     websocket_host: str | None = server_host
@@ -115,7 +116,10 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
         await server.load_model()
 
         if transport.transport == "unix":
-            health_socket = os.getenv("MATILDA_EARS_HEALTH_ENDPOINT", "/tmp/matilda/ears-health.sock")
+            health_socket = os.getenv(
+                "MATILDA_EARS_HEALTH_ENDPOINT",
+                os.path.join(tempfile.gettempdir(), "matilda", "ears-health.sock"),
+            )
             try:
                 server._health_runner = await start_health_server_unix(server, health_socket)
                 health_unix_socket = health_socket
@@ -188,7 +192,7 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Matilda Ears WebSocket Server")
     parser.add_argument("--port", type=int, default=None, help="Port to bind to (default: from config)")
-    parser.add_argument("--host", type=str, default=None, help="Host to bind to (default: 0.0.0.0)")
+    parser.add_argument("--host", type=str, default=None, help="Host to bind to (default: from config)")
     parser.add_argument("--model", type=str, default=None, help="Whisper model to use")
     parser.add_argument("--device", type=str, default=None, help="Device for inference (cuda, cpu, mlx)")
     args = parser.parse_args()
