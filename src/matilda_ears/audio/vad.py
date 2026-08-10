@@ -5,9 +5,9 @@ Provides accurate voice activity detection using the Silero VAD model.
 Significantly more accurate than simple amplitude-based detection.
 """
 
-from typing import Any
 import asyncio
 import logging
+from typing import Any
 
 try:
     import numpy as np
@@ -272,6 +272,10 @@ class SileroVAD:
 
     def reset_states(self):
         """Reset VAD state machine."""
+        if self.model is not None:
+            reset = getattr(self.model, "reset_states", None) or getattr(self.model, "reset", None)
+            if reset is not None:
+                reset()
         self.speech_timestamps = []
         self.current_speech_start = None
         self.temp_end = 0

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -9,6 +10,49 @@ import numpy as np
 
 class SessionConflictError(ValueError):
     pass
+
+
+@dataclass
+class WakeWordState:
+    detector: Any
+    debug_last_sent: float | None = None
+    _buffer: np.ndarray = field(init=False, repr=False)
+    _buffered_samples: int = field(default=0, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self._buffer = np.empty(int(self.detector.CHUNK_SAMPLES), dtype=np.int16)
+
+    def frames(self, samples: np.ndarray) -> Iterator[np.ndarray]:
+        samples = samples.astype(np.int16, copy=False)
+        frame_size = len(self._buffer)
+        offset = 0
+
+        while offset < len(samples):
+            if self._buffered_samples == 0 and len(samples) - offset >= frame_size:
+                yield samples[offset : offset + frame_size]
+                offset += frame_size
+                continue
+
+            copied = min(frame_size - self._buffered_samples, len(samples) - offset)
+            end = self._buffered_samples + copied
+            self._buffer[self._buffered_samples : end] = samples[offset : offset + copied]
+            self._buffered_samples = end
+            offset += copied
+
+            if self._buffered_samples == frame_size:
+                self._buffered_samples = 0
+                yield self._buffer
+
+    def reset(self) -> None:
+        self._buffered_samples = 0
+        self.detector.reset()
+
+    def close(self) -> None:
+        self.detector.close()
+
+    @property
+    def buffer_bytes(self) -> int:
+        return self._buffered_samples * self._buffer.itemsize
 
 
 @dataclass
@@ -54,13 +98,17 @@ class ServerSession:
     expected_chunks: int | None = None
     opus_log: list[dict[str, Any]] = field(default_factory=list)
     ending: bool = False
-    wake_word_enabled: bool = False
-    wake_word_buffer: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int16))
-    wake_word_debug_last_sent: float | None = None
+    wake_word: WakeWordState | None = None
 
     def record_chunk(self) -> int:
         self.chunks_received += 1
         return self.chunks_received
+
+    def close_wake_word(self) -> None:
+        state = self.wake_word
+        self.wake_word = None
+        if state is not None:
+            state.close()
 
 
 class SessionRegistry:
@@ -165,4 +213,6 @@ class SessionRegistry:
 
     @property
     def wake_word_buffer_bytes(self) -> int:
-        return sum(int(session.wake_word_buffer.nbytes) for session in self._sessions.values())
+        return sum(
+            session.wake_word.buffer_bytes for session in self._sessions.values() if session.wake_word is not None
+        )

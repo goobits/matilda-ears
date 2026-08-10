@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import os
 import time
@@ -19,7 +20,7 @@ from .internal.audio_utils import (
     session_audio_to_wav,
     validate_sample_rate,
 )
-from .internal.session_registry import PcmBuffer, ServerSession, SessionConflictError
+from .internal.session_registry import PcmBuffer, ServerSession, SessionConflictError, WakeWordState
 from .internal.transcription import send_envelope, send_error, transcribe_audio_from_wav
 
 
@@ -96,6 +97,13 @@ def _audio_debug_enabled() -> bool:
     return env_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _close_wake_word_state(session: ServerSession, client_id: str) -> None:
+    try:
+        session.close_wake_word()
+    except Exception as exc:
+        logger.debug(f"Client {client_id}: Wake word cleanup failed for {session.session_id}: {exc}")
+
+
 def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -> None:
     if not _audio_debug_enabled():
         return
@@ -111,67 +119,46 @@ def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -
     )
 
 
-def _get_wake_word_detector(server: "MatildaWebSocketServer") -> WakeWordDetector | None:
-    detector = getattr(server, "wake_word_detector", None)
-    if detector is False:
+async def _create_wake_word_state(server: "MatildaWebSocketServer", debug_enabled: bool) -> WakeWordState | None:
+    if getattr(server, "wake_word_available", None) is False:
         return None
-    if detector is not None:
-        return detector
-
     config = get_config()
     wake_config = config.get("modes", {}).get("wake_word", {})
     try:
-        detector = WakeWordDetector.from_config(wake_config)
+        detector = await asyncio.to_thread(WakeWordDetector.from_config, wake_config)
     except Exception as exc:
         logger.warning(f"Wake word detector unavailable: {exc}")
-        server.wake_word_detector = False
+        server.wake_word_available = False
         return None
 
-    server.wake_word_detector = detector
-    return detector
+    server.wake_word_available = True
+    return WakeWordState(detector, debug_last_sent=0.0 if debug_enabled else None)
 
 
 async def _process_wake_word_chunk(
-    server: "MatildaWebSocketServer",
     websocket,
     session: ServerSession,
     pcm_samples: np.ndarray,
 ) -> None:
-    if not session.wake_word_enabled:
+    state = session.wake_word
+    if state is None:
         return
 
-    detector = _get_wake_word_detector(server)
-    if detector is None:
-        return
-
+    detector = state.detector
     max_phrase = None
     max_confidence = 0.0
-
-    buffer = session.wake_word_buffer
-    if buffer is None or buffer.size == 0:
-        combined = pcm_samples
-    else:
-        combined = np.concatenate([buffer, pcm_samples])
-
-    chunk_size = WakeWordDetector.CHUNK_SAMPLES
-    offset = 0
     detected = None
-
-    while offset + chunk_size <= combined.size:
-        frame = combined[offset : offset + chunk_size]
-        phrase, confidence = detector.best_score(frame)
+    for frame in state.frames(pcm_samples):
+        detected, phrase, confidence = detector.evaluate(frame)
         if confidence > max_confidence:
             max_confidence = confidence
             max_phrase = phrase
-        detected = detector.detect_chunk(frame)
         if detected:
             break
-        offset += chunk_size
 
     if detected:
         agent, phrase, confidence = detected
-        detector.reset()
-        session.wake_word_buffer = np.array([], dtype=np.int16)
+        state.reset()
         await send_envelope(
             websocket,
             "wake_word_detected",
@@ -185,12 +172,10 @@ async def _process_wake_word_chunk(
         )
         return
 
-    session.wake_word_buffer = combined[offset:]
-
-    if session.wake_word_debug_last_sent is not None:
-        now = time.time()
-        if now - session.wake_word_debug_last_sent >= 0.5:
-            session.wake_word_debug_last_sent = now
+    if state.debug_last_sent is not None:
+        now = time.monotonic()
+        if now - state.debug_last_sent >= 0.5:
+            state.debug_last_sent = now
             if pcm_samples.size:
                 samples = int16_to_float32(pcm_samples)
                 rms = float(np.sqrt(np.mean(samples * samples)))
@@ -220,7 +205,7 @@ async def _emit_partial_result(
     client_id: str,
     source: str,
 ) -> None:
-    await _process_wake_word_chunk(server, websocket, session, pcm_samples)
+    await _process_wake_word_chunk(websocket, session, pcm_samples)
     if session.streaming is None:
         return
 
@@ -357,13 +342,11 @@ async def handle_start_stream(
         await send_error(websocket, "Failed to initialize audio decoder", code="decoder_unavailable")
         return
 
-    wake_word_enabled = bool(data.get("wake_word_enabled", False))
+    wake_word_requested = bool(data.get("wake_word_enabled", False))
     wake_word_debug = bool(data.get("wake_word_debug", False))
-    if wake_word_enabled:
-        session.wake_word_enabled = True
-        if wake_word_debug:
-            session.wake_word_debug_last_sent = 0.0
-        _get_wake_word_detector(server)
+    if wake_word_requested:
+        session.wake_word = await _create_wake_word_state(server, wake_word_debug)
+    wake_word_enabled = session.wake_word is not None
 
     # Try to create streaming session with new framework
     streaming_enabled = False
@@ -668,6 +651,7 @@ async def handle_end_stream(
     streaming_session = session.streaming
 
     if not decoder and not pcm_session and not streaming_session:
+        _close_wake_word_state(session, client_id)
         await send_error(websocket, f"Unknown session: {session_id}")
         return
 
@@ -757,4 +741,5 @@ async def handle_end_stream(
         await send_error(websocket, f"Stream transcription failed: {e!s}", code="internal_error", retryable=True)
 
     finally:
+        _close_wake_word_state(session, client_id)
         session.ending = False

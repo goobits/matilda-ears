@@ -7,7 +7,22 @@ from matilda_ears.transcription.server.internal.session_registry import (
     PcmBuffer,
     SessionConflictError,
     SessionRegistry,
+    WakeWordState,
 )
+
+
+class _Detector:
+    CHUNK_SAMPLES = 4
+
+    def __init__(self) -> None:
+        self.closed = False
+        self.reset_count = 0
+
+    def reset(self) -> None:
+        self.reset_count += 1
+
+    def close(self) -> None:
+        self.closed = True
 
 
 def test_registry_enforces_unique_session_ids_and_ownership():
@@ -50,7 +65,8 @@ def test_registry_reports_buffer_and_lifecycle_totals():
     session.pcm = PcmBuffer(16000, 1, False, samples=[np.zeros(4, dtype=np.int16)], total_samples=4)
     session.streaming = object()
     session.ending = True
-    session.wake_word_buffer = np.zeros(3, dtype=np.int16)
+    session.wake_word = WakeWordState(_Detector())
+    list(session.wake_word.frames(np.zeros(3, dtype=np.int16)))
 
     assert sessions.streaming_count == 1
     assert sessions.pcm_count == 1
@@ -71,3 +87,25 @@ def test_pcm_buffer_evicts_oldest_chunks_without_shifting() -> None:
 
     assert buffer.total_samples == 3
     assert np.array_equal(buffer.as_array(), second)
+
+
+def test_wake_word_state_keeps_partial_frames_isolated_per_session() -> None:
+    first = WakeWordState(_Detector())
+    second = WakeWordState(_Detector())
+
+    assert list(first.frames(np.array([1, 2], dtype=np.int16))) == []
+    assert list(second.frames(np.array([9, 8], dtype=np.int16))) == []
+    assert [frame.tolist() for frame in first.frames(np.array([3, 4], dtype=np.int16))] == [[1, 2, 3, 4]]
+    assert [frame.tolist() for frame in second.frames(np.array([7, 6], dtype=np.int16))] == [[9, 8, 7, 6]]
+
+
+def test_server_session_closes_wake_word_resources_once() -> None:
+    detector = _Detector()
+    session = SessionRegistry().create("wake", "client", "opus")
+    session.wake_word = WakeWordState(detector)
+
+    session.close_wake_word()
+    session.close_wake_word()
+
+    assert detector.closed is True
+    assert session.wake_word is None

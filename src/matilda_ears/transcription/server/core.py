@@ -184,7 +184,7 @@ class MatildaWebSocketServer:
 
         self.sessions = SessionRegistry()
 
-        self.wake_word_detector = None
+        self.wake_word_available: bool | None = None
 
         # Health server runner (set during start_server)
         self._health_runner: AppRunner | None = None
@@ -366,8 +366,11 @@ class MatildaWebSocketServer:
             await self._cleanup_server_session(session)
 
     async def _cleanup_server_session(self, session: ServerSession) -> None:
-        if session.streaming is not None:
-            await self._cleanup_streaming_session(session.streaming)
+        try:
+            session.close_wake_word()
+        finally:
+            if session.streaming is not None:
+                await self._cleanup_streaming_session(session.streaming)
 
     async def _cleanup_streaming_session(self, session) -> None:
         """Release streaming session resources without raising."""

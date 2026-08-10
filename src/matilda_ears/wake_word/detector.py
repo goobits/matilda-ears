@@ -108,7 +108,7 @@ class WakeWordDetector:
             Tuple of (agent_name, wake_phrase, confidence) if detected, None otherwise.
 
         """
-        return self._backend.detect(audio)
+        return self.evaluate(audio)[0]
 
     def detect_chunk(self, audio: "np.ndarray") -> tuple[str, str, float] | None:
         """Detect wake word in audio chunk (convenience wrapper)."""
@@ -121,13 +121,22 @@ class WakeWordDetector:
 
         Note: Only supported by OpenWakeWord backend.
         """
-        if hasattr(self._backend, "best_score"):
-            return self._backend.best_score(audio)
-        # Fallback: just run detection
-        result = self.detect(audio)
-        if result:
-            return (result[1], result[2])
-        return (None, 0.0)
+        _, phrase, confidence = self.evaluate(audio)
+        return phrase, confidence
+
+    def evaluate(self, audio: "np.ndarray") -> tuple[tuple[str, str, float] | None, str | None, float]:
+        """Return detection and best score from one backend evaluation."""
+        if audio.size == 0:
+            return None, None, 0.0
+
+        evaluate = getattr(self._backend, "evaluate", None)
+        if evaluate is not None:
+            return evaluate(audio)
+
+        result = self._backend.detect(audio)
+        if result is None:
+            return None, None, 0.0
+        return result, result[1], result[2]
 
     def detect_agent(self, audio: "np.ndarray") -> str | None:
         """Detect wake word and return just the agent name."""

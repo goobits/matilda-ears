@@ -5,7 +5,7 @@ import sys
 import time
 import types
 from types import SimpleNamespace
-from unittest.mock import ANY, AsyncMock
+from unittest.mock import ANY, AsyncMock, Mock
 
 import numpy as np
 import pytest
@@ -14,7 +14,7 @@ from matilda_ears.core.auth import AuthResult
 from matilda_ears.service.health import health_handler
 from matilda_ears.transcription.server import stream_handlers
 from matilda_ears.transcription.server.core import MatildaWebSocketServer
-from matilda_ears.transcription.server.internal.session_registry import PcmBuffer, SessionRegistry
+from matilda_ears.transcription.server.internal.session_registry import PcmBuffer, SessionRegistry, WakeWordState
 from matilda_ears.transcription.server.internal.transcription import transcribe_audio_from_wav
 
 
@@ -37,6 +37,7 @@ class _SilentWebSocket:
 @pytest.mark.asyncio
 async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monkeypatch):
     cleanup_mock = AsyncMock()
+    detector = SimpleNamespace(CHUNK_SAMPLES=4, close=Mock(), reset=Mock())
     session_id = "s-1"
     client_id = "deadbeef"
     sessions = SessionRegistry()
@@ -45,8 +46,7 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
     session.pcm = PcmBuffer(sample_rate=16000, channels=1, needs_resampling=False)
     session.streaming = object()
     session.ending = True
-    session.wake_word_enabled = True
-    session.wake_word_debug_last_sent = 0.0
+    session.wake_word = WakeWordState(detector)
 
     async def cleanup_server_session(orphaned_session):
         await MatildaWebSocketServer._cleanup_server_session(server, orphaned_session)
@@ -69,6 +69,7 @@ async def test_handle_client_disconnect_cleans_orphaned_streaming_sessions(monke
     await MatildaWebSocketServer.handle_client(server, ws)
 
     cleanup_mock.assert_awaited_once()
+    detector.close.assert_called_once()
     assert len(sessions) == 0
 
 
@@ -79,7 +80,7 @@ async def test_handle_client_disconnect_cleans_binary_session_not_in_client_sess
     sessions = SessionRegistry()
     session = sessions.create(session_id, client_id, "binary")
     session.decoder = object()
-    session.wake_word_enabled = True
+    session.wake_word = WakeWordState(SimpleNamespace(CHUNK_SAMPLES=4, close=Mock(), reset=Mock()))
 
     cleanup_server_session = AsyncMock()
 
@@ -239,8 +240,6 @@ async def test_end_stream_removes_empty_client_session_bucket(monkeypatch):
     sessions = SessionRegistry()
     session = sessions.create(session_id, client_id, "binary")
     session.streaming = streaming_session
-    session.wake_word_enabled = True
-    session.wake_word_debug_last_sent = 0.0
     server = SimpleNamespace(sessions=sessions, check_rate_limit=lambda _ip: True, backend_name="parakeet")
 
     await stream_handlers.handle_end_stream(
@@ -432,3 +431,53 @@ async def test_json_and_binary_opus_use_the_same_partial_result_path(monkeypatch
     assert send_envelope.await_count == 2
     assert all(call.args[1] == "partial_result" for call in send_envelope.await_args_list)
     send_error.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_wake_word_state_is_created_per_stream(monkeypatch):
+    detectors = [
+        SimpleNamespace(CHUNK_SAMPLES=4, close=Mock(), reset=Mock()),
+        SimpleNamespace(CHUNK_SAMPLES=4, close=Mock(), reset=Mock()),
+    ]
+    factory = Mock(side_effect=detectors)
+    server = SimpleNamespace(wake_word_available=None)
+    monkeypatch.setattr(stream_handlers.WakeWordDetector, "from_config", factory)
+    monkeypatch.setattr(stream_handlers, "get_config", lambda: {"modes": {"wake_word": {}}})
+
+    first = await stream_handlers._create_wake_word_state(server, debug_enabled=False)
+    second = await stream_handlers._create_wake_word_state(server, debug_enabled=True)
+
+    assert first is not None
+    assert first.detector is detectors[0]
+    assert second is not None
+    assert second.detector is detectors[1]
+    assert first.debug_last_sent is None
+    assert second.debug_last_sent == 0.0
+    assert factory.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_wake_word_frame_uses_one_model_evaluation(monkeypatch):
+    detection = ("Matilda", "hey_matilda", 0.9)
+    detector = SimpleNamespace(
+        CHUNK_SAMPLES=4,
+        evaluate=Mock(return_value=(detection, "hey_matilda", 0.9)),
+        reset=Mock(),
+        close=Mock(),
+    )
+    session = SessionRegistry().create("wake", "client", "opus")
+    session.wake_word = WakeWordState(detector)
+    send_envelope = AsyncMock()
+    monkeypatch.setattr(stream_handlers, "send_envelope", send_envelope)
+
+    await stream_handlers._process_wake_word_chunk(
+        _SilentWebSocket(),
+        session,
+        np.arange(4, dtype=np.int16),
+    )
+
+    detector.evaluate.assert_called_once()
+    detector.reset.assert_called_once()
+    payload = send_envelope.await_args.args[2]
+    assert payload["type"] == "wake_word_detected"
+    assert payload["agent"] == "Matilda"

@@ -147,15 +147,19 @@ class OpenWakeWordBackend:
             Example: ("Matilda", "computer", 0.87)
 
         """
-        predictions = self._predict(audio)
-        best_phrase, best_confidence = self._best_prediction(predictions, self.threshold)
+        return self.evaluate(audio)[0]
 
-        if best_phrase and best_phrase in self._phrase_to_agent:
+    def evaluate(self, audio: "np.ndarray") -> tuple[tuple[str, str, float] | None, str | None, float]:
+        """Return detection and best score from one model prediction."""
+        best_phrase, best_confidence = self._best_prediction(self._predict(audio), 0.0)
+        detected = None
+
+        if best_confidence > self.threshold and best_phrase in self._phrase_to_agent:
             agent = self._phrase_to_agent[best_phrase]
             logger.info(f"Detected: agent='{agent}', phrase='{best_phrase}', confidence={best_confidence:.2%}")
-            return (agent, best_phrase, best_confidence)
+            detected = (agent, best_phrase, best_confidence)
 
-        return None
+        return detected, best_phrase, best_confidence
 
     def reset(self) -> None:
         """Reset model states (call between utterances)."""
