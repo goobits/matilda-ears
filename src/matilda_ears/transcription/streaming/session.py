@@ -4,8 +4,10 @@ Wraps StreamingAdapter to provide the session interface expected by
 stream_handlers.py.
 """
 
-import numpy as np
+import asyncio
 from dataclasses import dataclass
+
+import numpy as np
 
 from .adapter import StreamingAdapter
 from .types import StreamingConfig
@@ -37,12 +39,14 @@ class StreamingSession:
         backend=None,
         backend_name: str | None = None,
         vad=None,
+        inference_semaphore: asyncio.Semaphore | None = None,
     ):
         self.session_id = session_id
         self.config = config or StreamingConfig()
         self.backend = backend
         self.backend_name = backend_name or ""
         self.vad = vad
+        self.inference_semaphore = inference_semaphore
         self._adapter = self._create_adapter()
 
     def _create_adapter(self):
@@ -56,7 +60,12 @@ class StreamingSession:
                 raise RuntimeError("Parakeet streaming requires a backend instance")
             from .internal.parakeet_adapter import ParakeetStreamingAdapter
 
-            return ParakeetStreamingAdapter(self.backend, self.config, vad=self.vad)
+            return ParakeetStreamingAdapter(
+                self.backend,
+                self.config,
+                vad=self.vad,
+                inference_semaphore=self.inference_semaphore,
+            )
         return StreamingAdapter(self.config, vad=self.vad)
 
     async def start(self) -> None:

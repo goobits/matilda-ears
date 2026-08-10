@@ -63,8 +63,11 @@ async def start_health_server(server: MatildaWebSocketServer, host: str, port: i
     app.router.add_get("/health", _health)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, host, port)
-    await site.start()
+    try:
+        await web.TCPSite(runner, host, port).start()
+    except Exception:
+        await runner.cleanup()
+        raise
     logger.info("HTTP health endpoint available at http://%s:%s/health", host, port)
     return runner
 
@@ -83,7 +86,10 @@ async def start_health_server_unix(server: MatildaWebSocketServer, socket_path: 
         os.makedirs(socket_dir, exist_ok=True)
     if os.path.exists(socket_path):
         os.unlink(socket_path)
-    site = web.UnixSite(runner, socket_path)
-    await site.start()
+    try:
+        await web.UnixSite(runner, socket_path).start()
+    except Exception:
+        await runner.cleanup()
+        raise
     logger.info("HTTP health endpoint available at unix://%s/health", socket_path)
     return runner

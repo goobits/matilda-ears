@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import sys
 import time
@@ -346,3 +347,88 @@ async def test_start_stream_rejects_duplicate_session_id(monkeypatch):
         code="session_conflict",
     )
     assert sessions.get("duplicate") is existing
+
+
+def test_streaming_session_keeps_vad_enabled_and_forwards_inference_gate(monkeypatch):
+    captured = {}
+    sentinel = object()
+    semaphore = asyncio.Semaphore(1)
+
+    def fake_session(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr("matilda_ears.transcription.streaming.StreamingSession", fake_session)
+    monkeypatch.setattr(
+        stream_handlers,
+        "get_config",
+        lambda: {
+            "streaming": {
+                "simul_streaming": {"vad_enabled": True},
+                "parakeet": {},
+            }
+        },
+    )
+
+    result = stream_handlers._create_streaming_session(
+        "session",
+        backend=object(),
+        backend_name="parakeet",
+        transcription_semaphore=semaphore,
+    )
+
+    assert result is sentinel
+    assert captured["config"].vad_enabled is True
+    assert captured["vad"] is None
+    assert captured["inference_semaphore"] is semaphore
+
+
+@pytest.mark.asyncio
+async def test_json_and_binary_opus_use_the_same_partial_result_path(monkeypatch):
+    class Decoder:
+        sample_rate = 16000
+        channels = 1
+
+        @staticmethod
+        def decode_chunk(_packet):
+            return np.full(320, 100, dtype=np.int16)
+
+        @staticmethod
+        def get_duration():
+            return 0.02
+
+    result = SimpleNamespace(confirmed_text="hello", tentative_text="world")
+    sessions = SessionRegistry()
+    json_session = sessions.create("json", "json-client", "opus")
+    json_session.decoder = Decoder()
+    json_session.streaming = SimpleNamespace(process_chunk=AsyncMock(return_value=result))
+    binary_session = sessions.create("binary", "binary-client", "binary")
+    binary_session.decoder = Decoder()
+    binary_session.streaming = SimpleNamespace(process_chunk=AsyncMock(return_value=result))
+    server = SimpleNamespace(sessions=sessions)
+    send_envelope = AsyncMock()
+    send_error = AsyncMock()
+    monkeypatch.setattr(stream_handlers, "send_envelope", send_envelope)
+    monkeypatch.setattr(stream_handlers, "send_error", send_error)
+
+    packet = b"encoded-opus"
+    await stream_handlers.handle_audio_chunk(
+        server,
+        _SilentWebSocket(),
+        {"session_id": "json", "audio_data": base64.b64encode(packet).decode()},
+        "127.0.0.1",
+        "json-client",
+    )
+    await stream_handlers.handle_binary_stream_chunk(
+        server,
+        _SilentWebSocket(),
+        packet,
+        "127.0.0.1",
+        "binary-client",
+    )
+
+    json_session.streaming.process_chunk.assert_awaited_once()
+    binary_session.streaming.process_chunk.assert_awaited_once()
+    assert send_envelope.await_count == 2
+    assert all(call.args[1] == "partial_result" for call in send_envelope.await_args_list)
+    send_error.assert_not_awaited()

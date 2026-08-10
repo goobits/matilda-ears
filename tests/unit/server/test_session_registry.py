@@ -59,3 +59,15 @@ def test_registry_reports_buffer_and_lifecycle_totals():
     assert sessions.pcm_buffer_bytes == 8
     assert sessions.opus_buffer_bytes == 12
     assert sessions.wake_word_buffer_bytes == 6
+
+
+def test_pcm_buffer_evicts_oldest_chunks_without_shifting() -> None:
+    buffer = PcmBuffer(16000, 1, False)
+    first = np.ones(3, dtype=np.int16)
+    second = np.full(3, 2, dtype=np.int16)
+
+    buffer.append(first, max_samples=4)
+    buffer.append(second, max_samples=4)
+
+    assert buffer.total_samples == 3
+    assert np.array_equal(buffer.as_array(), second)

@@ -21,116 +21,168 @@ config = get_config()
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 
+async def _start_pipe_health(endpoint: str) -> web.AppRunner:
+    app = web.Application()
+
+    async def health(_: web.Request) -> web.Response:
+        return web.json_response({"status": "healthy", "service": "ears"})
+
+    app.router.add_get("/health", health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    try:
+        await web.NamedPipeSite(runner, endpoint).start()
+    except Exception:
+        await runner.cleanup()
+        raise
+    return runner
+
+
+async def _start_pipe_proxy(endpoint: str, target_url: str) -> web.AppRunner:
+    async def proxy_handler(request: web.Request) -> web.WebSocketResponse:
+        websocket = web.WebSocketResponse()
+        await websocket.prepare(request)
+        async with ClientSession() as session:
+            async with session.ws_connect(target_url) as upstream:
+
+                async def to_upstream() -> None:
+                    async for message in websocket:
+                        if message.type == web.WSMsgType.TEXT:
+                            await upstream.send_str(message.data)
+                        elif message.type == web.WSMsgType.BINARY:
+                            await upstream.send_bytes(message.data)
+                        elif message.type == web.WSMsgType.CLOSE:
+                            await upstream.close()
+
+                async def to_client() -> None:
+                    async for message in upstream:
+                        if message.type == web.WSMsgType.TEXT:
+                            await websocket.send_str(message.data)
+                        elif message.type == web.WSMsgType.BINARY:
+                            await websocket.send_bytes(message.data)
+                        elif message.type == web.WSMsgType.CLOSE:
+                            await websocket.close()
+
+                await asyncio.gather(to_upstream(), to_client())
+        return websocket
+
+    app = web.Application()
+    app.router.add_get("/v1/ears/socket", proxy_handler)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    try:
+        await web.NamedPipeSite(runner, endpoint).start()
+    except Exception:
+        await runner.cleanup()
+        raise
+    return runner
+
+
+async def _stop_runner(runner: web.AppRunner | None) -> None:
+    if runner is None:
+        return
+    try:
+        await runner.cleanup()
+    except Exception as exc:
+        logger.warning("Failed to stop service runner: %s", exc)
+
+
+def _unlink_socket(path: str | None) -> None:
+    if not path:
+        return
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        logger.warning("Failed to remove Unix socket %s: %s", path, exc)
+
+
 async def start_server(server: MatildaWebSocketServer, host: str | None = None, port: int | None = None) -> None:
     """Start the WebSocket server and its health endpoint."""
-    # Be defensive: older config objects sometimes treat host/port as optional.
-    server_host: str | None = host if host is not None else (server.host or "0.0.0.0")
-    server_port: int | None = port if port is not None else (server.port or 8769)
-
     from matilda_transport import ensure_pipe_supported, prepare_unix_socket, resolve_transport
 
+    server_host = host if host is not None else (server.host or "0.0.0.0")
+    server_port = port if port is not None else (server.port or 8769)
     transport = resolve_transport("MATILDA_EARS_TRANSPORT", "MATILDA_EARS_ENDPOINT", server_host, server_port)
-
-    await server.load_model()
-
-    if transport.transport == "unix":
-        health_socket = os.getenv("MATILDA_EARS_HEALTH_ENDPOINT", "/tmp/matilda/ears-health.sock")
-        try:
-            server._health_runner = await start_health_server_unix(server, health_socket)
-        except Exception as e:
-            logger.warning("Health server disabled: %s", e)
-    elif transport.transport == "pipe":
-        health_socket = os.getenv("MATILDA_EARS_HEALTH_ENDPOINT", r"\\.\pipe\matilda-ears-health")
-        try:
-            app = web.Application()
-
-            async def _health(_: web.Request) -> web.Response:
-                return web.json_response({"status": "healthy", "service": "ears"})
-
-            app.router.add_get("/health", _health)
-            runner = web.AppRunner(app)
-            await runner.setup()
-            site = web.NamedPipeSite(runner, health_socket)
-            await site.start()
-            server._health_runner = runner
-        except Exception as e:
-            logger.warning("Health server disabled: %s", e)
-    elif server_port is not None and server_host is not None:
-        health_port = server_port + 1
-        try:
-            server._health_runner = await start_health_server(server, server_host, health_port)
-        except Exception as e:
-            logger.error("Failed to start health server on expected port %s: %s", health_port, e)
-            raise RuntimeError(f"Health server failed on expected port {health_port}") from e
-
-    protocol = "wss" if server.ssl_enabled else "ws"
-
-    max_message_mb = config.get("server.websocket.max_message_mb", 10)
-    try:
-        max_message_mb = float(max_message_mb)
-    except (TypeError, ValueError):
-        max_message_mb = 10
-
-    max_size = None if max_message_mb <= 0 else int(max_message_mb * 1024 * 1024)
-    server_kwargs: dict[str, Any] = {
-        "ping_interval": 60,
-        "ping_timeout": 120,
-        "max_size": max_size,
-    }
-
-    if server.ssl_enabled and server.ssl_context:
-        server_kwargs["ssl"] = server.ssl_context
-
-    if transport.transport == "unix" and transport.endpoint:
-        prepare_unix_socket(transport.endpoint)
-        server_kwargs["unix"] = True
-        server_kwargs["path"] = transport.endpoint
-        server_host = None
-        server_port = None
-    elif transport.transport == "pipe":
-        ensure_pipe_supported(transport)
-
-        async def proxy_handler(request: web.Request) -> web.WebSocketResponse:
-            ws = web.WebSocketResponse()
-            await ws.prepare(request)
-            target_url = f"ws://{server_host}:{server_port}"
-            async with ClientSession() as session:
-                async with session.ws_connect(target_url) as upstream:
-
-                    async def to_upstream() -> None:
-                        async for msg in ws:
-                            if msg.type == web.WSMsgType.TEXT:
-                                await upstream.send_str(msg.data)
-                            elif msg.type == web.WSMsgType.BINARY:
-                                await upstream.send_bytes(msg.data)
-                            elif msg.type == web.WSMsgType.CLOSE:
-                                await upstream.close()
-
-                    async def to_client() -> None:
-                        async for msg in upstream:
-                            if msg.type == web.WSMsgType.TEXT:
-                                await ws.send_str(msg.data)
-                            elif msg.type == web.WSMsgType.BINARY:
-                                await ws.send_bytes(msg.data)
-                            elif msg.type == web.WSMsgType.CLOSE:
-                                await ws.close()
-
-                    await asyncio.gather(to_upstream(), to_client())
-            return ws
-
-        pipe_app = web.Application()
-        pipe_app.router.add_get("/v1/ears/socket", proxy_handler)
-        runner = web.AppRunner(pipe_app)
-        await runner.setup()
-        site = web.NamedPipeSite(runner, transport.endpoint)
-        await site.start()
+    websocket_host: str | None = server_host
+    websocket_port: int | None = server_port
+    pipe_runner: web.AppRunner | None = None
+    unix_socket: str | None = None
+    health_unix_socket: str | None = None
 
     try:
-        async with websockets.serve(server.handle_client, server_host, server_port, **cast("Any", server_kwargs)):
-            logger.info("✓ Ears ready (%s) on %s://%s:%s", server.backend_name, protocol, server_host, server_port)
+        await server.load_model()
+
+        if transport.transport == "unix":
+            health_socket = os.getenv("MATILDA_EARS_HEALTH_ENDPOINT", "/tmp/matilda/ears-health.sock")
+            try:
+                server._health_runner = await start_health_server_unix(server, health_socket)
+                health_unix_socket = health_socket
+            except Exception as exc:
+                logger.warning("Health server disabled: %s", exc)
+        elif transport.transport == "pipe":
+            health_socket = os.getenv("MATILDA_EARS_HEALTH_ENDPOINT", r"\\.\pipe\matilda-ears-health")
+            try:
+                server._health_runner = await _start_pipe_health(health_socket)
+            except Exception as exc:
+                logger.warning("Health server disabled: %s", exc)
+        else:
+            health_port = server_port + 1
+            try:
+                server._health_runner = await start_health_server(server, server_host, health_port)
+            except Exception as exc:
+                logger.error("Failed to start health server on expected port %s: %s", health_port, exc)
+                raise RuntimeError(f"Health server failed on expected port {health_port}") from exc
+
+        max_message_mb = config.get("server.websocket.max_message_mb", 10)
+        try:
+            max_message_mb = float(max_message_mb)
+        except (TypeError, ValueError):
+            max_message_mb = 10
+
+        server_kwargs: dict[str, Any] = {
+            "ping_interval": 60,
+            "ping_timeout": 120,
+            "max_size": None if max_message_mb <= 0 else int(max_message_mb * 1024 * 1024),
+        }
+        if server.ssl_enabled and server.ssl_context:
+            server_kwargs["ssl"] = server.ssl_context
+
+        if transport.transport == "unix" and transport.endpoint:
+            prepare_unix_socket(transport.endpoint)
+            unix_socket = transport.endpoint
+            server_kwargs.update(unix=True, path=transport.endpoint)
+            websocket_host = None
+            websocket_port = None
+        elif transport.transport == "pipe":
+            ensure_pipe_supported(transport)
+            pipe_runner = await _start_pipe_proxy(transport.endpoint, f"ws://{server_host}:{server_port}")
+
+        protocol = "wss" if server.ssl_enabled else "ws"
+        async with websockets.serve(
+            server.handle_client,
+            websocket_host,
+            websocket_port,
+            **cast("Any", server_kwargs),
+        ):
+            logger.info(
+                "✓ Ears ready (%s) on %s://%s:%s",
+                server.backend_name,
+                protocol,
+                websocket_host,
+                websocket_port,
+            )
             await asyncio.Future()
     finally:
-        server.close()
+        await _stop_runner(pipe_runner)
+        await _stop_runner(server._health_runner)
+        server._health_runner = None
+        try:
+            server.close()
+        finally:
+            _unlink_socket(unix_socket)
+            _unlink_socket(health_unix_socket)
 
 
 def main() -> None:

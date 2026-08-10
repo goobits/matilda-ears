@@ -23,8 +23,9 @@ from ...core.config import get_config, setup_logging
 from ...utils.ssl import create_ssl_context
 from ..backends import get_backend_class
 from . import handlers
+from .internal.audio_utils import pcm_to_wav
 from .internal.session_registry import ServerSession, SessionRegistry
-from .internal.transcription import pcm_to_wav, send_envelope, send_error, transcribe_audio_from_wav
+from .internal.transcription import send_envelope, send_error, transcribe_audio_from_wav
 
 if TYPE_CHECKING:
     from aiohttp.web import AppRunner
@@ -182,22 +183,6 @@ class MatildaWebSocketServer:
         self.trusted_proxies = trusted_proxies if isinstance(trusted_proxies, list) else []
 
         self.sessions = SessionRegistry()
-
-        self.streaming_vad = None
-        streaming_config = config.get("streaming", {})
-        simul_config = streaming_config.get("simul_streaming", {})
-        streaming_enabled = bool(streaming_config.get("enabled", True))
-        env_streaming_enabled = os.getenv("STT_STREAMING_ENABLED")
-        if env_streaming_enabled is not None:
-            streaming_enabled = env_streaming_enabled.strip().lower() in {"1", "true", "yes", "on"}
-        if streaming_enabled and bool(simul_config.get("vad_enabled", True)):
-            try:
-                from ...audio.vad import SileroVAD
-
-                self.streaming_vad = SileroVAD(threshold=float(simul_config.get("vad_threshold", 0.5)))
-                logger.info("SileroVAD initialized for streaming")
-            except Exception as e:
-                logger.warning(f"SileroVAD unavailable for streaming ({e}); continuing without VAD gating")
 
         self.wake_word_detector = None
 

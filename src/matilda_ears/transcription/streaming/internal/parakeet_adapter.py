@@ -26,7 +26,13 @@ class ParakeetStreamingAdapter:
     # This prevents triggering inference on every tiny chunk when VAD is unavailable
     MIN_BUFFER_SAMPLES = 4000
 
-    def __init__(self, backend, config: StreamingConfig | None = None, vad=None):
+    def __init__(
+        self,
+        backend,
+        config: StreamingConfig | None = None,
+        vad=None,
+        inference_semaphore: asyncio.Semaphore | None = None,
+    ):
         self.config = config or StreamingConfig(backend="parakeet")
         self._backend = backend
         self._initialized = False
@@ -35,6 +41,7 @@ class ParakeetStreamingAdapter:
         self._transcriber_cm: Any | None = None
         self._transcriber: Any | None = None
         self._lock = asyncio.Lock()
+        self._inference_semaphore = inference_semaphore
         self._alpha_text = ""
         self._total_samples = 0
         self._pending_samples = 0  # Track pending samples for min buffer check
@@ -117,11 +124,7 @@ class ParakeetStreamingAdapter:
                     self._pending_audio = []
                     self._pending_samples = 0
 
-                    loop = asyncio.get_running_loop()
-                    result = await asyncio.wait_for(
-                        loop.run_in_executor(_INFERENCE_EXECUTOR, self._add_audio_chunks, pending),
-                        timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
-                    )
+                    result = await self._run_inference(self._add_audio_chunks, pending)
 
                 alpha, omega = self._extract_text(result)
                 self._merge_alpha(alpha)
@@ -136,6 +139,27 @@ class ParakeetStreamingAdapter:
 
             if not self._dirty:
                 return self._last_result
+
+    async def _run_inference(self, func, *args):
+        semaphore = self._inference_semaphore
+        if semaphore is not None:
+            await semaphore.acquire()
+
+        loop = asyncio.get_running_loop()
+        try:
+            task = loop.run_in_executor(_INFERENCE_EXECUTOR, func, *args)
+        except Exception:
+            if semaphore is not None:
+                semaphore.release()
+            raise
+
+        if semaphore is not None:
+            task.add_done_callback(lambda _: semaphore.release())
+
+        done, _ = await asyncio.wait({task}, timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS)
+        if not done:
+            raise TimeoutError
+        return await task
 
     def _add_audio_chunks(self, chunks: list[np.ndarray]) -> Any:
         last_result = None
@@ -213,11 +237,7 @@ class ParakeetStreamingAdapter:
             final_result = None
             transcriber = self._transcriber
             if transcriber is not None and hasattr(transcriber, "finish"):
-                loop = asyncio.get_running_loop()
-                final_result = await asyncio.wait_for(
-                    loop.run_in_executor(_INFERENCE_EXECUTOR, transcriber.finish),
-                    timeout=STREAMING_INFERENCE_TIMEOUT_SECONDS,
-                )
+                final_result = await self._run_inference(transcriber.finish)
             if final_result is None:
                 final_result = transcriber
             alpha, omega = self._extract_text(final_result)

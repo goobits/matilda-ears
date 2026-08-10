@@ -5,18 +5,36 @@ This module provides audio processing utilities for the WebSocket server:
 - Resampling to 16000Hz (required by Whisper models)
 """
 
-from typing import cast
+import io
+import wave
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
 from ....core.config import setup_logging
 from ....audio.conversion import float32_to_int16, int16_to_float32
 
+if TYPE_CHECKING:
+    from .session_registry import ServerSession
+
 logger = setup_logging(__name__, log_filename="transcription.txt")
 
 # Supported sample rates
 SUPPORTED_SAMPLE_RATES = {8000, 16000, 48000}
 TARGET_SAMPLE_RATE = 16000
+
+
+def downmix_to_mono(pcm_samples: np.ndarray, channels: int) -> np.ndarray:
+    """Downmix interleaved PCM samples to mono."""
+    if channels <= 1 or pcm_samples.size == 0:
+        return pcm_samples
+
+    frame_count = pcm_samples.size // channels
+    if frame_count == 0:
+        return np.array([], dtype=pcm_samples.dtype)
+
+    frames = pcm_samples[: frame_count * channels].reshape(frame_count, channels).astype(np.int32)
+    return np.clip(frames.mean(axis=1), -32768, 32767).astype(np.int16)
 
 
 def validate_sample_rate(sample_rate: int) -> tuple[bool, str | None]:
@@ -114,3 +132,44 @@ def resample_to_16k(pcm_samples: np.ndarray, source_rate: int) -> np.ndarray:
 
     """
     return resample_audio(pcm_samples, source_rate, TARGET_SAMPLE_RATE)
+
+
+def decode_opus_chunk(decoder, opus_data: bytes) -> np.ndarray:
+    """Decode an Opus packet to 16 kHz mono PCM."""
+    pcm_samples = downmix_to_mono(decoder.decode_chunk(opus_data), decoder.channels)
+    if decoder.sample_rate != TARGET_SAMPLE_RATE:
+        return resample_to_16k(pcm_samples, decoder.sample_rate)
+    return pcm_samples
+
+
+def pcm_to_wav(samples: np.ndarray, sample_rate: int, channels: int = 1) -> bytes:
+    """Convert interleaved int16 PCM samples to WAV bytes."""
+    if samples.dtype != np.int16:
+        samples = samples.astype(np.int16)
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav_file:
+        wav_file.setnchannels(channels)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(samples.tobytes())
+    return buffer.getvalue()
+
+
+def session_audio_to_wav(session: "ServerSession") -> tuple[bytes, float] | None:
+    """Return normalized WAV bytes and duration for a server session."""
+    if session.pcm is not None:
+        samples = session.pcm.as_array()
+        sample_rate = TARGET_SAMPLE_RATE if session.pcm.needs_resampling else session.pcm.sample_rate
+        return pcm_to_wav(samples, sample_rate, 1), len(samples) / sample_rate
+
+    if session.decoder is not None:
+        samples = downmix_to_mono(session.decoder.get_pcm_array(), session.decoder.channels)
+        if session.decoder.sample_rate != TARGET_SAMPLE_RATE:
+            samples = resample_to_16k(samples, session.decoder.sample_rate)
+            sample_rate = TARGET_SAMPLE_RATE
+        else:
+            sample_rate = session.decoder.sample_rate
+        return pcm_to_wav(samples, sample_rate, 1), len(samples) / sample_rate
+
+    return None

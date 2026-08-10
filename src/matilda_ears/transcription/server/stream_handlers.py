@@ -10,12 +10,20 @@ from ...core.config import get_config, setup_logging
 from ...wake_word.detector import WakeWordDetector
 from ...audio.conversion import int16_to_float32
 from ...audio.decoder import OpusDecoder
-from .internal.audio_utils import TARGET_SAMPLE_RATE, needs_resampling, resample_to_16k, validate_sample_rate
+from .internal.audio_utils import (
+    TARGET_SAMPLE_RATE,
+    decode_opus_chunk,
+    downmix_to_mono,
+    needs_resampling,
+    resample_to_16k,
+    session_audio_to_wav,
+    validate_sample_rate,
+)
 from .internal.session_registry import PcmBuffer, ServerSession, SessionConflictError
-from .internal.transcription import pcm_to_wav, send_envelope, send_error, transcribe_audio_from_wav
+from .internal.transcription import send_envelope, send_error, transcribe_audio_from_wav
 
 
-def _create_streaming_session(session_id: str, backend, backend_name: str, config, transcription_semaphore, vad):
+def _create_streaming_session(session_id: str, backend, backend_name: str, transcription_semaphore, vad=None):
     """Create a streaming session using SimulStreaming."""
     from ..streaming import StreamingSession, StreamingConfig
 
@@ -39,13 +47,20 @@ def _create_streaming_session(session_id: str, backend, backend_name: str, confi
         audio_max_len=simul_config.get("audio_max_len", 30.0),
         segment_length=simul_config.get("segment_length", 1.0),
         never_fire=simul_config.get("never_fire", True),
-        vad_enabled=bool(simul_config.get("vad_enabled", True)) and vad is not None,
+        vad_enabled=bool(simul_config.get("vad_enabled", True)),
         vad_threshold=float(simul_config.get("vad_threshold", 0.5)),
         parakeet_context_size=context_size,
         parakeet_depth=int(parakeet_config.get("depth", 1)),
     )
 
-    return StreamingSession(session_id=session_id, config=config, backend=backend, backend_name=backend_name, vad=vad)
+    return StreamingSession(
+        session_id=session_id,
+        config=config,
+        backend=backend,
+        backend_name=backend_name,
+        vad=vad,
+        inference_semaphore=transcription_semaphore,
+    )
 
 
 if TYPE_CHECKING:
@@ -57,20 +72,6 @@ MAX_PCM_BUFFER_SECONDS = int(os.getenv("MATILDA_EARS_MAX_STREAM_BUFFER_SECONDS",
 MAX_SESSIONS_PER_CLIENT = int(os.getenv("MATILDA_EARS_MAX_SESSIONS_PER_CLIENT", "4"))
 MAX_ACTIVE_SESSIONS = int(os.getenv("MATILDA_EARS_MAX_ACTIVE_SESSIONS", "32"))
 MAX_DEBUG_OPUS_LOG_CHUNKS = int(os.getenv("MATILDA_EARS_MAX_DEBUG_OPUS_LOG_CHUNKS", "1000"))
-
-
-def _downmix_to_mono(pcm_samples: np.ndarray, channels: int) -> np.ndarray:
-    if channels <= 1 or pcm_samples.size == 0:
-        return pcm_samples
-
-    frame_count = pcm_samples.size // channels
-    if frame_count == 0:
-        return np.array([], dtype=pcm_samples.dtype)
-
-    trimmed = pcm_samples[: frame_count * channels]
-    frames = trimmed.reshape(frame_count, channels).astype(np.int32)
-    mono = frames.mean(axis=1)
-    return np.clip(mono, -32768, 32767).astype(np.int16)
 
 
 def _streaming_enabled() -> bool:
@@ -108,15 +109,6 @@ def _log_audio_stats(client_id: str, session_id: str, pcm_samples: np.ndarray) -
     logger.info(
         f"Client {client_id}: Session {session_id} decoded {pcm_samples.size} samples, rms={rms:.3f}, peak={peak}"
     )
-
-
-def _decode_and_normalize_opus(client_id: str, session_id: str, decoder, opus_data: bytes) -> np.ndarray:
-    pcm_samples = decoder.decode_chunk(opus_data)
-    pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
-    _log_audio_stats(client_id, session_id, pcm_samples)
-    if decoder.sample_rate != TARGET_SAMPLE_RATE:
-        pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
-    return pcm_samples
 
 
 def _get_wake_word_detector(server: "MatildaWebSocketServer") -> WakeWordDetector | None:
@@ -220,6 +212,89 @@ async def _process_wake_word_chunk(
             )
 
 
+async def _emit_partial_result(
+    server: "MatildaWebSocketServer",
+    websocket,
+    session: ServerSession,
+    pcm_samples: np.ndarray,
+    client_id: str,
+    source: str,
+) -> None:
+    await _process_wake_word_chunk(server, websocket, session, pcm_samples)
+    if session.streaming is None:
+        return
+
+    try:
+        result = await session.streaming.process_chunk(pcm_samples)
+        if result.confirmed_text or result.tentative_text:
+            await send_envelope(
+                websocket,
+                "partial_result",
+                {
+                    "type": "partial_result",
+                    "session_id": session.session_id,
+                    "confirmed_text": result.confirmed_text,
+                    "tentative_text": result.tentative_text,
+                    "is_final": False,
+                },
+            )
+    except Exception as exc:
+        logger.warning(f"Client {client_id}: Error in {source} streaming transcription: {exc}")
+
+
+async def _process_opus_packet(
+    server: "MatildaWebSocketServer",
+    websocket,
+    session: ServerSession,
+    opus_data: bytes,
+    client_id: str,
+    *,
+    ack_requested: bool = False,
+    source: str = "Opus",
+) -> None:
+    if not opus_data:
+        logger.warning(f"Client {client_id} sent an empty audio chunk. Ignoring.")
+        return
+
+    decoder = session.decoder
+    if decoder is None:
+        await send_error(websocket, f"Unknown session: {session.session_id}")
+        return
+
+    try:
+        chunk_num = session.record_chunk()
+        logger.debug(f"Client {client_id}: Received {source.lower()} chunk #{chunk_num}, size: {len(opus_data)} bytes")
+        if _audio_debug_enabled():
+            _append_debug_opus_log(
+                session,
+                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},
+            )
+
+        pcm_samples = decode_opus_chunk(decoder, opus_data)
+        _log_audio_stats(client_id, session.session_id, pcm_samples)
+        await _emit_partial_result(server, websocket, session, pcm_samples, client_id, source)
+
+        if ack_requested:
+            await send_envelope(
+                websocket,
+                "chunk_received",
+                {
+                    "type": "chunk_received",
+                    "session_id": session.session_id,
+                    "samples_decoded": len(pcm_samples),
+                    "total_duration": decoder.get_duration(),
+                },
+            )
+    except Exception as exc:
+        logger.exception(f"Error processing {source.lower()} audio chunk: {exc}")
+        await send_error(
+            websocket,
+            f"Audio chunk processing failed: {exc!s}",
+            code="internal_error",
+            retryable=True,
+        )
+
+
 async def handle_start_stream(
     server: "MatildaWebSocketServer",
     websocket,
@@ -301,9 +376,7 @@ async def handle_start_stream(
                 session_id=session_id,
                 backend=server.backend,
                 backend_name=server.backend_name,
-                config=None,  # Config loaded internally
                 transcription_semaphore=server.transcription_semaphore,
-                vad=server.streaming_vad,
             )
 
             # Start the session
@@ -380,68 +453,19 @@ async def handle_audio_chunk(
         return
 
     try:
-        chunk_num = session.record_chunk()
-
-        # Decode base64 to bytes
         opus_data = base64.b64decode(opus_data_b64)
+    except (TypeError, ValueError) as exc:
+        await send_error(websocket, f"Audio chunk processing failed: {exc!s}")
+        return
 
-        # Guard against empty Opus packets that cause decoder errors
-        if not opus_data:
-            logger.warning(f"Client {client_id} sent an empty audio chunk. Ignoring.")
-            return
-
-        logger.debug(f"Client {client_id}: Received chunk #{chunk_num}, size: {len(opus_data)} bytes")
-
-        # Store chunk info for analysis
-        if _audio_debug_enabled():
-            _append_debug_opus_log(
-                session,
-                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},
-            )
-
-        # Decode Opus chunk and append to PCM buffer
-        # This returns the decoded PCM samples as numpy array
-        pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
-
-        await _process_wake_word_chunk(server, websocket, session, pcm_samples)
-
-        if session.streaming is not None:
-            try:
-                result = await session.streaming.process_chunk(pcm_samples)
-
-                # Send partial result with new schema (confirmed + tentative)
-                if result.confirmed_text or result.tentative_text:
-                    await send_envelope(
-                        websocket,
-                        "partial_result",
-                        {
-                            "type": "partial_result",
-                            "session_id": session_id,
-                            "confirmed_text": result.confirmed_text,
-                            "tentative_text": result.tentative_text,
-                            "is_final": False,
-                        },
-                    )
-            except Exception as e:
-                logger.warning(f"Client {client_id}: Error in streaming transcription: {e}")
-                # Continue accumulating audio even if streaming fails
-
-        # Send acknowledgment (optional, for debugging)
-        if data.get("ack_requested"):
-            await send_envelope(
-                websocket,
-                "chunk_received",
-                {
-                    "type": "chunk_received",
-                    "session_id": session_id,
-                    "samples_decoded": len(pcm_samples) if pcm_samples is not None else 0,
-                    "total_duration": decoder.get_duration(),
-                },
-            )
-
-    except Exception as e:
-        logger.exception(f"Error decoding audio chunk: {e}")
-        await send_error(websocket, f"Audio chunk processing failed: {e!s}", code="internal_error", retryable=True)
+    await _process_opus_packet(
+        server,
+        websocket,
+        session,
+        opus_data,
+        client_id,
+        ack_requested=bool(data.get("ack_requested")),
+    )
 
 
 async def handle_binary_stream_chunk(
@@ -467,46 +491,7 @@ async def handle_binary_stream_chunk(
         await send_error(websocket, f"Unknown session: {session_id}")
         return
 
-    if not opus_data:
-        logger.warning(f"Client {client_id} sent an empty audio chunk. Ignoring.")
-        return
-
-    try:
-        chunk_num = session.record_chunk()
-        logger.debug(f"Client {client_id}: Received binary chunk #{chunk_num}, size: {len(opus_data)} bytes")
-
-        if _audio_debug_enabled():
-            _append_debug_opus_log(
-                session,
-                {"chunk_num": chunk_num, "size": len(opus_data), "data": opus_data},
-            )
-
-        pcm_samples = _decode_and_normalize_opus(client_id, session_id, decoder, opus_data)
-
-        await _process_wake_word_chunk(server, websocket, session, pcm_samples)
-
-        if session.streaming is not None:
-            try:
-                result = await session.streaming.process_chunk(pcm_samples)
-
-                if result.confirmed_text or result.tentative_text:
-                    await send_envelope(
-                        websocket,
-                        "partial_result",
-                        {
-                            "type": "partial_result",
-                            "session_id": session_id,
-                            "confirmed_text": result.confirmed_text,
-                            "tentative_text": result.tentative_text,
-                            "is_final": False,
-                        },
-                    )
-            except Exception as e:
-                logger.warning(f"Client {client_id}: Error in streaming transcription: {e}")
-
-    except Exception as e:
-        logger.exception(f"Error decoding binary audio chunk: {e}")
-        await send_error(websocket, f"Audio chunk processing failed: {e!s}", code="internal_error", retryable=True)
+    await _process_opus_packet(server, websocket, session, opus_data, client_id, source="Binary Opus")
 
 
 async def handle_pcm_chunk(
@@ -600,12 +585,11 @@ async def handle_pcm_chunk(
 
         # Convert bytes to numpy int16 array
         pcm_samples = np.frombuffer(pcm_bytes, dtype=np.int16)
+        pcm_samples = downmix_to_mono(pcm_samples, pcm_session.channels)
 
         # Resample to 16kHz if needed (e.g., 8kHz input)
         if pcm_session.needs_resampling:
             pcm_samples = resample_to_16k(pcm_samples, pcm_session.sample_rate)
-
-        await _process_wake_word_chunk(server, websocket, session, pcm_samples)
 
         # Accumulate samples for batch transcription (if needed)
         # Note: After resampling, samples are at 16kHz
@@ -621,26 +605,7 @@ async def handle_pcm_chunk(
                 f"size: {len(pcm_bytes)} bytes, total: {duration:.2f}s"
             )
 
-        if session.streaming is not None:
-            try:
-                result = await session.streaming.process_chunk(pcm_samples)
-
-                # Send partial result with new schema (confirmed + tentative)
-                if result.confirmed_text or result.tentative_text:
-                    await send_envelope(
-                        websocket,
-                        "partial_result",
-                        {
-                            "type": "partial_result",
-                            "session_id": session_id,
-                            "confirmed_text": result.confirmed_text,
-                            "tentative_text": result.tentative_text,
-                            "is_final": False,
-                        },
-                    )
-            except Exception as e:
-                logger.warning(f"Client {client_id}: Error in PCM streaming transcription: {e}")
-                # Continue accumulating audio even if streaming fails
+        await _emit_partial_result(server, websocket, session, pcm_samples, client_id, "PCM")
 
     except Exception as e:
         logger.exception(f"Error processing PCM chunk: {e}")
@@ -749,37 +714,15 @@ async def handle_end_stream(
                 )
                 # Fall through to batch transcription
 
-        # Batch mode: Use accumulated audio for transcription
-        if pcm_session:
-            # PCM session: concatenate accumulated samples and create WAV
-            all_samples = np.concatenate(pcm_session.samples) if pcm_session.samples else np.array([], dtype=np.int16)
-            # Use 16kHz if samples were resampled, otherwise original rate
-            output_sample_rate = TARGET_SAMPLE_RATE if pcm_session.needs_resampling else pcm_session.sample_rate
-            duration = len(all_samples) / output_sample_rate
-            wav_data = pcm_to_wav(all_samples, output_sample_rate, pcm_session.channels)
-            logger.debug(
-                f"Client {client_id}: PCM stream ended (batch mode). "
-                f"Duration: {duration:.2f}s, Samples: {len(all_samples)}, Size: {len(wav_data)} bytes"
-            )
-        elif decoder:
-            # Opus session: resample to 16kHz if needed before WAV
-            pcm_samples = decoder.get_pcm_array()
-            pcm_samples = _downmix_to_mono(pcm_samples, decoder.channels)
-            if decoder.sample_rate != TARGET_SAMPLE_RATE:
-                pcm_samples = resample_to_16k(pcm_samples, decoder.sample_rate)
-                duration = len(pcm_samples) / TARGET_SAMPLE_RATE
-                wav_data = pcm_to_wav(pcm_samples, TARGET_SAMPLE_RATE, 1)
-            else:
-                wav_data = pcm_to_wav(pcm_samples, decoder.sample_rate, 1)
-                duration = len(pcm_samples) / decoder.sample_rate
-
-            logger.debug(
-                f"Client {client_id}: Opus stream ended (batch mode). Duration: {duration:.2f}s, Size: {len(wav_data)} bytes"
-            )
-        else:
-            # No audio data available
+        audio = session_audio_to_wav(session)
+        if audio is None:
             await send_error(websocket, "No audio data in session")
             return
+        wav_data, duration = audio
+        logger.debug(
+            f"Client {client_id}: {session.transport.upper()} stream ended (batch mode). "
+            f"Duration: {duration:.2f}s, Size: {len(wav_data)} bytes"
+        )
 
         # Use common transcription logic
         success, text, info = await transcribe_audio_from_wav(server, wav_data, client_id)

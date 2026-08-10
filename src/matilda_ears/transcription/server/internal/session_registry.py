@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -15,15 +16,24 @@ class PcmBuffer:
     sample_rate: int
     channels: int
     needs_resampling: bool
-    samples: list[np.ndarray] = field(default_factory=list)
+    samples: deque[np.ndarray] = field(default_factory=deque)
     chunk_count: int = 0
     total_samples: int = 0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.samples, deque):
+            self.samples = deque(self.samples)
 
     def append(self, samples: np.ndarray, max_samples: int) -> None:
         self.samples.append(samples)
         self.total_samples += len(samples)
         while self.samples and self.total_samples > max_samples:
-            self.total_samples -= len(self.samples.pop(0))
+            self.total_samples -= len(self.samples.popleft())
+
+    def as_array(self) -> np.ndarray:
+        if not self.samples:
+            return np.array([], dtype=np.int16)
+        return np.concatenate(self.samples)
 
     @property
     def buffer_bytes(self) -> int:

@@ -7,15 +7,12 @@ This module contains the core transcription functionality including:
 """
 
 import asyncio
-import io
 import json
 import os
 import tempfile
 import uuid
-import wave
 from typing import TYPE_CHECKING
 
-import numpy as np
 import websockets
 from matilda_transport import build_envelope
 
@@ -211,33 +208,6 @@ async def transcribe_audio_from_wav(
             task.add_done_callback(lambda _task: _delete_temp_file(temp_path))
         else:
             _delete_temp_file(temp_path)
-
-
-def pcm_to_wav(samples: np.ndarray, sample_rate: int, channels: int = 1) -> bytes:
-    """Convert PCM samples to WAV format.
-
-    Args:
-        samples: Int16 PCM samples as numpy array
-        sample_rate: Sample rate in Hz
-        channels: Number of channels (1 for mono)
-
-    Returns:
-        WAV file data as bytes
-
-    """
-    # Ensure samples are int16
-    if samples.dtype != np.int16:
-        samples = samples.astype(np.int16)
-
-    # Create WAV in memory
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as wav_file:
-        wav_file.setnchannels(channels)
-        wav_file.setsampwidth(2)  # 16-bit = 2 bytes
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(samples.tobytes())
-
-    return buffer.getvalue()
 
 
 async def send_envelope(websocket, task: str, result: dict | None = None, error: dict | None = None) -> None:
