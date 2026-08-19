@@ -22,9 +22,9 @@ from matilda_ears.cli import cli
         ),
         (
             "transcribe",
-            ["recording.wav", "--backend", "huggingface", "--no-formatting"],
+            ["recording.wav", "--backend", "moss", "--diarize", "--no-formatting"],
             "on_transcribe",
-            {"file": "recording.wav", "backend": "huggingface", "no_formatting": True},
+            {"file": "recording.wav", "backend": "moss", "diarize": True, "no_formatting": True},
         ),
         ("serve", ["--host", "127.0.0.1", "--port", "3212"], "on_serve", {"host": "127.0.0.1", "port": 3212}),
     ],

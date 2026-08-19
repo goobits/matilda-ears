@@ -26,3 +26,10 @@ def test_backend_names_are_normalized_once() -> None:
     assert registry.normalize_backend_name("WHISPER") == "faster_whisper"
     assert registry.normalize_backend_name("hf") == "huggingface"
     assert registry.normalize_backend_name("") == "auto"
+
+
+def test_moss_is_file_only_and_diarized() -> None:
+    spec = registry.get_backend_spec("moss")
+
+    assert spec.capabilities == frozenset({"file", "diarization"})
+    assert registry.backend_supports("moss", "server") is False

@@ -144,6 +144,7 @@ cli:
         - { name: "model", type: "str", desc: "Transcription model" }
         - { name: "language", type: "str", desc: "Language code" }
         - { name: "backend", type: "str", desc: "File transcription backend" }
+        - { name: "diarize", type: "flag", desc: "Add speaker labels and timestamps with MOSS" }
         - { name: "no-formatting", type: "flag", desc: "Disable Ears Tuner formatting" }
         - { name: "json", type: "flag", desc: "Output JSON events" }
         - { name: "debug", type: "flag", desc: "Enable detailed logging" }

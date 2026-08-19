@@ -8,6 +8,7 @@ Supported backends:
 - faster_whisper: Cross-platform Whisper with CUDA support (default)
 - parakeet: Apple Silicon MLX-optimized (optional)
 - huggingface: Universal backend supporting many HuggingFace ASR models (optional)
+- moss: Native file transcription with speaker diarization
 - hub: Hub-backed transcription via matilda-api gateway
 """
 

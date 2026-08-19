@@ -39,6 +39,10 @@ class FileTranscribeMode(BaseMode):
 
     def _resolve_backend_name(self) -> str:
         requested = normalize_backend_name(self.mode_config.backend)
+        if self.mode_config.diarize:
+            if requested not in {"auto", "moss"}:
+                raise ValueError("--diarize requires --backend moss")
+            requested = "moss"
         backend_name = requested if requested != "auto" else self.config.transcription_backend
         if not backend_supports(backend_name, "file"):
             raise ValueError(f"Backend '{backend_name}' does not support file transcription")
@@ -51,7 +55,12 @@ class FileTranscribeMode(BaseMode):
 
             transcript = await asyncio.to_thread(self.backend.transcribe, file_path, self.mode_config.language)
             text = transcript.text
-            if not self.mode_config.no_formatting:
+            if self.mode_config.diarize and self.mode_config.format != "json":
+                text = "\n".join(
+                    f"[{_format_timestamp(segment.start)}] {segment.speaker}: {segment.text}"
+                    for segment in transcript.segments
+                )
+            elif not self.mode_config.no_formatting:
                 text = await self._format_text(text)
             self.logger.info("Transcribed %d characters with %s", len(text), transcript.backend)
             return {
@@ -60,6 +69,17 @@ class FileTranscribeMode(BaseMode):
                 "is_final": True,
                 "language": transcript.language or "en",
                 "file": file_path,
+                "duration": transcript.duration,
+                "backend": transcript.backend,
+                "segments": [
+                    {
+                        "start": segment.start,
+                        "end": segment.end,
+                        "speaker": segment.speaker,
+                        "text": segment.text,
+                    }
+                    for segment in transcript.segments
+                ],
             }
         except Exception as exc:
             self.logger.error("Transcription error: %s", exc)
@@ -113,3 +133,11 @@ class FileTranscribeMode(BaseMode):
             print(json.dumps(result), flush=True)
         else:
             print(f"Error: {message}", file=sys.stderr)
+
+
+def _format_timestamp(seconds: float) -> str:
+    milliseconds = max(0, round(seconds * 1000))
+    hours, remainder = divmod(milliseconds, 3_600_000)
+    minutes, remainder = divmod(remainder, 60_000)
+    whole_seconds, milliseconds = divmod(remainder, 1000)
+    return f"{hours:02d}:{minutes:02d}:{whole_seconds:02d}.{milliseconds:03d}"

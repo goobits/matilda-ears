@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 from matilda_ears.modes.file_transcribe import FileTranscribeMode
 from matilda_ears.core.mode_config import FileTranscribeConfig
-from matilda_ears.transcription.transcript import Transcript
+from matilda_ears.transcription.transcript import Transcript, TranscriptSegment
 
 
 @pytest.fixture
@@ -121,3 +121,65 @@ async def test_file_backend_override_is_resolved(mock_config, mock_backend):
 
     get_backend_class.assert_called_once_with("huggingface")
     backend.load.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_diarize_selects_moss(mock_config, mock_backend):
+    get_backend_class, backend = mock_backend
+    mode = FileTranscribeMode(FileTranscribeConfig(file="test.wav", diarize=True))
+
+    await mode._load_model()
+
+    get_backend_class.assert_called_once_with("moss")
+    backend.load.assert_awaited_once()
+
+
+def test_diarize_rejects_other_backend(mock_config):
+    mode = FileTranscribeMode(FileTranscribeConfig(file="test.wav", backend="parakeet", diarize=True))
+
+    with pytest.raises(ValueError, match="requires --backend moss"):
+        mode._resolve_backend_name()
+
+
+@pytest.mark.asyncio
+async def test_diarized_result_has_timestamps_and_structured_segments(mock_config):
+    mode = FileTranscribeMode(FileTranscribeConfig(file="test.wav", diarize=True))
+    mode.backend = MagicMock(
+        is_ready=True,
+        transcribe=MagicMock(
+            return_value=Transcript(
+                text="Welcome everyone.",
+                segments=(TranscriptSegment(0.48, 1.66, "Welcome everyone.", "S01"),),
+                language="en",
+                duration=2.0,
+                backend="moss",
+            )
+        ),
+    )
+
+    result = await mode._transcribe_file("test.wav")
+
+    assert result["text"] == "[00:00:00.480] S01: Welcome everyone."
+    assert result["segments"] == [{"start": 0.48, "end": 1.66, "speaker": "S01", "text": "Welcome everyone."}]
+    assert result["backend"] == "moss"
+
+
+@pytest.mark.asyncio
+async def test_diarized_json_keeps_plain_text(mock_config):
+    mode = FileTranscribeMode(FileTranscribeConfig(file="test.wav", diarize=True, format="json"))
+    mode.backend = MagicMock(
+        is_ready=True,
+        transcribe=MagicMock(
+            return_value=Transcript(
+                text="Welcome everyone.",
+                segments=(TranscriptSegment(0.48, 1.66, "Welcome everyone.", "S01"),),
+                language="en",
+                duration=2.0,
+                backend="moss",
+            )
+        ),
+    )
+
+    result = await mode._transcribe_file("test.wav")
+
+    assert result["text"] == "Welcome everyone."

@@ -166,6 +166,15 @@ BACKEND_SPECS = {
             ),
         ),
         BackendSpec(
+            name="moss",
+            module=".internal.moss",
+            class_name="MossBackend",
+            description="Native offline transcription with speaker diarization",
+            models="MOSS-Transcribe-Diarize q8_0/q5_k GGUF",
+            install="ears download --backend moss --model q8_0",
+            capabilities=frozenset({"file", "diarization"}),
+        ),
+        BackendSpec(
             name="hub",
             module=".internal.hub",
             class_name="HubBackend",

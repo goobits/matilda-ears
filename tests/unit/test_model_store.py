@@ -40,3 +40,18 @@ def test_model_catalogs_cover_local_backends(monkeypatch):
 
     assert "base" in catalogs["faster_whisper"]
     assert "tdt-0.6b-v3" in catalogs["parakeet"]
+    assert "q8_0" in catalogs["moss"]
+
+
+def test_download_moss_uses_pinned_gguf(monkeypatch):
+    hf_hub_download = Mock()
+    monkeypatch.setitem(sys.modules, "huggingface_hub", SimpleNamespace(hf_hub_download=hf_hub_download))
+    monkeypatch.setattr(model_store, "_install_moss_runtime", Mock())
+
+    assert model_store.download_model("q8_0", backend="moss") is True
+    hf_hub_download.assert_called_once_with(
+        repo_id=model_store.MOSS_REPO_ID,
+        filename="moss-transcribe-q8_0.gguf",
+        revision=model_store.MOSS_MODEL_REVISION,
+        force_download=False,
+    )

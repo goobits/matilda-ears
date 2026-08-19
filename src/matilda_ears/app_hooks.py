@@ -111,6 +111,7 @@ def on_transcribe(
     model: str | None = None,
     language: str | None = None,
     backend: str | None = None,
+    diarize: bool = False,
     no_formatting: bool = False,
     json: bool = False,
     debug: bool = False,
@@ -135,6 +136,7 @@ def on_transcribe(
         file=file,
         no_formatting=no_formatting,
         backend=backend,
+        diarize=diarize,
     )
     asyncio.run(FileTranscribeMode(config).run())
 
@@ -158,7 +160,9 @@ def on_serve(
 def _configured_model(config, backend: str) -> str | None:
     if backend == "faster_whisper":
         return config.whisper_model
-    key = {"parakeet": "parakeet.model", "huggingface": "huggingface.model"}.get(backend)
+    if backend == "moss" and os.environ.get("EARS_MOSS_MODEL"):
+        return os.environ["EARS_MOSS_MODEL"]
+    key = {"parakeet": "parakeet.model", "huggingface": "huggingface.model", "moss": "moss.model"}.get(backend)
     return str(config.get(key)) if key and config.get(key) else None
 
 
@@ -190,6 +194,10 @@ def on_status(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
         status["device"] = config.whisper_device_auto
         status["compute_type"] = config.whisper_compute_type_auto
     status["model_cached"] = bool(model and is_model_cached(model, backend=backend))
+    if backend == "moss":
+        from .transcription.model_store import is_moss_runtime_installed
+
+        status["runtime_installed"] = is_moss_runtime_installed(config.get("moss.binary"))
     status["websocket_port"] = config.websocket_port
 
     if json:
@@ -203,6 +211,8 @@ def on_status(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
             print(f"  Device:       {status['device']}")
             print(f"  Compute Type: {status['compute_type']}")
         print(f"  Model Cached: {'Yes' if status['model_cached'] else 'No'}")
+        if "runtime_installed" in status:
+            print(f"  Runtime:      {'Installed' if status['runtime_installed'] else 'Missing'}")
         print(f"  WebSocket:    port {status['websocket_port']}")
 
     return {"status": "success", "data": status}
@@ -269,7 +279,7 @@ def on_download(
     from .transcription.model_store import download_model, download_with_json_output, is_model_cached
 
     backend = normalize_backend_name(backend)
-    defaults = {"faster_whisper": "base", "parakeet": "tdt-0.6b-v3"}
+    defaults = {"faster_whisper": "base", "parakeet": "tdt-0.6b-v3", "moss": "q8_0"}
     model = model or defaults.get(backend)
 
     if progress:
@@ -277,6 +287,10 @@ def on_download(
         return {"status": "success" if success else "error"}
     else:
         model_ready = bool(model and is_model_cached(model, backend=backend))
+        if backend == "moss":
+            from .transcription.model_store import is_moss_runtime_installed
+
+            model_ready = model_ready and is_moss_runtime_installed()
         if model_ready:
             print(f"Model '{model}' is already downloaded.")
             return {"status": "success", "cached": True}

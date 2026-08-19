@@ -40,6 +40,16 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "batch_size": 1,
     },
     "parakeet": {"model": "mlx-community/parakeet-tdt-0.6b-v3", "clear_mlx_cache": True},
+    "moss": {
+        "runtime": "native",
+        "binary": "auto",
+        "model": "q8_0",
+        "threads": 8,
+        "workers": 1,
+        "token_limit": 4096,
+        "chunk_seconds": 150,
+        "overlap_seconds": 30,
+    },
     "streaming": {
         "enabled": False,
         "backend": "auto",

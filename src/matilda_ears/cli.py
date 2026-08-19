@@ -308,14 +308,15 @@ def wake_word(ctx, agent_aliases, threshold, backend, access_key, model, languag
 @click.option('--model', type=click.STRING, default=None,              help="Transcription model")
 @click.option('--language', type=click.STRING, default=None,              help="Language code")
 @click.option('--backend', type=click.STRING, default=None,              help="File transcription backend")
+@click.option('--diarize', is_flag=True, default=None,              help="Add speaker labels and timestamps with MOSS")
 @click.option('--no-formatting', is_flag=True, default=None,              help="Disable Ears Tuner formatting")
 @click.option('--json', is_flag=True, default=None,              help="Output JSON events")
 @click.option('--debug', is_flag=True, default=None,              help="Enable detailed logging")
 @click.pass_obj
-def transcribe(ctx, file, model, language, backend, no_formatting, json, debug):
+def transcribe(ctx, file, model, language, backend, diarize, no_formatting, json, debug):
     """Transcribe an audio file"""
     try:
-        kwargs = {            'file': file,            'model': model,            'language': language,            'backend': backend,            'no_formatting': no_formatting,            'json': json,            'debug': debug,        }
+        kwargs = {            'file': file,            'model': model,            'language': language,            'backend': backend,            'diarize': diarize,            'no_formatting': no_formatting,            'json': json,            'debug': debug,        }
         invoke_hook(ctx, 'on_transcribe', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)

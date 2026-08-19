@@ -46,6 +46,7 @@ class FileTranscribeConfig(ModeConfig):
     file: str = ""
     no_formatting: bool = False
     backend: str | None = None
+    diarize: bool = False
 
     @classmethod
     def from_args(cls, args: Any) -> "FileTranscribeConfig":
@@ -60,4 +61,5 @@ class FileTranscribeConfig(ModeConfig):
             file=getattr(args, "file", ""),
             no_formatting=bool(getattr(args, "no_formatting", False)),
             backend=getattr(args, "backend", None),
+            diarize=bool(getattr(args, "diarize", False)),
         )
