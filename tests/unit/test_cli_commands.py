@@ -22,9 +22,9 @@ from matilda_ears.cli import cli
         ),
         (
             "transcribe",
-            ["recording.wav", "--no-formatting"],
+            ["recording.wav", "--backend", "huggingface", "--no-formatting"],
             "on_transcribe",
-            {"file": "recording.wav", "no_formatting": True},
+            {"file": "recording.wav", "backend": "huggingface", "no_formatting": True},
         ),
         ("serve", ["--host", "127.0.0.1", "--port", "3212"], "on_serve", {"host": "127.0.0.1", "port": 3212}),
     ],
@@ -57,11 +57,13 @@ def test_status_json_output_contract(monkeypatch, capsys):
         websocket_port=3211,
     )
     monkeypatch.setattr("matilda_ears.core.config.get_config", lambda: config)
-    monkeypatch.setattr("matilda_ears.utils.model_downloader.is_model_cached", lambda _model: True)
+    monkeypatch.setattr(
+        "matilda_ears.transcription.model_store.is_model_cached", lambda _model, backend="faster_whisper": True
+    )
 
     result = app_hooks.on_status(json=True)
     status = {
-        "backend": "faster-whisper",
+        "backend": "faster_whisper",
         "model": "base",
         "device": "cpu",
         "compute_type": "int8",
@@ -75,9 +77,9 @@ def test_status_json_output_contract(monkeypatch, capsys):
 
 def test_models_json_output_contract(monkeypatch, capsys):
     models = {"base": {"size_mb": 142, "cached": False}}
-    monkeypatch.setattr("matilda_ears.utils.model_downloader.list_available_models", lambda: models)
+    monkeypatch.setattr("matilda_ears.transcription.model_store.list_available_models", lambda _backend=None: models)
 
-    result = app_hooks.on_models(json=True)
+    result = app_hooks.on_models(backend="faster_whisper", json=True)
 
     assert capsys.readouterr().out == f"{json.dumps(models, indent=2)}\n"
     assert result == {"status": "success", "data": models}

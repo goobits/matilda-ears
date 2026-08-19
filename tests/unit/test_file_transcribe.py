@@ -110,3 +110,14 @@ async def test_load_model_uses_resolved_backend(mock_config, mock_backend):
 
     get_backend_class.assert_called_once_with("parakeet")
     backend.load.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_file_backend_override_is_resolved(mock_config, mock_backend):
+    get_backend_class, backend = mock_backend
+    mode = FileTranscribeMode(FileTranscribeConfig(file="test.wav", backend="huggingface"))
+
+    await mode._load_model()
+
+    get_backend_class.assert_called_once_with("huggingface")
+    backend.load.assert_awaited_once()

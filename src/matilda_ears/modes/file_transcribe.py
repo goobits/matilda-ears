@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""FileTranscribeMode - Transcribe audio from a file
-
-Simple mode that loads a WAV/audio file and transcribes it using Whisper.
-No audio capture, no VAD - just direct file-to-text transcription.
-"""
+"""Transcribe an audio file with the selected batch backend."""
 
 import asyncio
 import json
@@ -13,6 +9,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from matilda_ears.modes.base_mode import BaseMode
+from matilda_ears.transcription.backends import backend_supports, normalize_backend_name
 
 
 class FileTranscribeMode(BaseMode):
@@ -21,58 +18,42 @@ class FileTranscribeMode(BaseMode):
     SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
 
     async def run(self):
-        """Main entry point - transcribe the file."""
         file_path = Path(self.mode_config.file)
-
-        # Validate file exists
-        # Use to_thread to prevent blocking the event loop with I/O
-        file_exists = await asyncio.to_thread(file_path.exists)
-        if not file_exists:
+        if not await asyncio.to_thread(file_path.exists):
             await self._send_error(f"File not found: {file_path}")
             return
-
-        # Check file extension
         if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
             await self._send_error(f"Unsupported format: {file_path.suffix}. Supported: {self.SUPPORTED_EXTENSIONS}")
             return
 
-        # Send initializing status
         await self._send_status("initializing", "Loading model...")
-
-        # Load model
         try:
             await self._load_model()
-        except Exception as e:
-            await self._send_error(f"Model load failed: {e}")
+        except Exception as exc:
+            await self._send_error(f"Model load failed: {exc}")
             return
 
-        # Send transcribing status
         await self._send_status("transcribing", f"Transcribing {file_path.name}...")
-
-        # Transcribe
         result = await self._transcribe_file(str(file_path))
-
-        # Output result
         await self._send_result(result)
 
+    def _resolve_backend_name(self) -> str:
+        requested = normalize_backend_name(self.mode_config.backend)
+        backend_name = requested if requested != "auto" else self.config.transcription_backend
+        if not backend_supports(backend_name, "file"):
+            raise ValueError(f"Backend '{backend_name}' does not support file transcription")
+        return backend_name
+
     async def _transcribe_file(self, file_path: str) -> dict[str, Any]:
-        """Transcribe audio file using backend."""
         try:
             if self.backend is None or not self.backend.is_ready:
                 raise RuntimeError("Backend not loaded")
 
-            def do_transcribe():
-                return self.backend.transcribe(file_path, language=self.mode_config.language)
-
-            transcript = await asyncio.to_thread(do_transcribe)
+            transcript = await asyncio.to_thread(self.backend.transcribe, file_path, self.mode_config.language)
             text = transcript.text
-
-            # Apply Ears Tuner formatting if enabled
             if not self.mode_config.no_formatting:
                 text = await self._format_text(text)
-
-            self.logger.info(f"Transcribed: '{text[:50]}...' ({len(text)} chars)")
-
+            self.logger.info("Transcribed %d characters with %s", len(text), transcript.backend)
             return {
                 "success": True,
                 "text": text,
@@ -80,17 +61,12 @@ class FileTranscribeMode(BaseMode):
                 "language": transcript.language or "en",
                 "file": file_path,
             }
-
-        except Exception as e:
-            self.logger.error(f"Transcription error: {e}")
-            return {"success": False, "error": str(e), "text": "", "is_final": True, "file": file_path}
+        except Exception as exc:
+            self.logger.error("Transcription error: %s", exc)
+            return {"success": False, "error": str(exc), "text": "", "is_final": True, "file": file_path}
 
     async def _format_text(self, text: str) -> str:
-        """Apply Ears Tuner formatting pipeline."""
-        if not text.strip():
-            return text
-
-        if not self.config.get("ears_tuner.enabled", False):
+        if not text.strip() or not self.config.get("ears_tuner.enabled", False):
             return text
 
         formatter_name = self.config.get("ears_tuner.formatter", "noop")
@@ -113,29 +89,25 @@ class FileTranscribeMode(BaseMode):
         except ImportError:
             self.logger.warning("Ears Tuner formatting not available")
             return text
-        except Exception as e:
-            self.logger.warning(f"Ears Tuner formatting failed: {e}")
+        except Exception as exc:
+            self.logger.warning("Ears Tuner formatting failed: %s", exc)
             return text
 
     async def _send_status(self, status: str, message: str):
-        """Send status message."""
         if self.mode_config.format == "json":
             result = {"type": "status", "mode": "file", "status": status, "message": message, "timestamp": time.time()}
             print(json.dumps(result), flush=True)
 
     async def _send_result(self, result: dict[str, Any]):
-        """Send transcription result."""
         if self.mode_config.format == "json":
             output = {"type": "transcription", "mode": "file", **result, "timestamp": time.time()}
             print(json.dumps(output), flush=True)
-        # Plain text mode - just print the text
         elif result.get("success") and result.get("text"):
             print(result["text"], flush=True)
         elif result.get("error"):
             print(f"Error: {result['error']}", file=sys.stderr)
 
     async def _send_error(self, message: str):
-        """Send error message."""
         if self.mode_config.format == "json":
             result = {"type": "error", "mode": "file", "error": message, "timestamp": time.time()}
             print(json.dumps(result), flush=True)

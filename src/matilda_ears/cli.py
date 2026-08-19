@@ -227,12 +227,14 @@ def get_hooks():
         _hooks = load_hooks()
     return _hooks
 
-def invoke_hook(ctx, hook_name: str, kwargs: Dict[str, Any]) -> None:
+def invoke_hook(ctx, hook_name: str, kwargs: Dict[str, Any]) -> Any:
     """Invoke a hook by name or exit with a clear error."""
     hooks = get_hooks()
     if hooks and hasattr(hooks, hook_name):
-        getattr(hooks, hook_name)(ctx=ctx, **kwargs)
-        return
+        result = getattr(hooks, hook_name)(ctx=ctx, **kwargs)
+        if isinstance(result, int) and not isinstance(result, bool) and result != 0:
+            raise SystemExit(result)
+        return result
     logger.error(f"Hook '{hook_name}' not implemented in cli_hooks.py")
     sys.exit(1)
 
@@ -241,12 +243,13 @@ def invoke_hook(ctx, hook_name: str, kwargs: Dict[str, Any]) -> None:
 # ============================================================================
 
 @click.group()
+@click.version_option('1.1.1', '--version', '-V', prog_name='ears')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 @click.option('--debug', is_flag=True, help='Enable debug output')
 @click.option('--config', type=click.Path(), help='Path to config file (default: ~/.matilda/config.toml)')
 @click.pass_context
 def cli(ctx, verbose, debug, config):
-    """Transform speech into text with AI-powered transcription using Whisper models."""
+    """Transform speech into text with local transcription models."""
     config_path = Path(config) if config else None
     config_manager = ConfigManager(config_path)
     ctx.obj = CLIContext(config_manager, verbose, debug)
@@ -304,14 +307,15 @@ def wake_word(ctx, agent_aliases, threshold, backend, access_key, model, languag
 @click.argument('file', type=click.STRING, default=None)
 @click.option('--model', type=click.STRING, default=None,              help="Transcription model")
 @click.option('--language', type=click.STRING, default=None,              help="Language code")
+@click.option('--backend', type=click.STRING, default=None,              help="File transcription backend")
 @click.option('--no-formatting', is_flag=True, default=None,              help="Disable Ears Tuner formatting")
 @click.option('--json', is_flag=True, default=None,              help="Output JSON events")
 @click.option('--debug', is_flag=True, default=None,              help="Enable detailed logging")
 @click.pass_obj
-def transcribe(ctx, file, model, language, no_formatting, json, debug):
+def transcribe(ctx, file, model, language, backend, no_formatting, json, debug):
     """Transcribe an audio file"""
     try:
-        kwargs = {            'file': file,            'model': model,            'language': language,            'no_formatting': no_formatting,            'json': json,            'debug': debug,        }
+        kwargs = {            'file': file,            'model': model,            'language': language,            'backend': backend,            'no_formatting': no_formatting,            'json': json,            'debug': debug,        }
         invoke_hook(ctx, 'on_transcribe', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
@@ -340,22 +344,24 @@ def status(ctx, json):
         handle_error(e, ctx.verbose)
 @cli.command('models')
 @click.option('--json', is_flag=True, default=None,              help="Output JSON format")
+@click.option('--backend', type=click.STRING, default=None,              help="Limit models to one backend")
 @click.pass_obj
-def models(ctx, json):
-    """List available Whisper models"""
+def models(ctx, json, backend):
+    """List available transcription models"""
     try:
-        kwargs = {            'json': json,        }
+        kwargs = {            'json': json,            'backend': backend,        }
         invoke_hook(ctx, 'on_models', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)
 @cli.command('download')
-@click.option('--model', default='base',              help="Model size to download (tiny, base, small, medium, large-v3-turbo)")
+@click.option('--model', default=None,              help="Model name to download")
+@click.option('--backend', default='faster_whisper',              help="Transcription backend")
 @click.option('--progress', is_flag=True, default=None,              help="Show JSON progress events (for programmatic use)")
 @click.pass_obj
-def download(ctx, model, progress):
-    """Download Whisper model for offline use"""
+def download(ctx, model, backend, progress):
+    """Download a transcription model for offline use"""
     try:
-        kwargs = {            'model': model,            'progress': progress,        }
+        kwargs = {            'model': model,            'backend': backend,            'progress': progress,        }
         invoke_hook(ctx, 'on_download', kwargs)
     except Exception as e:
         handle_error(e, ctx.verbose)

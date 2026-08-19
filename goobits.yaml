@@ -12,7 +12,7 @@ cli_path: "src/matilda_ears/cli.py"
 cli_hooks_path: "src/matilda_ears/app_hooks.py"
 
 python:
-  minimum_version: "3.8"
+  minimum_version: "3.11"
   maximum_version: "3.13"
 
 dependencies:
@@ -73,7 +73,7 @@ cli:
   version: "1.1.1"
   display_version: true
   tagline: "Pure speech-to-text engine with multiple operation modes"
-  description: "Transform speech into text with AI-powered transcription using Whisper models."
+  description: "Transform speech into text with local transcription models."
   icon: "🎙️"
   enable_recursive_help: true
   enable_help_json: true
@@ -143,6 +143,7 @@ cli:
       options:
         - { name: "model", type: "str", desc: "Transcription model" }
         - { name: "language", type: "str", desc: "Language code" }
+        - { name: "backend", type: "str", desc: "File transcription backend" }
         - { name: "no-formatting", type: "flag", desc: "Disable Ears Tuner formatting" }
         - { name: "json", type: "flag", desc: "Output JSON events" }
         - { name: "debug", type: "flag", desc: "Enable detailed logging" }
@@ -165,21 +166,27 @@ cli:
           desc: "Output JSON format"
 
     models:
-      desc: "List available Whisper models"
+      desc: "List available transcription models"
       icon: "📋"
       options:
         - name: "json"
           type: "flag"
           desc: "Output JSON format"
+        - name: "backend"
+          type: "str"
+          desc: "Limit models to one backend"
 
     download:
-      desc: "Download Whisper model for offline use"
+      desc: "Download a transcription model for offline use"
       icon: "📥"
       options:
         - name: "model"
           type: "option"
-          desc: "Model size to download (tiny, base, small, medium, large-v3-turbo)"
-          default: "base"
+          desc: "Model name to download"
+        - name: "backend"
+          type: "option"
+          desc: "Transcription backend"
+          default: "faster_whisper"
         - name: "progress"
           type: "flag"
           desc: "Show JSON progress events (for programmatic use)"

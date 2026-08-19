@@ -21,7 +21,7 @@ import websockets
 
 from ...core.config import get_config, setup_logging
 from ...utils.ssl import create_ssl_context
-from ..backends import get_backend_class
+from ..backends import BackendNotAvailableError, backend_supports, get_backend_class
 from . import handlers
 from .internal.audio_utils import pcm_to_wav
 from .internal.session_registry import ServerSession, SessionRegistry
@@ -134,30 +134,31 @@ class MatildaWebSocketServer:
         self.backend_name = _config.transcription_backend
         self.backend = None
         try:
+            if not backend_supports(self.backend_name, "server"):
+                raise ValueError(f"Backend '{self.backend_name}' is file-only and cannot serve live transcription")
             backend_class = get_backend_class(self.backend_name)
             self.backend = backend_class()
             logger.debug(f"Using transcription backend: {self.backend_name}")
-        except ValueError as e:
+        except (BackendNotAvailableError, ValueError) as e:
             logger.error(f"Failed to initialize backend: {e}")
             # Use package's sys for patchability in tests
             from . import sys as _sys
 
             _sys.exit(1)
+            return
 
-        # GPU serialization: Limit concurrent transcriptions to 1 for Parakeet to prevent MPS crashes
-        # This prevents overlapping Metal/MPS command buffer operations on macOS
+        serialized_backend = backend_supports(self.backend_name, "serialized")
         self.transcription_semaphore = None
-        if self.backend_name == "parakeet":
+        if serialized_backend:
             self.transcription_semaphore = asyncio.Semaphore(1)
-            logger.debug("GPU serialization enabled for Parakeet")
+            logger.debug("Backend transcription serialization enabled")
 
-        # Set MPS fallback for Parakeet to allow CPU fallback for unsupported ops
-        if self.backend_name == "parakeet":
+        if backend_supports(self.backend_name, "mlx"):
             os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
             logger.debug("PYTORCH_ENABLE_MPS_FALLBACK=1 set")
 
         try:
-            max_workers = 1 if self.backend_name == "parakeet" else int(config.get("transcription.max_workers", 2))
+            max_workers = 1 if serialized_backend else int(config.get("transcription.max_workers", 2))
         except (TypeError, ValueError):
             max_workers = 2
         self.transcription_executor = concurrent.futures.ThreadPoolExecutor(

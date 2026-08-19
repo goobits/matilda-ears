@@ -12,7 +12,7 @@ def test_transcript_is_an_immutable_structured_result():
         segments=(segment,),
         language="en",
         duration=1.66,
-        backend="moss",
+        backend="test",
     )
 
     assert transcript.segments == (segment,)

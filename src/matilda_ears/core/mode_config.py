@@ -45,6 +45,7 @@ class WakeWordConfig(ModeConfig):
 class FileTranscribeConfig(ModeConfig):
     file: str = ""
     no_formatting: bool = False
+    backend: str | None = None
 
     @classmethod
     def from_args(cls, args: Any) -> "FileTranscribeConfig":
@@ -58,4 +59,5 @@ class FileTranscribeConfig(ModeConfig):
             model=config.model,
             file=getattr(args, "file", ""),
             no_formatting=bool(getattr(args, "no_formatting", False)),
+            backend=getattr(args, "backend", None),
         )

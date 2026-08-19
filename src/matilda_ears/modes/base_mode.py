@@ -2,7 +2,7 @@
 """BaseMode - Abstract base class for all STT operation modes
 
 This class provides common functionality shared across all operation modes:
-- Whisper model loading and management
+- Transcription backend loading and management
 - Audio streaming setup
 - Transcription processing
 - Output formatting (JSON/text)
@@ -25,7 +25,7 @@ import numpy as np
 from matilda_ears.core.config import get_config, setup_logging
 from matilda_ears.core.mode_config import ModeConfig
 from matilda_ears.audio.capture import PipeBasedAudioStreamer
-from matilda_ears.transcription.backends import get_backend_class
+from matilda_ears.transcription.backends import backend_supports, get_backend_class
 
 
 class AudioCaptureEndedError(RuntimeError):
@@ -80,7 +80,7 @@ class BaseMode(ABC):
     async def _load_model(self):
         """Load transcription backend asynchronously."""
         try:
-            backend_name = self.config.transcription_backend
+            backend_name = self._resolve_backend_name()
             self.logger.info(f"Initializing backend: {backend_name}")
 
             # Get backend class
@@ -95,6 +95,12 @@ class BaseMode(ABC):
         except Exception as e:
             self.logger.error(f"Failed to load transcription backend: {e}")
             raise
+
+    def _resolve_backend_name(self) -> str:
+        backend_name = self.config.transcription_backend
+        if not backend_supports(backend_name, "server"):
+            raise ValueError(f"Backend '{backend_name}' is file-only")
+        return backend_name
 
     async def _start_audio_capture(self, maxsize: int = 1000, chunk_duration_ms: int = 32) -> None:
         """Initialize and start the shared audio capture pipeline."""

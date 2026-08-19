@@ -16,7 +16,9 @@ from .registry import (
     get_available_backends,
     get_backend_class,
     get_backend_info,
+    get_backend_spec,
     get_recommended_backend,
+    backend_supports,
     normalize_backend_name,
 )
 
@@ -26,6 +28,8 @@ __all__ = [
     "get_available_backends",
     "get_backend_class",
     "get_backend_info",
+    "get_backend_spec",
     "get_recommended_backend",
+    "backend_supports",
     "normalize_backend_name",
 ]

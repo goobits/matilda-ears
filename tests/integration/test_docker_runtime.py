@@ -51,6 +51,7 @@ def test_websocket_server_accepts_shared_token_manager(monkeypatch, tmp_path):
     monkeypatch.setattr(server_package, "config", _Config())
     monkeypatch.setattr(core, "config", _Config())
     monkeypatch.setattr(core, "get_backend_class", lambda _name: _Backend)
+    monkeypatch.setattr(core, "backend_supports", lambda _name, capability: capability == "server")
 
     token_manager = TokenManager(data_dir=tmp_path)
     server = core.MatildaWebSocketServer(token_manager=token_manager)

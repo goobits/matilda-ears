@@ -110,6 +110,7 @@ def on_transcribe(
     file: str | None,
     model: str | None = None,
     language: str | None = None,
+    backend: str | None = None,
     no_formatting: bool = False,
     json: bool = False,
     debug: bool = False,
@@ -133,6 +134,7 @@ def on_transcribe(
         debug,
         file=file,
         no_formatting=no_formatting,
+        backend=backend,
     )
     asyncio.run(FileTranscribeMode(config).run())
 
@@ -153,6 +155,13 @@ def on_serve(
     asyncio.run(server.start_server(host, port))
 
 
+def _configured_model(config, backend: str) -> str | None:
+    if backend == "faster_whisper":
+        return config.whisper_model
+    key = {"parakeet": "parakeet.model", "huggingface": "huggingface.model"}.get(backend)
+    return str(config.get(key)) if key and config.get(key) else None
+
+
 def on_status(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
     """Handle status command - show system status and capabilities.
 
@@ -166,18 +175,22 @@ def on_status(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
     _prepare_runtime(ctx)
 
     from .core.config import get_config
-    from .utils.model_downloader import is_model_cached
+    from .transcription.backends import normalize_backend_name
+    from .transcription.model_store import is_model_cached
 
     config = get_config()
 
+    backend = normalize_backend_name(config.transcription_backend)
+    model = _configured_model(config, backend)
     status = {
-        "backend": config.transcription_backend,
-        "model": config.whisper_model,
-        "device": config.whisper_device_auto,
-        "compute_type": config.whisper_compute_type_auto,
-        "model_cached": is_model_cached(config.whisper_model),
-        "websocket_port": config.websocket_port,
+        "backend": backend,
+        "model": model,
     }
+    if backend == "faster_whisper":
+        status["device"] = config.whisper_device_auto
+        status["compute_type"] = config.whisper_compute_type_auto
+    status["model_cached"] = bool(model and is_model_cached(model, backend=backend))
+    status["websocket_port"] = config.websocket_port
 
     if json:
         print(json_module.dumps(status, indent=2))
@@ -186,16 +199,17 @@ def on_status(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
         print("=" * 40)
         print(f"  Backend:      {status['backend']}")
         print(f"  Model:        {status['model']}")
-        print(f"  Device:       {status['device']}")
-        print(f"  Compute Type: {status['compute_type']}")
+        if "device" in status:
+            print(f"  Device:       {status['device']}")
+            print(f"  Compute Type: {status['compute_type']}")
         print(f"  Model Cached: {'Yes' if status['model_cached'] else 'No'}")
         print(f"  WebSocket:    port {status['websocket_port']}")
 
     return {"status": "success", "data": status}
 
 
-def on_models(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
-    """Handle models command - list available Whisper models.
+def on_models(backend: str | None = None, json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
+    """Handle models command - list available transcription models.
 
     Args:
         json: Output JSON format
@@ -206,27 +220,40 @@ def on_models(json: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
     """
     _prepare_runtime(ctx)
 
-    from .utils.model_downloader import list_available_models
+    from .transcription.backends import normalize_backend_name
+    from .transcription.model_store import list_available_models
 
-    models = list_available_models()
+    selected_backend = normalize_backend_name(backend) if backend else None
+    if selected_backend == "auto":
+        selected_backend = None
+    models = list_available_models(selected_backend)
 
     if json:
         print(json_module.dumps(models, indent=2))
     else:
-        print("Available Whisper Models")
+        print("Available Transcription Models")
         print("=" * 50)
-        for name, info in sorted(models.items()):
-            status = "✓ cached" if info["cached"] else "not downloaded"
-            size = f"{info['size_mb']}MB"
-            print(f"  {name:20} {size:>8}  [{status}]")
+        catalogs = {selected_backend: models} if selected_backend else models
+        for catalog_backend, catalog in catalogs.items():
+            print(f"  {catalog_backend}")
+            for name, info in sorted(catalog.items()):
+                status = "✓ cached" if info["cached"] else "not downloaded"
+                size = f"{info.get('size_mb', '?')}MB"
+                print(f"    {name:20} {size:>8}  [{status}]")
         print()
-        print("Use 'ears download <model>' to download a model")
+        print("Use 'ears download --backend <backend> --model <model>' to download a model")
 
     return {"status": "success", "data": models}
 
 
-def on_download(model: str | None = None, progress: bool = False, ctx=None, **kwargs) -> dict[str, Any]:
-    """Handle download command - download Whisper model for offline use.
+def on_download(
+    model: str | None = None,
+    backend: str = "faster_whisper",
+    progress: bool = False,
+    ctx=None,
+    **kwargs,
+) -> dict[str, Any]:
+    """Handle download command - download a transcription model for offline use.
 
     Args:
         model: Model size to download (tiny, base, small, medium, large-v3-turbo)
@@ -238,23 +265,23 @@ def on_download(model: str | None = None, progress: bool = False, ctx=None, **kw
     """
     _prepare_runtime(ctx)
 
-    from .utils.model_downloader import download_model, download_with_json_output, is_model_cached
+    from .transcription.backends import normalize_backend_name
+    from .transcription.model_store import download_model, download_with_json_output, is_model_cached
 
-    # Default model
-    if model is None:
-        model = "base"
+    backend = normalize_backend_name(backend)
+    defaults = {"faster_whisper": "base", "parakeet": "tdt-0.6b-v3"}
+    model = model or defaults.get(backend)
 
     if progress:
-        # JSON output mode for Tauri integration
-        success = download_with_json_output(model)
+        success = download_with_json_output(model, backend=backend)
         return {"status": "success" if success else "error"}
     else:
-        # Human-readable output
-        if is_model_cached(model):
+        model_ready = bool(model and is_model_cached(model, backend=backend))
+        if model_ready:
             print(f"Model '{model}' is already downloaded.")
             return {"status": "success", "cached": True}
 
-        print(f"Downloading model: {model}")
+        print(f"Preparing {backend} model: {model}")
         print("This may take a few minutes depending on your connection...")
         print()
 
@@ -270,7 +297,7 @@ def on_download(model: str | None = None, progress: bool = False, ctx=None, **kw
             elif status == "error":
                 print(f"\n\n✗ Error: {data.get('error', 'Unknown error')}")
 
-        success = download_model(model, progress_callback=progress_callback)
+        success = download_model(model, backend=backend, progress_callback=progress_callback)
         return {"status": "success" if success else "error"}
 
 
