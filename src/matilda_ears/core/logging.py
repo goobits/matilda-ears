@@ -85,7 +85,7 @@ def _ensure_listener(log_level: int, include_console: bool, include_file: bool) 
                     handlers.append(file_handler)
 
         if include_console:
-            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler = logging.StreamHandler(sys.stderr)
             console_handler.setLevel(log_level)
             console_handler.setFormatter(formatter)
             handlers.append(console_handler)
