@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from ..transcript import Transcript
+
 
 class BackendNotAvailableError(RuntimeError):
     """Raised when a backend is requested but its optional dependencies are not installed."""
@@ -18,7 +20,7 @@ class TranscriptionBackend(ABC):
         """Load the model asynchronously."""
 
     @abstractmethod
-    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         """Transcribe an audio file.
 
         Args:
@@ -26,9 +28,7 @@ class TranscriptionBackend(ABC):
             language: Language code (e.g., "en").
 
         Returns:
-            A tuple containing:
-            - The transcribed text.
-            - A dictionary with metadata (e.g., duration, language).
+            Structured transcript text, segments, and source metadata.
 
         """
 

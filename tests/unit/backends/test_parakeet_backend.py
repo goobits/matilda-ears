@@ -37,7 +37,9 @@ class TestParakeetBackend:
 
         # Mock sentences for duration calculation
         sentence = Mock()
+        sentence.start = 0.0
         sentence.end = 3.2
+        sentence.text = "Test parakeet transcription"
         result.sentences = [sentence]
 
         model.transcribe.return_value = result
@@ -99,17 +101,13 @@ class TestParakeetBackend:
             backend = ParakeetBackend()
             backend.model = mock_parakeet_model
 
-            text, metadata = backend.transcribe("/fake/audio.wav", language="en")
+            transcript = backend.transcribe("/fake/audio.wav", language="en")
 
-            # Verify output format
-            assert isinstance(text, str)
-            assert isinstance(metadata, dict)
-
-            # Verify content (should be stripped)
-            assert text == "Test parakeet transcription"
-            assert metadata["duration"] == 3.2
-            assert metadata["language"] == "en"
-            assert metadata["backend"] == "parakeet"
+            assert transcript.text == "Test parakeet transcription"
+            assert transcript.duration == 3.2
+            assert transcript.language == "en"
+            assert transcript.backend == "parakeet"
+            assert transcript.segments[0].text == "Test parakeet transcription"
 
             # Verify model.transcribe was called with correct parameters
             # Backend should pass chunk_duration and overlap_duration from config
@@ -140,12 +138,11 @@ class TestParakeetBackend:
             backend = ParakeetBackend()
             backend.model = model
 
-            text, metadata = backend.transcribe("/fake/audio.wav")
+            transcript = backend.transcribe("/fake/audio.wav")
 
-            assert text == "Fallback test"
-            # Duration should be > 0 (processing time)
-            assert metadata["duration"] >= 0
-            assert metadata["language"] == "en"
+            assert transcript.text == "Fallback test"
+            assert transcript.duration is None
+            assert transcript.language == "en"
 
 
 if __name__ == "__main__":

@@ -112,23 +112,25 @@ async def transcribe_audio_from_wav(
 
             task.add_done_callback(release_lock_when_done)
             if timeout_seconds is None:
-                text, info = await task
+                transcript = await task
             else:
                 done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
                 if not done:
                     raise TimeoutError
-                text, info = await task
+                transcript = await task
         else:
             # No serialization needed (faster_whisper/huggingface can run concurrently)
             task = loop.run_in_executor(server.transcription_executor, transcribe_audio)
             task.add_done_callback(release_executor_slot_when_done)
             if timeout_seconds is None:
-                text, info = await task
+                transcript = await task
             else:
                 done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
                 if not done:
                     raise TimeoutError
-                text, info = await task
+                transcript = await task
+
+        text = transcript.text
 
         logger.debug(f"Client {client_id}: Raw transcription: '{text}' ({len(text)} chars)")
 
@@ -149,7 +151,8 @@ async def transcribe_audio_from_wav(
                 formatter_locale = (
                     (formatting_config.get("locale") if isinstance(formatting_config, dict) else None)
                     or get_config().get("ears_tuner.locale", None)
-                    or info.get("language", "en")
+                    or transcript.language
+                    or "en"
                 )
                 filename_formats = get_config().get("ears_tuner.filename_formats", {})
                 request_config = {
@@ -187,8 +190,8 @@ async def transcribe_audio_from_wav(
             True,
             text,
             {
-                "duration": info.get("duration", 0),
-                "language": info.get("language", "en"),
+                "duration": transcript.duration or 0,
+                "language": transcript.language or "en",
             },
         )
 

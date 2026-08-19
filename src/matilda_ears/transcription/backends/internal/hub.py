@@ -4,6 +4,7 @@ import base64
 from pathlib import Path
 
 from ..base import BackendNotAvailableError, TranscriptionBackend
+from ...transcript import Transcript, TranscriptSegment
 
 
 class HubBackend(TranscriptionBackend):
@@ -13,7 +14,7 @@ class HubBackend(TranscriptionBackend):
     async def load(self):
         self._ready = True
 
-    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         try:
             from matilda_transport import HubClient  # type: ignore[import-not-found]
         except Exception as exc:
@@ -38,12 +39,24 @@ class HubBackend(TranscriptionBackend):
             raise RuntimeError(message or "hub request failed")
         result = response.get("result") or {}
         if isinstance(result, dict):
-            text = result.get("text", "")
-            return text, {
-                "duration": result.get("audio_duration", 0),
-                "language": result.get("language", language),
-            }
-        return str(result), {"duration": 0, "language": language}
+            segments = tuple(
+                TranscriptSegment(
+                    start=float(segment["start"]),
+                    end=float(segment["end"]),
+                    text=str(segment.get("text", "")).strip(),
+                    speaker=str(segment["speaker"]) if segment.get("speaker") else None,
+                )
+                for segment in result.get("segments", ())
+                if isinstance(segment, dict) and "start" in segment and "end" in segment
+            )
+            return Transcript(
+                text=str(result.get("text", "")),
+                segments=segments,
+                language=str(result["language"]) if result.get("language") else language,
+                duration=float(result["audio_duration"]) if result.get("audio_duration") is not None else None,
+                backend="hub",
+            )
+        return Transcript(text=str(result), segments=(), language=language, duration=None, backend="hub")
 
     @property
     def is_ready(self) -> bool:

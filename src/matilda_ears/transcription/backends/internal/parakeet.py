@@ -7,9 +7,9 @@ transcribe_stream() method directly.
 
 import logging
 import os
-import time
 
 from ..base import TranscriptionBackend
+from ...transcript import Transcript, TranscriptSegment
 from ....core.config import get_config
 from ....core.mlx_memory import clear_mlx_cache, mlx_memory_stats
 
@@ -85,12 +85,10 @@ class ParakeetBackend(TranscriptionBackend):
             logger.exception(f"Failed to load Parakeet model: {e}")
             raise
 
-    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         """Transcribe audio using Parakeet with MPS-safe parameters."""
         if self.model is None:
             raise RuntimeError("Parakeet Model not loaded")
-
-        start_time = time.time()
 
         try:
             mlx_before = mlx_memory_stats()
@@ -100,30 +98,28 @@ class ParakeetBackend(TranscriptionBackend):
                 audio_path, chunk_duration=self.chunk_duration, overlap_duration=self.overlap_duration
             )
             text = result.text.strip()
-
-            # Calculate duration (approximate if not available)
-            duration = time.time() - start_time
-
-            # Attempt to get accurate duration from result if available
-            audio_duration = 0.0
-            if hasattr(result, "sentences") and result.sentences:
-                audio_duration = result.sentences[-1].end
-
-            # Use processing time if we couldn't get duration from audio
-            if audio_duration == 0.0:
-                audio_duration = duration
-
-            info = {
-                "duration": audio_duration,
-                "language": "en",  # Parakeet is primarily English AFAIK
-                "backend": "parakeet",
-            }
+            sentences = getattr(result, "sentences", None) or ()
+            segments = tuple(
+                TranscriptSegment(
+                    start=float(sentence.start),
+                    end=float(sentence.end),
+                    text=str(sentence.text).strip(),
+                )
+                for sentence in sentences
+                if getattr(sentence, "text", "").strip()
+            )
+            audio_duration = float(sentences[-1].end) if sentences else None
             mlx_after = mlx_memory_stats()
             if mlx_before or mlx_after:
-                info["mlx_memory_before"] = mlx_before
-                info["mlx_memory_after"] = mlx_after
+                logger.debug("Parakeet MLX memory before=%s after=%s", mlx_before, mlx_after)
 
-            return text, info
+            return Transcript(
+                text=text,
+                segments=segments,
+                language="en",
+                duration=audio_duration,
+                backend="parakeet",
+            )
 
         except Exception as e:
             logger.error(f"Parakeet transcription failed: {e}")

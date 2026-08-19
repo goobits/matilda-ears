@@ -249,6 +249,8 @@ class TestBackendOutputCompatibility:
             # Mock the model
             segment = Mock()
             segment.text = " test"
+            segment.start = 0.0
+            segment.end = 1.0
             info = Mock()
             info.duration = 1.0
             info.language = "en"
@@ -257,15 +259,11 @@ class TestBackendOutputCompatibility:
             model.transcribe.return_value = ([segment], info)
             backend.model = model
 
-            text, metadata = backend.transcribe(mock_audio_file)
+            transcript = backend.transcribe(mock_audio_file)
 
-            # Verify format
-            assert isinstance(text, str)
-            assert isinstance(metadata, dict)
-            assert "duration" in metadata
-            assert "language" in metadata
-            assert isinstance(metadata["duration"], (int, float))
-            assert isinstance(metadata["language"], str)
+            assert isinstance(transcript.text, str)
+            assert isinstance(transcript.duration, (int, float))
+            assert isinstance(transcript.language, str)
 
     def test_parakeet_output_format(self, mock_audio_file):
         """Verify ParakeetBackend produces compatible output format."""
@@ -287,26 +285,21 @@ class TestBackendOutputCompatibility:
                 result = Mock()
                 result.text = "  test  "
                 sentence = Mock()
+                sentence.start = 0.0
                 sentence.end = 1.5
+                sentence.text = "test"
                 result.sentences = [sentence]
 
                 model = Mock()
                 model.transcribe.return_value = result
                 backend.model = model
 
-                text, metadata = backend.transcribe(mock_audio_file)
+                transcript = backend.transcribe(mock_audio_file)
 
-                # Verify format matches FasterWhisper
-                assert isinstance(text, str)
-                assert isinstance(metadata, dict)
-                assert "duration" in metadata
-                assert "language" in metadata
-                assert isinstance(metadata["duration"], (int, float))
-                assert isinstance(metadata["language"], str)
-
-                # Parakeet adds extra backend field
-                assert "backend" in metadata
-                assert metadata["backend"] == "parakeet"
+                assert isinstance(transcript.text, str)
+                assert isinstance(transcript.duration, (int, float))
+                assert isinstance(transcript.language, str)
+                assert transcript.backend == "parakeet"
         finally:
             # Cleanup
             for module in ["mlx", "mlx.core", "parakeet_mlx"]:

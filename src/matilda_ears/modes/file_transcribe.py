@@ -64,7 +64,8 @@ class FileTranscribeMode(BaseMode):
             def do_transcribe():
                 return self.backend.transcribe(file_path, language=self.mode_config.language)
 
-            text, info = await asyncio.to_thread(do_transcribe)
+            transcript = await asyncio.to_thread(do_transcribe)
+            text = transcript.text
 
             # Apply Ears Tuner formatting if enabled
             if not self.mode_config.no_formatting:
@@ -76,7 +77,7 @@ class FileTranscribeMode(BaseMode):
                 "success": True,
                 "text": text,
                 "is_final": True,
-                "language": info.get("language", "en"),
+                "language": transcript.language or "en",
                 "file": file_path,
             }
 

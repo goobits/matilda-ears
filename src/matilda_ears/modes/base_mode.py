@@ -163,16 +163,16 @@ class BaseMode(ABC):
                     wav_file.writeframes(audio_data.astype(np.int16).tobytes())
 
             # Transcribe using backend
-            text, info = self.backend.transcribe(tmp_file_path, language=self.mode_config.language)
+            transcript = self.backend.transcribe(tmp_file_path, language=self.mode_config.language)
 
-            self.logger.info(f"Transcribed: '{text}' ({len(text)} chars)")
+            self.logger.info(f"Transcribed: '{transcript.text}' ({len(transcript.text)} chars)")
 
             return {
                 "success": True,
-                "text": text,
-                "language": info.get("language", "en"),
-                "duration": info.get("duration", 0.0),
-                "confidence": info.get("confidence", 1.0),
+                "text": transcript.text,
+                "language": transcript.language or "en",
+                "duration": transcript.duration or 0.0,
+                "confidence": 1.0,
             }
 
         except Exception as e:

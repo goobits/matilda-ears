@@ -51,6 +51,8 @@ class TestFasterWhisperBackend:
         # Mock transcription output
         segment = Mock()
         segment.text = " Test transcription"
+        segment.start = 0.1
+        segment.end = 2.4
         segment.words = []
 
         info = Mock()
@@ -119,16 +121,15 @@ class TestFasterWhisperBackend:
             backend = FasterWhisperBackend()
             backend.model = mock_whisper_model
 
-            text, metadata = backend.transcribe("/fake/audio.wav", language="en")
+            transcript = backend.transcribe("/fake/audio.wav", language="en")
 
-            # Verify output format
-            assert isinstance(text, str)
-            assert isinstance(metadata, dict)
-
-            # Verify content
-            assert text == "Test transcription"
-            assert metadata["duration"] == 2.5
-            assert metadata["language"] == "en"
+            assert transcript.text == "Test transcription"
+            assert transcript.duration == 2.5
+            assert transcript.language == "en"
+            assert transcript.backend == "faster_whisper"
+            assert transcript.segments[0].start == 0.1
+            assert transcript.segments[0].end == 2.4
+            assert transcript.segments[0].text == "Test transcription"
 
             # Verify model.transcribe was called correctly
             mock_whisper_model.transcribe.assert_called_once_with(
@@ -165,12 +166,18 @@ class TestFasterWhisperBackend:
             model = Mock()
             seg1 = Mock()
             seg1.text = " Hello"
+            seg1.start = 0.0
+            seg1.end = 0.5
             seg1.words = []
             seg2 = Mock()
             seg2.text = " world"
+            seg2.start = 0.5
+            seg2.end = 1.2
             seg2.words = []
             seg3 = Mock()
             seg3.text = "!"
+            seg3.start = 1.2
+            seg3.end = 1.5
             seg3.words = []
 
             info = Mock()
@@ -182,10 +189,11 @@ class TestFasterWhisperBackend:
             backend = FasterWhisperBackend()
             backend.model = model
 
-            text, metadata = backend.transcribe("/fake/audio.wav")
+            transcript = backend.transcribe("/fake/audio.wav")
 
-            assert text == "Hello world!"
-            assert metadata["duration"] == 1.5
+            assert transcript.text == "Hello world!"
+            assert transcript.duration == 1.5
+            assert len(transcript.segments) == 3
 
 
 if __name__ == "__main__":

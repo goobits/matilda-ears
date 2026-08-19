@@ -16,6 +16,7 @@ from matilda_ears.transcription.server import stream_handlers
 from matilda_ears.transcription.server.core import MatildaWebSocketServer
 from matilda_ears.transcription.server.internal.session_registry import PcmBuffer, SessionRegistry, WakeWordState
 from matilda_ears.transcription.server.internal.transcription import transcribe_audio_from_wav
+from matilda_ears.transcription.transcript import Transcript
 
 
 class _SilentWebSocket:
@@ -154,7 +155,7 @@ async def test_transcribe_audio_timeout_holds_serialization_until_worker_finishe
 
         def transcribe(self, _path, language="en"):
             time.sleep(0.05)
-            return "ignored", {"duration": 1.0, "language": language}
+            return Transcript(text="ignored", segments=(), language=language, duration=1.0, backend="test")
 
     server = SimpleNamespace(
         backend=_StuckBackend(),

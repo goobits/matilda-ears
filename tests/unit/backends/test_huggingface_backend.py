@@ -155,17 +155,12 @@ class TestHuggingFaceBackend:
             backend.batch_size = 8
             backend.device = "cpu"
 
-            text, metadata = backend.transcribe("/fake/audio.wav", language="en")
+            transcript = backend.transcribe("/fake/audio.wav", language="en")
 
-            # Verify output format
-            assert isinstance(text, str)
-            assert isinstance(metadata, dict)
-
-            # Verify content
-            assert text == "Test transcription from HuggingFace"
-            assert metadata["language"] == "en"
-            assert metadata["backend"] == "huggingface"
-            assert metadata["model"] == "openai/whisper-base"
+            assert transcript.text == "Test transcription from HuggingFace"
+            assert transcript.language == "en"
+            assert transcript.backend == "huggingface"
+            assert transcript.duration is None
 
     def test_backend_transcribe_not_loaded(self, mock_config):
         """Verify transcribe() raises RuntimeError if model not loaded."""

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 from matilda_ears.modes.file_transcribe import FileTranscribeMode
 from matilda_ears.core.mode_config import FileTranscribeConfig
+from matilda_ears.transcription.transcript import Transcript
 
 
 @pytest.fixture
@@ -24,7 +25,15 @@ def mock_backend():
         backend_instance = MagicMock()
         backend_instance.load = AsyncMock()
         backend_instance.is_ready = True
-        backend_instance.transcribe = MagicMock(return_value=("Transcribed text", {"language": "en"}))
+        backend_instance.transcribe = MagicMock(
+            return_value=Transcript(
+                text="Transcribed text",
+                segments=(),
+                language="en",
+                duration=None,
+                backend="faster_whisper",
+            )
+        )
         backend_cls.return_value = backend_instance
         mock_get_cls.return_value = backend_cls
         yield mock_get_cls, backend_instance

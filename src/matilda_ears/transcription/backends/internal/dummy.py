@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..base import TranscriptionBackend
+from ...transcript import Transcript
 
 
 class DummyBackend(TranscriptionBackend):
@@ -16,9 +17,15 @@ class DummyBackend(TranscriptionBackend):
     async def load(self):
         self._ready = True
 
-    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         # Keep output deterministic and cheap; ignore audio_path contents.
-        return self._text, {"duration": 0.0, "language": language}
+        return Transcript(
+            text=self._text,
+            segments=(),
+            language=language,
+            duration=0.0,
+            backend="dummy",
+        )
 
     @property
     def is_ready(self) -> bool:

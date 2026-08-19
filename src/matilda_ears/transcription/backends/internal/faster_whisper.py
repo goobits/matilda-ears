@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from ..base import TranscriptionBackend
+from ...transcript import Transcript, TranscriptSegment
 from ....core.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ class FasterWhisperBackend(TranscriptionBackend):
             logger.exception(f"Failed to load Faster Whisper model: {e}")
             raise
 
-    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         if self.model is None:
             raise RuntimeError("Model not loaded")
 
@@ -69,35 +70,23 @@ class FasterWhisperBackend(TranscriptionBackend):
             no_speech_threshold=self.no_speech_threshold,
         )
 
-        # Collect segments and extract word timestamps
         all_segments = list(segments)
-        text = "".join([segment.text for segment in all_segments]).strip()
-
-        # Extract word-level timestamps for LocalAgreement streaming
-        words = []
-        if self.word_timestamps:
-            for segment in all_segments:
-                word_items = getattr(segment, "words", None)
-                if not word_items:
-                    continue
-                try:
-                    for word in word_items:
-                        words.append(
-                            {
-                                "word": word.word,
-                                "start": word.start,
-                                "end": word.end,
-                                "probability": word.probability,
-                            }
-                        )
-                except TypeError:
-                    logger.debug("Skipping non-iterable word timestamps")
-
-        return text, {
-            "duration": info.duration,
-            "language": info.language,
-            "words": words,
-        }
+        transcript_segments = tuple(
+            TranscriptSegment(
+                start=float(segment.start),
+                end=float(segment.end),
+                text=str(segment.text).strip(),
+            )
+            for segment in all_segments
+            if str(segment.text).strip()
+        )
+        return Transcript(
+            text="".join(str(segment.text) for segment in all_segments).strip(),
+            segments=transcript_segments,
+            language=str(info.language) if info.language else None,
+            duration=float(info.duration) if info.duration is not None else None,
+            backend="faster_whisper",
+        )
 
     @property
     def is_ready(self) -> bool:

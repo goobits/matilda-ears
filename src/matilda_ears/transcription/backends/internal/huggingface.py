@@ -24,10 +24,10 @@ Usage in config.toml:
 import asyncio
 import importlib
 import logging
-import time
 from typing import Any
 
 from ..base import TranscriptionBackend
+from ...transcript import Transcript
 from ....core.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -195,21 +195,16 @@ class HuggingFaceBackend(TranscriptionBackend):
 
         return pipe
 
-    def transcribe(self, audio_path: str, language: str = "en") -> tuple[str, dict]:
+    def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         """Transcribe audio using the HuggingFace ASR model.
 
         Args:
             audio_path: Path to the audio file.
             language: Language code (used for multilingual models like Whisper).
 
-        Returns:
-            Tuple of (transcribed_text, metadata_dict).
-
         """
         if self.pipe is None:
             raise RuntimeError("Model not loaded. Call load() first.")
-
-        start_time = time.time()
 
         try:
             # Build generation kwargs for multilingual models
@@ -248,16 +243,13 @@ class HuggingFaceBackend(TranscriptionBackend):
             # Post-process: Remove obvious repetitions (Whisper hallucination artifact)
             text = self._remove_repetitions(text)
 
-            # Calculate processing time
-            processing_time = time.time() - start_time
-
-            return text, {
-                "duration": processing_time,  # Processing time, not audio duration
-                "language": language,
-                "backend": "huggingface",
-                "model": self.model_id,
-                "device": self.device,
-            }
+            return Transcript(
+                text=text,
+                segments=(),
+                language=language,
+                duration=None,
+                backend="huggingface",
+            )
 
         except Exception as e:
             logger.error(f"HuggingFace transcription failed: {e}")
