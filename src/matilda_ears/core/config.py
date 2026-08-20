@@ -93,11 +93,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "tools": {"audio": {"linux": "arecord", "darwin": "ffmpeg", "windows": "ffmpeg"}},
     "paths": {
-        "venv": {
-            "linux": "venv/bin/python",
-            "darwin": "venv/bin/python",
-            "windows": "venv\\Scripts\\python.exe",
-        },
         "temp_dir": {
             "linux": DEFAULT_TEMP_DIR,
             "darwin": DEFAULT_TEMP_DIR,
@@ -124,7 +119,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "wake_word": {
             "enabled": False,
             "agent_aliases": [{"agent": "Matilda", "aliases": ["hey_matilda", "computer", "hey_jarvis"]}],
-            "agents": ["Matilda"],
             "threshold": 0.5,
             "vad_threshold": 0.5,
             "hysteresis": 0.2,
@@ -203,7 +197,6 @@ class ConfigLoader:
         if self._platform == "darwin":
             self._platform = "darwin"  # Keep as darwin for config lookup
 
-        self.project_dir = str(Path(__file__).resolve().parents[2])
         self._setup_paths()
 
     def _default_config_path(self) -> Path:
@@ -214,10 +207,6 @@ class ConfigLoader:
 
     def _setup_paths(self) -> None:
         """Setup platform-specific paths"""
-        # Virtual environment Python
-        venv_path = self.get(f"paths.venv.{self._platform}", "venv/bin/python")
-        self.venv_python = os.path.join(self.project_dir, venv_path)
-
         # Temp directory
         if os.environ.get("EARS_TEMP_DIR"):
             self.temp_dir = os.environ["EARS_TEMP_DIR"]
@@ -426,48 +415,6 @@ class ConfigLoader:
 
         return backend
 
-    def get_hotkey_config(self, key_name: str) -> dict[str, Any]:
-        """Get configuration for a specific hotkey from array"""
-        hotkeys = self.get("hotkeys", [])
-        platform_key = self._get_platform_key()
-
-        # Search for hotkey that matches the key_name on current platform
-        for hotkey in hotkeys:
-            if hotkey.get(platform_key, "").lower() == key_name.lower():
-                return dict(hotkey)
-
-        # Fallback: search all platforms for the key
-        for hotkey in hotkeys:
-            for platform_name in ["linux", "mac", "windows"]:
-                if hotkey.get(platform_name, "").lower() == key_name.lower():
-                    return dict(hotkey)
-
-        return {}
-
-    def get_all_hotkeys(self) -> list[dict[str, Any]]:
-        """Get all hotkey configurations"""
-        return list(self.get("hotkeys", []))
-
-    def get_hotkeys_for_platform(self, platform: str | None = None) -> list[dict[str, Any]]:
-        """Get all hotkeys for a specific platform"""
-        if platform is None:
-            platform = self._get_platform_key()
-
-        hotkeys = self.get("hotkeys", [])
-        result = []
-        for hotkey in hotkeys:
-            if platform in hotkey:
-                result.append({"key": hotkey[platform], "name": hotkey.get("name", "Unknown"), "config": hotkey})
-        return result
-
-    def _get_platform_key(self) -> str:
-        """Get platform key for hotkey config"""
-        if self._platform == "darwin":
-            return "mac"
-        if self._platform == "win32":
-            return "windows"
-        return "linux"
-
     def get_audio_tool(self) -> str:
         """Get platform-specific audio tool"""
         tools = self.get(f"tools.audio.{self._platform}", "arecord")
@@ -491,21 +438,6 @@ class ConfigLoader:
 
         # Fall back to custom timing values
         return float(self.get(f"timing.{name}", 0.1))
-
-    def get_file_path(self, file_type: str, key_name: str = "f8") -> str:
-        """Get file path for a specific file type and key"""
-        template = self.get(f"file_naming.templates.{file_type}", f"matilda_{key_name}_{file_type}")
-
-        # Replace {key} placeholder
-        filename = template.replace("{key}", key_name.lower())
-
-        # Log files go to logs directory, everything else to temp
-        if file_type == "debug_log":
-            log_dir = os.path.join(self.project_dir, "logs")
-            os.makedirs(log_dir, mode=0o755, exist_ok=True)
-            return os.path.join(log_dir, filename)
-
-        return str(os.path.join(self.temp_dir, filename))
 
     def get_filter_phrases(self) -> list[str]:
         """Get text filter phrases"""
@@ -630,16 +562,6 @@ class ConfigLoader:
         """Get whether to auto-detect whisper for server mode"""
         return bool(self.get("server.embedded_server.auto_detect_whisper", True))
 
-    @property
-    def visualizer_engine(self) -> str:
-        """Get the visualizer engine to use (instant or web)"""
-        return str(self.get("visualizer.engine", "instant"))
-
-    @property
-    def visualizer_enabled(self) -> bool:
-        """Get whether visualizer is enabled"""
-        return bool(self.get("visualizer.enabled", True))
-
     # Additional properties needed for daemon functionality
     @property
     def filter_phrases(self) -> list[str]:
@@ -674,20 +596,6 @@ class ConfigLoader:
     @property
     def server_stop_delay(self) -> float:
         return self.get_timing("server_stop_delay")
-
-    def get_visualizer_file(self, key_name: str = "f8") -> str:
-        return self.get_file_path("visualizer_pid", key_name)
-
-    def get_audio_file(self, key_name: str = "f8") -> str:
-        return self.get_file_path("audio", key_name)
-
-    def get_visualizer_command(self, key_name: str, pid_file: str) -> list[str]:
-        """Get complete visualizer command with arguments"""
-        script_path = os.path.join(self.project_dir, "src", "visualizers", "visualizer.py")
-        hotkey_config = self.get_hotkey_config(key_name.lower())
-        # Use new "display" field with fallback to old "visualizer" field
-        display_type = hotkey_config.get("display", hotkey_config.get("visualizer", "circular"))
-        return [self.venv_python, script_path, display_type, pid_file, "--key", key_name.lower()]
 
     @property
     def filename_formats(self) -> dict[str, str]:
@@ -754,14 +662,3 @@ def get_config() -> ConfigLoader:
 
 # Re-export logging functions
 from .logging import get_logger, setup_logging  # noqa: E402, F401
-
-if __name__ == "__main__":
-    # Test the config loader
-    logger = get_logger(__name__)
-    loader = get_config()
-    logger.info(f"WebSocket Port: {loader.websocket_port}")
-    logger.info(f"Whisper Model: {loader.whisper_model}")
-    logger.info(f"F8 Config: {loader.get_hotkey_config('f8')}")
-    logger.info(f"Audio Tool: {loader.get_audio_tool()}")
-    logger.info(f"Recording file (f8): {loader.get_file_path('recording_pid', 'f8')}")
-    logger.info(f"Recording file (f9): {loader.get_file_path('recording_pid', 'f9')}")

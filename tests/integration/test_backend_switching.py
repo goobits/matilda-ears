@@ -123,11 +123,6 @@ compute_type = "int8"
 [ears.parakeet]
 model = "mlx-community/parakeet-tdt-0.6b-v3"
 
-[ears.paths.venv]
-linux = "venv/bin/python"
-darwin = "venv/bin/python"
-windows = "venv\\\\Scripts\\\\python.exe"
-
 [ears.paths.temp_dir]
 linux = "/tmp/test-stt"
 darwin = "/tmp/test-stt"
