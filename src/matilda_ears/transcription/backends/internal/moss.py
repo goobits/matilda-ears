@@ -10,7 +10,6 @@ import subprocess
 import tempfile
 import wave
 from concurrent.futures import ThreadPoolExecutor
-from difflib import SequenceMatcher
 from pathlib import Path
 
 from ....core.config import get_config
@@ -21,7 +20,6 @@ from ..base import TranscriptionBackend
 logger = logging.getLogger(__name__)
 
 _SPEAKER_PATTERN = re.compile(r"^S\d{2,}$")
-_WORD_PATTERN = re.compile(r"[\w']+")
 
 
 class MossBackend(TranscriptionBackend):
@@ -36,7 +34,8 @@ class MossBackend(TranscriptionBackend):
         self.workers = int(os.environ.get("EARS_MOSS_WORKERS") or config.get("moss.workers", 1))
         self.token_limit = int(config.get("moss.token_limit", 4096))
         self.chunk_seconds = float(config.get("moss.chunk_seconds", 150))
-        self.overlap_seconds = float(config.get("moss.overlap_seconds", 30))
+        self.anchor_seconds = float(config.get("moss.anchor_seconds", 15))
+        self.overlap_seconds = float(config.get("moss.overlap_seconds", 15))
         self.temp_dir = Path(config.temp_dir)
         self.binary: Path | None = None
         self.model: Path | None = None
@@ -58,8 +57,11 @@ class MossBackend(TranscriptionBackend):
             )
         if self.threads < 1 or self.workers < 1 or self.token_limit < 1:
             raise ValueError("MOSS threads, workers, and token_limit must be positive")
-        if self.chunk_seconds <= 0 or not 0 < self.overlap_seconds < self.chunk_seconds:
-            raise ValueError("MOSS overlap_seconds must be positive and smaller than chunk_seconds")
+        target_seconds = self.chunk_seconds - self.anchor_seconds
+        if self.chunk_seconds <= 0 or not 0 < self.anchor_seconds < self.chunk_seconds:
+            raise ValueError("MOSS anchor_seconds must be positive and smaller than chunk_seconds")
+        if not 0 < self.overlap_seconds < target_seconds:
+            raise ValueError("MOSS overlap_seconds must be positive and smaller than the unanchored chunk duration")
 
     def transcribe(self, audio_path: str, language: str = "en") -> Transcript:
         if not self.is_ready or self.binary is None or self.model is None:
@@ -85,18 +87,23 @@ class MossBackend(TranscriptionBackend):
         )
 
     def _transcribe_chunks(self, normalized: Path, duration: float, work_dir: Path) -> list[TranscriptSegment]:
-        starts = _chunk_starts(duration, self.chunk_seconds, self.overlap_seconds)
+        starts = _chunk_starts(duration, self.chunk_seconds, self.anchor_seconds, self.overlap_seconds)
         stitched: list[TranscriptSegment] = []
-        previous: list[TranscriptSegment] = []
+        speaker_anchor: list[TranscriptSegment] = []
         known_speakers: set[str] = set()
 
-        def transcribe_chunk(item: tuple[int, float]) -> tuple[float, float, list[TranscriptSegment]]:
+        def transcribe_chunk(item: tuple[int, float]) -> tuple[float, float, float, list[TranscriptSegment]]:
             index, start = item
-            end = min(start + self.chunk_seconds, duration)
             chunk_path = work_dir / f"chunk-{index:04d}.wav"
-            _write_wav_chunk(normalized, chunk_path, start, end)
+            prefix_seconds = 0.0 if index == 0 else self.anchor_seconds
+            target_seconds = self.chunk_seconds - prefix_seconds
+            end = min(start + target_seconds, duration)
+            if prefix_seconds:
+                _write_anchored_wav_chunk(normalized, chunk_path, prefix_seconds, start, end)
+            else:
+                _write_wav_chunk(normalized, chunk_path, start, end)
             logger.info("MOSS chunk %d/%d: %.2f-%.2f", index + 1, len(starts), start, end)
-            return start, end, self._run_chunk(chunk_path, end - start)
+            return start, end, prefix_seconds, self._run_chunk(chunk_path, prefix_seconds + end - start)
 
         items = list(enumerate(starts))
         executor: ThreadPoolExecutor | None = None
@@ -107,32 +114,33 @@ class MossBackend(TranscriptionBackend):
             chunks = executor.map(transcribe_chunk, items)
 
         try:
-            for start, end, local in chunks:
+            for start, end, prefix_seconds, local in chunks:
+                if prefix_seconds:
+                    local = _align_speakers(
+                        speaker_anchor,
+                        local,
+                        overlap_start=0,
+                        overlap_end=prefix_seconds,
+                        known_speakers=known_speakers,
+                    )
                 current = [
                     TranscriptSegment(
-                        start=min(start + segment.start, duration),
-                        end=min(start + segment.end, duration),
+                        start=min(start + max(0, segment.start - prefix_seconds), duration),
+                        end=min(start + max(0, segment.end - prefix_seconds), duration),
                         speaker=segment.speaker,
                         text=segment.text,
                     )
                     for segment in local
-                    if start + segment.start < duration
+                    if segment.end > prefix_seconds and start + max(0, segment.start - prefix_seconds) < duration
                 ]
-                current = _reconcile_speakers(
-                    previous,
-                    current,
-                    overlap_start=start,
-                    overlap_end=min(start + self.overlap_seconds, end),
-                    known_speakers=known_speakers,
-                )
                 known_speakers.update(segment.speaker for segment in current if segment.speaker)
                 if not stitched:
                     stitched = current
+                    speaker_anchor = [segment for segment in local if _midpoint(segment) < self.anchor_seconds]
                 else:
                     seam = start + self.overlap_seconds / 2
                     stitched = [segment for segment in stitched if _midpoint(segment) < seam]
                     stitched.extend(segment for segment in current if _midpoint(segment) >= seam)
-                previous = current
         finally:
             if executor is not None:
                 executor.shutdown(cancel_futures=True)
@@ -228,10 +236,37 @@ def _write_wav_chunk(source_path: Path, output_path: Path, start: float, end: fl
             output.writeframes(frames)
 
 
-def _chunk_starts(duration: float, chunk_seconds: float, overlap_seconds: float) -> list[float]:
+def _write_anchored_wav_chunk(
+    source_path: Path,
+    output_path: Path,
+    anchor_seconds: float,
+    start: float,
+    end: float,
+) -> None:
+    with wave.open(str(source_path), "rb") as source:
+        frame_rate = source.getframerate()
+        anchor_frames = source.readframes(min(round(anchor_seconds * frame_rate), source.getnframes()))
+        source.setpos(min(round(start * frame_rate), source.getnframes()))
+        target_frames = source.readframes(max(0, round((end - start) * frame_rate)))
+        with wave.open(str(output_path), "wb") as output:
+            output.setparams(source.getparams())
+            output.writeframes(anchor_frames)
+            output.writeframes(target_frames)
+
+
+def _chunk_starts(
+    duration: float,
+    chunk_seconds: float,
+    anchor_seconds: float,
+    overlap_seconds: float,
+) -> list[float]:
     starts = [0.0]
-    while starts[-1] + chunk_seconds < duration:
-        starts.append(starts[-1] + chunk_seconds - overlap_seconds)
+    target_seconds = chunk_seconds - anchor_seconds
+    while starts[-1] + (chunk_seconds if len(starts) == 1 else target_seconds) < duration:
+        if len(starts) == 1:
+            starts.append(chunk_seconds - overlap_seconds)
+        else:
+            starts.append(starts[-1] + target_seconds - overlap_seconds)
     return starts
 
 
@@ -260,7 +295,7 @@ def _parse_segments(payload: object, duration: float) -> list[TranscriptSegment]
     return segments
 
 
-def _reconcile_speakers(
+def _align_speakers(
     previous: list[TranscriptSegment],
     current: list[TranscriptSegment],
     *,
@@ -270,31 +305,37 @@ def _reconcile_speakers(
 ) -> list[TranscriptSegment]:
     local_speakers = _speakers_in_order(current)
     mapping: dict[str, str] = {}
-    previous_text = _overlap_text_by_speaker(previous, overlap_start, overlap_end)
-    current_text = _overlap_text_by_speaker(current, overlap_start, overlap_end)
+    previous_speakers = _speakers_in_window(previous, overlap_start, overlap_end)
+    current_speakers = _speakers_in_window(current, overlap_start, overlap_end)
     candidates = sorted(
         (
-            SequenceMatcher(None, current_text[local], previous_text[global_label]).ratio(),
+            _speaker_time_overlap(
+                previous,
+                current,
+                global_label,
+                local,
+                overlap_start,
+                overlap_end,
+            ),
             local,
             global_label,
         )
-        for local in current_text
-        for global_label in previous_text
+        for local in current_speakers
+        for global_label in previous_speakers
     )
     used_global: set[str] = set()
     for score, local, global_label in reversed(candidates):
-        if score < 0.25 or local in mapping or global_label in used_global:
+        if score <= 0 or local in mapping or global_label in used_global:
             continue
         mapping[local] = global_label
         used_global.add(global_label)
 
-    remaining_global = sorted(known_speakers - used_global, key=_speaker_number)
     for local in local_speakers:
         if local in mapping:
             continue
-        if remaining_global:
-            mapping[local] = remaining_global.pop(0)
-            used_global.add(mapping[local])
+        if local not in used_global:
+            mapping[local] = local
+            used_global.add(local)
         else:
             global_label = _next_speaker(known_speakers | used_global)
             mapping[local] = global_label
@@ -311,15 +352,35 @@ def _reconcile_speakers(
     ]
 
 
-def _overlap_text_by_speaker(
-    segments: list[TranscriptSegment], overlap_start: float, overlap_end: float
-) -> dict[str, str]:
-    grouped: dict[str, list[str]] = {}
-    for segment in segments:
-        if not segment.speaker or segment.end <= overlap_start or segment.start >= overlap_end:
+def _speakers_in_window(segments: list[TranscriptSegment], start: float, end: float) -> list[str]:
+    return list(
+        dict.fromkeys(
+            segment.speaker for segment in segments if segment.speaker and segment.end > start and segment.start < end
+        )
+    )
+
+
+def _speaker_time_overlap(
+    previous: list[TranscriptSegment],
+    current: list[TranscriptSegment],
+    global_label: str,
+    local_label: str,
+    overlap_start: float,
+    overlap_end: float,
+) -> float:
+    total = 0.0
+    for left in previous:
+        if left.speaker != global_label:
             continue
-        grouped.setdefault(segment.speaker, []).extend(_WORD_PATTERN.findall(segment.text.lower()))
-    return {speaker: " ".join(words) for speaker, words in grouped.items() if words}
+        left_start = max(left.start, overlap_start)
+        left_end = min(left.end, overlap_end)
+        for right in current:
+            if right.speaker != local_label:
+                continue
+            intersection_start = max(left_start, right.start, overlap_start)
+            intersection_end = min(left_end, right.end, overlap_end)
+            total += max(0.0, intersection_end - intersection_start)
+    return total
 
 
 def _speakers_in_order(segments: list[TranscriptSegment]) -> list[str]:

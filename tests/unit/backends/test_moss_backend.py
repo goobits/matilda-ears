@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import struct
 import subprocess
 import threading
+import wave
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,9 +13,9 @@ import pytest
 from matilda_ears.transcription.backends.internal import moss
 from matilda_ears.transcription.backends.internal.moss import (
     MossBackend,
+    _align_speakers,
     _chunk_starts,
     _parse_segments,
-    _reconcile_speakers,
 )
 from matilda_ears.transcription.transcript import TranscriptSegment
 
@@ -27,15 +29,30 @@ def _config(tmp_path: Path, **overrides):
         "moss.workers": 1,
         "moss.token_limit": 4096,
         "moss.chunk_seconds": 150,
-        "moss.overlap_seconds": 30,
+        "moss.anchor_seconds": 15,
+        "moss.overlap_seconds": 15,
         **overrides,
     }
     return SimpleNamespace(temp_dir=str(tmp_path), get=lambda key, default=None: values.get(key, default))
 
 
 def test_chunk_starts_stop_when_the_last_chunk_reaches_the_end() -> None:
-    assert _chunk_starts(4028.288, 150, 30)[-1] == 3960
-    assert len(_chunk_starts(4028.288, 150, 30)) == 34
+    assert _chunk_starts(4028.288, 150, 15, 15)[-1] == 3975
+    assert len(_chunk_starts(4028.288, 150, 15, 15)) == 34
+
+
+def test_anchored_chunk_prepends_reference_audio(tmp_path: Path) -> None:
+    source = tmp_path / "source.wav"
+    output = tmp_path / "anchored.wav"
+    with wave.open(str(source), "wb") as audio:
+        audio.setparams((1, 2, 10, 0, "NONE", "not compressed"))
+        audio.writeframes(struct.pack("<100h", *range(100)))
+
+    moss._write_anchored_wav_chunk(source, output, anchor_seconds=2, start=5, end=7)
+
+    with wave.open(str(output), "rb") as audio:
+        samples = struct.unpack("<40h", audio.readframes(40))
+    assert samples == (*range(20), *range(50, 70))
 
 
 def test_parse_segments_validates_and_clamps_native_output() -> None:
@@ -51,22 +68,22 @@ def test_parse_segments_validates_and_clamps_native_output() -> None:
         _parse_segments([{"start": "nan", "end": 1, "speaker": "S01", "text": "Hi"}], 10)
 
 
-def test_reconcile_speakers_handles_chunk_local_label_swap() -> None:
+def test_align_speakers_handles_chunk_local_label_swap() -> None:
     previous = [
-        TranscriptSegment(120.2, 149.69, "Your mission is helping people rebuild their lives.", "S02"),
-        TranscriptSegment(149.72, 150.0, "Back.", "S01"),
+        TranscriptSegment(0.2, 9.69, "Your mission is helping people rebuild their lives.", "S02"),
+        TranscriptSegment(9.72, 10.0, "Back.", "S01"),
     ]
     current = [
-        TranscriptSegment(120.12, 149.63, "Your mission is helping people rebuild their lives.", "S01"),
-        TranscriptSegment(149.64, 150.14, "Back.", "S02"),
-        TranscriptSegment(150.14, 151.0, "Directed.", "S01"),
+        TranscriptSegment(0.12, 9.63, "Different words do not affect alignment.", "S01"),
+        TranscriptSegment(9.64, 10.14, "Also different.", "S02"),
+        TranscriptSegment(20.14, 21.0, "Directed.", "S01"),
     ]
 
-    reconciled = _reconcile_speakers(
+    reconciled = _align_speakers(
         previous,
         current,
-        overlap_start=120,
-        overlap_end=150,
+        overlap_start=0,
+        overlap_end=15,
         known_speakers={"S01", "S02"},
     )
 
@@ -109,15 +126,16 @@ def test_native_process_failure_is_not_hidden(monkeypatch, tmp_path) -> None:
 def test_chunk_workers_are_bounded_and_results_stay_ordered(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(moss, "get_config", lambda: _config(tmp_path, **{"moss.workers": 2}))
     monkeypatch.setattr(moss, "_write_wav_chunk", lambda *args: None)
+    monkeypatch.setattr(moss, "_write_anchored_wav_chunk", lambda *args: None)
     barrier = threading.Barrier(2)
     backend = MossBackend()
 
     def run_chunk(_path, _duration):
         barrier.wait(timeout=2)
-        return [TranscriptSegment(20, 21, "Concurrent.", "S01")]
+        return [TranscriptSegment(30, 31, "Concurrent.", "S01")]
 
     monkeypatch.setattr(backend, "_run_chunk", run_chunk)
 
     segments = backend._transcribe_chunks(Path("audio.wav"), 270, tmp_path)
 
-    assert [segment.start for segment in segments] == [20, 140]
+    assert [segment.start for segment in segments] == [30, 150]

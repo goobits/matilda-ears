@@ -48,7 +48,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "workers": 1,
         "token_limit": 4096,
         "chunk_seconds": 150,
-        "overlap_seconds": 30,
+        "anchor_seconds": 15,
+        "overlap_seconds": 15,
     },
     "streaming": {
         "enabled": False,
