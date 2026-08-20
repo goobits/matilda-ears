@@ -56,11 +56,10 @@ async def test_file_not_found(mock_config):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("extension", ["aac", "aiff", "flac", "m4a", "mp3", "mp4", "ogg", "opus", "wav", "webm", "wma"])
-async def test_decoder_supported_formats_reach_backend(mock_config, extension):
+async def test_file_extension_is_deferred_to_backend(mock_config):
     # Setup
     with patch("pathlib.Path.is_file", return_value=True):
-        config = FileTranscribeConfig(file=f"test.{extension}")
+        config = FileTranscribeConfig(file="test.uncommon-audio")
         mode = FileTranscribeMode(config)
         mode._send_status = AsyncMock()
         mode._send_result = AsyncMock()
