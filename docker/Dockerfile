@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:2c941e860699f878900b0edc2403613c234d4b32eda3cc9fa7036991a2a63c4a
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -15,11 +15,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/matilda-ears
+COPY matilda-ears/docker/requirements.txt /tmp/requirements.txt
+RUN python -m pip install --no-cache-dir --require-hashes --requirement /tmp/requirements.txt
+
 COPY matilda-transport /app/matilda-transport
 COPY matilda-ears /app/matilda-ears
 
-RUN python -m pip install --no-cache-dir --editable /app/matilda-transport \
-    && python -m pip install --no-cache-dir --editable ".[whisper,docker]" \
+RUN python -m pip install --no-cache-dir --no-build-isolation --no-deps --editable /app/matilda-transport \
+    && python -m pip install --no-cache-dir --no-build-isolation --no-deps --editable . \
     && useradd --create-home --uid 10001 matilda \
     && mkdir -p /app/data /app/logs /home/matilda/.cache/huggingface \
     && chown -R matilda:matilda /app/data /app/logs /home/matilda
