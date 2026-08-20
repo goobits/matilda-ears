@@ -6,7 +6,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 from matilda_ears.modes.base_mode import BaseMode
 from matilda_ears.transcription.backends import backend_supports, normalize_backend_name
@@ -15,15 +15,10 @@ from matilda_ears.transcription.backends import backend_supports, normalize_back
 class FileTranscribeMode(BaseMode):
     """Transcribe audio from a file."""
 
-    SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
-
     async def run(self):
         file_path = Path(self.mode_config.file)
-        if not await asyncio.to_thread(file_path.exists):
+        if not await asyncio.to_thread(file_path.is_file):
             await self._send_error(f"File not found: {file_path}")
-            return
-        if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
-            await self._send_error(f"Unsupported format: {file_path.suffix}. Supported: {self.SUPPORTED_EXTENSIONS}")
             return
 
         await self._send_status("initializing", "Loading model...")
