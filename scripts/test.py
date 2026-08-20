@@ -33,7 +33,7 @@ def _version() -> str:
 def _environment_ready(python: Path) -> bool:
     if not python.exists():
         return False
-    probe = "import matilda_ears,matilda_transport,pytest,pytest_cov,xdist,yaml"
+    probe = "import matilda_ears,matilda_i18n,matilda_transport,pytest,pytest_cov,xdist,yaml"
     return (
         subprocess.run(
             [str(python), "-c", probe],
@@ -57,10 +57,12 @@ def _ensure_test_environment() -> None:
             venv.EnvBuilder(with_pip=True).create(TEST_ENV)
 
         environment = {**os.environ, "PIP_DISABLE_PIP_VERSION_CHECK": "1"}
-        transport = ROOT.parent / "matilda-transport"
-        if transport.is_dir():
+        for dependency in ("i18n", "matilda-transport"):
+            dependency_dir = ROOT.parent / dependency
+            if not dependency_dir.is_dir():
+                continue
             subprocess.run(
-                [str(python), "-m", "pip", "install", "-q", "-e", str(transport)],
+                [str(python), "-m", "pip", "install", "-q", "-e", str(dependency_dir)],
                 env=environment,
                 check=True,
             )
@@ -91,7 +93,9 @@ def _examples() -> str:
 
 
 def _run_helper(name: str, arguments: list[str]) -> int:
-    return subprocess.run([sys.executable, str(ROOT / "scripts" / name), *arguments], check=False).returncode
+    return subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / name), *arguments], check=False
+    ).returncode
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -149,17 +153,28 @@ def main() -> int:
         command.append("--track-diff")
 
     if known.coverage:
-        command.extend(["--cov=matilda_ears", "--cov-report=term-missing", "--cov-report=html"])
+        command.extend(
+            ["--cov=matilda_ears", "--cov-report=term-missing", "--cov-report=html"]
+        )
     if known.summary:
         command.extend(["--summary", "-q", "--tb=no"])
-    elif not known.sequential and known.parallel != "off" and importlib.util.find_spec("xdist"):
+    elif (
+        not known.sequential
+        and known.parallel != "off"
+        and importlib.util.find_spec("xdist")
+    ):
         workers = known.parallel if known.parallel != "auto" else "auto"
-        if not any(argument == "-n" or argument.startswith("-n") for argument in pytest_args):
+        if not any(
+            argument == "-n" or argument.startswith("-n") for argument in pytest_args
+        ):
             command.extend(["-n", workers])
 
     if known.verbose and "-v" not in pytest_args:
         command.append("-v")
-    if not any(not argument.startswith("-") for argument in pytest_args) and not known.test:
+    if (
+        not any(not argument.startswith("-") for argument in pytest_args)
+        and not known.test
+    ):
         command.append("tests")
 
     return subprocess.run(command, check=False, cwd=ROOT).returncode
