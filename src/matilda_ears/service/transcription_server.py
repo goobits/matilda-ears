@@ -161,7 +161,10 @@ async def start_server(server: MatildaWebSocketServer, host: str | None = None, 
             websocket_port = None
         elif transport.transport == "pipe":
             ensure_pipe_supported(transport)
-            pipe_runner = await _start_pipe_proxy(transport.endpoint, f"ws://{server_host}:{server_port}")
+            pipe_endpoint = transport.endpoint
+            if pipe_endpoint is None:
+                raise RuntimeError("pipe transport requires an endpoint")
+            pipe_runner = await _start_pipe_proxy(pipe_endpoint, f"ws://{server_host}:{server_port}")
 
         protocol = "wss" if server.ssl_enabled else "ws"
         async with websockets.serve(
