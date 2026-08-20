@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 keywords = [ "speech-to-text", "whisper", "transcription", "stt", "voice",]
 classifiers = [ "Development Status :: 4 - Beta", "Intended Audience :: Developers", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13",]
-dependencies = [ "websockets>=10.0,<18.0", "numpy>=1.21.0,<3.0", "cryptography>=42.0.0,<51.0", "PyJWT>=2.0.0,<3.0", "aiohttp>=3.8.0,<4.0", "click>=8.0.0,<9.0", "rich-click>=1.7.0,<2.0", "rich>=13.0.0,<16.0", "opuslib>=3.0.0,<4.0", "pydantic>=2.0.0,<3.0", "toml>=0.10.2,<1.0", "pyyaml>=6.0.1,<7.0", "huggingface-hub>=0.23.0,<2.0", "matilda-transport>=0.1.0",]
+dependencies = [ "websockets>=10.0,<18.0", "numpy>=1.21.0,<3.0", "cryptography>=42.0.0,<51.0", "PyJWT>=2.0.0,<3.0", "aiohttp>=3.8.0,<4.0", "click>=8.0.0,<9.0", "rich-click>=1.7.0,<2.0", "rich>=13.0.0,<16.0", "opuslib>=3.0.0,<4.0", "pydantic>=2.0.0,<3.0", "toml>=0.10.2,<1.0", "pyyaml>=6.0.1,<7.0", "huggingface-hub>=0.23.0,<2.0", "matilda-i18n>=0.1.0,<0.2.0", "matilda-transport>=0.1.0",]
 [[project.authors]]
 name = "GOOBITS Team"
 
@@ -105,7 +105,7 @@ module = [
   "parakeet_mlx.*",
   "mlx.*",
   "openwakeword.*",
-  "base_loader",
+  "matilda_i18n.*",
   "torch.*",
   "tqdm.*",
   "huggingface_hub.*",
