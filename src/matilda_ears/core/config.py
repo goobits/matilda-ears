@@ -45,11 +45,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "binary": "auto",
         "model": "q8_0",
         "threads": 8,
-        "workers": 1,
         "token_limit": 4096,
         "chunk_seconds": 150,
-        "anchor_seconds": 15,
-        "overlap_seconds": 15,
+        "reference_seconds": 10,
+        "overlap_seconds": 12,
     },
     "streaming": {
         "enabled": False,

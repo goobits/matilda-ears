@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import struct
 import subprocess
-import threading
 import wave
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,8 +14,10 @@ from matilda_ears.transcription.backends.internal.moss import (
     MossBackend,
     _align_speakers,
     _chunk_starts,
+    _deduplicate_boundary,
     _parse_segments,
     _stitch_seam,
+    _write_speaker_reference,
 )
 from matilda_ears.transcription.transcript import TranscriptSegment
 
@@ -27,33 +28,45 @@ def _config(tmp_path: Path, **overrides):
         "moss.binary": "missing-moss-transcribe",
         "moss.model": "q8_0",
         "moss.threads": 8,
-        "moss.workers": 1,
         "moss.token_limit": 4096,
         "moss.chunk_seconds": 150,
-        "moss.anchor_seconds": 15,
-        "moss.overlap_seconds": 15,
+        "moss.reference_seconds": 10,
+        "moss.overlap_seconds": 12,
         **overrides,
     }
     return SimpleNamespace(temp_dir=str(tmp_path), get=lambda key, default=None: values.get(key, default))
 
 
 def test_chunk_starts_stop_when_the_last_chunk_reaches_the_end() -> None:
-    assert _chunk_starts(4028.288, 150, 15, 15)[-1] == 3975
-    assert len(_chunk_starts(4028.288, 150, 15, 15)) == 34
+    assert _chunk_starts(4028.288, 150, 10, 12)[-1] == 3978
+    assert len(_chunk_starts(4028.288, 150, 10, 12)) == 32
 
 
-def test_anchored_chunk_prepends_reference_audio(tmp_path: Path) -> None:
+def test_speaker_reference_uses_complete_excerpt_for_each_speaker(tmp_path: Path) -> None:
     source = tmp_path / "source.wav"
-    output = tmp_path / "anchored.wav"
+    output = tmp_path / "reference.wav"
     with wave.open(str(source), "wb") as audio:
         audio.setparams((1, 2, 10, 0, "NONE", "not compressed"))
         audio.writeframes(struct.pack("<100h", *range(100)))
 
-    moss._write_anchored_wav_chunk(source, output, anchor_seconds=2, start=5, end=7)
+    reference, duration = _write_speaker_reference(
+        source,
+        output,
+        [
+            TranscriptSegment(1, 3.5, "Speaker one.", "S01"),
+            TranscriptSegment(5, 7.5, "Speaker two.", "S02"),
+        ],
+        budget_seconds=6,
+    )
 
     with wave.open(str(output), "rb") as audio:
-        samples = struct.unpack("<40h", audio.readframes(40))
-    assert samples == (*range(20), *range(50, 70))
+        samples = struct.unpack("<52h", audio.readframes(52))
+    assert samples == (*range(10, 35), 0, 0, *range(50, 75))
+    assert duration == 5.2
+    assert reference == [
+        TranscriptSegment(0, 2.5, "Speaker one.", "S01"),
+        TranscriptSegment(2.7, 5.2, "Speaker two.", "S02"),
+    ]
 
 
 def test_parse_segments_validates_and_clamps_native_output() -> None:
@@ -141,6 +154,45 @@ def test_stitch_seam_falls_back_to_midpoint_without_shared_silence() -> None:
     assert _stitch_seam(previous, current, start=100, end=110) == 105
 
 
+def test_stitch_seam_uses_current_boundary_instead_of_dropping_both_segments() -> None:
+    previous = [TranscriptSegment(142.18, 149.69, "Whole phrase.", "S02")]
+    current = [
+        TranscriptSegment(142.2, 145.04, "First half.", "S02"),
+        TranscriptSegment(147.14, 149.64, "Second half.", "S02"),
+    ]
+
+    assert _stitch_seam(previous, current, start=138, end=150) == 143.62
+
+
+def test_boundary_deduplication_trims_repeated_sentence_prefix() -> None:
+    previous = [TranscriptSegment(264.32, 269, "And then now, you know, our customers call us for jobs, right?", "S01")]
+    current = [
+        TranscriptSegment(
+            266.45,
+            273.05,
+            "You know, our customers call us for jobs, right? We can allow this app where they can go on.",
+            "S01",
+        )
+    ]
+
+    result = _deduplicate_boundary(previous, current)
+
+    assert result[0].start == pytest.approx(269.5763)
+    assert result[0].end == 273.05
+    assert result[0].text == "We can allow this app where they can go on."
+    assert result[0].speaker == "S01"
+
+
+def test_boundary_deduplication_removes_fully_repeated_segment() -> None:
+    previous = [TranscriptSegment(2960.82, 2967, "So I have Alex. He's my branch manager now.", "S01")]
+    current = [
+        TranscriptSegment(2961.04, 2967.1, "I have Alex, he's my branch manager now.", "S01"),
+        TranscriptSegment(2968, 2970, "His job is dispatch.", "S01"),
+    ]
+
+    assert _deduplicate_boundary(previous, current) == current[1:]
+
+
 def test_load_reports_exact_runtime_recovery_command(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(moss, "get_config", lambda: _config(tmp_path))
     backend = MossBackend()
@@ -174,19 +226,30 @@ def test_native_process_failure_is_not_hidden(monkeypatch, tmp_path) -> None:
         backend._run_chunk(Path("audio.wav"), 30)
 
 
-def test_chunk_workers_are_bounded_and_results_stay_ordered(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(moss, "get_config", lambda: _config(tmp_path, **{"moss.workers": 2}))
+def test_chunks_run_sequentially_and_results_stay_ordered(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(moss, "get_config", lambda: _config(tmp_path))
     monkeypatch.setattr(moss, "_write_wav_chunk", lambda *args: None)
-    monkeypatch.setattr(moss, "_write_anchored_wav_chunk", lambda *args: None)
-    barrier = threading.Barrier(2)
+    monkeypatch.setattr(moss, "_write_prefixed_wav_chunk", lambda *args: None)
+    monkeypatch.setattr(
+        moss,
+        "_write_speaker_reference",
+        lambda *args, **kwargs: ([TranscriptSegment(0, 5, "Reference.", "S01")], 5),
+    )
     backend = MossBackend()
+    calls = []
 
-    def run_chunk(_path, _duration):
-        barrier.wait(timeout=2)
-        return [TranscriptSegment(30, 31, "Concurrent.", "S01")]
+    def run_chunk(path, _duration):
+        calls.append(path.name)
+        if path.name == "chunk-0000.wav":
+            return [TranscriptSegment(30, 31, "First.", "S01")]
+        return [
+            TranscriptSegment(0, 5, "Reference.", "S01"),
+            TranscriptSegment(15, 16, "Second.", "S01"),
+        ]
 
     monkeypatch.setattr(backend, "_run_chunk", run_chunk)
 
     segments = backend._transcribe_chunks(Path("audio.wav"), 270, tmp_path)
 
-    assert [segment.start for segment in segments] == [30, 150]
+    assert calls == ["chunk-0000.wav", "chunk-0001.wav"]
+    assert [segment.start for segment in segments] == [30, 148]
