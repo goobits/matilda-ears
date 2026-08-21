@@ -16,6 +16,7 @@ from matilda_ears.transcription.backends.internal.moss import (
     _align_speakers,
     _chunk_starts,
     _parse_segments,
+    _stitch_seam,
 )
 from matilda_ears.transcription.transcript import TranscriptSegment
 
@@ -80,14 +81,64 @@ def test_align_speakers_handles_chunk_local_label_swap() -> None:
     ]
 
     reconciled = _align_speakers(
-        previous,
         current,
-        overlap_start=0,
-        overlap_end=15,
+        comparisons=[(previous, current, 0, 15)],
         known_speakers={"S01", "S02"},
     )
 
     assert [segment.speaker for segment in reconciled] == ["S02", "S01", "S02"]
+
+
+def test_align_speakers_combines_reference_and_timeline_overlap() -> None:
+    reference = [
+        TranscriptSegment(0, 4, "Reference A.", "S01"),
+        TranscriptSegment(4, 8, "Reference B.", "S02"),
+    ]
+    local = [
+        TranscriptSegment(4, 8, "Reference B.", "S01"),
+        TranscriptSegment(0, 4, "Reference A.", "S02"),
+        TranscriptSegment(12, 16, "Timeline B.", "S01"),
+        TranscriptSegment(16, 20, "Timeline A.", "S02"),
+    ]
+    previous_timeline = [
+        TranscriptSegment(100, 104, "Timeline B.", "S02"),
+        TranscriptSegment(104, 108, "Timeline A.", "S01"),
+    ]
+    current_timeline = [
+        TranscriptSegment(100, 104, "Timeline B.", "S01"),
+        TranscriptSegment(104, 108, "Timeline A.", "S02"),
+    ]
+
+    reconciled = _align_speakers(
+        local,
+        comparisons=[
+            (reference, local, 0, 8),
+            (previous_timeline, current_timeline, 100, 108),
+        ],
+        known_speakers={"S01", "S02"},
+    )
+
+    assert [segment.speaker for segment in reconciled] == ["S02", "S01", "S02", "S01"]
+
+
+def test_stitch_seam_prefers_shared_silence_near_midpoint() -> None:
+    previous = [
+        TranscriptSegment(100, 103.5, "Before.", "S01"),
+        TranscriptSegment(106.5, 110, "After.", "S02"),
+    ]
+    current = [
+        TranscriptSegment(100.1, 104, "Before.", "S01"),
+        TranscriptSegment(106, 109.9, "After.", "S02"),
+    ]
+
+    assert _stitch_seam(previous, current, start=100, end=110) == 105
+
+
+def test_stitch_seam_falls_back_to_midpoint_without_shared_silence() -> None:
+    previous = [TranscriptSegment(100, 110, "Continuous.", "S01")]
+    current = [TranscriptSegment(100, 110, "Continuous.", "S01")]
+
+    assert _stitch_seam(previous, current, start=100, end=110) == 105
 
 
 def test_load_reports_exact_runtime_recovery_command(monkeypatch, tmp_path) -> None:

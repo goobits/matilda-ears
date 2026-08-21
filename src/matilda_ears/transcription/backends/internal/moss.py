@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import wave
 from concurrent.futures import ThreadPoolExecutor
+from itertools import pairwise
 from pathlib import Path
 
 from ....core.config import get_config
@@ -116,29 +117,34 @@ class MossBackend(TranscriptionBackend):
         try:
             for start, end, prefix_seconds, local in chunks:
                 if prefix_seconds:
+                    timeline_local = _offset_segments(
+                        local, start=start, prefix_seconds=prefix_seconds, duration=duration
+                    )
                     local = _align_speakers(
-                        speaker_anchor,
                         local,
-                        overlap_start=0,
-                        overlap_end=prefix_seconds,
+                        comparisons=[
+                            (speaker_anchor, local, 0, prefix_seconds),
+                            (
+                                stitched,
+                                timeline_local,
+                                start,
+                                min(start + self.overlap_seconds, end),
+                            ),
+                        ],
                         known_speakers=known_speakers,
                     )
-                current = [
-                    TranscriptSegment(
-                        start=min(start + max(0, segment.start - prefix_seconds), duration),
-                        end=min(start + max(0, segment.end - prefix_seconds), duration),
-                        speaker=segment.speaker,
-                        text=segment.text,
-                    )
-                    for segment in local
-                    if segment.end > prefix_seconds and start + max(0, segment.start - prefix_seconds) < duration
-                ]
+                current = _offset_segments(local, start=start, prefix_seconds=prefix_seconds, duration=duration)
                 known_speakers.update(segment.speaker for segment in current if segment.speaker)
                 if not stitched:
                     stitched = current
                     speaker_anchor = [segment for segment in local if _midpoint(segment) < self.anchor_seconds]
                 else:
-                    seam = start + self.overlap_seconds / 2
+                    seam = _stitch_seam(
+                        stitched,
+                        current,
+                        start=start,
+                        end=min(start + self.overlap_seconds, end),
+                    )
                     stitched = [segment for segment in stitched if _midpoint(segment) < seam]
                     stitched.extend(segment for segment in current if _midpoint(segment) >= seam)
         finally:
@@ -295,33 +301,58 @@ def _parse_segments(payload: object, duration: float) -> list[TranscriptSegment]
     return segments
 
 
+def _offset_segments(
+    segments: list[TranscriptSegment],
+    *,
+    start: float,
+    prefix_seconds: float,
+    duration: float,
+) -> list[TranscriptSegment]:
+    return [
+        TranscriptSegment(
+            start=min(start + max(0, segment.start - prefix_seconds), duration),
+            end=min(start + max(0, segment.end - prefix_seconds), duration),
+            speaker=segment.speaker,
+            text=segment.text,
+        )
+        for segment in segments
+        if segment.end > prefix_seconds and start + max(0, segment.start - prefix_seconds) < duration
+    ]
+
+
 def _align_speakers(
-    previous: list[TranscriptSegment],
     current: list[TranscriptSegment],
     *,
-    overlap_start: float,
-    overlap_end: float,
+    comparisons: list[tuple[list[TranscriptSegment], list[TranscriptSegment], float, float]],
     known_speakers: set[str],
 ) -> list[TranscriptSegment]:
     local_speakers = _speakers_in_order(current)
     mapping: dict[str, str] = {}
-    previous_speakers = _speakers_in_window(previous, overlap_start, overlap_end)
-    current_speakers = _speakers_in_window(current, overlap_start, overlap_end)
+    global_speakers = list(
+        dict.fromkeys(
+            speaker
+            for previous, _, overlap_start, overlap_end in comparisons
+            for speaker in _speakers_in_window(previous, overlap_start, overlap_end)
+        )
+    )
     candidates = sorted(
         (
-            _speaker_time_overlap(
-                previous,
-                current,
-                global_label,
-                local,
-                overlap_start,
-                overlap_end,
+            sum(
+                _speaker_time_overlap(
+                    previous,
+                    compared,
+                    global_label,
+                    local,
+                    overlap_start,
+                    overlap_end,
+                )
+                for previous, compared, overlap_start, overlap_end in comparisons
             ),
             local,
             global_label,
         )
-        for local in current_speakers
-        for global_label in previous_speakers
+        for local in local_speakers
+        for global_label in global_speakers
     )
     used_global: set[str] = set()
     for score, local, global_label in reversed(candidates):
@@ -350,6 +381,37 @@ def _align_speakers(
         )
         for segment in current
     ]
+
+
+def _stitch_seam(
+    previous: list[TranscriptSegment],
+    current: list[TranscriptSegment],
+    *,
+    start: float,
+    end: float,
+) -> float:
+    midpoint = (start + end) / 2
+    intervals = sorted(
+        (max(segment.start, start), min(segment.end, end))
+        for segment in (*previous, *current)
+        if segment.end > start and segment.start < end
+    )
+    if not intervals:
+        return midpoint
+
+    merged: list[tuple[float, float]] = []
+    for left, right in intervals:
+        if not merged or left > merged[-1][1]:
+            merged.append((left, right))
+        else:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], right))
+    gaps = [(left[1], right[0]) for left, right in pairwise(merged) if right[0] - left[1] >= 0.2]
+    if not gaps:
+        return midpoint
+    return min(
+        ((left + right) / 2 for left, right in gaps),
+        key=lambda candidate: abs(candidate - midpoint),
+    )
 
 
 def _speakers_in_window(segments: list[TranscriptSegment], start: float, end: float) -> list[str]:
