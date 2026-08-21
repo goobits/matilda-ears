@@ -21,7 +21,7 @@ text = "MIT"
 vad = [ "torch>=2.0.0,<3.0", "torchaudio>=2.0.0,<3.0", "silero-vad>=5.0.0,<7.0", "onnxruntime>=1.15.0,<2.0",]
 whisper = [ "faster-whisper>=1.0.0,<2.0", "ctranslate2>=4.0.0,<5.0",]
 mac = [ "mlx>=0.22.1,<1.0", "parakeet-mlx>=0.5.2,<0.6",]
-huggingface = [ "torch>=2.0.0,<3.0", "transformers>=4.36.0,<5.0", "accelerate>=0.25.0,<2.0",]
+huggingface = [ "torch>=2.0.0,<3.0", "transformers>=4.36.0,<6.0", "accelerate>=0.25.0,<2.0",]
 streaming = [ "torch>=2.0.0,<3.0", "librosa>=0.10.0,<1.0", "tiktoken>=0.5.0,<1.0",]
 wake_word = [ "openwakeword>=0.6.0,<1.0", "onnxruntime>=1.15.0,<2.0",]
 docker = [ "fastapi>=0.115.0,<1.0", "uvicorn>=0.30.0,<1.0", "python-multipart>=0.0.9,<1.0",]
