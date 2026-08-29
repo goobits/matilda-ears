@@ -3,8 +3,10 @@
 import io
 import os
 import wave
+
 import numpy as np
-import opuslib
+
+from .opus_library import opuslib
 
 MAX_BUFFER_SECONDS = int(os.getenv("MATILDA_EARS_MAX_STREAM_BUFFER_SECONDS", "120"))
 

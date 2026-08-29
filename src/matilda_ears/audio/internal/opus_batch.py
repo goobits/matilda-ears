@@ -3,7 +3,7 @@
 import io
 import wave
 import numpy as np
-import opuslib
+from .opus_library import opuslib
 
 # Setup standardized logging
 try:

@@ -1,7 +1,7 @@
 """Opus audio encoder for streaming audio to server."""
 
 import numpy as np
-import opuslib
+from .opus_library import opuslib
 
 from ..conversion import float32_to_int16
 
