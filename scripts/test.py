@@ -93,9 +93,7 @@ def _examples() -> str:
 
 
 def _run_helper(name: str, arguments: list[str]) -> int:
-    return subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / name), *arguments], check=False
-    ).returncode
+    return subprocess.run([sys.executable, str(ROOT / "scripts" / name), *arguments], check=False).returncode
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -153,28 +151,17 @@ def main() -> int:
         command.append("--track-diff")
 
     if known.coverage:
-        command.extend(
-            ["--cov=matilda_ears", "--cov-report=term-missing", "--cov-report=html"]
-        )
+        command.extend(["--cov=matilda_ears", "--cov-report=term-missing", "--cov-report=html"])
     if known.summary:
         command.extend(["--summary", "-q", "--tb=no"])
-    elif (
-        not known.sequential
-        and known.parallel != "off"
-        and importlib.util.find_spec("xdist")
-    ):
+    elif not known.sequential and known.parallel != "off" and importlib.util.find_spec("xdist"):
         workers = known.parallel if known.parallel != "auto" else "auto"
-        if not any(
-            argument == "-n" or argument.startswith("-n") for argument in pytest_args
-        ):
+        if not any(argument == "-n" or argument.startswith("-n") for argument in pytest_args):
             command.extend(["-n", workers])
 
     if known.verbose and "-v" not in pytest_args:
         command.append("-v")
-    if (
-        not any(not argument.startswith("-") for argument in pytest_args)
-        and not known.test
-    ):
+    if not any(not argument.startswith("-") for argument in pytest_args) and not known.test:
         command.append("tests")
 
     return subprocess.run(command, check=False, cwd=ROOT).returncode
